@@ -7,6 +7,7 @@ from __future__ import division  # for Python 2
 # playing with numba gridding
 import numba
 from numba import cuda
+import operator
 
 
 @cuda.jit()
@@ -24,11 +25,12 @@ def grid_visibilities(visdata, grid, us, vs, freqs):
                 grid[u, v] += visdata[m, i, j, n]
 
 
-@numba.vectorize([bool(complex64)])
+@numba.vectorize([numba.bool_(numba.complex64)])
 def get_mask(x):
     """ Returns equal sized array of 0/1 """
     
     return x != 0j
+
 
 @cuda.jit
 def meantsub(data):
@@ -37,13 +39,15 @@ def meantsub(data):
     x,y,z = cuda.grid(3)
     nint, nbl, nchan, npol = data.shape
     if x < nbl and y < nchan and z < npol:
-        sum = 0.j
+        sum = numba.complex64(0)
         weight = 0
         for i in range(nint):
-            sum += data[i, x, y, z]
-            weight += data[i, x, y, z] != 0j
+            sum = sum + data[i, x, y, z]
+            if data[i,x,y,z] == 0j:
+                weight = weight + 1
         mean = sum/weight
-        data[:, x, y, z] -= mean
+        for i in range(nint):
+            data[i, x, y, z] = data[i, x, y, z] - mean
 
 
 def runmeantsub(data):
