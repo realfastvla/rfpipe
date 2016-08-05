@@ -1,4 +1,4 @@
-from . import state source search
+from . import state, source, search
 import distributed
 
 # need to design state initialization as an avalanch of decisions set by initial state

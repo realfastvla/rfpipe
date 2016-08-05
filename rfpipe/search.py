@@ -2,12 +2,11 @@
 # state transformation stages should be in state
 from __future__ import division  # for Python 2
 
-
-
 # playing with numba gridding
-import numba
+import numba, math
 from numba import cuda
-import operator
+import numpy as np
+#import cProfile
 
 
 @cuda.jit()
@@ -17,20 +16,23 @@ def grid_visibilities(visdata, grid, us, vs, freqs):
 
     for i in xrange(nbl):
         for freq in freqs:
-        u = int(us[i]*freq/freq0)
-        v = int(vs[i]*freq/freq0)
+            u = int(us[i]*freq/freq0)
+            v = int(vs[i]*freq/freq0)
 
         for m in xrange(nint):
-            for n xrange(npol):
+            for n in xrange(npol):
                 grid[u, v] += visdata[m, i, j, n]
 
+def meantsub0(data):
+    """ Reference pure python function for meantsub """
 
-@numba.vectorize([numba.bool_(numba.complex64)])
-def get_mask(x):
-    """ Returns equal sized array of 0/1 """
+    nint, nbl, nchan, npol = data.shape
+    for i in range(nbl):
+        for j in range(nchan):
+            for k in range(npol):
+                nonzero = np.where(data[:,i,j,k] != 0j)
+                data[:,i,j,k] -= data[nonzero,i,j,k].mean()
     
-    return x != 0j
-
 
 @cuda.jit
 def meantsub(data):
@@ -50,18 +52,18 @@ def meantsub(data):
             data[i, x, y, z] = data[i, x, y, z] - mean
 
 
-def runmeantsub(data):
-    threadsperblock = (16, 16, 1)
-    blockspergrid_x = int(math.ceil(data.shape[0] / threadsperblock[0]))
-    blockspergrid_y = int(math.ceil(data.shape[1] / threadsperblock[1]))
-    blockspergrid_z = int(math.ceil(data.shape[2] / threadsperblock[2]))
-    blockspergrid = (blockspergrid_x, blockspergrid_y, blockspergrid_z)
-    meantsub[blockspergrid, threadsperblock](data)
+@numba.vectorize([numba.bool_(numba.complex64)])
+def get_mask(x):
+    """ Returns equal sized array of 0/1 """
+    
+    return x != 0j
+
 
 def correct_dm():
     """ Dispersion shift in place  """
 
     pass
+
 
 def correct_dt():
     """ Resample (integrate) in time """
@@ -81,8 +83,23 @@ def imagearm():
     pass
 
 
+def runcuda(func, data, threadsperblock, *args, **kwargs):
+    """ Function to run cuda kernels while defining threads/blocks """
 
-def run(data):
-    threadsperblock = 32
-    blockspergrid = (data.size + (threadsperblock - 1)) // threadperblock
-    grid_visibilities[blockspergrid, threadsperblock](data)
+    blockspergrid = []
+    for tpb, sh in threadsperblock, data.shape:
+        blockspergrid.append = int(math.ceil(sh / tpb))
+    func[tuple(blockspergrid), threadsperblock](data, *args, **kwargs)
+
+
+if __name__ == '__main__':
+    data = np.zeros(shape=(160,32,32,4), dtype='complex64')
+    data.real = np.random.normal(size=(160,32,32,4))
+    data.imag = np.random.normal(size=(160,32,32,4))
+#    cProfile.run('meantsub0(data); print')
+#    cProfile.run('runmeantsub(data); print')
+
+    runcuda(meantsub, data, (16,16,1))
+
+
+
