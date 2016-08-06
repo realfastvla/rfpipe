@@ -1,5 +1,6 @@
 from . import state, source, search
 import distributed
+import rtpipe
 
 # need to design state initialization as an avalanch of decisions set by initial state
 # 1) initial, minimal state defines either parameters for later use or fixes final state
@@ -36,3 +37,13 @@ def apply_metadata(st, sdmfile):
     state.set_dmgrid(st)
     state.set_imagegrid(st)
     state.set_segments(st)
+
+
+def pipeline(sdmfile, scan):
+    ex = distributed.Executor('nmpost029:8786')
+
+    st = ex.submit(rtpipe.RT.set_pipeline, sdmfile, scan, memory_limit=3)
+
+    nsegment = d['nsegment']
+    data = ex.map(rtpipe.parsesdm.read_bdf_segment(st, range(nsegment)))
+    uvw = ex.map(rtpipe.parsesdm.get_uvw_segment(st, range(nsegment)))
