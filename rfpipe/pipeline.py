@@ -1,6 +1,9 @@
 from . import state, source, search
 import distributed
 import rtpipe
+from functools import partial
+import rtlib_cython as rtlib
+import numpy as np
 
 # need to design state initialization as an avalanch of decisions set by initial state
 # 1) initial, minimal state defines either parameters for later use or fixes final state
@@ -39,11 +42,57 @@ def apply_metadata(st, sdmfile):
     state.set_segments(st)
 
 
-def pipeline(sdmfile, scan):
-    ex = distributed.Executor('nmpost029:8786')
+def imthresh(sigma, im):
+    snr = im.max()/im.std()
+    if snr > sigma:
+        return im
 
-    st = ex.submit(rtpipe.RT.set_pipeline, sdmfile, scan, memory_limit=3)
+def image1(st, data, uvw):
+    u, v, w, = uvw
+    ims,snr,candints = rtlib.imgallfullfilterxyflux(np.outer(u, st['freq']/st['freq_orig'][0]), np.outer(v, st['freq']/st['freq_orig'][0]), data, st['npixx'], st['npixy'], st['uvres'], st['sigma_image1'])
+    return candints
 
-    nsegment = d['nsegment']
-    data = ex.map(rtpipe.parsesdm.read_bdf_segment(st, range(nsegment)))
-    uvw = ex.map(rtpipe.parsesdm.get_uvw_segment(st, range(nsegment)))
+
+def correct_dm(st, data, dm):
+    data_resamp = data.copy()
+    rtlib.dedisperse_par(data_resamp, st['freq'], st['inttime'], dm, [0, st['nbl']], verbose=0)        # dedisperses data.
+    return data_resamp
+
+
+def correct_dt(st, datadt):
+    data, dt = datadt
+    rtlib.resample_par(data, st['freq'], st['inttime'], dt, [0, st['nbl']], verbose=0)        # dedisperses data.
+    return data
+
+
+def pipeline(sdmfile, scan, hostname, port='8786'):
+
+    ex = distributed.Executor('{0}:{1}'.format(hostname, port))
+
+    # set state
+    st = rtpipe.RT.set_pipeline(sdmfile, scan, memory_limit=3)
+
+    # set up functions to map
+    readdata = partial(rtpipe.parsesdm.read_bdf_segment, st)
+    readuvw = partial(rtpipe.parsesdm.get_uvw_segment, st)
+
+    # run pipeline
+    data = ex.map(readdata, range(st['nsegments']))
+    uvw = ex.map(readuvw, range(st['nsegments']))
+
+    imsig = []
+    for i in range(len(data)):
+        imsig_dm = []
+        dd = data[i]
+        for dm in st['dmarr']:
+            data_dm = ex.submit(correct_dm, st, dd, dm)
+            imsig_dm.append(ex.submit(image1, st, data_dm, uvw[i]))
+        imsig.append(imsig_dm)
+
+#        while True:
+#            resample = partial(correct_dt, st, data_dedisp)
+#            data_resamp = ex.submit(resample, 2)   # every resample relative to previous iteration (2x resample each loop)
+#            if dtind == len(st['dtarr']):
+#                break
+
+    return imsig
