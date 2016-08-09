@@ -42,15 +42,12 @@ def apply_metadata(st, sdmfile):
     state.set_segments(st)
 
 
-def imthresh(sigma, im):
-    snr = im.max()/im.std()
-    if snr > sigma:
-        return im
+
 
 def image1(st, data, uvw):
     u, v, w, = uvw
     ims,snr,candints = rtlib.imgallfullfilterxyflux(np.outer(u, st['freq']/st['freq_orig'][0]), np.outer(v, st['freq']/st['freq_orig'][0]), data, st['npixx'], st['npixy'], st['uvres'], st['sigma_image1'])
-    return candints
+    return candints, snr
 
 
 def correct_dm(st, data, dm):
@@ -59,40 +56,31 @@ def correct_dm(st, data, dm):
     return data_resamp
 
 
-def correct_dt(st, datadt):
-    data, dt = datadt
+def correct_dt(st, data, dt):
     rtlib.resample_par(data, st['freq'], st['inttime'], dt, [0, st['nbl']], verbose=0)        # dedisperses data.
     return data
 
 
-def pipeline(sdmfile, scan, hostname, port='8786'):
-
-    ex = distributed.Executor('{0}:{1}'.format(hostname, port))
-
-    # set state
-    st = rtpipe.RT.set_pipeline(sdmfile, scan, memory_limit=3)
-
-    # set up functions to map
-    readdata = partial(rtpipe.parsesdm.read_bdf_segment, st)
-    readuvw = partial(rtpipe.parsesdm.get_uvw_segment, st)
+def pipeline(st, ex, port='8786'):
 
     # run pipeline
-    data = ex.map(readdata, range(st['nsegments']))
+    future_dict = {}
+    key = str(st['scan'])
     uvw = ex.map(readuvw, range(st['nsegments']))
 
-    imsig = []
-    for i in range(len(data)):
-        imsig_dm = []
-        dd = data[i]
-        for dm in st['dmarr']:
-            data_dm = ex.submit(correct_dm, st, dd, dm)
-            imsig_dm.append(ex.submit(image1, st, data_dm, uvw[i]))
-        imsig.append(imsig_dm)
+    for segment in range(st['nsegments']):
+        key = '{0}-{1}'.format(key, segment)
+        data_read = ex.submit(rtpipe.RT.pipeline_reproduce, st, segment=segment, product='data')
 
-#        while True:
-#            resample = partial(correct_dt, st, data_dedisp)
-#            data_resamp = ex.submit(resample, 2)   # every resample relative to previous iteration (2x resample each loop)
-#            if dtind == len(st['dtarr']):
-#                break
+        for dmind in range(len(st['dmarr'])):
+            key = '{0}-{1}'.format(key, dmind): 
+            data_dm = ex.submit(correct_dm, st, data_read[key], st['dmarr'][dmind])
+            
+            data_dt = data_dm
+            for dtind in range(1, len(st['dtarr'])):
+                key ='{0}-{1}'.format(key, dtind)
+                data_dt = ex.submit(correct_dt, st, data_dt, 2)
+                im_dt = ex.submit(st, data_dt, uvw[segment])
+                future_dict[key] = im_dt
 
-    return imsig
+    return future_dict
