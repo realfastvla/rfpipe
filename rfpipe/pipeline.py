@@ -65,16 +65,12 @@ def correct_dt(st, datadt):
     return data
 
 
-def pipeline(sdmfile, scan, hostname, port='8786'):
+def get_scheduler(hostname, port='8786'):
+    return distributed.Executor('{0}:{1}'.format(hostname, port))
 
-    ex = distributed.Executor('{0}:{1}'.format(hostname, port))
 
-    # set state
-    st = rtpipe.RT.set_pipeline(sdmfile, scan, memory_limit=3)
-
-    # set up functions to map
-    readdata = partial(rtpipe.parsesdm.read_bdf_segment, st)
-    readuvw = partial(rtpipe.parsesdm.get_uvw_segment, st)
+def pipeline(st, ex):
+    """ Given rfpipe state and dask distributed executor, run search pipline """
 
     # run pipeline
     data = ex.map(readdata, range(st['nsegments']))
