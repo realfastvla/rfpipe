@@ -61,7 +61,12 @@ def correct_dt(st, data, dt):
     return data
 
 
-def pipeline(st, ex, port='8786'):
+def get_scheduler(hostname, port='8786'):
+    return distributed.Executor('{0}:{1}'.format(hostname, port))
+
+
+def pipeline(st, ex):
+    """ Given rfpipe state and dask distributed executor, run search pipline """
 
     # run pipeline
     future_dict = {}
