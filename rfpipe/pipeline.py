@@ -4,6 +4,11 @@ import rtpipe
 from functools import partial
 import rtlib_cython as rtlib
 import numpy as np
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.captureWarnings(True)
+logger = logging.getLogger('rfpipe')
 
 # need to design state initialization as an avalanch of decisions set by initial state
 # 1) initial, minimal state defines either parameters for later use or fixes final state
@@ -42,6 +47,14 @@ def apply_metadata(st, sdmfile):
     state.set_segments(st)
 
 
+def dataprep(st, segment):
+    data = rtpipe.parsesdm.read_bdf_segment(st, segment)
+    sols = rtpipe.parsecal.telcal_sol(st['gainfile'])   # parse gainfile
+    sols.set_selection(st['segmenttimes'][segment].mean(), st['freq']*1e9, rtlib.calc_blarr(st), calname='', pols=st['pols'], radec=(), spwind=[])
+    sols.apply(data)
+    rtpipe.RT.dataflag(st, data)
+    rtlib.meantsub(data, [0, st['nbl']])
+    return data
 
 
 def image1(st, data, uvw):
@@ -61,8 +74,12 @@ def correct_dt(st, data, dt):
     return data
 
 
-def get_scheduler(hostname, port='8786'):
+def get_executor(hostname, port='8786'):
     return distributed.Executor('{0}:{1}'.format(hostname, port))
+
+
+def get_state(sdmfile, scan):
+    return rtpipe.RT.set_pipeline(sdmfile, scan, memory_limit=3, logfile=False, timesub='mean')
 
 
 def pipeline(st, ex):
@@ -70,22 +87,28 @@ def pipeline(st, ex):
 
     # run pipeline
     future_dict = {}
-    key = str(st['scan'])
-    uvw = ex.map(readuvw, range(st['nsegments']))
+    scan = str(st['scan'])
 
+    logger.debug('submitting segments')
     for segment in range(st['nsegments']):
-        key = '{0}-{1}'.format(key, segment)
-        data_read = ex.submit(rtpipe.RT.pipeline_reproduce, st, segment=segment, product='data')
+        data_read = ex.submit(dataprep, st, segment)
+        uvw = ex.submit(rtpipe.parsesdm.get_uvw_segment, st, segment)
 
+        logger.debug('submitting dedispersion')
         for dmind in range(len(st['dmarr'])):
-            key = '{0}-{1}'.format(key, dmind): 
-            data_dm = ex.submit(correct_dm, st, data_read[key], st['dmarr'][dmind])
-            
+            data_dm = ex.submit(correct_dm, st, data_read, st['dmarr'][dmind])
+
+            dtind = 0
+            im_dt = ex.submit(image1, st, data_dm, uvw)
+            key ='{0}-{1}-{2}-{3}'.format(scan, segment, dmind, dtind)
+            future_dict[key] = im_dt
+
             data_dt = data_dm
+            print('submitting reampling and imaging')
             for dtind in range(1, len(st['dtarr'])):
-                key ='{0}-{1}'.format(key, dtind)
                 data_dt = ex.submit(correct_dt, st, data_dt, 2)
-                im_dt = ex.submit(st, data_dt, uvw[segment])
+                im_dt = ex.submit(image1, st, data_dt, uvw)
+                key ='{0}-{1}-{2}-{3}'.format(scan, segment, dmind, dtind)
                 future_dict[key] = im_dt
 
     return future_dict
