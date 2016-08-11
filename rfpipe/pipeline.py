@@ -1,4 +1,4 @@
-import logging
+import logging, os, pickle
 from functools import partial
 import numpy as np
 from scipy.stats import mstats
@@ -120,17 +120,23 @@ def savecands(st, cands):
         pickle.dump(st, pkl)
         pickle.dump(cands, pkl)
 
+    return True
+
 
 @dask.delayed(pure=True)
-def writecands(feature_list):
+def collectcands(feature_list):
 
     cands = {}
     for features in feature_list:
         for kk in features.iterkeys():
             cands[kk] = features[kk]
                 
-    savecands(st, cands)
-    return True
+    return cands
+
+
+@dask.delayed(pure=True)
+def collectsegs(segfutures):
+    return [fut for fut in segfutures]
 
 
 def get_executor(hostname, port='8786'):
@@ -141,7 +147,7 @@ def get_state(sdmfile, scan, **kwargs):
     return rtpipe.RT.set_pipeline(sdmfile, scan, searchtype='image1', memory_limit=3, logfile=False, timesub='mean', **kwargs)
 
 
-def pipeline(st, ex):
+def pipeline(st):
     """ Given rfpipe state and dask distributed executor, run search pipline """
 
     # run pipeline
@@ -171,16 +177,17 @@ def pipeline(st, ex):
                 key ='{0}-{1}-{2}-{3}'.format(scan, segment, dmind, dtind)
                 feature_list.append(calc_features(im_dt, dmind, st['dtarr'][dtind], dtind, st['segment'], st['features']))
 
-        segfutures.append(writecands(feature_list))
+        cands = collectcands(feature_list)
+        segfutures.append(savecands(st, cands))
 
-    return segfutures
+    return collectsegs(segfutures)
 
 
-def run(sdmfile, scan, host):
-    st = get_state(sdmfile, scan)
+def run(sdmfile, scan, host, **kwargs):
+    st = get_state(sdmfile, scan, **kwargs)
     ex = get_executor(host)
-    with ex:
+    with distributed.Executor('{0}:{1}'.format(host, '8786')) as ex:
         with dask.set_options(get=ex.get):
-            status = [future.compute() for future in pipeline(st, ex)]
+            status = pipeline(st).compute()
 
     return status
