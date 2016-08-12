@@ -65,6 +65,9 @@ def dataprep(st, segment):
     rtlib.meantsub(data, [0, st['nbl']])
     return data
 
+@dask.delayed(pure=True)
+def calc_uvw(st, segment):
+    return rtpipe.parsesdm.get_uvw_segment(st, segment)
 
 @dask.delayed(pure=True)
 def correct_dm(st, data, dm):
@@ -147,47 +150,52 @@ def get_state(sdmfile, scan, **kwargs):
     return rtpipe.RT.set_pipeline(sdmfile, scan, searchtype='image1', memory_limit=3, logfile=False, timesub='mean', **kwargs)
 
 
-def pipeline(st):
+def pipeline_scan(st):
     """ Given rfpipe state and dask distributed executor, run search pipline """
 
-    # run pipeline
     segfutures = []
-    scan = str(st['scan'])
-
     logger.debug('submitting segments')
     for segment in range(st['nsegments']):
-        feature_list = []
-        st['segment'] = segment
-        data_read = dataprep(st, segment)
-        uvw = rtpipe.parsesdm.get_uvw_segment(st, segment)
-
-        logger.debug('submitting dedispersion')
-        for dmind in range(len(st['dmarr'])):
-            data_dm = correct_dm(st, data_read, st['dmarr'][dmind])
-            data_dt = data_dm
-            dtind = 0
-            im_dt = image1(st, data_dt, uvw)
-            key ='{0}-{1}-{2}-{3}'.format(scan, segment, dmind, dtind)
-            feature_list.append(calc_features(im_dt, dmind, st['dtarr'][dtind], dtind, st['segment'], st['features']))
-
-            logger.debug('submitting reampling and imaging')
-            for dtind in range(1, len(st['dtarr'])):
-                data_dt = correct_dt(st, data_dt, 2)
-                im_dt = image1(st, data_dt, uvw)
-                key ='{0}-{1}-{2}-{3}'.format(scan, segment, dmind, dtind)
-                feature_list.append(calc_features(im_dt, dmind, st['dtarr'][dtind], dtind, st['segment'], st['features']))
-
-        cands = collectcands(feature_list)
-        segfutures.append(savecands(st, cands))
+        segfutures.append(pipeline_seg(st, segment))
 
     return collectsegs(segfutures)
 
 
+def pipeline_seg(st, segment):
+    """ Given state and segment, run search pipeline """
+
+    # run pipeline
+    scan = str(st['scan'])
+    feature_list = []
+    st['segment'] = segment
+    data_read = dataprep(st, segment)
+    uvw = calc_uvw(st, segment)
+
+    logger.debug('submitting dedispersion')
+    for dmind in range(len(st['dmarr'])):
+        data_dm = correct_dm(st, data_read, st['dmarr'][dmind])
+        data_dt = data_dm
+        dtind = 0
+        im_dt = image1(st, data_dt, uvw)
+        key ='{0}-{1}-{2}-{3}'.format(scan, segment, dmind, dtind)
+        feature_list.append(calc_features(im_dt, dmind, st['dtarr'][dtind], dtind, st['segment'], st['features']))
+
+        logger.debug('submitting reampling and imaging')
+        for dtind in range(1, len(st['dtarr'])):
+            data_dt = correct_dt(st, data_dt, 2)
+            im_dt = image1(st, data_dt, uvw)
+            key ='{0}-{1}-{2}-{3}'.format(scan, segment, dmind, dtind)
+            feature_list.append(calc_features(im_dt, dmind, st['dtarr'][dtind], dtind, st['segment'], st['features']))
+
+    cands = collectcands(feature_list)
+    return savecands(st, cands)
+
+
 def run(sdmfile, scan, host, **kwargs):
     st = get_state(sdmfile, scan, **kwargs)
-    ex = get_executor(host)
     with distributed.Executor('{0}:{1}'.format(host, '8786')) as ex:
         with dask.set_options(get=ex.get):
-            status = pipeline(st).compute()
+            status = pipeline_seg(st, 0)
+#            status = pipeline_scan(st)
 
     return status
