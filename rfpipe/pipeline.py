@@ -156,7 +156,7 @@ def pipeline_scan(st):
     segfutures = []
     logger.debug('submitting segments')
     for segment in range(st['nsegments']):
-        segfutures.append(pipeline_seg(st, segment))
+        segfutures.append(pipeline_seg(st, 0))
 
     return collectsegs(segfutures)
 
@@ -177,25 +177,25 @@ def pipeline_seg(st, segment):
         data_dt = data_dm
         dtind = 0
         im_dt = image1(st, data_dt, uvw)
-        key ='{0}-{1}-{2}-{3}'.format(scan, segment, dmind, dtind)
+#        key ='{0}-{1}-{2}-{3}'.format(scan, segment, dmind, dtind)
         feature_list.append(calc_features(im_dt, dmind, st['dtarr'][dtind], dtind, st['segment'], st['features']))
 
         logger.debug('submitting reampling and imaging')
         for dtind in range(1, len(st['dtarr'])):
             data_dt = correct_dt(st, data_dt, 2)
             im_dt = image1(st, data_dt, uvw)
-            key ='{0}-{1}-{2}-{3}'.format(scan, segment, dmind, dtind)
+#            key ='{0}-{1}-{2}-{3}'.format(scan, segment, dmind, dtind)
             feature_list.append(calc_features(im_dt, dmind, st['dtarr'][dtind], dtind, st['segment'], st['features']))
 
     cands = collectcands(feature_list)
     return savecands(st, cands)
 
 
-def run(sdmfile, scan, host, **kwargs):
-    st = get_state(sdmfile, scan, **kwargs)
+#def run(sdmfile, scan, host, **kwargs):
+#    st = get_state(sdmfile, scan, **kwargs)
+def run(st, segment, host):
     with distributed.Executor('{0}:{1}'.format(host, '8786')) as ex:
         with dask.set_options(get=ex.get):
-            status = pipeline_seg(st, 0)
-#            status = pipeline_scan(st)
+            status = pipeline_seg(st, segment).compute()
 
     return status
