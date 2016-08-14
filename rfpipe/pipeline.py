@@ -27,17 +27,17 @@ logger = logging.getLogger('rfpipe')
 # maybe this all goes in state.py outside of class?
 
 
-def run(datasource, paramfile, version=2):
-    """ Run whole pipeline """
+# def run(datasource, paramfile, version=2):
+#     """ Run whole pipeline """
 
-    st = state.State(paramfile=paramfile, verison=version)
+#     st = state.State(paramfile=paramfile, verison=version)
 
-    if datatype(datasource) == 'sdm':
-        apply_metadata(st, sdmfile)
+#     if datatype(datasource) == 'sdm':
+#         apply_metadata(st, sdmfile)
 
-    # learn distributed for this part
-    if 'image' in st.searchtype:
-        search.imaging(st)
+#     # learn distributed for this part
+#     if 'image' in st.searchtype:
+#         search.imaging(st)
 
 
 def apply_metadata(st, sdmfile):
@@ -86,6 +86,29 @@ def correct_dt(st, data, dt):
 def image1(st, data, uvw):
     u, v, w, = uvw
     return rtlib.imgallfullfilterxyflux(np.outer(u, st['freq']/st['freq_orig'][0]), np.outer(v, st['freq']/st['freq_orig'][0]), data, st['npixx'], st['npixy'], st['uvres'], st['sigma_image1'])
+
+
+@dask.delayed(pure=True)
+def correct_image(st, data, uvw, dm, dt):
+    u, v, w, = uvw
+    data_resamp = data.copy()
+
+    rtlib.dedisperse_par(data_resamp, st['freq'], st['inttime'], dm, [0, st['nbl']], verbose=0)        # dedisperses data.
+    if dt > 1:
+        rtlib.resample_par(data_resamp, st['freq'], st['inttime'], dt, [0, st['nbl']], verbose=0)        # dedisperses data.
+
+    return rtlib.imgallfullfilterxyflux(np.outer(u, st['freq']/st['freq_orig'][0]), np.outer(v, st['freq']/st['freq_orig'][0]), data_resamp, st['npixx'], st['npixy'], st['uvres'], st['sigma_image1'])
+
+
+def correct_image2(st, data, uvw, dm, dt):
+    u, v, w, = uvw
+    data_resamp = data.copy()
+
+    rtlib.dedisperse_par(data_resamp, st['freq'], st['inttime'], dm, [0, st['nbl']], verbose=0)        # dedisperses data.
+    if dt > 1:
+        rtlib.resample_par(data_resamp, st['freq'], st['inttime'], dt, [0, st['nbl']], verbose=0)        # dedisperses data.
+
+    return rtlib.imgallfullfilterxyflux(np.outer(u, st['freq']/st['freq_orig'][0]), np.outer(v, st['freq']/st['freq_orig'][0]), data_resamp, st['npixx'], st['npixy'], st['uvres'], st['sigma_image1'])
 
 
 @dask.delayed(pure=True)
@@ -168,24 +191,26 @@ def pipeline_seg(st, segment):
     scan = str(st['scan'])
     feature_list = []
     st['segment'] = segment
+
+    logger.info('reading...')
     data_read = dataprep(st, segment)
     uvw = calc_uvw(st, segment)
 
-    logger.debug('submitting dedispersion')
     for dmind in range(len(st['dmarr'])):
-        data_dm = correct_dm(st, data_read, st['dmarr'][dmind])
-        data_dt = data_dm
-        dtind = 0
-        im_dt = image1(st, data_dt, uvw)
-#        key ='{0}-{1}-{2}-{3}'.format(scan, segment, dmind, dtind)
-        feature_list.append(calc_features(im_dt, dmind, st['dtarr'][dtind], dtind, st['segment'], st['features']))
+#        data_dm = correct_dm(st, data_read, st['dmarr'][dmind])
+#        data_dt = data_dm
+#        dtind = 0
+#        im_dt = image1(st, data_dt, uvw)
+        for dtind in range(len(st['dtarr'])):
+            logger.info('submitting reampling and imaging')
+            im_dt = correct_image(st, data_read, uvw, st['dmarr'][dmind], st['dtarr'][dtind])
 
-        logger.debug('submitting reampling and imaging')
-        for dtind in range(1, len(st['dtarr'])):
-            data_dt = correct_dt(st, data_dt, 2)
-            im_dt = image1(st, data_dt, uvw)
-#            key ='{0}-{1}-{2}-{3}'.format(scan, segment, dmind, dtind)
             feature_list.append(calc_features(im_dt, dmind, st['dtarr'][dtind], dtind, st['segment'], st['features']))
+
+#        for dtind in range(1, len(st['dtarr'])):
+#            data_dt = correct_dt(st, data_dt, 2)
+#            im_dt = image1(st, data_dt, uvw)
+#            feature_list.append(calc_features(im_dt, dmind, st['dtarr'][dtind], dtind, st['segment'], st['features']))
 
     cands = collectcands(feature_list)
     return savecands(st, cands)
@@ -199,3 +224,35 @@ def run(st, segment, host):
             status = pipeline_seg(st, segment).compute()
 
     return status
+
+
+def run2(st, data, uvw, host):
+    ex = distributed.Executor('{0}:{1}'.format(host, '8786'))
+
+    im_dt = []
+    for dmind in range(len(st['dmarr'])):
+        for dtind in range(len(st['dtarr'])):
+            im_dt.append(ex.submit(correct_image2, st, data, uvw, st['dmarr'][dmind], st['dtarr'][dtind]))
+
+    return im_dt
+
+
+from functools import partial
+def adder(data, nn):
+    return data + nn
+
+
+def run3(sh, num, host):
+    ex = distributed.Executor('{0}:{1}'.format(host, '8786'))
+
+    arr = np.zeros(shape=sh, dtype='complex64')
+    arr.real = np.random.normal(size=sh)
+    arr.imag = np.random.normal(size=sh)
+    adderp = partial(adder, arr)
+
+#    fut = []
+#    for nn in range(num):
+#        fut.append(ex.submit(lambda x: x+nn, arr, pure=False))
+    fut = ex.map(adderp, range(num))
+
+    return fut
