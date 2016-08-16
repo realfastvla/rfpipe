@@ -53,7 +53,6 @@ def apply_metadata(st, sdmfile):
 # testing dask distributed
 ##
 
-@dask.delayed(pure=True)
 def dataprep(st, segment):
 #    st['segment'] = segment # allowed?
 
@@ -90,17 +89,6 @@ def image1(st, data, uvw):
 
 @dask.delayed(pure=True)
 def correct_image(st, data, uvw, dm, dt):
-    u, v, w, = uvw
-    data_resamp = data.copy()
-
-    rtlib.dedisperse_par(data_resamp, st['freq'], st['inttime'], dm, [0, st['nbl']], verbose=0)        # dedisperses data.
-    if dt > 1:
-        rtlib.resample_par(data_resamp, st['freq'], st['inttime'], dt, [0, st['nbl']], verbose=0)        # dedisperses data.
-
-    return rtlib.imgallfullfilterxyflux(np.outer(u, st['freq']/st['freq_orig'][0]), np.outer(v, st['freq']/st['freq_orig'][0]), data_resamp, st['npixx'], st['npixy'], st['uvres'], st['sigma_image1'])
-
-
-def correct_image2(st, data, uvw, dm, dt):
     u, v, w, = uvw
     data_resamp = data.copy()
 
@@ -226,33 +214,15 @@ def run(st, segment, host):
     return status
 
 
-def run2(st, data, uvw, host):
+def run3(st, segment, nchunk, host):
+    import toolz
+
     ex = distributed.Executor('{0}:{1}'.format(host, '8786'))
 
-    im_dt = []
-    for dmind in range(len(st['dmarr'])):
-        for dtind in range(len(st['dtarr'])):
-            im_dt.append(ex.submit(correct_image2, st, data, uvw, st['dmarr'][dmind], st['dtarr'][dtind]))
+    nint = st['nints']
+    iranges = [range(i0,i0+nint/nchunk) for i0 in range(0, nint, nint/nchunk)]
 
-    return im_dt
-
-
-from functools import partial
-def adder(data, nn):
-    return data + nn
-
-
-def run3(sh, num, host):
-    ex = distributed.Executor('{0}:{1}'.format(host, '8786'))
-
-    arr = np.zeros(shape=sh, dtype='complex64')
-    arr.real = np.random.normal(size=sh)
-    arr.imag = np.random.normal(size=sh)
-    adderp = partial(adder, arr)
-
-#    fut = []
-#    for nn in range(num):
-#        fut.append(ex.submit(lambda x: x+nn, arr, pure=False))
-    fut = ex.map(adderp, range(num))
+    data_read = ex.submit(dataprep, st, segment, pure=True)
+    fut = ex.map(search.meantsub_numba, [(data_read, irange) for irange in iranges])
 
     return fut

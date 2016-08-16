@@ -43,21 +43,26 @@ def meantsub_cuda(data):
             data[i, x, y, z] = data[i, x, y, z] - mean
 
 
-@numba.jit
-def meantsub_numba(data, nopython=True):
+@numba.jit(nogil=True, nopython=True)
+def meantsub_numba(datairange):
     """ Calculate mean in time (ignoring zeros) and subtract in place """
 
+    data, irange = datairange
     nint, nbl, nchan, npol = data.shape
+
     for i in range(nbl):
         for j in range(nchan):
             for k in range(npol):
                 ss = numba.complex64(0)
                 weight = 0
-                for l in range(nint):
+                for l in irange:
                     ss += data[l, i, j, k]
                     if data[l, i, j, k] != 0j:
                         weight = weight + 1
-                mean = ss/weight
+                if weight:
+                    mean = ss/weight
+                else:
+                    mean = 0j
                 for l in range(nint):
                     data[l, i, j, k] -= mean
 
