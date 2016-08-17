@@ -1,12 +1,11 @@
 import logging, os, pickle
-from functools import partial
 import numpy as np
-from scipy.stats import mstats
 from . import state, source, search
 import dask
 import distributed
 import rtpipe
 import rtlib_cython as rtlib
+from toolz import partition_all
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logging.captureWarnings(True)
@@ -61,18 +60,18 @@ def dataprep(st, segment):
     sols.set_selection(st['segmenttimes'][segment].mean(), st['freq']*1e9, rtlib.calc_blarr(st), calname='', pols=st['pols'], radec=(), spwind=[])
     sols.apply(data)
     rtpipe.RT.dataflag(st, data)
-    rtlib.meantsub(data, [0, st['nbl']])
+    data = search.meantsub(data)
     return data
 
-@dask.delayed(pure=True)
+
 def calc_uvw(st, segment):
     return rtpipe.parsesdm.get_uvw_segment(st, segment)
 
+
 @dask.delayed(pure=True)
 def correct_dm(st, data, dm):
-    data_resamp = data.copy()
-    rtlib.dedisperse_par(data_resamp, st['freq'], st['inttime'], dm, [0, st['nbl']], verbose=0)        # dedisperses data.
-    return data_resamp
+    rtlib.dedisperse_par(data, st['freq'], st['inttime'], dm, [0, st['nbl']], verbose=0)        # dedisperses data.
+    return data
 
 
 @dask.delayed(pure=True)
@@ -90,13 +89,13 @@ def image1(st, data, uvw):
 @dask.delayed(pure=True)
 def correct_image(st, data, uvw, dm, dt):
     u, v, w, = uvw
-    data_resamp = data.copy()
 
-    rtlib.dedisperse_par(data_resamp, st['freq'], st['inttime'], dm, [0, st['nbl']], verbose=0)        # dedisperses data.
+    if dm > 0:
+        rtlib.dedisperse_par(data, st['freq'], st['inttime'], dm, [0, st['nbl']], verbose=0)        # dedisperses data.
     if dt > 1:
-        rtlib.resample_par(data_resamp, st['freq'], st['inttime'], dt, [0, st['nbl']], verbose=0)        # dedisperses data.
+        rtlib.resample_par(data, st['freq'], st['inttime'], dt, [0, st['nbl']], verbose=0)        # dedisperses data.
 
-    return rtlib.imgallfullfilterxyflux(np.outer(u, st['freq']/st['freq_orig'][0]), np.outer(v, st['freq']/st['freq_orig'][0]), data_resamp, st['npixx'], st['npixy'], st['uvres'], st['sigma_image1'])
+    return rtlib.imgallfullfilterxyflux(np.outer(u, st['freq']/st['freq_orig'][0]), np.outer(v, st['freq']/st['freq_orig'][0]), data, st['npixx'], st['npixy'], st['uvres'], st['sigma_image1'])
 
 
 @dask.delayed(pure=True)
@@ -186,19 +185,11 @@ def pipeline_seg(st, segment):
 
     for dmind in range(len(st['dmarr'])):
 #        data_dm = correct_dm(st, data_read, st['dmarr'][dmind])
-#        data_dt = data_dm
-#        dtind = 0
-#        im_dt = image1(st, data_dt, uvw)
         for dtind in range(len(st['dtarr'])):
-            logger.info('submitting reampling and imaging')
-            im_dt = correct_image(st, data_read, uvw, st['dmarr'][dmind], st['dtarr'][dtind])
-
-            feature_list.append(calc_features(im_dt, dmind, st['dtarr'][dtind], dtind, st['segment'], st['features']))
-
-#        for dtind in range(1, len(st['dtarr'])):
-#            data_dt = correct_dt(st, data_dt, 2)
+#            data_dt = correct_dt(st, data_dm, st['dtarr'][dtind])
 #            im_dt = image1(st, data_dt, uvw)
-#            feature_list.append(calc_features(im_dt, dmind, st['dtarr'][dtind], dtind, st['segment'], st['features']))
+            im_dt = correct_image(st, data_read, uvw, st['dmarr'][dmind], st['dtarr'][dtind])
+            feature_list.append(calc_features(im_dt, dmind, st['dtarr'][dtind], dtind, st['segment'], st['features']))
 
     cands = collectcands(feature_list)
     return savecands(st, cands)
@@ -214,15 +205,20 @@ def run(st, segment, host):
     return status
 
 
-def run3(st, segment, nchunk, host):
-    import toolz
-
+def pipeline_seg2(st, segment, host, nthread=16):
     ex = distributed.Executor('{0}:{1}'.format(host, '8786'))
 
-    nint = st['nints']
-    iranges = [range(i0,i0+nint/nchunk) for i0 in range(0, nint, nint/nchunk)]
+    data = ex.submit(dataprep, st, segment)
+    uvw = ex.submit(calcuvw, st, segment)
 
-    data_read = ex.submit(dataprep, st, segment, pure=True)
-    fut = ex.map(search.meantsub_numba, [(data_read, irange) for irange in iranges])
-
-    return fut
+    images = []
+    for dmind in range(len(st['dmarr'])):
+        dm = st['dmarr'][dmind]
+        data_dm = ex.submit(search.dedispsere(data, st['freq'], st['inttime'], dm))
+        for dtind in range(len(st['dtarr'])):
+            dt = st['dtarr'][dtind]
+            data_dt = ex.submit(search.resample(data_dm, dt))
+            grid = ex.submit(search.grid_visibilities(data_dt))
+            images.append(grid)
+#            image = ex.submit(search.image_fftw())
+#            images.append(image)
