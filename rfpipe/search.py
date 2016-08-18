@@ -125,22 +125,22 @@ def dedisperse(data, freqs, inttime, dm):
 
 #@jit([complex64[:,:,:,:](complex64[:,:,:,:], int32)], nopython=True)
 @jit(nogil=True, nopython=True)
-def resample(data, resample):
-    """ Resample (integrate) in place """
+def resample(data, dt):
+    """ Resample (integrate) in place by factor dt """
 
     sh = data.shape
-    newlen0 = int64(sh[0]/resample)
-    if resample > 1:
+    newlen0 = int64(sh[0]/dt)
+    if dt > 1:
         newdata = np.zeros_like(data[:newlen0])
 
         for j in range(sh[1]):
             for k in range(sh[2]):
                 for l in range(sh[3]):
                     for i in range(newlen0):
-                        iprime = int64(i*resample)
-                        for r in range(resample):
+                        iprime = int64(i*dt)
+                        for r in range(dt):
                             newdata[i,j,k,l] = newdata[i,j,k,l] + data[iprime+r,j,k,l]
-                        newdata[i,j,k,l] = newdata[i,j,k,l]/resample
+                        newdata[i,j,k,l] = newdata[i,j,k,l]/dt
 
         return newdata
     else:
@@ -172,6 +172,19 @@ def meantsub_cuda(data):
 ## 
 ## fft and imaging
 ##
+
+
+@jit
+def resample_image(data, dt, uvw, freqs, npixx, npixy, uvres, threshold):
+    """ All stages of analysis for a given dt image grid """
+
+    data = resample(data, dt)
+    grids = grid_visibilities(data, uvw, freqs, npixx, npixy, uvres)
+    images = image_fftw(grids)
+    images_thresh = threshold_images(images, threshold)
+
+    return images_thresh
+
 
 #@jit([complex64[:,:](complex64[:,:,:,:], float32[:], float32[:], float32[:], int32, int32, float_)], nopython=True)
 @jit(nogil=True, nopython=True)
@@ -225,12 +238,12 @@ def npifft2(data, result):
 
 
 @jit
-def image_fftw(grids):
+def image_fftw(grids, nthread=1):
     """ Plan pyfftw ifft2 and run it on uv grids (time, npixx, npixy)
     Returns time images.
     """
 
-    ifft2 = pyfftw.builders.ifft2(grids, auto_align_input=True, auto_contiguous=True, planner_effort='FFTW_PATIENT')
+    ifft2 = pyfftw.builders.ifft2(grids, auto_align_input=True, auto_contiguous=True, planner_effort='FFTW_PATIENT', threads=nthread)
     images = ifft2(grids)
     return images.real
 

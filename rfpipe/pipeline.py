@@ -123,17 +123,20 @@ def pipeline_seg2(st, segment, host):
     st['segment'] = segment
 
     logger.info('reading...')
-    data_read = ex.submit(dataprep, st, segment)
-    uvw = ex.submit(calc_uvw, st, segment)
+    data_read = dataprep(st, segment)
+    uvw = calc_uvw(st, segment)
+    [data_read, uvw] = ex.scatter([data_read, uvw], broadcast=True)
 
     for dmind in range(len(st['dmarr'])):
         data_dm = ex.submit(search.dedisperse, data_read, st['freq'], st['inttime'], st['dmarr'][dmind])
 
         for dtind in range(len(st['dtarr'])):
-            data_dt = ex.submit(search.resample, data_dm, st['dtarr'][dtind])
-            uvgrid = ex.submit(search.grid_visibilities, data_dt, uvw, st['freq'], st['npixx'], st['npixy'], st['uvres'])
-            ims = ex.submit(search.image_fftw, uvgrid)
-            ims_thresh = ex.submit(search.threshold_images, ims, st['sigma_image1'])
+            ims_thresh = ex.submit(search.resample_image, data_dm, st['dtarr'][dtind], uvw, st['freq'], st['npixx'], st['npixy'], st['uvres'], st['sigma_image1'])
+
+#            data_dt = ex.submit(search.resample, data_dm, st['dtarr'][dtind])
+#            uvgrid = ex.submit(search.grid_visibilities, data_dt, uvw, st['freq'], st['npixx'], st['npixy'], st['uvres'])
+#            ims = ex.submit(search.image_fftw, uvgrid, st['nthread'])
+#            ims_thresh = ex.submit(search.threshold_images, ims, st['sigma_image1'])
             
             feature = ex.submit(search.calc_features, ims_thresh, dmind, st['dtarr'][dtind], dtind, st['segment'], st['features'])
             features.append(feature)
