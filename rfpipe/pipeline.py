@@ -1,11 +1,7 @@
-import logging, os, pickle
-import numpy as np
+import logging
 from . import state, source, search
-import dask
 import distributed
 import rtpipe
-import rtlib_cython as rtlib
-from toolz import partition_all
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logging.captureWarnings(True)
@@ -49,17 +45,16 @@ def apply_metadata(st, sdmfile):
 
 
 ##
-# testing dask distributed
+# testing dask distributed and numba
 ##
 
-def dataprep(st, segment):
-#    st['segment'] = segment # allowed?
 
+def dataprep(st, segment):
     data = rtpipe.parsesdm.read_bdf_segment(st, segment)
-    sols = rtpipe.parsecal.telcal_sol(st['gainfile'])   # parse gainfile
-    sols.set_selection(st['segmenttimes'][segment].mean(), st['freq']*1e9, rtlib.calc_blarr(st), calname='', pols=st['pols'], radec=(), spwind=[])
-    sols.apply(data)
-    rtpipe.RT.dataflag(st, data)
+#    sols = rtpipe.parsecal.telcal_sol(st['gainfile'])   # parse gainfile
+#    sols.set_selection(st['segmenttimes'][segment].mean(), st['freq']*1e9, rtlib.calc_blarr(st), calname='', pols=st['pols'], radec=(), spwind=[])
+#    sols.apply(data)
+#    rtpipe.RT.dataflag(st, data)
     data = search.meantsub(data)
     return data
 
@@ -68,96 +63,8 @@ def calc_uvw(st, segment):
     return rtpipe.parsesdm.get_uvw_segment(st, segment)
 
 
-@dask.delayed(pure=True)
-def correct_dm(st, data, dm):
-    rtlib.dedisperse_par(data, st['freq'], st['inttime'], dm, [0, st['nbl']], verbose=0)        # dedisperses data.
-    return data
-
-
-@dask.delayed(pure=True)
-def correct_dt(st, data, dt):
-    rtlib.resample_par(data, st['freq'], st['inttime'], dt, [0, st['nbl']], verbose=0)        # dedisperses data.
-    return data
-
-
-@dask.delayed(pure=True)
-def image1(st, data, uvw):
-    u, v, w, = uvw
-    return rtlib.imgallfullfilterxyflux(np.outer(u, st['freq']/st['freq_orig'][0]), np.outer(v, st['freq']/st['freq_orig'][0]), data, st['npixx'], st['npixy'], st['uvres'], st['sigma_image1'])
-
-
-@dask.delayed(pure=True)
-def correct_image(st, data, uvw, dm, dt):
-    u, v, w, = uvw
-
-    if dm > 0:
-        rtlib.dedisperse_par(data, st['freq'], st['inttime'], dm, [0, st['nbl']], verbose=0)        # dedisperses data.
-    if dt > 1:
-        rtlib.resample_par(data, st['freq'], st['inttime'], dt, [0, st['nbl']], verbose=0)        # dedisperses data.
-
-    return rtlib.imgallfullfilterxyflux(np.outer(u, st['freq']/st['freq_orig'][0]), np.outer(v, st['freq']/st['freq_orig'][0]), data, st['npixx'], st['npixy'], st['uvres'], st['sigma_image1'])
-
-
-@dask.delayed(pure=True)
-def calc_features(imgall, dmind, dt, dtind, segment, featurelist):
-    ims, snr, candints = imgall
-    beamnum = 0
-
-    feat = {}
-    for i in xrange(len(candints)):
-        candid =  (segment, candints[i]*dt, dmind, dtind, beamnum)
-
-        # assemble feature in requested order
-        ff = []
-        for feature in featurelist:
-            if feature == 'snr1':
-                ff.append(snr[i])
-            elif feature == 'immax1':
-                if snr[i] > 0:
-                    ff.append(ims[i].max())
-                else:
-                    ff.append(ims[i].min())
-
-        feat[candid] = list(ff)
-    return feat
-
-
-@dask.delayed(pure=True)
-def savecands(st, cands):
-    """ Save all candidates in pkl file for later aggregation and filtering.
-    domock is option to save simulated cands file
-    """
-
-    candsfile = os.path.join(st['workdir'], 'cands_' + st['fileroot'] + '_sc' + str(st['scan']) + 'seg' + str(st['segment']) + '.pkl')
-    with open(candsfile, 'w') as pkl:
-        pickle.dump(st, pkl)
-        pickle.dump(cands, pkl)
-
-    return True
-
-
-@dask.delayed(pure=True)
-def collectcands(feature_list):
-
-    cands = {}
-    for features in feature_list:
-        for kk in features.iterkeys():
-            cands[kk] = features[kk]
-                
-    return cands
-
-
-@dask.delayed(pure=True)
 def collectsegs(segfutures):
     return [fut for fut in segfutures]
-
-
-def get_executor(hostname, port='8786'):
-    return distributed.Executor('{0}:{1}'.format(hostname, port))
-
-
-def get_state(sdmfile, scan, **kwargs):
-    return rtpipe.RT.set_pipeline(sdmfile, scan, searchtype='image1', memory_limit=3, logfile=False, timesub='mean', **kwargs)
 
 
 def pipeline_scan(st):
@@ -172,7 +79,9 @@ def pipeline_scan(st):
 
 
 def pipeline_seg(st, segment):
-    """ Given state and segment, run search pipeline """
+    """ Given state and segment, run search pipeline 
+    Uses dask.delayed objects and ex.get to schedule them.
+    """
 
     # run pipeline
     scan = str(st['scan'])
@@ -184,41 +93,52 @@ def pipeline_seg(st, segment):
     uvw = calc_uvw(st, segment)
 
     for dmind in range(len(st['dmarr'])):
-#        data_dm = correct_dm(st, data_read, st['dmarr'][dmind])
+        data_dm = correct_dm(data_read, st['dmarr'][dmind], st['freq'], st['inttime'])
         for dtind in range(len(st['dtarr'])):
-#            data_dt = correct_dt(st, data_dm, st['dtarr'][dtind])
+            data_dt = correct_dt(data_dm, st['dtarr'][dtind])
 #            im_dt = image1(st, data_dt, uvw)
-            im_dt = correct_image(st, data_read, uvw, st['dmarr'][dmind], st['dtarr'][dtind])
+#            im_dt = correct_image(st, data_dt, uvw, st['dmarr'][dmind], st['dtarr'][dtind])
+            im_dt = grid(data_dt, uvw, st['freq'], st['npixx'], st['npixy'], st['uvres'])
             feature_list.append(calc_features(im_dt, dmind, st['dtarr'][dtind], dtind, st['segment'], st['features']))
 
     cands = collectcands(feature_list)
     return savecands(st, cands)
 
 
-#def run(sdmfile, scan, host, **kwargs):
-#    st = get_state(sdmfile, scan, **kwargs)
-def run(st, segment, host):
-    with distributed.Executor('{0}:{1}'.format(host, '8786')) as ex:
-        with dask.set_options(get=ex.get):
-            status = pipeline_seg(st, segment).compute()
-
-    return status
+#def run(st, segment, host):
+#    with distributed.Executor('{0}:{1}'.format(host, '8786')) as ex:
+#        with dask.set_options(get=ex.get):
+#            status = pipeline_seg(st, segment).compute()
+#    return status
 
 
-def pipeline_seg2(st, segment, host, nthread=16):
+def pipeline_seg2(st, segment, host):
+    """ Run segment pipelne with ex.submit calls """
+
+    # can we get back to ex.map?
+
     ex = distributed.Executor('{0}:{1}'.format(host, '8786'))
 
-    data = ex.submit(dataprep, st, segment)
-    uvw = ex.submit(calcuvw, st, segment)
+    features = []
+    st['segment'] = segment
 
-    images = []
+    logger.info('reading...')
+    data_read = ex.submit(dataprep, st, segment)
+    uvw = ex.submit(calc_uvw, st, segment)
+
     for dmind in range(len(st['dmarr'])):
-        dm = st['dmarr'][dmind]
-        data_dm = ex.submit(search.dedispsere(data, st['freq'], st['inttime'], dm))
+        data_dm = ex.submit(search.dedisperse, data_read, st['freq'], st['inttime'], st['dmarr'][dmind])
+
         for dtind in range(len(st['dtarr'])):
-            dt = st['dtarr'][dtind]
-            data_dt = ex.submit(search.resample(data_dm, dt))
-            grid = ex.submit(search.grid_visibilities(data_dt))
-            images.append(grid)
-#            image = ex.submit(search.image_fftw())
-#            images.append(image)
+            data_dt = ex.submit(search.resample, data_dm, st['dtarr'][dtind])
+            uvgrid = ex.submit(search.grid_visibilities, data_dt, uvw, st['freq'], st['npixx'], st['npixy'], st['uvres'])
+            ims = ex.submit(search.image_fftw, uvgrid)
+            ims_thresh = ex.submit(search.threshold_images, ims, st['sigma_image1'])
+            
+            feature = ex.submit(search.calc_features, ims_thresh, dmind, st['dtarr'][dtind], dtind, st['segment'], st['features'])
+            features.append(feature)
+
+#    cands = ex.submit(search.collect_cands, features)
+#    result = ex.submit(search.save_cands, st, cands)
+#    return result
+    return features

@@ -1,54 +1,67 @@
 # home of much of rtpipe.RT
 # state transformation stages should be in state
+
 from __future__ import division  # for Python 2
 
+
+
 # playing with numba gridding
-import numba, math
+import os, math, pickle
+import numba
 from numba import cuda
+from numba import jit, vectorize, guvectorize, int32, int64, float_, complex64, bool_
 import numpy as np
 import pyfftw
-from numba import float32, int32, int64, float_, complex64, bool_
 
 ##
 ## utilities
 ##
 
-@numba.vectorize([int32(float32, float32, float_, float_)], nopython=True)
+#@vectorize([int32(float32, float32, float_, float_)])#, nopython=True)
+@jit(nopython=True, nogil=True)
 def calc_delay(freq, freqref, dm, inttime):
     """ Calculates the delay due to dispersion relative to freqref in integer units of inttime """
 
-    return np.round(4.2e-3 * dm * (1/(freq*freq) - 1/(freqref*freqref))/inttime, 0)
+    delay = np.zeros(len(freq), dtype=int64)
+
+    for i in range(len(freq)):
+        delay[i] = np.round(4.2e-3 * dm * (1./freq[i]**2 - 1./freqref**2)/inttime, 0)
+
+    return delay
 
 
-#@numba.vectorize([int32(float32, float32, float32, float_)], nopython=True)
-@numba.vectorize(nopython=True)
+@jit(nopython=True, nogil=True)
 def uvcell(uv, freq, freqref, uvres):
-    """ Scales u or v coord by freq and rounds to units of uvres """
+    """ Given a u or v coordinate, scale by freq and round to units of uvres """
 
-    return np.round(uv*freq/freqref/uvres, 0)
+    cell = np.zeros(len(freq), dtype=int64)
+    for i in range(len(freq)):
+        cell[i] = np.round(uv*freq[i]/freqref/uvres, 0)
+
+    return cell
 
 
-@numba.vectorize([bool_(complex64)])
+@vectorize(nopython=True)
 def get_mask(x):
     """ Returns equal sized array of 0/1 """
     
     return x != 0j
 
 
-def runcuda(func, data, threadsperblock, *args, **kwargs):
+def runcuda(func, arr, threadsperblock, *args, **kwargs):
     """ Function to run cuda kernels while defining threads/blocks """
 
     blockspergrid = []
-    for tpb, sh in threadsperblock, data.shape:
+    for tpb, sh in threadsperblock, arr.shape:
         blockspergrid.append = int32(math.ceil(sh / tpb))
-    func[tuple(blockspergrid), threadsperblock](data, *args, **kwargs)
+    func[tuple(blockspergrid), threadsperblock](arr, *args, **kwargs)
 
 
 ##
 ## data prep
 ##
 
-@numba.jit(nopython=True)
+@jit(nogil=True, nopython=True)
 def meantsub(data):
     """ Calculate mean in time (ignoring zeros) and subtract in place
 
@@ -75,7 +88,7 @@ def meantsub(data):
     return data
 
 
-@numba.guvectorize([(complex64[:,:,:], complex64[:,:,:])], '(m,n,o)->(m,n,o)', nopython=True, target='parallel')
+@guvectorize([(complex64[:,:,:], complex64[:,:,:])], '(m,n,o)->(m,n,o)', nopython=True, target='parallel')
 def meantsub_gu(data, res):
     """ Vectorizes over time axis *at end*. Use np.moveaxis(0, 3) for input visbility array """ 
 
@@ -92,12 +105,12 @@ def meantsub_gu(data, res):
                 res[i,j,k] = data[i,j,k] - mean
     
 
-@numba.jit(nopython=True)
+@jit(nogil=True, nopython=True)
 def dedisperse(data, freqs, inttime, dm):
     """ Dispersion shift in place """
 
     sh = data.shape
-    delay = calc_delay(freqs, freqs[-1], float_(dm), float_(inttime))
+    delay = calc_delay(freqs, freqs[-1], dm, inttime)
 
     for k in range(sh[2]):
         if delay[k] > 0:
@@ -110,8 +123,8 @@ def dedisperse(data, freqs, inttime, dm):
     return data
 
 
-#@numba.jit([complex64[:,:,:,:](complex64[:,:,:,:], int32)], nopython=True)
-@numba.jit(nopython=True)
+#@jit([complex64[:,:,:,:](complex64[:,:,:,:], int32)], nopython=True)
+@jit(nogil=True, nopython=True)
 def resample(data, resample):
     """ Resample (integrate) in place """
 
@@ -160,14 +173,15 @@ def meantsub_cuda(data):
 ## fft and imaging
 ##
 
-#@numba.jit([complex64[:,:](complex64[:,:,:,:], float32[:], float32[:], float32[:], int32, int32, float_)], nopython=True)
-@numba.jit(nopython=True)
-def grid_visibilities(visdata, us, vs, freqs, npixx, npixy, uvres):
+#@jit([complex64[:,:](complex64[:,:,:,:], float32[:], float32[:], float32[:], int32, int32, float_)], nopython=True)
+@jit(nogil=True, nopython=True)
+def grid_visibilities(visdata, uvw, freqs, npixx, npixy, uvres):
     """ Grid visibilities into rounded uv coordinates """
 
+    us, vs, ws = uvw
     nint, nbl, nchan, npol = visdata.shape
 
-    grid = np.zeros(shape=(npixx, npixy), dtype=np.complex64)
+    grids = np.zeros(shape=(nint, npixx, npixy), dtype=complex64)
 
     for j in range(nbl):
         ubl = uvcell(us[j], freqs, freqs[-1], uvres)
@@ -180,19 +194,12 @@ def grid_visibilities(visdata, us, vs, freqs, npixx, npixy, uvres):
                 v = int64(np.mod(vbl[k], npixy))
                 for i in range(nint):
                     for l in xrange(npol):
-                        grid[u, v] = grid[u, v] + visdata[i, j, k, l]
+                        grids[i, u, v] = grids[i, u, v] + visdata[i, j, k, l]
 
-    return grid
-
-
-def imagearm():
-    """ Takes visibilities and images arms of VLA """
-
-    pass
+    return grids
 
 
-
-@numba.jit
+@jit
 def fft1d_numba(data, res):
     sh = data.shape
 
@@ -210,17 +217,93 @@ def fft1d_python(data, res):
             for k in range(sh[3]):
                 res[:, i, j, k] = np.fft.fft(data[:, i, j, k])
 
-@numba.jit
+@jit
 def npifft2(data, result):
     """ Input for multithread wrapper. nogil seems to improve nothing """
 
     result = np.fft.ifft2(data)
 
 
-@numba.jit
-def image_fftw(data, result):
-    ifft2 = pyfftw.builders.ifft2(data, auto_align_input=True, auto_contiguous=True, planner_effort='FFTW_PATIENT')
-    result = ifft2(data)
-    return result
+@jit
+def image_fftw(grids):
+    """ Plan pyfftw ifft2 and run it on uv grids (time, npixx, npixy)
+    Returns time images.
+    """
+
+    ifft2 = pyfftw.builders.ifft2(grids, auto_align_input=True, auto_contiguous=True, planner_effort='FFTW_PATIENT')
+    images = ifft2(grids)
+    return images.real
 
 
+#@jit(nopython=True)  # not working. lowering error?
+def threshold_images(images, threshold):
+    """ Take time images and return subset above threshold """
+
+    ims = []
+    snrs = []
+    ints = []
+    for i in range(len(images)):
+        im = images[i]
+        snr = im.max()/im.std()
+        if snr > threshold:
+            ims.append(im)
+            snrs.append(snr)
+            ints.append(i)
+
+    return (ims, snrs, ints)
+
+
+def image_arm():
+    """ Takes visibilities and images arms of VLA """
+
+    pass
+
+
+##
+## candidates and features
+##
+
+def calc_features(imgall, dmind, dt, dtind, segment, featurelist):
+    ims, snr, candints = imgall
+    beamnum = 0
+
+    feat = {}
+    for i in xrange(len(candints)):
+        candid =  (segment, candints[i]*dt, dmind, dtind, beamnum)
+
+        # assemble feature in requested order
+        ff = []
+        for feature in featurelist:
+            if feature == 'snr1':
+                ff.append(snr[i])
+            elif feature == 'immax1':
+                if snr[i] > 0:
+                    ff.append(ims[i].max())
+                else:
+                    ff.append(ims[i].min())
+
+        feat[candid] = list(ff)
+    return feat
+
+
+def collect_cands(feature_list):
+
+    cands = {}
+    for features in feature_list:
+        for kk in features.iterkeys():
+            cands[kk] = features[kk]
+                
+    return cands
+
+
+def save_cands(st, cands):
+    """ Save all candidates in pkl file for later aggregation and filtering.
+    domock is option to save simulated cands file
+    """
+
+    candsfile = os.path.join(st['workdir'], 'cands_' + st['fileroot'] + '_sc' + str(st['scan']) + 'seg' + str(st['segment']) + '.pkl')
+    with open(candsfile, 'w') as pkl:
+        pickle.dump(st, pkl)
+        pickle.dump(cands, pkl)
+
+    return cands
