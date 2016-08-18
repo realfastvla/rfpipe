@@ -63,76 +63,25 @@ def calc_uvw(st, segment):
     return rtpipe.parsesdm.get_uvw_segment(st, segment)
 
 
-def collectsegs(segfutures):
-    return [fut for fut in segfutures]
-
-
-def pipeline_scan(st):
-    """ Given rfpipe state and dask distributed executor, run search pipline """
-
-    segfutures = []
-    logger.debug('submitting segments')
-    for segment in range(st['nsegments']):
-        segfutures.append(pipeline_seg(st, 0))
-
-    return collectsegs(segfutures)
-
-
-def pipeline_seg(st, segment):
-    """ Given state and segment, run search pipeline 
-    Uses dask.delayed objects and ex.get to schedule them.
-    """
-
-    # run pipeline
-    scan = str(st['scan'])
-    feature_list = []
-    st['segment'] = segment
-
-    logger.info('reading...')
-    data_read = dataprep(st, segment)
-    uvw = calc_uvw(st, segment)
-
-    for dmind in range(len(st['dmarr'])):
-        data_dm = correct_dm(data_read, st['dmarr'][dmind], st['freq'], st['inttime'])
-        for dtind in range(len(st['dtarr'])):
-            data_dt = correct_dt(data_dm, st['dtarr'][dtind])
-#            im_dt = image1(st, data_dt, uvw)
-#            im_dt = correct_image(st, data_dt, uvw, st['dmarr'][dmind], st['dtarr'][dtind])
-            im_dt = grid(data_dt, uvw, st['freq'], st['npixx'], st['npixy'], st['uvres'])
-            feature_list.append(calc_features(im_dt, dmind, st['dtarr'][dtind], dtind, st['segment'], st['features']))
-
-    cands = collectcands(feature_list)
-    return savecands(st, cands)
-
-
-#def run(st, segment, host):
-#    with distributed.Executor('{0}:{1}'.format(host, '8786')) as ex:
-#        with dask.set_options(get=ex.get):
-#            status = pipeline_seg(st, segment).compute()
-#    return status
-
-
-def pipeline_seg2(st, segment, host):
+def pipeline_seg(st, segment, ex):
     """ Run segment pipelne with ex.submit calls """
-
-    # can we get back to ex.map?
-
-    ex = distributed.Executor('{0}:{1}'.format(host, '8786'))
 
     features = []
     st['segment'] = segment
 
     logger.info('reading...')
-    data_read = dataprep(st, segment)
-    uvw = calc_uvw(st, segment)
-    [data_read, uvw] = ex.scatter([data_read, uvw], broadcast=True)
+    data_read = ex.submit(dataprep, st, segment)
+    uvw = ex.submit(calc_uvw, st, segment)
+    ex.replicate([data_read, uvw])  # spread data around to get ready for many core imaging
 
     for dmind in range(len(st['dmarr'])):
         data_dm = ex.submit(search.dedisperse, data_read, st['freq'], st['inttime'], st['dmarr'][dmind])
 
         for dtind in range(len(st['dtarr'])):
+            # resample and search with one function
             ims_thresh = ex.submit(search.resample_image, data_dm, st['dtarr'][dtind], uvw, st['freq'], st['npixx'], st['npixy'], st['uvres'], st['sigma_image1'])
 
+            # resample and search in four functions
 #            data_dt = ex.submit(search.resample, data_dm, st['dtarr'][dtind])
 #            uvgrid = ex.submit(search.grid_visibilities, data_dt, uvw, st['freq'], st['npixx'], st['npixy'], st['uvres'])
 #            ims = ex.submit(search.image_fftw, uvgrid, st['nthread'])
@@ -141,7 +90,20 @@ def pipeline_seg2(st, segment, host):
             feature = ex.submit(search.calc_features, ims_thresh, dmind, st['dtarr'][dtind], dtind, st['segment'], st['features'])
             features.append(feature)
 
-#    cands = ex.submit(search.collect_cands, features)
-#    result = ex.submit(search.save_cands, st, cands)
-#    return result
-    return features
+    cands = ex.submit(search.collect_cands, features)
+    result = ex.submit(search.save_cands, st, cands)
+    return result
+#    return features
+
+
+def pipeline_scan(st, host='nmpost-master'):
+    """ Given rfpipe state and dask distributed executor, run search pipline """
+
+    futures = []
+    ex = distributed.Executor('{0}:{1}'.format(host, '8786'))
+
+    logger.debug('submitting segments')
+    for segment in range(st['nsegments']):
+        futures.append(pipeline_seg(st, segment, ex))
+
+    return futures
