@@ -1,7 +1,10 @@
 import json
 # from collections import OrderedDict #?
 
+#import attr?
+#@attr.s
 class State(object):
+    # chans = attr.ib([])...
 
     def  __init__(self, paramfile='', version=2, **kwargs):
         """ Define rfpipe state 
