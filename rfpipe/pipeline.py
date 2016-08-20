@@ -49,20 +49,6 @@ def apply_metadata(st, sdmfile):
 ##
 
 
-def dataprep(st, segment):
-    data = rtpipe.parsesdm.read_bdf_segment(st, segment)
-#    sols = rtpipe.parsecal.telcal_sol(st['gainfile'])   # parse gainfile
-#    sols.set_selection(st['segmenttimes'][segment].mean(), st['freq']*1e9, rtlib.calc_blarr(st), calname='', pols=st['pols'], radec=(), spwind=[])
-#    sols.apply(data)
-#    rtpipe.RT.dataflag(st, data)
-    data = search.meantsub(data)
-    return data
-
-
-def calc_uvw(st, segment):
-    return rtpipe.parsesdm.get_uvw_segment(st, segment)
-
-
 def pipeline_seg(st, segment, ex):
     """ Run segment pipelne with ex.submit calls """
 
@@ -70,17 +56,22 @@ def pipeline_seg(st, segment, ex):
     st['segment'] = segment
 
     logger.info('reading...')
-    data_read = ex.submit(dataprep, st, segment)
-    uvw = ex.submit(calc_uvw, st, segment)
-    ex.replicate([data_read, uvw])  # spread data around to get ready for many core imaging
+
+#    data_prep = ex.submit(source.dataprep, st, segment)
+#    uvw = ex.submit(source.calc_uvw, st, segment)
+
+    data_prep = ex.submit(source.randomdata, st, pure=False)
+    uvw = ex.submit(source.randomuvw, st, pure=False)
+
+#    ex.replicate([data_prep, uvw])  # spread data around to get ready for many core imaging
 
     for dmind in range(len(st['dmarr'])):
-        data_dm = ex.submit(search.dedisperse, data_read, st['freq'], st['inttime'], st['dmarr'][dmind])
+        delay = search.calc_delay(st['freq'], st['freq'][-1], st['dmarr'][dmind], st['inttime'])  # ex.submit of this messes up performance with small computations
+        data_dm = ex.submit(search.dedisperse, data_prep, delay)
 
         for dtind in range(len(st['dtarr'])):
             # resample and search with one function
             ims_thresh = ex.submit(search.resample_image, data_dm, st['dtarr'][dtind], uvw, st['freq'], st['npixx'], st['npixy'], st['uvres'], st['sigma_image1'])
-
             # resample and search in four functions
 #            data_dt = ex.submit(search.resample, data_dm, st['dtarr'][dtind])
 #            uvgrid = ex.submit(search.grid_visibilities, data_dt, uvw, st['freq'], st['npixx'], st['npixy'], st['uvres'])
@@ -91,19 +82,15 @@ def pipeline_seg(st, segment, ex):
             features.append(feature)
 
     cands = ex.submit(search.collect_cands, features)
-    result = ex.submit(search.save_cands, st, cands)
-    return result
-#    return features
+    saved = ex.submit(search.save_cands, st, cands)
+    return saved
 
 
 def pipeline_scan(st, host='nmpost-master'):
     """ Given rfpipe state and dask distributed executor, run search pipline """
 
-    futures = []
     ex = distributed.Executor('{0}:{1}'.format(host, '8786'))
 
     logger.debug('submitting segments')
     for segment in range(st['nsegments']):
-        futures.append(pipeline_seg(st, segment, ex))
-
-    return futures
+        yield pipeline_seg(st, segment, ex)

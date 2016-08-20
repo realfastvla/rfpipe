@@ -3,10 +3,9 @@
 
 from __future__ import division  # for Python 2
 
-
-
-# playing with numba gridding
-import os, math, pickle
+import logging, os, math, pickle
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 import numba
 from numba import cuda
 from numba import jit, vectorize, guvectorize, int32, int64, float_, complex64, bool_
@@ -106,11 +105,11 @@ def meantsub_gu(data, res):
     
 
 @jit(nogil=True, nopython=True)
-def dedisperse(data, freqs, inttime, dm):
-    """ Dispersion shift in place """
+def dedisperse(data, delay):
+    """ Dispersion shift to new array """
 
     sh = data.shape
-    delay = calc_delay(freqs, freqs[-1], dm, inttime)
+    result = np.zeros(shape=(sh[0]-delay.max(), sh[1], sh[2], sh[3]), dtype=data.dtype)
 
     for k in range(sh[2]):
         if delay[k] > 0:
@@ -118,9 +117,10 @@ def dedisperse(data, freqs, inttime, dm):
                 iprime = i + delay[k]
                 for l in range(sh[3]):
                     for j in range(sh[1]):
-                        data[i,j,k,l] = data[iprime,j,k,l]
+                        result[i,j,k,l] = data[iprime,j,k,l]
+#                        data[i,j,k,l] = data[iprime,j,k,l]
 
-    return data
+    return result
 
 
 #@jit([complex64[:,:,:,:](complex64[:,:,:,:], int32)], nopython=True)
@@ -178,8 +178,8 @@ def meantsub_cuda(data):
 def resample_image(data, dt, uvw, freqs, npixx, npixy, uvres, threshold):
     """ All stages of analysis for a given dt image grid """
 
-    data = resample(data, dt)
-    grids = grid_visibilities(data, uvw, freqs, npixx, npixy, uvres)
+    data_resampled = resample(data, dt)
+    grids = grid_visibilities(data_resampled, uvw, freqs, npixx, npixy, uvres)
     images = image_fftw(grids)
     images_thresh = threshold_images(images, threshold)
 

@@ -10,4 +10,5 @@ setup(
     url = 'http://github.com/realfastvla/rfpipe',
     packages = find_packages(),        # get all python scripts in realtime
     install_requires=['numpy', 'scipy', 'pwkit', 'sdmpy>=1.35', 'pyfftw', 'click'],
+    zip_safe=False
 )
