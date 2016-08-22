@@ -2,6 +2,7 @@ import logging
 from . import state, source, search
 import distributed
 import rtpipe
+from functools import partial
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logging.captureWarnings(True)

@@ -251,7 +251,7 @@ def image_fftw(grids, wisdom=None):
     """
 
     if wisdom:
-        logger.info('Importing wisdom...')
+        logger.debug('Importing wisdom...')
         pyfftw.import_wisdom(wisdom)
     images = pyfftw.interfaces.numpy_fft.ifft2(grids, auto_align_input=True, auto_contiguous=True,  planner_effort='FFTW_MEASURE')
 
