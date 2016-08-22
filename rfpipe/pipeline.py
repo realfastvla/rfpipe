@@ -55,20 +55,23 @@ def pipeline_seg(st, segment, ex):
     features = []
     st['segment'] = segment
 
-    logger.info('reading...')
+    # plan fft
+    logger.info('Planning FFT...')
+    wisdom = ex.submit(search.set_wisdom, st['npixx'], st['npixy'])
 
+    logger.info('reading data...')
     data_prep = ex.submit(source.dataprep, st, segment)
     uvw = ex.submit(source.calc_uvw, st, segment)
-
     ex.replicate([data_prep, uvw])  # spread data around to get ready for many core imaging
 
     for dmind in range(len(st['dmarr'])):
-        delay = search.calc_delay(st['freq'], st['freq'][-1], st['dmarr'][dmind], st['inttime'])  # ex.submit of this messes up performance with small computations
+#        delay = search.calc_delay(st['freq'], st['freq'][-1], st['dmarr'][dmind], st['inttime'])  # ex.submit of this messes up performance with small computations
+        delay = ex.submit(search.calc_delay, st['freq'], st['freq'][-1], st['dmarr'][dmind], st['inttime'])
         data_dm = ex.submit(search.dedisperse, data_prep, delay)
 
         for dtind in range(len(st['dtarr'])):
             # resample and search with one function
-            ims_thresh = ex.submit(search.resample_image, data_dm, st['dtarr'][dtind], uvw, st['freq'], st['npixx'], st['npixy'], st['uvres'], st['sigma_image1'])
+            ims_thresh = ex.submit(search.resample_image, data_dm, st['dtarr'][dtind], uvw, st['freq'], st['npixx'], st['npixy'], st['uvres'], st['sigma_image1'], wisdom=wisdom)
             # resample and search in four functions
 #            data_dt = ex.submit(search.resample, data_dm, st['dtarr'][dtind])
 #            uvgrid = ex.submit(search.grid_visibilities, data_dt, uvw, st['freq'], st['npixx'], st['npixy'], st['uvres'])

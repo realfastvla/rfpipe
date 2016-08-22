@@ -173,12 +173,12 @@ def meantsub_cuda(data):
 
 
 @jit
-def resample_image(data, dt, uvw, freqs, npixx, npixy, uvres, threshold):
+def resample_image(data, dt, uvw, freqs, npixx, npixy, uvres, threshold, wisdom=None):
     """ All stages of analysis for a given dt image grid """
 
     data_resampled = resample(data, dt)
     grids = grid_visibilities(data_resampled, uvw, freqs, npixx, npixy, uvres)
-    images = image_fftw(grids)
+    images = image_fftw(grids, wisdom=wisdom)
     images_thresh = threshold_images(images, threshold)
 
     return images_thresh
@@ -235,14 +235,26 @@ def npifft2(data, result):
     result = np.fft.ifft2(data)
 
 
-@jit
-def image_fftw(grids, nthread=1):
+def set_wisdom(npixx, npixy):
+    """ Run single 2d ifft like image to prep fftw wisdom in worker cache """
+
+    arr = pyfftw.empty_aligned((npixx, npixy), dtype='complex64', n=16)
+    arr[:] = np.random.randn(*arr.shape) + 1j*np.random.randn(*arr.shape)
+    fft_arr = pyfftw.interfaces.numpy_fft.ifft2(arr, auto_align_input=True, auto_contiguous=True,  planner_effort='FFTW_MEASURE')
+    return pyfftw.export_wisdom()
+
+
+#@jit    # no point?
+def image_fftw(grids, wisdom=None):
     """ Plan pyfftw ifft2 and run it on uv grids (time, npixx, npixy)
     Returns time images.
     """
 
-    ifft2 = pyfftw.builders.ifft2(grids, auto_align_input=True, auto_contiguous=True, planner_effort='FFTW_PATIENT', threads=nthread)
-    images = ifft2(grids)
+    if wisdom:
+        logger.info('Importing wisdom...')
+        pyfftw.import_wisdom(wisdom)
+    images = pyfftw.interfaces.numpy_fft.ifft2(grids, auto_align_input=True, auto_contiguous=True,  planner_effort='FFTW_MEASURE')
+
     return images.real
 
 
