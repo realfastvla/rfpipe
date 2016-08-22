@@ -16,15 +16,15 @@ def dataprep(st, segment):
     return data_read
 
 
+def calc_uvw(st, segment):
+    return rtpipe.parsesdm.get_uvw_segment(st, segment)
+
+
 def randomdata(st):
     data = np.zeros(shape=(st['readints'], st['nbl'], st['nchan'], st['npol']), dtype='complex64')
     data.real = np.random.normal(size=data.shape)
     data.imag = np.random.normal(size=data.shape)
     return data
-
-
-def calc_uvw(st, segment):
-    return rtpipe.parsesdm.get_uvw_segment(st, segment)
 
 
 def randomuvw(st):

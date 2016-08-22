@@ -104,7 +104,7 @@ def meantsub_gu(data, res):
                 res[i,j,k] = data[i,j,k] - mean
     
 
-@jit(nogil=True, nopython=True)
+#@jit(nogil=True, nopython=True)
 def dedisperse(data, delay):
     """ Dispersion shift to new array """
 

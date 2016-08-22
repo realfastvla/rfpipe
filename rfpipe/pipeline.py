@@ -57,13 +57,10 @@ def pipeline_seg(st, segment, ex):
 
     logger.info('reading...')
 
-#    data_prep = ex.submit(source.dataprep, st, segment)
-#    uvw = ex.submit(source.calc_uvw, st, segment)
+    data_prep = ex.submit(source.dataprep, st, segment)
+    uvw = ex.submit(source.calc_uvw, st, segment)
 
-    data_prep = ex.submit(source.randomdata, st, pure=False)
-    uvw = ex.submit(source.randomuvw, st, pure=False)
-
-#    ex.replicate([data_prep, uvw])  # spread data around to get ready for many core imaging
+    ex.replicate([data_prep, uvw])  # spread data around to get ready for many core imaging
 
     for dmind in range(len(st['dmarr'])):
         delay = search.calc_delay(st['freq'], st['freq'][-1], st['dmarr'][dmind], st['inttime'])  # ex.submit of this messes up performance with small computations
@@ -94,3 +91,14 @@ def pipeline_scan(st, host='nmpost-master'):
     logger.debug('submitting segments')
     for segment in range(st['nsegments']):
         yield pipeline_seg(st, segment, ex)
+
+
+def test(st, ex):
+    futs = []
+    data_prep = ex.submit(source.randomdata, st, pure=False)
+    uvw = ex.submit(source.randomuvw, st, pure=False)
+
+    for i in range(2):
+        futs.append(ex.submit(source.modify(data_prep, uvw)))
+
+    return futs
