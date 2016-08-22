@@ -104,7 +104,7 @@ def meantsub_gu(data, res):
                 res[i,j,k] = data[i,j,k] - mean
     
 
-#@jit(nogil=True, nopython=True)
+@jit(nogil=True, nopython=True)
 def dedisperse(data, delay):
     """ Dispersion shift to new array """
 
@@ -113,17 +113,15 @@ def dedisperse(data, delay):
 
     for k in range(sh[2]):
         if delay[k] > 0:
-            for i in range(sh[0] - delay[k]):
+            for i in range(result.shape[0]):
                 iprime = i + delay[k]
                 for l in range(sh[3]):
                     for j in range(sh[1]):
                         result[i,j,k,l] = data[iprime,j,k,l]
-#                        data[i,j,k,l] = data[iprime,j,k,l]
 
     return result
 
 
-#@jit([complex64[:,:,:,:](complex64[:,:,:,:], int32)], nopython=True)
 @jit(nogil=True, nopython=True)
 def resample(data, dt):
     """ Resample (integrate) in place by factor dt """

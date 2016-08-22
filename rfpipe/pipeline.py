@@ -91,14 +91,3 @@ def pipeline_scan(st, host='nmpost-master'):
     logger.debug('submitting segments')
     for segment in range(st['nsegments']):
         yield pipeline_seg(st, segment, ex)
-
-
-def test(st, ex):
-    futs = []
-    data_prep = ex.submit(source.randomdata, st, pure=False)
-    uvw = ex.submit(source.randomuvw, st, pure=False)
-
-    for i in range(2):
-        futs.append(ex.submit(source.modify(data_prep, uvw)))
-
-    return futs
