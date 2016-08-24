@@ -63,22 +63,20 @@ def pipeline_seg(st, segment, ex):
     logger.info('reading data...')
     data_prep = ex.submit(source.dataprep, st, segment)
     uvw = ex.submit(source.calc_uvw, st, segment)
-    ex.replicate([data_prep, uvw])  # spread data around to get ready for many core imaging
+    ex.replicate([data_prep, uvw, wisdom])  # spread data around to search faster
 
     for dmind in range(len(st['dmarr'])):
-#        delay = search.calc_delay(st['freq'], st['freq'][-1], st['dmarr'][dmind], st['inttime'])  # ex.submit of this messes up performance with small computations
-        delay = ex.submit(search.calc_delay, st['freq'], st['freq'][-1], st['dmarr'][dmind], st['inttime'])
-        data_dm = ex.submit(search.dedisperse, data_prep, delay)
+        delay = ex.submit(search.calc_delay, st['freq'], st['freq'][-1], st['dmarr'][dmind], st['inttime'], pure=True)
+        data_dm = ex.submit(search.dedisperse, data_prep, delay, pure=True)
+
+#        ims_thresh = ex.map(search.resample_image, st['dtarr'], data=data_dm, uvw=uvw, freqs=st['freq'], npixx=st['npixx'], npixy=st['npixy'], uvres=st['uvres'], threshold=st['sigma_image1'], wisdom=wisdom)
+#        dtind=0
+#        feature = ex.map(search.calc_features, ims_thresh, dmind=dmind, dt=st['dtarr'][dtind], dtind=dtind, segment=st['segment'], featurelist=st['features'])
+#        features.append(feature)
 
         for dtind in range(len(st['dtarr'])):
-            # resample and search with one function
-            ims_thresh = ex.submit(search.resample_image, data_dm, st['dtarr'][dtind], uvw, st['freq'], st['npixx'], st['npixy'], st['uvres'], st['sigma_image1'], wisdom=wisdom)
-            # resample and search in four functions
-#            data_dt = ex.submit(search.resample, data_dm, st['dtarr'][dtind])
-#            uvgrid = ex.submit(search.grid_visibilities, data_dt, uvw, st['freq'], st['npixx'], st['npixy'], st['uvres'])
-#            ims = ex.submit(search.image_fftw, uvgrid, st['nthread'])
-#            ims_thresh = ex.submit(search.threshold_images, ims, st['sigma_image1'])
-            
+            ims_thresh = ex.submit(search.resample_image, data_dm, st['dtarr'][dtind], uvw, st['freq'], st['npixx'], st['npixy'], st['uvres'], st['sigma_image1'], wisdom)            # resample and search with one function
+#            candplot = ex.submit(search.candplot, ims_thresh, data_dm)
             feature = ex.submit(search.calc_features, ims_thresh, dmind, st['dtarr'][dtind], dtind, st['segment'], st['features'])
             features.append(feature)
 

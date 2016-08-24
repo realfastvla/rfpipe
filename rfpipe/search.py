@@ -16,12 +16,11 @@ import pyfftw
 ## utilities
 ##
 
-#@vectorize([int32(float32, float32, float_, float_)])#, nopython=True)
 @jit(nopython=True, nogil=True)
 def calc_delay(freq, freqref, dm, inttime):
     """ Calculates the delay due to dispersion relative to freqref in integer units of inttime """
 
-    delay = np.zeros(len(freq), dtype=int64)
+    delay = np.zeros(len(freq), dtype=np.int32)
 
     for i in range(len(freq)):
         delay[i] = np.round(4.2e-3 * dm * (1./freq[i]**2 - 1./freqref**2)/inttime, 0)
@@ -33,7 +32,7 @@ def calc_delay(freq, freqref, dm, inttime):
 def uvcell(uv, freq, freqref, uvres):
     """ Given a u or v coordinate, scale by freq and round to units of uvres """
 
-    cell = np.zeros(len(freq), dtype=int64)
+    cell = np.zeros(len(freq), dtype=np.int32)
     for i in range(len(freq)):
         cell[i] = np.round(uv*freq[i]/freqref/uvres, 0)
 
@@ -109,17 +108,19 @@ def dedisperse(data, delay):
     """ Dispersion shift to new array """
 
     sh = data.shape
-    result = np.zeros(shape=(sh[0]-delay.max(), sh[1], sh[2], sh[3]), dtype=data.dtype)
+    newsh = (sh[0]-delay.max(), sh[1], sh[2], sh[3])
+    result = np.zeros(shape=newsh, dtype=data.dtype)
 
-    for k in range(sh[2]):
-        if delay[k] > 0:
-            for i in range(result.shape[0]):
+    if delay.max() > 0:
+        for k in range(sh[2]):
+            for i in range(newsh[0]):
                 iprime = i + delay[k]
                 for l in range(sh[3]):
                     for j in range(sh[1]):
                         result[i,j,k,l] = data[iprime,j,k,l]
-
-    return result
+        return result
+    else:
+        return data
 
 
 @jit(nogil=True, nopython=True)
@@ -127,20 +128,21 @@ def resample(data, dt):
     """ Resample (integrate) in place by factor dt """
 
     sh = data.shape
-    newlen0 = int64(sh[0]/dt)
+    newsh = (int64(sh[0]/dt), sh[1], sh[2], sh[3])
+
     if dt > 1:
-        newdata = np.zeros_like(data[:newlen0])
+        result = np.zeros(shape=newsh, dtype=data.dtype)
 
         for j in range(sh[1]):
             for k in range(sh[2]):
                 for l in range(sh[3]):
-                    for i in range(newlen0):
+                    for i in range(newsh[0]):
                         iprime = int64(i*dt)
                         for r in range(dt):
-                            newdata[i,j,k,l] = newdata[i,j,k,l] + data[iprime+r,j,k,l]
-                        newdata[i,j,k,l] = newdata[i,j,k,l]/dt
+                            result[i,j,k,l] = result[i,j,k,l] + data[iprime+r,j,k,l]
+                        result[i,j,k,l] = result[i,j,k,l]/dt
 
-        return newdata
+        return result
     else:
         return data
 
@@ -172,8 +174,8 @@ def meantsub_cuda(data):
 ##
 
 
-@jit
-def resample_image(data, dt, uvw, freqs, npixx, npixy, uvres, threshold, wisdom=None):
+#@jit
+def resample_image(data, dt, uvw, freqs, npixx, npixy, uvres, threshold, wisdom):
     """ All stages of analysis for a given dt image grid """
 
     data_resampled = resample(data, dt)
@@ -184,7 +186,6 @@ def resample_image(data, dt, uvw, freqs, npixx, npixy, uvres, threshold, wisdom=
     return images_thresh
 
 
-#@jit([complex64[:,:](complex64[:,:,:,:], float32[:], float32[:], float32[:], int32, int32, float_)], nopython=True)
 @jit(nogil=True, nopython=True)
 def grid_visibilities(visdata, uvw, freqs, npixx, npixy, uvres):
     """ Grid visibilities into rounded uv coordinates """
@@ -192,7 +193,7 @@ def grid_visibilities(visdata, uvw, freqs, npixx, npixy, uvres):
     us, vs, ws = uvw
     nint, nbl, nchan, npol = visdata.shape
 
-    grids = np.zeros(shape=(nint, npixx, npixy), dtype=complex64)
+    grids = np.zeros(shape=(nint, npixx, npixy), dtype=np.complex64)
 
     for j in range(nbl):
         ubl = uvcell(us[j], freqs, freqs[-1], uvres)
@@ -208,31 +209,6 @@ def grid_visibilities(visdata, uvw, freqs, npixx, npixy, uvres):
                         grids[i, u, v] = grids[i, u, v] + visdata[i, j, k, l]
 
     return grids
-
-
-@jit
-def fft1d_numba(data, res):
-    sh = data.shape
-
-    for i in range(sh[1]):
-        for j in range(sh[2]):
-            for k in range(sh[3]):
-                res[:, i, j, k] = np.fft.fft(data[:, i, j, k])
-
-
-def fft1d_python(data, res):
-    sh = data.shape
-
-    for i in range(sh[1]):
-        for j in range(sh[2]):
-            for k in range(sh[3]):
-                res[:, i, j, k] = np.fft.fft(data[:, i, j, k])
-
-@jit
-def npifft2(data, result):
-    """ Input for multithread wrapper. nogil seems to improve nothing """
-
-    result = np.fft.ifft2(data)
 
 
 def set_wisdom(npixx, npixy):
@@ -307,6 +283,12 @@ def calc_features(imgall, dmind, dt, dtind, segment, featurelist):
 
         feat[candid] = list(ff)
     return feat
+
+
+def candplot(imgall, data_dm):
+    """ Takes results of imaging threshold operation and data to make candidate plot """
+
+    pass
 
 
 def collect_cands(feature_list):
