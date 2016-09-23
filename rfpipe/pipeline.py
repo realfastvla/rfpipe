@@ -50,46 +50,54 @@ def apply_metadata(st, sdmfile):
 ##
 
 
-def pipeline_seg(st, segment, ex):
-    """ Run segment pipelne with ex.submit calls """
+def pipeline_seg(st, segment, cl, workers=None):
+    """ Run segment pipelne with cl.submit calls """
 
     features = []
+    allow_other_workers = workers != None
+
     st['segment'] = segment
 
     # plan fft
     logger.info('Planning FFT...')
-    wisdom = ex.submit(search.set_wisdom, st['npixx'], st['npixy'])
+    wisdom = cl.submit(search.set_wisdom, st['npixx'], st['npixy'], pure=True, workers=workers, allow_other_workers=allow_other_workers)
 
     logger.info('reading data...')
-    data_prep = ex.submit(source.dataprep, st, segment)
-    uvw = ex.submit(source.calc_uvw, st, segment)
-    ex.replicate([data_prep, uvw, wisdom])  # spread data around to search faster
+    data_prep = cl.submit(source.dataprep, st, segment, pure=True, workers=workers, allow_other_workers=allow_other_workers)
+    uvw = cl.submit(source.calc_uvw, st, segment, pure=True, workers=workers, allow_other_workers=allow_other_workers)
+#    cl.replicate([data_prep, uvw, wisdom])  # spread data around to search faster
 
     for dmind in range(len(st['dmarr'])):
-        delay = ex.submit(search.calc_delay, st['freq'], st['freq'][-1], st['dmarr'][dmind], st['inttime'], pure=True)
-        data_dm = ex.submit(search.dedisperse, data_prep, delay, pure=True)
-
-#        ims_thresh = ex.map(search.resample_image, st['dtarr'], data=data_dm, uvw=uvw, freqs=st['freq'], npixx=st['npixx'], npixy=st['npixy'], uvres=st['uvres'], threshold=st['sigma_image1'], wisdom=wisdom)
-#        dtind=0
-#        feature = ex.map(search.calc_features, ims_thresh, dmind=dmind, dt=st['dtarr'][dtind], dtind=dtind, segment=st['segment'], featurelist=st['features'])
-#        features.append(feature)
+        delay = cl.submit(search.calc_delay, st['freq'], st['freq'][-1], st['dmarr'][dmind], st['inttime'], pure=True, workers=workers, allow_other_workers=allow_other_workers)
+        data_dm = cl.submit(search.dedisperse, data_prep, delay, pure=True, workers=workers, allow_other_workers=allow_other_workers)
 
         for dtind in range(len(st['dtarr'])):
-            ims_thresh = ex.submit(search.resample_image, data_dm, st['dtarr'][dtind], uvw, st['freq'], st['npixx'], st['npixy'], st['uvres'], st['sigma_image1'], wisdom)            # resample and search with one function
-#            candplot = ex.submit(search.candplot, ims_thresh, data_dm)
-            feature = ex.submit(search.calc_features, ims_thresh, dmind, st['dtarr'][dtind], dtind, st['segment'], st['features'])
+            # schedule stages separately
+#            data_resampled = cl.submit(search.resample, data_dm, st['dtarr'][dtind])
+#            grids = cl.submit(search.grid_visibilities, data_resampled, uvw, st['freq'], st['npixx'], st['npixy'], st['uvres'])
+#            images = cl.submit(search.image_fftw, grids, wisdom=wisdom)
+#            ims_thresh = cl.submit(search.threshold_images, images, st['sigma_image1'])
+            # schedule them as single call
+            ims_thresh = cl.submit(search.resample_image, data_dm, st['dtarr'][dtind], uvw, st['freq'], st['npixx'], st['npixy'], st['uvres'], st['sigma_image1'], wisdom, pure=True, workers=workers, allow_other_workers=allow_other_workers)
+
+#            candplot = cl.submit(search.candplot, ims_thresh, data_dm)
+            feature = cl.submit(search.calc_features, ims_thresh, dmind, st['dtarr'][dtind], dtind, st['segment'], st['features'], pure=True, workers=workers, allow_other_workers=allow_other_workers)
             features.append(feature)
 
-    cands = ex.submit(search.collect_cands, features)
-    saved = ex.submit(search.save_cands, st, cands)
+    cands = cl.submit(search.collect_cands, features, pure=True, workers=workers, allow_other_workers=allow_other_workers)
+    saved = cl.submit(search.save_cands, st, cands, pure=True, workers=workers, allow_other_workers=allow_other_workers)
     return saved
 
 
 def pipeline_scan(st, host='nmpost-master'):
-    """ Given rfpipe state and dask distributed executor, run search pipline """
+    """ Given rfpipe state and dask distributed client, run search pipline """
 
-    ex = distributed.Executor('{0}:{1}'.format(host, '8786'))
+    cl = distributed.Client('{0}:{1}'.format(host, '8786'))
 
     logger.debug('submitting segments')
+
+    saved = []
     for segment in range(st['nsegments']):
-        yield pipeline_seg(st, segment, ex)
+        saved.append(pipeline_seg(st, segment, cl))
+
+    return saved
