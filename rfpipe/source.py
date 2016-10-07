@@ -3,16 +3,10 @@
 # can generalize to include streaming data from CBE?
 
 import rtpipe
-from . import search
 import numpy as np
 
 def dataprep(st, segment):
     data_read = rtpipe.parsesdm.read_bdf_segment(st, segment)
-#    sols = rtpipe.parsecal.telcal_sol(st['gainfile'])   # parse gainfile
-#    sols.set_selection(st['segmenttimes'][segment].mean(), st['freq']*1e9, rtlib.calc_blarr(st), calname='', pols=st['pols'], radec=(), spwind=[])
-#    sols.apply(data)
-#    rtpipe.RT.dataflag(st, data)
-#    data_sub = search.meantsub(data_read)
     return data_read
 
 

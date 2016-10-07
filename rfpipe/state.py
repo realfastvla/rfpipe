@@ -1,76 +1,90 @@
-import json
+import json, attr
 # from collections import OrderedDict #?
 
-#import attr?
-#@attr.s
+
+# 
+# 1) initial, minimal state defines either parameters for later use or fixes final state
+# 2) read metadata from observation for given scan (if final value not yet set)
+# 3) run functions to set state (sets hashable state)
+# 4) may also set convenience attibutes
+# 5) run data processing for given segment
+
+# these should be modified to change state based on input
+# - nsegments or dmarr + memory_limit + metadata => segmenttimes
+# - dmarr or dm_parameters + metadata => dmarr
+# - uvoversample + npix_max + metadata => npixx, npixy
+
+@attr.s
 class State(object):
-    # chans = attr.ib([])...
+    """ Defines initial pipeline preferences and methods for calculating state.
+    Uses attributes for immutable inputs and properties for derived quantities that depend on metadata.
+    """
 
-    def  __init__(self, paramfile='', version=2, **kwargs):
-        """ Define rfpipe state 
-    
-        For version==1, this parses in the rtpipe-style. Input uses python exec to run each line.
-        For version>=2, this will make more general rfpipe-style pipeline state.
-        """
+    # data selection
+    chans = attr.ib(default=[])
+    spw = attr.ib(default=[])
+    excludeants = attr.ib(default=[])
+    selectpol = attr.ib(default=[]) # ['RR', 'LL', 'XX', 'YY']   # default processing assumes dual-pol
 
-        self.version = version
+    # preprocessing
+    read_tdownsample = attr.ib(default=1)
+    read_fdownsample = attr.ib(default=1)
+    l0 = attr.ib(default=0.)
+    m0 = attr.ib(default=0.)
+    timesub = attr.ib(default=None)
+    flaglist = attr.ib(default=[('badchtslide', 4., 0.) , ('badap', 3., 0.2), ('blstd', 3.0, 0.05)])
+    flagantsol = attr.ib(default=True)
+    gainfile = attr.ib(default=None)
+    applyonlineflags = attr.ib(default=True)
+    mock = attr.ib(default=0)
 
-        if version == 1:
-            # default values
-            self.chans = []; self.spw = []    
-            self.nskip = 0; self.excludeants = []; self.read_tdownsample = 1; self.read_fdownsample = 1
-            self.selectpol = ['RR', 'LL', 'XX', 'YY']   # default processing assumes dual-pol
-            self.nthread = 1; self.nchunk = 0; self.nsegments = 0; self.scale_nsegments = 1
-            self.timesub = ''
-            self.dmarr = []; self.dtarr = [1]    # dmarr = [] will autodetect, given other parameters
-            self.dm_maxloss = 0.05; self.maxdm = 0; self.dm_pulsewidth = 3000   # dmloss is fractional sensitivity loss, maxdm in pc/cm3, width in microsec
-            self.searchtype = 'image1'; self.sigma_image1 = 7.; self.sigma_image2 = 7.
-            self.l0 = 0.; self.m0 = 0.
-            self.uvres = 0; self.npix = 0; self.npix_max = 0; self.uvoversample = 1.
-            self.flaglist = [('badchtslide', 4., 0.) , ('badap', 3., 0.2), ('blstd', 3.0, 0.05)]
-            self.flagantsol = True; self.gainfile = ''; self.bpfile = ''; self.fileroot = ''; self.applyonlineflags = True
-            self.savenoise = False; self.savecands = False; self.logfile = True; self.loglevel = 'INFO'
-            self.writebdfpkl = False; self.mock = 0
-                           
-            # overload with the parameter file values, if provided
-            if len(paramfile):
-                self.parseparamfile(paramfile)
+    # processing
+    _nthread = attr.ib(default=1)
+    _nchunk = attr.ib(default=0)
+    _nsegments = attr.ib(default=0)
+    _scale_nsegments = attr.ib(default=1)
 
-        elif version == 2:
-            # parse paramfile
+    # search
+    _dmarr = attr.ib(default=None)
 
-            self.__dict__['featureind'] = ['scan', 'segment', 'int', 'dmind', 'dtind', 'beamnum']  # feature index. should be stable.
+    @property
+    def dmarr(self):
+        if self._dmarr:
+            return self._dmarr
+        else:
+            return self.calc_dmarr()
 
-            # parse kwargs and overload defaults
-            for key in kwargs:
-                setattr(self, key, value)
+    dtarr = attr.ib(default=(1))
+    dm_maxloss = attr.ib(default=0.05) # fractional sensitivity loss
+    maxdm = attr.ib(default=0) # in pc/cm3
+    dm_pulsewidth = attr.ib(default=3000)   # in microsec
+    searchtype = attr.ib(default='image1')
+    sigma_image1 = attr.ib(default=7.)
+    sigma_image2 = attr.ib(default=7.)
+    uvres = attr.ib(default=0)
+    npix = attr.ib(default=0)
+    npix_max = attr.ib(default=0)
+    uvoversample = attr.ib(default=1.)
 
-            raise NotImplementedError
+    savenoise = attr.ib(default=False)
+    savecands = attr.ib(default=False)
+    logfile = attr.ib(default=True)
+    loglevel = attr.ib(default='INFO')
 
-
-    def parseparamfile(self, paramfile):
-        """ Read parameter file and set parameter values.
-        File should have python-like syntax. Full file name needed.
-        """
-
-        with open(paramfile, 'r') as f:
-            for line in f.readlines():
-                line_clean = line.rstrip('\n').split('#')[0]   # trim out comments and trailing cr
-                if line_clean and '=' in line:   # use valid lines only
-                    attribute, value = line_clean.split('=')
-                    try:
-                        value_eval = eval(value.strip())
-                    except NameError:
-                        value_eval = value.strip()
-                    finally:
-                        setattr(self, attribute.strip(), value_eval)
-
-
-    def parseyaml(self, paramfile, name='default'):
-        # maybe use pyyaml to parse parameters more reliably
-        # could save multiple per yml paramfile
-        pass
-
+# may want to play with versions later
+#    def  __init__(self, paramfile='', version=2, **kwargs):
+#        """ Define rfpipe state 
+#    
+#        For version==1, this parses in the rtpipe-style. Input uses python exec to run each line.
+#        For version>=2, this will make more general rfpipe-style pipeline state.
+#        """
+#
+#        self.version = version
+#
+#        if version == 1:
+#            # overload with the parameter file values, if provided
+#            if len(paramfile):
+#                self.parseparamfile(paramfile)
 
     @property
     def reproducekeys(self):
@@ -114,20 +128,37 @@ class State(object):
         return self.__dict__.keys()
 
 
-    def __getitem__(self, key):
-        return self.__dict__[key]
+    def calc_dmarr(maxloss, dt, mindm, maxdm):
+        """ Function to calculate the DM values for a given maximum sensitivity loss.
+        maxloss is sensitivity loss tolerated by dm bin width. dt is assumed pulse width in microsec.
+        """
 
+        # parameters
+        tsamp = self.inttime*1e6  # in microsec
+        k = 8.3
+        freq = self.freq.mean()  # central (mean) frequency in GHz
+        bw = 1e3*(self.freq[-1] - self.freq[0])
+        ch = 1e3*(self.freq[1] - self.freq[0])  # channel width in MHz
 
-    def __setitem__(self, key, value):
-        self.__dict__[key] = value
+        # width functions and loss factor
+        dt0 = lambda dm: n.sqrt(dt**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2)
+        dt1 = lambda dm, ddm: n.sqrt(dt**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2 + ((k*ddm*bw)/(freq**3.))**2)
+        loss = lambda dm, ddm: 1 - n.sqrt(dt0(dm)/dt1(dm,ddm))
+        loss_cordes = lambda ddm, dfreq, dt, freq: 1 - (n.sqrt(n.pi) / (2 * 6.91e-3 * ddm * dfreq / (dt*freq**3))) * erf(6.91e-3 * ddm * dfreq / (dt*freq**3))  # not quite right for underresolved pulses
 
+        if maxdm == 0:
+            return [0]
+        else:
+            # iterate over dmgrid to find optimal dm values. go higher than maxdm to be sure final list includes full range.
+            dmgrid = n.arange(mindm, maxdm, 0.05)
+            dmgrid_final = [dmgrid[0]]
+            for i in range(len(dmgrid)):
+                ddm = (dmgrid[i] - dmgrid_final[-1])/2.
+                ll = loss(dmgrid[i],ddm)
+                if ll > maxloss:
+                    dmgrid_final.append(dmgrid[i])
 
-    def __delitem__(self, key):
-        del self.__dict__[key]
-
-
-    def __str__(self):
-        return str(self.__dict__)
+        return dmgrid_final
 
 
 def set_segments(state):
@@ -185,38 +216,6 @@ def calc_fringetime(d):
     return fringetime
 
 
-def calc_dmgrid(d, maxloss=0.05, dt=3000., mindm=0., maxdm=0.):
-    """ Function to calculate the DM values for a given maximum sensitivity loss.
-    maxloss is sensitivity loss tolerated by dm bin width. dt is assumed pulse width in microsec.
-    """
-
-    # parameters
-    tsamp = d['inttime']*1e6  # in microsec
-    k = 8.3
-    freq = d['freq'].mean()  # central (mean) frequency in GHz
-    bw = 1e3*(d['freq'][-1] - d['freq'][0])
-    ch = 1e3*(d['freq'][1] - d['freq'][0])  # channel width in MHz
-
-    # width functions and loss factor
-    dt0 = lambda dm: n.sqrt(dt**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2)
-    dt1 = lambda dm, ddm: n.sqrt(dt**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2 + ((k*ddm*bw)/(freq**3.))**2)
-    loss = lambda dm, ddm: 1 - n.sqrt(dt0(dm)/dt1(dm,ddm))
-    loss_cordes = lambda ddm, dfreq, dt, freq: 1 - (n.sqrt(n.pi) / (2 * 6.91e-3 * ddm * dfreq / (dt*freq**3))) * erf(6.91e-3 * ddm * dfreq / (dt*freq**3))  # not quite right for underresolved pulses
-
-    if maxdm == 0:
-        return [0]
-    else:
-        # iterate over dmgrid to find optimal dm values. go higher than maxdm to be sure final list includes full range.
-        dmgrid = n.arange(mindm, maxdm, 0.05)
-        dmgrid_final = [dmgrid[0]]
-        for i in range(len(dmgrid)):
-            ddm = (dmgrid[i] - dmgrid_final[-1])/2.
-            ll = loss(dmgrid[i],ddm)
-            if ll > maxloss:
-                dmgrid_final.append(dmgrid[i])
-
-    return dmgrid_final
-
 
 def set_imagegrid(state):
     """ """
@@ -248,4 +247,11 @@ def set_imagegrid(state):
         d['npixy'] = d['npix']
     else:
         d['npix'] = max(d['npixx'], d['npixy'])   # this used to define fringe time
+
+
+def parseyaml(self, paramfile, name='default'):
+    # maybe use pyyaml to parse parameters more reliably
+    # could save multiple per yml paramfile
+    pass
+
 
