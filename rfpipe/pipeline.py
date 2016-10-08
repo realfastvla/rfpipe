@@ -16,12 +16,6 @@ logger = logging.getLogger('rfpipe')
 #     if datatype(datasource) == 'sdm':
 #         source.parsesdm(sdmfile, st)
 
-# these should be properties
-#    state.set_dmgrid(st)
-#    state.set_imagegrid(st)
-#    state.set_segments(st)
-
-#     # learn distributed for this part
 #     if 'image' in st.searchtype:
 #         search.imaging(st)
 

@@ -1,7 +1,6 @@
 import json, attr
 # from collections import OrderedDict #?
 
-
 # 
 # 1) initial, minimal state defines either parameters for later use or fixes final state
 # 2) read metadata from observation for given scan (if final value not yet set)
@@ -14,77 +13,160 @@ import json, attr
 # - dmarr or dm_parameters + metadata => dmarr
 # - uvoversample + npix_max + metadata => npixx, npixy
 
-@attr.s
+
 class State(object):
     """ Defines initial pipeline preferences and methods for calculating state.
     Uses attributes for immutable inputs and properties for derived quantities that depend on metadata.
     """
 
-    # data selection
-    chans = attr.ib(default=[])
-    spw = attr.ib(default=[])
-    excludeants = attr.ib(default=[])
-    selectpol = attr.ib(default=[]) # ['RR', 'LL', 'XX', 'YY']   # default processing assumes dual-pol
+    def __init__(self, paramfile=None, version=1):
+        """ Initialize parameter attributes with text file.
+        Versions control functions that derive state from parameters and metadata
+        """
 
-    # preprocessing
-    read_tdownsample = attr.ib(default=1)
-    read_fdownsample = attr.ib(default=1)
-    l0 = attr.ib(default=0.)
-    m0 = attr.ib(default=0.)
-    timesub = attr.ib(default=None)
-    flaglist = attr.ib(default=[('badchtslide', 4., 0.) , ('badap', 3., 0.2), ('blstd', 3.0, 0.05)])
-    flagantsol = attr.ib(default=True)
-    gainfile = attr.ib(default=None)
-    applyonlineflags = attr.ib(default=True)
-    mock = attr.ib(default=0)
+        self.version = version
 
-    # processing
-    _nthread = attr.ib(default=1)
-    _nchunk = attr.ib(default=0)
-    _nsegments = attr.ib(default=0)
-    _scale_nsegments = attr.ib(default=1)
+        kwargs = {}
+        if paramfile:
+            inpars = parseparamfile(paramfile)
+            for k in inpars.defined:   # fill in default params
+                kwargs[k] = inpars[k]
 
-    # search
-    _dmarr = attr.ib(default=None)
+        self.parameters = Parameters(**kwargs)
+
 
     @property
     def dmarr(self):
-        if self._dmarr:
-            return self._dmarr
+        if self.parameters.dmarr:
+            return self.parameters.dmarr
         else:
-            return self.calc_dmarr()
+            return self.calc_dmarr(self.parameters.dm_maxloss, self.parameters.dm_pulsewidth, self.parameters.mindm, self.parameters.maxdm)
 
-    dtarr = attr.ib(default=(1))
-    dm_maxloss = attr.ib(default=0.05) # fractional sensitivity loss
-    maxdm = attr.ib(default=0) # in pc/cm3
-    dm_pulsewidth = attr.ib(default=3000)   # in microsec
-    searchtype = attr.ib(default='image1')
-    sigma_image1 = attr.ib(default=7.)
-    sigma_image2 = attr.ib(default=7.)
-    uvres = attr.ib(default=0)
-    npix = attr.ib(default=0)
-    npix_max = attr.ib(default=0)
-    uvoversample = attr.ib(default=1.)
 
-    savenoise = attr.ib(default=False)
-    savecands = attr.ib(default=False)
-    logfile = attr.ib(default=True)
-    loglevel = attr.ib(default='INFO')
+    @property
+    def freq(self):
+        # TODO: need to support spw selection and downsampling, e.g.:
+        #    if spectralwindow[ii] in d['spw']:
+        #    np.array([np.mean(spwch[i:i+d['read_fdownsample']]) for i in range(0, len(spwch), d['read_fdownsample'])], dtype='float32') / 1e9
 
-# may want to play with versions later
-#    def  __init__(self, paramfile='', version=2, **kwargs):
-#        """ Define rfpipe state 
-#    
-#        For version==1, this parses in the rtpipe-style. Input uses python exec to run each line.
-#        For version>=2, this will make more general rfpipe-style pipeline state.
-#        """
-#
-#        self.version = version
-#
-#        if version == 1:
-#            # overload with the parameter file values, if provided
-#            if len(paramfile):
-#                self.parseparamfile(paramfile)
+        return self.metadata.freq_orig[self.parameters.chans]
+
+
+    @property
+    def nchan(self):
+        return len(self.freq)
+
+
+    @property
+    def nspw(self):
+        return len(self.metadata.spw_orig[self.parameters.spw])
+
+
+    @property
+    def spw_nchan_select(self):
+        return [len([ch for ch in range(self.metadata.spw_chanr[i][0], self.metadata.spw_chanr[i][1]) if ch in self.parameters.chans])
+                for i in range(len(self.metadata.spw_chanr))]
+
+
+    @property
+    def spw_chanr_select(self):
+        chanr_select = []
+        i0 = 0
+        for nch in self.spw_nchan_select:
+            chanr_select.append((i0, i0+nch))
+            i0 += nch
+
+        return chanr_select
+
+
+    @property
+    def uvres(self):
+        if self.parameters.uvres:
+            return self.parameters.uvres
+        else:
+            return self.uvres_full
+
+
+    @property
+    def uvres_full(self):
+        return np.round(self.metadata.dishdiameter / (3e-1 / self.freq.min()) / 2).astype('int')
+
+
+    @property
+    def npixx_full(self):
+        """ Finds optimal uv/image pixel extent in powers of 2 and 3"""
+
+        urange_orig, vrange_orig = self.metadata.uvrange_orig
+        urange = urange_orig * (self.freq.max() / self.metadata.freq_orig[0])
+        powers = np.fromfunction(lambda i, j: 2**i*3**j, (14, 10), dtype='int')
+        rangex = np.round(self.parameters.uvoversample*urange).astype('int')
+        largerx = np.where(powers - rangex / self.uvres_full > 0,
+                           powers, powers[-1, -1])
+        p2x, p3x = np.where(largerx == largerx.min())
+        return (2**p2x * 3**p3x)[0]
+
+
+    @property
+    def npixy_full(self):
+        """ Finds optimal uv/image pixel extent in powers of 2 and 3"""
+
+        urange_orig, vrange_orig = self.metadata.uvrange_orig
+        vrange = vrange_orig * (self.freq.max() / d['freq_orig'][0])
+        rangey = np.round(self.parameters.uvoversample*vrange).astype('int')
+        largery = np.where(powers - rangey / self.uvres_full > 0,
+                           powers, powers[-1, -1])
+        p2y, p3y = np.where(largery == largery.min())
+        return (2**p2y * 3**p3y)[0]
+
+
+    @property
+    def ants(self):
+        return sorted([ant for ant in self.metadata.ants_orig if ant not in self.parameters.excludeants])
+
+
+    @property
+    def nants(self):
+        return len(self.ants)
+
+
+    @property
+    def nbl(self):
+        return d['nants']*(d['nants']-1)/2
+
+
+
+    def calc_dmarr(self, dm_maxloss, dm_pulsewidth, mindm, maxdm):
+        """ Function to calculate the DM values for a given maximum sensitivity loss.
+        dm_maxloss is sensitivity loss tolerated by dm bin width. dm_pulsewidth is assumed pulse width in microsec.
+        """
+
+        # parameters
+        tsamp = self.inttime*1e6  # in microsec
+        k = 8.3
+        freq = self.freq.mean()  # central (mean) frequency in GHz
+        bw = 1e3*(self.freq[-1] - self.freq[0])
+        ch = 1e3*(self.freq[1] - self.freq[0])  # channel width in MHz
+
+        # width functions and loss factor
+        dt0 = lambda dm: n.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2)
+        dt1 = lambda dm, ddm: n.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2 + ((k*ddm*bw)/(freq**3.))**2)
+        loss = lambda dm, ddm: 1 - n.sqrt(dt0(dm)/dt1(dm,ddm))
+        loss_cordes = lambda ddm, dfreq, dm_pulsewidth, freq: 1 - (n.sqrt(n.pi) / (2 * 6.91e-3 * ddm * dfreq / (dm_pulsewidth*freq**3))) * erf(6.91e-3 * ddm * dfreq / (dm_pulsewidth*freq**3))  # not quite right for underresolved pulses
+
+        if maxdm == 0:
+            return [0]
+        else:
+            # iterate over dmgrid to find optimal dm values. go higher than maxdm to be sure final list includes full range.
+            dmgrid = n.arange(mindm, maxdm, 0.05)
+            dmgrid_final = [dmgrid[0]]
+            for i in range(len(dmgrid)):
+                ddm = (dmgrid[i] - dmgrid_final[-1])/2.
+                ll = loss(dmgrid[i],ddm)
+                if ll > dm_maxloss:
+                    dmgrid_final.append(dmgrid[i])
+
+        return dmgrid_final
+
 
     @property
     def reproducekeys(self):
@@ -128,37 +210,56 @@ class State(object):
         return self.__dict__.keys()
 
 
-    def calc_dmarr(maxloss, dt, mindm, maxdm):
-        """ Function to calculate the DM values for a given maximum sensitivity loss.
-        maxloss is sensitivity loss tolerated by dm bin width. dt is assumed pulse width in microsec.
-        """
 
-        # parameters
-        tsamp = self.inttime*1e6  # in microsec
-        k = 8.3
-        freq = self.freq.mean()  # central (mean) frequency in GHz
-        bw = 1e3*(self.freq[-1] - self.freq[0])
-        ch = 1e3*(self.freq[1] - self.freq[0])  # channel width in MHz
+@attr.s(frozen=True)
+class Parameters(object):
+    """ Parameters are immutable and express half of info needed to define state.
+    Using parameters with metadata produces a unique state and pipeline outcome.
+    """
 
-        # width functions and loss factor
-        dt0 = lambda dm: n.sqrt(dt**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2)
-        dt1 = lambda dm, ddm: n.sqrt(dt**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2 + ((k*ddm*bw)/(freq**3.))**2)
-        loss = lambda dm, ddm: 1 - n.sqrt(dt0(dm)/dt1(dm,ddm))
-        loss_cordes = lambda ddm, dfreq, dt, freq: 1 - (n.sqrt(n.pi) / (2 * 6.91e-3 * ddm * dfreq / (dt*freq**3))) * erf(6.91e-3 * ddm * dfreq / (dt*freq**3))  # not quite right for underresolved pulses
+    # data selection
+    chans = attr.ib(default=None)
+    spw = attr.ib(default=None)
+    excludeants = attr.ib(default=None)
+    selectpol = attr.ib(default=None) # ['RR', 'LL', 'XX', 'YY']   # default processing assumes dual-pol
 
-        if maxdm == 0:
-            return [0]
-        else:
-            # iterate over dmgrid to find optimal dm values. go higher than maxdm to be sure final list includes full range.
-            dmgrid = n.arange(mindm, maxdm, 0.05)
-            dmgrid_final = [dmgrid[0]]
-            for i in range(len(dmgrid)):
-                ddm = (dmgrid[i] - dmgrid_final[-1])/2.
-                ll = loss(dmgrid[i],ddm)
-                if ll > maxloss:
-                    dmgrid_final.append(dmgrid[i])
+    # preprocessing
+    read_tdownsample = attr.ib(default=1)
+    read_fdownsample = attr.ib(default=1)
+    l0 = attr.ib(default=0.)  # in radians
+    m0 = attr.ib(default=0.)  # in radians
+    timesub = attr.ib(default=None)
+    flaglist = attr.ib(default=[('badchtslide', 4., 0.) , ('badap', 3., 0.2), ('blstd', 3.0, 0.05)])
+    flagantsol = attr.ib(default=True)
+    applyonlineflags = attr.ib(default=True)
+    gainfile = attr.ib(default=None)
+    mock = attr.ib(default=0)
 
-        return dmgrid_final
+    # processing
+    nthread = attr.ib(default=1)
+    nchunk = attr.ib(default=0)
+    nsegments = attr.ib(default=0)
+    scale_nsegments = attr.ib(default=1)  # remove?
+
+    # search
+    dmarr = attr.ib(default=None)
+    dtarr = attr.ib(default=1)
+    dm_maxloss = attr.ib(default=0.05) # fractional sensitivity loss
+    mindm = attr.ib(default=0)
+    maxdm = attr.ib(default=0) # in pc/cm3
+    dm_pulsewidth = attr.ib(default=3000)   # in microsec
+    searchtype = attr.ib(default='image1')
+    sigma_image1 = attr.ib(default=7.)
+    sigma_image2 = attr.ib(default=7.)
+    uvres = attr.ib(default=0)
+    npix = attr.ib(default=0)
+    npix_max = attr.ib(default=0)
+    uvoversample = attr.ib(default=1.)
+
+    savenoise = attr.ib(default=False)
+    savecands = attr.ib(default=False)
+    logfile = attr.ib(default=True)
+    loglevel = attr.ib(default='INFO')
 
 
 def set_segments(state):
@@ -247,6 +348,25 @@ def set_imagegrid(state):
         d['npixy'] = d['npix']
     else:
         d['npix'] = max(d['npixx'], d['npixy'])   # this used to define fringe time
+
+
+
+def parseparamfile(self, paramfile):
+    """ Read parameter file and set parameter values.
+    File should have python-like syntax. Full file name needed.
+    """
+
+    with open(paramfile, 'r') as f:
+        for line in f.readlines():
+            line_clean = line.rstrip('\n').split('#')[0]   # trim out comments and trailing cr
+            if line_clean and '=' in line:   # use valid lines only
+                attribute, value = line_clean.split('=')
+                try:
+                    value_eval = eval(value.strip())
+                except NameError:
+                    value_eval = value.strip()
+                finally:
+                    setattr(self, attribute.strip(), value_eval)
 
 
 def parseyaml(self, paramfile, name='default'):
