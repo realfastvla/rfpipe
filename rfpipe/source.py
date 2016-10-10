@@ -1,77 +1,15 @@
-import os
-import numpy as np
+import logging
+logger = logging.getLogger(__name__)
+
+import os, attr
 from lxml.etree import XMLSyntaxError
-import attr
+import numpy as np
 import rtpipe, sdmpy
 
 # source.py will:
 # - define data sources for pipeline
 # - have first rate support for sdm files
 # - can generalize to include streaming data from CBE?
-
-
-def dataprep(st, segment):
-    data_read = rtpipe.parsesdm.read_bdf_segment(st, segment)
-    return data_read
-
-
-def randomdata(st):
-    data = np.zeros(shape=(st['readints'], st['nbl'], st['nchan'], st['npol']), dtype='complex64')
-    data.real = np.random.normal(size=data.shape)
-    data.imag = np.random.normal(size=data.shape)
-    return data
-
-
-def randomuvw(st):
-    return np.random.randint(-100, 100, size=st['nbl'])
-
-
-
-def sdm_metadata(sdmfile, scannum, bdfdir=None, **kw):
-    """ Wraps Metadata call to provide immutable, attribute-filled class instance.
-    """
-
-    sdm = getsdm(sdmfile, bdfdir=bdfdir)
-    scan = sdm.scan(scannum)
-
-    kwargs = {}
-    kwargs['filename'] = sdmfile
-    kwargs['scan'] = scannum
-    kwargs['bdfdir'] = bdfdir
-
-    starttime_mjd = scan.bdf.startTime
-    nints = scan.bdf.numIntegration
-    inttime = scan.bdf.get_integration(0).interval
-    endtime_mjd = starttime_mjd + (nints*inttime)/(24*3600)
-    bdfstr = scan.bdf.fname
-
-    kwargs['starttime_mjd'] = starttime_mjd
-    kwargs['endtime_mjd'] = endtime_mjd
-    kwargs['inttime'] = inttime
-    kwargs['nints'] = nints
-    kwargs['source'] = scan.source
-    kwargs['intent'] = ' '.join(scan.intents)
-    bdfstr = scan.bdf.fname
-    if (not os.path.exists(bdfstr)) or ('X1' in bdfstr):
-        kwargs['bdfstr'] = None
-    else:
-        kwargs['bdfstr'] = bdfstr
-
-    sources = sdm_sources(sdmfile)
-    kwargs['radec'] = ((prop['ra'], prop['dec']) for (sr, prop) in sources.iteritems() if prop['source'] == d['source'])[0]
-
-    kwargs['dishdiameter'] = float(str(sdm['Antenna'][0].dishDiameter).strip())
-
-    kwargs['spw_orig'] = [int(str(row.spectralWindowId).split('_')[1]) for row in sdm['SpectralWindow']]
-    kwargs['spw_nchan'] = [int(row.numChan) for row in sdm['SpectralWindow']]
-    kwargs['spw_reffreq'] = [float(row.chanFreqStart) for row in sdm['SpectralWindow']]
-    kwargs['spw_chansize'] = [float(row.chanFreqStep) for row in sdm['SpectralWindow']]
-
-    # finally, overload with provided kw args
-    for key, value in kw.iteritems():
-        kwargs[key] = value
-
-    return Metadata(**kwargs)
 
 
 @attr.s(frozen=True)
@@ -87,8 +25,6 @@ class Metadata(object):
     scan = attr.ib()
     bdfdir = attr.ib(default=None)
     bdfstr = attr.ib(default=None)
-    logfile = attr.ib(default=True)
-    loglevel = attr.ib(default='INFO')
     _sdm = None  # cached sdmpy sdm object
 
     # data structure and source properties
@@ -162,10 +98,56 @@ class Metadata(object):
 
     @property
     def uvrange_orig(self):
-        (u, v, w) = calc_uvw(self.filename, self.scan, bdfdir=self.bdfdir)  # default uses time at start
+        (u, v, w) = sdm_uvw(self.filename, self.scan, bdfdir=self.bdfdir)  # default uses time at start
         u = u * self.freq_orig[0] * (1e9/3e8) * (-1)
         v = v * self.freq_orig[0] * (1e9/3e8) * (-1)
         return (u.max() - u.min(), v.max() - v.min())
+
+
+def sdm_metadata(sdmfile, scannum, bdfdir=None, **kw):
+    """ Wraps Metadata call to provide immutable, attribute-filled class instance.
+    """
+
+    sdm = getsdm(sdmfile, bdfdir=bdfdir)
+    scan = sdm.scan(scannum)
+
+    kwargs = {}
+    kwargs['filename'] = sdmfile
+    kwargs['scan'] = scannum
+    kwargs['bdfdir'] = bdfdir
+
+    starttime_mjd = scan.bdf.startTime
+    nints = scan.bdf.numIntegration
+    inttime = scan.bdf.get_integration(0).interval
+    endtime_mjd = starttime_mjd + (nints*inttime)/(24*3600)
+    bdfstr = scan.bdf.fname
+
+    kwargs['starttime_mjd'] = starttime_mjd
+    kwargs['endtime_mjd'] = endtime_mjd
+    kwargs['inttime'] = inttime
+    kwargs['nints'] = nints
+    kwargs['source'] = scan.source
+    kwargs['intent'] = ' '.join(scan.intents)
+    bdfstr = scan.bdf.fname
+    if (not os.path.exists(bdfstr)) or ('X1' in bdfstr):
+        kwargs['bdfstr'] = None
+    else:
+        kwargs['bdfstr'] = bdfstr
+
+    sources = sdm_sources(sdmfile)
+    kwargs['radec'] = [(prop['ra'], prop['dec']) for (sr, prop) in sources.iteritems() if prop['source'] == scan.source][0]
+    kwargs['dishdiameter'] = float(str(sdm['Antenna'][0].dishDiameter).strip())
+
+    kwargs['spw_orig'] = [int(str(row.spectralWindowId).split('_')[1]) for row in sdm['SpectralWindow']]
+    kwargs['spw_nchan'] = [int(row.numChan) for row in sdm['SpectralWindow']]
+    kwargs['spw_reffreq'] = [float(row.chanFreqStart) for row in sdm['SpectralWindow']]
+    kwargs['spw_chansize'] = [float(row.chanFreqStep) for row in sdm['SpectralWindow']]
+
+    # finally, overload with provided kw args
+    for key, value in kw.iteritems():
+        kwargs[key] = value
+
+    return Metadata(**kwargs)
 
 
 def sdm_uvw(sdmfile, scan=0, datetime=0, radec=(), bdfdir=''):
@@ -284,3 +266,22 @@ def getsdm(*args, **kwargs):
         sdm = sdmpy.SDM(*args, **kwargs)
 
     return sdm
+
+
+def dataprep(st, segment):
+    data_read = rtpipe.parsesdm.read_bdf_segment(st, segment)
+    return data_read
+
+
+def randomdata(st):
+    data = np.zeros(shape=(st['readints'], st['nbl'], st['nchan'], st['npol']), dtype='complex64')
+    data.real = np.random.normal(size=data.shape)
+    data.imag = np.random.normal(size=data.shape)
+    return data
+
+
+def randomuvw(st):
+    return np.random.randint(-100, 100, size=st['nbl'])
+
+
+

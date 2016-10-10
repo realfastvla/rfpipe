@@ -1,38 +1,108 @@
+import logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.captureWarnings(True)
+logger = logging.getLogger(__name__)
+
 import json, attr
+from . import source
 # from collections import OrderedDict #?
 
-# 
-# 1) initial, minimal state defines either parameters for later use or fixes final state
-# 2) read metadata from observation for given scan (if final value not yet set)
-# 3) run functions to set state (sets hashable state)
-# 4) may also set convenience attibutes
-# 5) run data processing for given segment
 
-# these should be modified to change state based on input
-# - nsegments or dmarr + memory_limit + metadata => segmenttimes
-# - dmarr or dm_parameters + metadata => dmarr
-# - uvoversample + npix_max + metadata => npixx, npixy
+
+
+
+
+@attr.s(frozen=True)
+class Parameters(object):
+    """ Parameters are immutable and express half of info needed to define state.
+    Using parameters with metadata produces a unique state and pipeline outcome.
+    """
+
+    # data selection
+    chans = attr.ib(default=None)
+    spw = attr.ib(default=None)
+    excludeants = attr.ib(default=None)
+    selectpol = attr.ib(default=None) # ['RR', 'LL', 'XX', 'YY']   # default processing assumes dual-pol
+
+    # preprocessing
+    read_tdownsample = attr.ib(default=1)
+    read_fdownsample = attr.ib(default=1)
+    l0 = attr.ib(default=0.)  # in radians
+    m0 = attr.ib(default=0.)  # in radians
+    timesub = attr.ib(default=None)
+    flaglist = attr.ib(default=[('badchtslide', 4., 0.) , ('badap', 3., 0.2), ('blstd', 3.0, 0.05)])
+    flagantsol = attr.ib(default=True)
+    badspwpol = attr.ib(default=2.)
+    applyonlineflags = attr.ib(default=True)
+    gainfile = attr.ib(default=None)
+    mock = attr.ib(default=0)
+
+    # processing
+    nthread = attr.ib(default=1)
+    nchunk = attr.ib(default=0)
+    nsegments = attr.ib(default=0)
+    scale_nsegments = attr.ib(default=1)  # remove?
+    memory_limit = attr.ib(default=20)
+
+    # search
+    dmarr = attr.ib(default=None)
+    dtarr = attr.ib(default=1)
+    dm_maxloss = attr.ib(default=0.05) # fractional sensitivity loss
+    mindm = attr.ib(default=0)
+    maxdm = attr.ib(default=0) # in pc/cm3
+    dm_pulsewidth = attr.ib(default=3000)   # in microsec
+    searchtype = attr.ib(default='image1')
+    sigma_image1 = attr.ib(default=7.)
+    sigma_image2 = attr.ib(default=7.)
+    sigma_plot = attr.ib(default=7.)
+    uvres = attr.ib(default=0)
+    npixx = attr.ib(default=0)
+    npixy = attr.ib(default=0)
+    npix_max = attr.ib(default=0)
+    uvoversample = attr.ib(default=1.)
+
+    savenoise = attr.ib(default=False)
+    savecands = attr.ib(default=False)
+#    logfile = attr.ib(default=True)
+    loglevel = attr.ib(default='INFO')
 
 
 class State(object):
     """ Defines initial pipeline preferences and methods for calculating state.
     Uses attributes for immutable inputs and properties for derived quantities that depend on metadata.
+
+    Scheme:
+    1) initial, minimal state defines either parameters for later use or fixes final state
+    2) read metadata from observation for given scan (if final value not yet set)
+    3) run functions to set state (sets hashable state)
+    4) may also set convenience attibutes
+    5) run data processing for given segment
+
+    these should be modified to change state based on input
+    - nsegments or dmarr + memory_limit + metadata => segmenttimes
+    - dmarr or dm_parameters + metadata => dmarr
+    - uvoversample + npix_max + metadata => npixx, npixy
     """
 
-    def __init__(self, paramfile=None, version=1):
+    def __init__(self, paramfile=None, sdmfile=None, scan=None, version=1):
         """ Initialize parameter attributes with text file.
-        Versions control functions that derive state from parameters and metadata
+        Versions define functions that derive state from parameters and metadata
         """
 
         self.version = version
 
-        kwargs = {}
-        if paramfile:
-            inpars = parseparamfile(paramfile)
-            for k in inpars.defined:   # fill in default params
-                kwargs[k] = inpars[k]
+        logger.parent.setLevel(getattr(logging, 'INFO'))
 
-        self.parameters = Parameters(**kwargs)
+        # get pipeline parameters
+        inpars = parseparamfile(paramfile)  # returns empty dict for paramfile=None
+        self.parameters = Parameters(**inpars)
+
+        # get metadata
+        if sdmfile and scan:
+            metadata = source.sdm_metadata(sdmfile, scan)
+            self.metadata = metadata
+
+        logger.parent.setLevel(getattr(logging, self.parameters.loglevel))
 
 
     @property
@@ -111,12 +181,53 @@ class State(object):
         """ Finds optimal uv/image pixel extent in powers of 2 and 3"""
 
         urange_orig, vrange_orig = self.metadata.uvrange_orig
-        vrange = vrange_orig * (self.freq.max() / d['freq_orig'][0])
+        vrange = vrange_orig * (self.freq.max() / self.metadata.freq_orig[0])
         rangey = np.round(self.parameters.uvoversample*vrange).astype('int')
         largery = np.where(powers - rangey / self.uvres_full > 0,
                            powers, powers[-1, -1])
         p2y, p3y = np.where(largery == largery.min())
         return (2**p2y * 3**p3y)[0]
+
+
+    @property
+    def npixx(self):
+        """ Number of x pixels in uv/image grid.
+        First defined by input parameter set with default to npixx_full
+        """
+
+        if self.parameters.npixx:
+            return self.parameters.npixx
+        else:
+            if self.parameters.npix_max:
+                npix = min(self.parameters.npix_max, self.npixx_full)
+            return npix
+
+
+    @property
+    def npixy(self):
+        """ Number of y pixels in uv/image grid.
+        First defined by input parameter set with default to npixy_full
+        """
+        
+        if self.parameters.npixy:
+            return self.parameters.npixy
+        else:
+            if self.parameters.npix_max:
+                npix = min(self.parameters.npix_max, self.npixy_full)
+            return npix
+
+
+    @property
+    def fringetime(self):
+        """ Estimate largest time span of a "segment".
+        A segment is the maximal time span that can be have a single bg fringe subtracted and uv grid definition.
+        Max fringe window estimated for 5% amp loss at first null averaged over all baselines. Assumes dec=+90, which is conservative.
+        Returns time in seconds that defines good window.
+        """
+
+        maxbl = self.uvres*max(self.npixx, self.npixy)/2    # fringe time for image grid extent
+        fringetime = 0.5*(24*3600)/(2*n.pi*maxbl/25.)   # max fringe window in seconds
+        return fringetime
 
 
     @property
@@ -131,7 +242,7 @@ class State(object):
 
     @property
     def nbl(self):
-        return d['nants']*(d['nants']-1)/2
+        return self.nants*(self.nants-1)/2
 
 
 
@@ -211,57 +322,6 @@ class State(object):
 
 
 
-@attr.s(frozen=True)
-class Parameters(object):
-    """ Parameters are immutable and express half of info needed to define state.
-    Using parameters with metadata produces a unique state and pipeline outcome.
-    """
-
-    # data selection
-    chans = attr.ib(default=None)
-    spw = attr.ib(default=None)
-    excludeants = attr.ib(default=None)
-    selectpol = attr.ib(default=None) # ['RR', 'LL', 'XX', 'YY']   # default processing assumes dual-pol
-
-    # preprocessing
-    read_tdownsample = attr.ib(default=1)
-    read_fdownsample = attr.ib(default=1)
-    l0 = attr.ib(default=0.)  # in radians
-    m0 = attr.ib(default=0.)  # in radians
-    timesub = attr.ib(default=None)
-    flaglist = attr.ib(default=[('badchtslide', 4., 0.) , ('badap', 3., 0.2), ('blstd', 3.0, 0.05)])
-    flagantsol = attr.ib(default=True)
-    applyonlineflags = attr.ib(default=True)
-    gainfile = attr.ib(default=None)
-    mock = attr.ib(default=0)
-
-    # processing
-    nthread = attr.ib(default=1)
-    nchunk = attr.ib(default=0)
-    nsegments = attr.ib(default=0)
-    scale_nsegments = attr.ib(default=1)  # remove?
-
-    # search
-    dmarr = attr.ib(default=None)
-    dtarr = attr.ib(default=1)
-    dm_maxloss = attr.ib(default=0.05) # fractional sensitivity loss
-    mindm = attr.ib(default=0)
-    maxdm = attr.ib(default=0) # in pc/cm3
-    dm_pulsewidth = attr.ib(default=3000)   # in microsec
-    searchtype = attr.ib(default='image1')
-    sigma_image1 = attr.ib(default=7.)
-    sigma_image2 = attr.ib(default=7.)
-    uvres = attr.ib(default=0)
-    npix = attr.ib(default=0)
-    npix_max = attr.ib(default=0)
-    uvoversample = attr.ib(default=1.)
-
-    savenoise = attr.ib(default=False)
-    savecands = attr.ib(default=False)
-    logfile = attr.ib(default=True)
-    loglevel = attr.ib(default='INFO')
-
-
 def set_segments(state):
     """ Helper function for set_pipeline to define segmenttimes list, given nsegments definition
     """
@@ -305,19 +365,6 @@ def calc_memory_footprint(d, headroom=4., visonly=False, limit=False):
         return (vismem, immem)
 
 
-def calc_fringetime(d):
-    """ Estimate largest time span of a "segment".
-    A segment is the maximal time span that can be have a single bg fringe subtracted and uv grid definition.
-    Max fringe window estimated for 5% amp loss at first null averaged over all baselines. Assumes dec=+90, which is conservative.
-    Returns time in seconds that defines good window.
-    """
-
-    maxbl = d['uvres']*d['npix']/2    # fringe time for imaged data only
-    fringetime = 0.5*(24*3600)/(2*n.pi*maxbl/25.)   # max fringe window in seconds
-    return fringetime
-
-
-
 def set_imagegrid(state):
     """ """
 
@@ -351,27 +398,34 @@ def set_imagegrid(state):
 
 
 
-def parseparamfile(self, paramfile):
+def parseparamfile(paramfile=None):
     """ Read parameter file and set parameter values.
     File should have python-like syntax. Full file name needed.
     """
+    
 
-    with open(paramfile, 'r') as f:
-        for line in f.readlines():
-            line_clean = line.rstrip('\n').split('#')[0]   # trim out comments and trailing cr
-            if line_clean and '=' in line:   # use valid lines only
-                attribute, value = line_clean.split('=')
-                try:
-                    value_eval = eval(value.strip())
-                except NameError:
-                    value_eval = value.strip()
-                finally:
-                    setattr(self, attribute.strip(), value_eval)
+    pars = {}
+
+    if paramfile:
+        with open(paramfile, 'r') as f:
+            for line in f.readlines():
+                line_clean = line.rstrip('\n').split('#')[0]   # trim out comments and trailing cr
+                if line_clean and '=' in line:   # use valid lines only
+                    attribute, value = line_clean.split('=')
+                    try:
+                        value_eval = eval(value.strip())
+                    except NameError:
+                        value_eval = value.strip()
+                    finally:
+                        pars[attribute.strip()] =  value_eval
+
+    return pars
 
 
 def parseyaml(self, paramfile, name='default'):
     # maybe use pyyaml to parse parameters more reliably
     # could save multiple per yml paramfile
     pass
+
 
 
