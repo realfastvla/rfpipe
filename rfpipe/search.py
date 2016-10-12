@@ -301,12 +301,12 @@ def collect_cands(feature_list):
     return cands
 
 
-def save_cands(st, cands):
+def save_cands(st, cands, segment):
     """ Save all candidates in pkl file for later aggregation and filtering.
     domock is option to save simulated cands file
     """
 
-    candsfile = os.path.join(st['workdir'], 'cands_' + st['fileroot'] + '_sc' + str(st['scan']) + 'seg' + str(st['segment']) + '.pkl')
+    candsfile = os.path.join(st.metadata.workdir, 'cands_' + st.parameters.fileroot + '_sc' + str(st.metadata.scan) + 'seg' + str(segment) + '.pkl')
     with open(candsfile, 'w') as pkl:
         pickle.dump(st, pkl)
         pickle.dump(cands, pkl)

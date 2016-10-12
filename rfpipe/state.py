@@ -1,28 +1,30 @@
 import logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logging.captureWarnings(True)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('rfpipe')
 
-import json, attr
+import json, attr, os
 from . import source
+import numpy as np
+from scipy.special import erf
 # from collections import OrderedDict #?
 
+import pwkit.environments.casa.util as casautil
+qa = casautil.tools.quanta()
 
 
-
-
-
-@attr.s(frozen=True)
+@attr.s
 class Parameters(object):
-    """ Parameters are immutable and express half of info needed to define state.
+    """ Parameters *should* be immutable and express half of info needed to define state.
     Using parameters with metadata produces a unique state and pipeline outcome.
+
+    TODO: can we freeze attributes while still having cached values?
     """
 
     # data selection
     chans = attr.ib(default=None)
     spw = attr.ib(default=None)
-    excludeants = attr.ib(default=None)
-    selectpol = attr.ib(default=None) # ['RR', 'LL', 'XX', 'YY']   # default processing assumes dual-pol
+    excludeants = attr.ib(default=())
+    selectpol = attr.ib(default='auto')  # 'auto', 'all'
+    fileroot = attr.ib(default=None)
 
     # preprocessing
     read_tdownsample = attr.ib(default=1)
@@ -41,7 +43,6 @@ class Parameters(object):
     nthread = attr.ib(default=1)
     nchunk = attr.ib(default=0)
     nsegments = attr.ib(default=0)
-    scale_nsegments = attr.ib(default=1)  # remove?
     memory_limit = attr.ib(default=20)
 
     # search
@@ -84,33 +85,83 @@ class State(object):
     - uvoversample + npix_max + metadata => npixx, npixy
     """
 
-    def __init__(self, paramfile=None, sdmfile=None, scan=None, version=1):
+    def __init__(self, paramfile=None, sdmfile=None, scan=None, version=1, **kwargs):
         """ Initialize parameter attributes with text file.
         Versions define functions that derive state from parameters and metadata
         """
 
         self.version = version
 
-        logger.parent.setLevel(getattr(logging, 'INFO'))
-
         # get pipeline parameters
         inpars = parseparamfile(paramfile)  # returns empty dict for paramfile=None
+        # optionally can overload parameters
+        for key in kwargs:
+            inpars[key] = kwargs[key]
         self.parameters = Parameters(**inpars)
+
+        logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        logging.captureWarnings(True)
+        self.logger = logging.getLogger('rfpipe')
+        self.logger.parent.setLevel(getattr(logging, self.parameters.loglevel))
 
         # get metadata
         if sdmfile and scan:
             metadata = source.sdm_metadata(sdmfile, scan)
             self.metadata = metadata
 
-        logger.parent.setLevel(getattr(logging, self.parameters.loglevel))
+        self.logger.parent.setLevel(getattr(logging, self.parameters.loglevel))
+        self.summarize()
+
+
+    def summarize(self):
+        """ Print overall state """
+
+        self.logger.info('')
+        self.logger.info('Pipeline summary:')
+
+#        self.logger.info('\t Products saved with {0}. telcal calibration with {1}.'.format(self.fileroot, os.path.basename(self.gainfile)))
+        self.logger.info('\t Using {0} segment{1} of {2} ints ({3} s) with overlap of {4} s'.format(self.nsegments, "s"[not self.nsegments-1:], self.readints, self.t_segment, self.t_overlap))
+        if self.t_overlap > self.t_segment/3.:
+            self.logger.info('\t\t Lots of segments needed, since Max DM sweep ({0} s) close to segment size ({1} s)'.format(self.t_overlap, self.t_segment))
+
+        self.logger.info('\t Downsampling in time/freq by {0}/{1}.'.format(self.parameters.read_tdownsample, self.parameters.read_fdownsample))
+        self.logger.info('\t Excluding ants {0}'.format(self.parameters.excludeants))
+        self.logger.info('\t Using pols {0}'.format(self.pols))
+        self.logger.info('')
+
+        self.logger.info('\t Search with {0} and threshold {1}.'.format(self.parameters.searchtype, self.parameters.sigma_image1))
+        self.logger.info('\t Using {0} DMs from {1} to {2} and dts {3}.'.format(len(self.dmarr), min(self.dmarr), max(self.dmarr), self.dtarr))
+        self.logger.info('\t Using uvgrid npix=({0}, {1}) and res={2}.'.format(self.npixx, self.npixy, self.uvres))
+        self.logger.info('\t Expect {0} thermal false positives per segment.'.format(self.nfalse))
+
+        self.logger.info('')
+        self.logger.info('\t Visibility memory usage is {0} GB/segment'.format(self.vismem))
+#        self.logger.info('\t Imaging in {0} chunk{1} using max of {2} GB/segment'.format(self.nchunk, "s"[not self.nsegments-1:], immem))
+#        self.logger.info('\t Grand total memory usage: {0} GB/segment'.format(vismem + immem))
+
+
+    @property
+    def fileroot(self):
+        if self.parameters.fileroot:
+            return self.parameters.fileroot
+        else:
+            return self.metadata.filename
 
 
     @property
     def dmarr(self):
-        if self.parameters.dmarr:
-            return self.parameters.dmarr
-        else:
-            return self.calc_dmarr(self.parameters.dm_maxloss, self.parameters.dm_pulsewidth, self.parameters.mindm, self.parameters.maxdm)
+        if not hasattr(self, '_dmarr'):
+            if self.parameters.dmarr:
+                self._dmarr = self.parameters.dmarr
+            else:
+                self._dmarr = calc_dmarr(self)
+
+        return self._dmarr
+
+
+    @property
+    def dtarr(self):
+        return self.parameters.dtarr
 
 
     @property
@@ -125,6 +176,27 @@ class State(object):
     @property
     def nchan(self):
         return len(self.freq)
+
+
+    @property
+    def dmshifts(self):
+        """ Calculate max DM delay in units of integrations for each dm trial.
+
+        TODO: probably should put dm calculation into a library module for calling from all parts of code base
+        """
+
+        freqbottom = self.freq[0]
+        freqtop = self.freq[-1]
+        return [np.round((4.2e-3 * dm * (1./freqbottom**2 - 1./freqtop**2))/self.metadata.inttime, 0).astype(np.int16).max() for dm in self.dmarr]
+        
+
+    @property
+    def t_overlap(self):
+        """ Max DM delay in seconds. Gets cached. """
+
+        if not hasattr(self, '_t_overlap'):
+            self._t_overlap = max(self.dmshifts)*self.metadata.inttime
+        return self._t_overlap
 
 
     @property
@@ -158,6 +230,28 @@ class State(object):
 
 
     @property
+    def npol(self):
+        """ Number of polarization products selected. Cached. """
+
+        if not hasattr(self, '_npol'):
+            self._npol = len(self.pols)
+
+        return self._npol
+
+
+    @property
+    def pols(self):
+        """ Polarizations to use based on preference in parameters.selectpol """
+
+        if self.parameters.selectpol == 'auto':
+            return [pp for pp in self.metadata.pols_orig if pp[0] == pp[1]]
+        elif self.parameters.selectpol == 'all':
+            return self.metadata.pols_orig
+        else:
+            self.logger.warn('selectpol of {0} not supported'.format(self.parameters.selectpol))
+
+
+    @property
     def uvres_full(self):
         return np.round(self.metadata.dishdiameter / (3e-1 / self.freq.min()) / 2).astype('int')
 
@@ -182,6 +276,7 @@ class State(object):
 
         urange_orig, vrange_orig = self.metadata.uvrange_orig
         vrange = vrange_orig * (self.freq.max() / self.metadata.freq_orig[0])
+        powers = np.fromfunction(lambda i, j: 2**i*3**j, (14, 10), dtype='int')
         rangey = np.round(self.parameters.uvoversample*vrange).astype('int')
         largery = np.where(powers - rangey / self.uvres_full > 0,
                            powers, powers[-1, -1])
@@ -226,7 +321,7 @@ class State(object):
         """
 
         maxbl = self.uvres*max(self.npixx, self.npixy)/2    # fringe time for image grid extent
-        fringetime = 0.5*(24*3600)/(2*n.pi*maxbl/25.)   # max fringe window in seconds
+        fringetime = 0.5*(24*3600)/(2*np.pi*maxbl/25.)   # max fringe window in seconds
         return fringetime
 
 
@@ -245,38 +340,105 @@ class State(object):
         return self.nants*(self.nants-1)/2
 
 
+    @property
+    def blarr(self):
+        if not hasattr(self, '_blarr'):
+            self._blarr = np.array([ [self.ants[i], self.ants[j]] for j in range(self.nants) for i in range(0,j)])
 
-    def calc_dmarr(self, dm_maxloss, dm_pulsewidth, mindm, maxdm):
-        """ Function to calculate the DM values for a given maximum sensitivity loss.
-        dm_maxloss is sensitivity loss tolerated by dm bin width. dm_pulsewidth is assumed pulse width in microsec.
+        return self._blarr
+
+
+    @property
+    def nsegments(self):
+        if self.parameters.nsegments:
+            return self.parameters.nsegments
+        else:
+            return len(self.segmenttimes)
+
+
+    @property
+    def segmenttimes(self):
+        """ List of tuples containing MJD times defining segment start and stop.
+        Calculated from parameters.nsegments first.
+        Alternately, best times found based on fringe time and memory limit
         """
 
-        # parameters
-        tsamp = self.inttime*1e6  # in microsec
-        k = 8.3
-        freq = self.freq.mean()  # central (mean) frequency in GHz
-        bw = 1e3*(self.freq[-1] - self.freq[0])
-        ch = 1e3*(self.freq[1] - self.freq[0])  # channel width in MHz
+        if not hasattr(self, '_segmenttimes'):
+            if self.parameters.nsegments:
+                self._segmenttimes = calc_segment_times(self)
+            else:
+                find_segment_times(self)
 
-        # width functions and loss factor
-        dt0 = lambda dm: n.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2)
-        dt1 = lambda dm, ddm: n.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2 + ((k*ddm*bw)/(freq**3.))**2)
-        loss = lambda dm, ddm: 1 - n.sqrt(dt0(dm)/dt1(dm,ddm))
-        loss_cordes = lambda ddm, dfreq, dm_pulsewidth, freq: 1 - (n.sqrt(n.pi) / (2 * 6.91e-3 * ddm * dfreq / (dm_pulsewidth*freq**3))) * erf(6.91e-3 * ddm * dfreq / (dm_pulsewidth*freq**3))  # not quite right for underresolved pulses
+        return self._segmenttimes
 
-        if maxdm == 0:
-            return [0]
+
+    @property
+    def readints(self):
+        """ Number of integrations read per segment. 
+        Defines shape of numpy array for visibilities.
+
+        TODO: Need to support self.parameters.read_tdownsample
+        """
+
+        totaltimeread = 24*3600*(self.segmenttimes[:, 1] - self.segmenttimes[:, 0]).sum()            # not guaranteed to be the same for each segment
+        return np.round(totaltimeread / (self.metadata.inttime*self.nsegments)).astype(int)
+
+
+    @property
+    def t_segment(self):
+        totaltimeread = 24*3600*(self.segmenttimes[:, 1] - self.segmenttimes[:, 0]).sum()            # not guaranteed to be the same for each segment
+        return totaltimeread/self.nsegments
+
+
+    @property
+    def datashape(self):
+        return (self.readints/self.parameters.read_tdownsample, self.nbl, self.nchan/self.parameters.read_fdownsample, self.npol)
+
+
+    @property
+    def datasize(self):
+        return long(self.readints*self.nbl*self.nchan*self.npol/(self.parameters.read_tdownsample*self.parameters.read_fdownsample))
+
+
+    @property
+    def nfalse(self):
+        """ Calculate the number of thermal-noise false positives per segment.
+        """
+
+        dtfactor = np.sum([1./i for i in self.dtarr])    # assumes dedisperse-all algorithm
+        ntrials = self.readints * dtfactor * len(self.dmarr) * self.npixx * self.npixy
+        qfrac = 1 - (erf(self.parameters.sigma_image1/np.sqrt(2)) + 1)/2.
+        nfalse = int(qfrac*ntrials)
+        return nfalse
+
+    @property
+    def vismem(self):
+        return self.memory_footprint(visonly=True)
+
+
+    def memory_footprint(self, visonly=False, limit=False):
+        """ Calculates the memory required to store visibilities and make images.
+        limit=True returns a the minimum memory configuration
+        Returns tuple of (vismem, immem) in units of GB.
+        """
+
+        toGB = 8/1024.**3   # number of complex64s to GB
+
+        # limit defined for dm sweep time and max nchunk/nthread ratio
+        if limit:
+            readints_scale = (self.t_overlap/self.metadata.inttime)/self.readints
+            vismem = self.datasize * readints_scale * toGB
+
+            nchunk_scale = max(self.dtarr)/min(self.dtarr)
+            immem = self.parameters.nthread * (self.readints/(self.parameters.nthread*nchunk_scale) * self.npixx * self.npixy) * toGB
         else:
-            # iterate over dmgrid to find optimal dm values. go higher than maxdm to be sure final list includes full range.
-            dmgrid = n.arange(mindm, maxdm, 0.05)
-            dmgrid_final = [dmgrid[0]]
-            for i in range(len(dmgrid)):
-                ddm = (dmgrid[i] - dmgrid_final[-1])/2.
-                ll = loss(dmgrid[i],ddm)
-                if ll > dm_maxloss:
-                    dmgrid_final.append(dmgrid[i])
+            vismem = self.datasize * toGB
+            immem = self.parameters.nthread * (self.readints/self.parameters.nthread * self.npixx * self.npixy) * toGB
 
-        return dmgrid_final
+        if visonly:
+            return vismem
+        else:
+            return (vismem, immem)
 
 
     @property
@@ -318,84 +480,109 @@ class State(object):
 
     @property
     def defined(self):
-        return self.__dict__.keys()
+        return [key for key in self.__dict__.keys() if key[0] != '_']
 
 
-
-def set_segments(state):
-    """ Helper function for set_pipeline to define segmenttimes list, given nsegments definition
+def calc_dmarr(state):
+    """ Function to calculate the DM values for a given maximum sensitivity loss.
+    dm_maxloss is sensitivity loss tolerated by dm bin width. dm_pulsewidth is assumed pulse width in microsec.
     """
 
+    dm_maxloss = state.parameters.dm_maxloss
+    dm_pulsewidth = state.parameters.dm_pulsewidth
+    mindm = state.parameters.mindm
+    maxdm = state.parameters.maxdm
+
+    # parameters
+    tsamp = state.metadata.inttime*1e6  # in microsec
+    k = 8.3
+    freq = state.freq.mean()  # central (mean) frequency in GHz
+    bw = 1e3*(state.freq[-1] - state.freq[0])
+    ch = 1e3*(state.freq[1] - state.freq[0])  # channel width in MHz
+
+    # width functions and loss factor
+    dt0 = lambda dm: np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2)
+    dt1 = lambda dm, ddm: np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2 + ((k*ddm*bw)/(freq**3.))**2)
+    loss = lambda dm, ddm: 1 - np.sqrt(dt0(dm)/dt1(dm,ddm))
+    loss_cordes = lambda ddm, dfreq, dm_pulsewidth, freq: 1 - (np.sqrt(np.pi) / (2 * 6.91e-3 * ddm * dfreq / (dm_pulsewidth*freq**3))) * erf(6.91e-3 * ddm * dfreq / (dm_pulsewidth*freq**3))  # not quite right for underresolved pulses
+
+    if maxdm == 0:
+        return [0]
+    else:
+        # iterate over dmgrid to find optimal dm values. go higher than maxdm to be sure final list includes full range.
+        dmgrid = np.arange(mindm, maxdm, 0.05)
+        dmgrid_final = [dmgrid[0]]
+        for i in range(len(dmgrid)):
+            ddm = (dmgrid[i] - dmgrid_final[-1])/2.
+            ll = loss(dmgrid[i],ddm)
+            if ll > dm_maxloss:
+                dmgrid_final.append(dmgrid[i])
+
+    return dmgrid_final
+
+
+def calc_segment_times(state, nsegments=0):
+    """ Helper function for set_pipeline to define segmenttimes list, given nsegments definition
+    Can optionally overload state.nsegments to calculate new times
+    """
+
+    if not nsegments:
+        nsegments = state.nsegments
     # this casts to int (flooring) to avoid 0.5 int rounding issue. 
-    stopdts = n.linspace(d['t_overlap']/d['inttime'], d['nints'], d['nsegments']+1)[1:]   # nseg+1 assures that at least one seg made
-    startdts = n.concatenate( ([0], stopdts[:-1]-d['t_overlap']/d['inttime']) )
+    stopdts = np.linspace(state.t_overlap/state.metadata.inttime, state.metadata.nints, state.nsegments+1)[1:]   # nseg+1 assures that at least one seg made
+    startdts = np.concatenate( ([0], stopdts[:-1]-state.t_overlap/state.metadata.inttime) )
             
     segmenttimes = []
-    for (startdt, stopdt) in zip(d['inttime']*startdts, d['inttime']*stopdts):
-        starttime = qa.getvalue(qa.convert(qa.time(qa.quantity(d['starttime_mjd']+startdt/(24*3600),'d'),form=['ymd'], prec=9)[0], 's'))[0]/(24*3600)
-        stoptime = qa.getvalue(qa.convert(qa.time(qa.quantity(d['starttime_mjd']+stopdt/(24*3600), 'd'), form=['ymd'], prec=9)[0], 's'))[0]/(24*3600)
+    for (startdt, stopdt) in zip(state.metadata.inttime*startdts, state.metadata.inttime*stopdts):
+        starttime = qa.getvalue(qa.convert(qa.time(qa.quantity(state.metadata.starttime_mjd+startdt/(24*3600), 'd'), 
+                                                   form=['ymd'], prec=9)[0], 's'))[0]/(24*3600)
+        stoptime = qa.getvalue(qa.convert(qa.time(qa.quantity(state.metadata.starttime_mjd+stopdt/(24*3600), 'd'),
+                                                  form=['ymd'], prec=9)[0], 's'))[0]/(24*3600)
         segmenttimes.append((starttime, stoptime))
-    d['segmenttimes'] = n.array(segmenttimes)
-    totaltimeread = 24*3600*(d['segmenttimes'][:, 1] - d['segmenttimes'][:, 0]).sum()            # not guaranteed to be the same for each segment
-    d['readints'] = n.round(totaltimeread / (d['inttime']*d['nsegments']*d['read_tdownsample'])).astype(int)
-    d['t_segment'] = totaltimeread/d['nsegments']
+
+    return np.array(segmenttimes)
 
 
-def calc_memory_footprint(d, headroom=4., visonly=False, limit=False):
-    """ Given pipeline state dict, this function calculates the memory required
-    to store visibilities and make images.
-    headroom scales visibility memory size from single data object to all copies (and potential file read needs)
-    limit=True returns a the minimum memory configuration
-    Returns tuple of (vismem, immem) in units of GB.
+def find_segment_times(state):
+    """ Iterates to optimal segment time list, given memory and fringe time limits.
+    Segment sizes bounded by fringe time and memory limit,
+    Solution found by iterating from fringe time to memory size that fits.
     """
 
-    toGB = 8/1024.**3   # number of complex64s to GB
-    d0 = d.copy()
+    # initialize at fringe time limit. nsegments must be between 1 and state.nints
+    scale_nsegments = 1.
+    nsegments = max(1, min(state.metadata.nints, int(scale_nsegments*state.metadata.inttime*state.metadata.nints/(state.fringetime-state.t_overlap))))
 
-    # limit defined for dm sweep time and max nchunk/nthread ratio
-    if limit:
-        d0['readints'] = d['t_overlap']/d['inttime']
-        d0['nchunk'] = max(d['dtarr'])/min(d['dtarr']) * d['nthread']
+    # calculate memory limit to stop iteration
+    (vismem0, immem0) = state.memory_footprint(limit=True)
+    assert vismem0+immem0 < state.parameter.memory_limit, 'memory_limit of {0} is smaller than best solution of {1}. Try forcing nsegments/nchunk larger than {2}/{3} or reducing maxdm/npix'.format(state.parameter.memory_limit, vismem0+immem0, state.nsegments, max(state.dtarr)/min(state.dtarr))
 
-    vismem = headroom * datasize(d0) * toGB
-    if visonly:
-        return vismem
-    else:
-        immem = d0['nthread'] * (d0['readints']/d0['nchunk'] * d0['npixx'] * d0['npixy']) * toGB
-        return (vismem, immem)
+    (vismem, immem) = state.memory_footprint()
+    if vismem+immem > state.parameter.memory_limit:
+        logger.info('Over memory limit of {4} when reading {0} segments with {1} chunks ({2}/{3} GB for visibilities/imaging). Searching for solution down to {5}/{6} GB...'.format(state.nsegments, state.parameter.nchunk, vismem, immem, state.parameter.memory_limit, vismem0, immem0))
 
+        while vismem+immem > state.parameter.memory_limit:
+            (vismem, immem) = state.memory_footprint()
+            logger.debug('Using {0} segments with {1} chunks ({2}/{3} GB for visibilities/imaging). Searching for better solution...'.format(state.parameter.nchunk, vismem, immem, state.parameter.memory_limit))
 
-def set_imagegrid(state):
-    """ """
+            scale_nsegments *= (vismem+immem)/float(state.parameter.memory_limit)
+            nsegments = max(1, min(state.metadata.nints, int(scale_nsegments*state.metadata.inttime*state.metadata.nints/(fringetime-state.t_overlap))))  # at least 1, at most nints
+            state._segment_times = calc_segment_times(state, nsegments=nsegments)
 
-    if d['uvres'] == 0:
-        d['uvres'] = d['uvres_full']
-    else:
-        urange = d['urange'][scan]*(d['freq'].max()/d['freq_orig'][0])   # uvw from get_uvw already in lambda at ch0
-        vrange = d['vrange'][scan]*(d['freq'].max()/d['freq_orig'][0])
-        powers = n.fromfunction(lambda i,j: 2**i*3**j, (14,10), dtype='int')   # power array for 2**i * 3**j
-        rangex = n.round(d['uvoversample']*urange).astype('int')
-        rangey = n.round(d['uvoversample']*vrange).astype('int')
-        largerx = n.where(powers-rangex/d['uvres'] > 0, powers, powers[-1,-1])
-        p2x, p3x = n.where(largerx == largerx.min())
-        largery = n.where(powers-rangey/d['uvres'] > 0, powers, powers[-1,-1])
-        p2y, p3y = n.where(largery == largery.min())
-        d['npixx_full'] = (2**p2x * 3**p3x)[0]
-        d['npixy_full'] = (2**p2y * 3**p3y)[0]
+            (vismem, immem) = state.memory_footprint()
+            while vismem+immem > state.parameter.memory_limit:
+                logger.debug('Doubling nchunk from %d to fit in %d GB memory limit.' % (state.parameter.nchunk, state.parameter.memory_limit))
+                self.parameter.nchunk = 2*self.parameter.nchunk
+                (vismem, immem) = state.memory_footprint()
+                if self.parameter.nchunk >= max(self.dtarr)/min(self.dtarr)*self.nthread: # limit nchunk/nthread to at most the range in dt
+                    self.nchunk = self.nthread
+                    break
 
-    # set number of pixels to image
-    d['npixx'] = d['npixx_full']
-    d['npixy'] = d['npixy_full']
-    if 'npix_max' in d:
-        if d['npix_max']:
-            d['npixx'] = min(d['npix_max'], d['npixx_full'])
-            d['npixy'] = min(d['npix_max'], d['npixy_full'])
-    if d['npix']:
-        d['npixx'] = d['npix']
-        d['npixy'] = d['npix']
-    else:
-        d['npix'] = max(d['npixx'], d['npixy'])   # this used to define fringe time
+                (vismem, immem) = state.memory_footprint()
 
+    # final set up of memory
+    state._segment_times = calc_segment_times(state)
+    (vismem, immem) = state.memory_footprint()
 
 
 def parseparamfile(paramfile=None):
