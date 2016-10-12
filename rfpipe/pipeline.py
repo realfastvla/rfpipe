@@ -23,7 +23,7 @@ def pipeline_seg(st, segment, cl, workers=None):
 
     logger.info('reading data...')
     data_prep = cl.submit(source.dataprep, st, segment, pure=True, workers=workers, allow_other_workers=allow_other_workers)
-    uvw = cl.submit(source.calc_uvw, st, segment, pure=True, workers=workers, allow_other_workers=allow_other_workers)
+#    uvw = cl.submit(source.calc_uvw, st, segment, pure=True, workers=workers, allow_other_workers=allow_other_workers) # now built into state
 #    cl.replicate([data_prep, uvw, wisdom])  # spread data around to search faster
 
     for dmind in range(len(st.dmarr)):

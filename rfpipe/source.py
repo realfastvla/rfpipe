@@ -56,7 +56,7 @@ class Metadata(object):
 
     @property
     def workdir(self):
-        return os.path.dirname(os.path.abspath(filename))
+        return os.path.dirname(os.path.abspath(self.filename))
 
 
     @property
@@ -83,30 +83,23 @@ class Metadata(object):
 
 
     @property
-    def sdm(self):
-        """ returns sdmpy sdm object with caching """
-
-        if not hasattr(self, '_sdm'):
-            self._sdm = sdmpy.SDM(self.filename, bdfdir=self.bdfdir)
-
-        return self._sdm
-
-
-    @property
     def configid(self):
-        return [str(row.configDescriptionId) for row in self.sdm['Main']
+        sdm = getsdm(self.filename, bdfdir=self.bdfdir)
+        return [str(row.configDescriptionId) for row in sdm['Main']
                 if self.scan == int(row.scanNumber)][0]
 
 
     @property
     def antids(self):
-        return [str(row.antennaId) for row in self.sdm['ConfigDescription']
+        sdm = getsdm(self.filename, bdfdir=self.bdfdir)
+        return [str(row.antennaId) for row in sdm['ConfigDescription']
                 if self.configid == row.configDescriptionId][0].split(' ')[2:]
 
 
     @property
     def ants_orig(self):
-        return [int(str(row.name).lstrip('ea')) for antid in self.antids for row in self.sdm['Antenna'] 
+        sdm = getsdm(self.filename, bdfdir=self.bdfdir)
+        return [int(str(row.name).lstrip('ea')) for antid in self.antids for row in sdm['Antenna'] 
                 if antid == str(row.antennaId)]
 
 
@@ -122,11 +115,12 @@ class Metadata(object):
 
     @property
     def antpos(self):
+        sdm = getsdm(self.filename, bdfdir=self.bdfdir)
         logger.info('Assuming all antennas used.')
-        stationidlist = [str(ant.stationId) for ant in self.sdm['Antenna']]
+        stationidlist = [str(ant.stationId) for ant in sdm['Antenna']]
 
         positions = [str(station.position).strip().split(' ')
-                     for station in self.sdm['Station'] 
+                     for station in sdm['Station'] 
                      if station.stationId in stationidlist]
         x = [float(positions[i][2]) for i in range(len(positions))]
         y = [float(positions[i][3]) for i in range(len(positions))]
@@ -157,41 +151,41 @@ class Metadata(object):
         return len(self.pols_orig)
 
 
-def sdm_metadata(sdmfile, scannum, bdfdir=None):
+def sdm_metadata(sdmfile, scan, bdfdir=None):
     """ Wraps Metadata call to provide immutable, attribute-filled class instance.
     """
 
-    logger.info('Reading metadata from {0}, scan {1}'.format(sdmfile, scannum))
+    logger.info('Reading metadata from {0}, scan {1}'.format(sdmfile, scan))
 
     sdm = getsdm(sdmfile, bdfdir=bdfdir)
-    scan = sdm.scan(scannum)
+    scanobj = sdm.scan(scan)
 
     sdmmeta = {}
     sdmmeta['filename'] = sdmfile
-    sdmmeta['scan'] = scannum
+    sdmmeta['scan'] = scan
     sdmmeta['bdfdir'] = bdfdir
 
-    starttime_mjd = scan.bdf.startTime
-    nints = scan.bdf.numIntegration
-    inttime = scan.bdf.get_integration(0).interval
+    starttime_mjd = scanobj.bdf.startTime
+    nints = scanobj.bdf.numIntegration
+    inttime = scanobj.bdf.get_integration(0).interval
     endtime_mjd = starttime_mjd + (nints*inttime)/(24*3600)
-    bdfstr = scan.bdf.fname
+    bdfstr = scanobj.bdf.fname
 
     sdmmeta['starttime_mjd'] = starttime_mjd
     sdmmeta['endtime_mjd'] = endtime_mjd
     sdmmeta['inttime'] = inttime
     sdmmeta['nints'] = nints
-    sdmmeta['source'] = scan.source
-    sdmmeta['intent'] = ' '.join(scan.intents)
+    sdmmeta['source'] = scanobj.source
+    sdmmeta['intent'] = ' '.join(scanobj.intents)
     sdmmeta['telescope'] = str(sdm['ExecBlock'][0]['telescopeName']).strip()
-    bdfstr = scan.bdf.fname
+    bdfstr = scanobj.bdf.fname
     if (not os.path.exists(bdfstr)) or ('X1' in bdfstr):
         sdmmeta['bdfstr'] = None
     else:
         sdmmeta['bdfstr'] = bdfstr
 
     sources = sdm_sources(sdmfile)
-    sdmmeta['radec'] = [(prop['ra'], prop['dec']) for (sr, prop) in sources.iteritems() if prop['source'] == scan.source][0]
+    sdmmeta['radec'] = [(prop['ra'], prop['dec']) for (sr, prop) in sources.iteritems() if prop['source'] == scanobj.source][0]
     sdmmeta['dishdiameter'] = float(str(sdm['Antenna'][0].dishDiameter).strip())
 
     sdmmeta['spw_orig'] = [int(str(row.spectralWindowId).split('_')[1]) for row in sdm['SpectralWindow']]
@@ -256,12 +250,13 @@ def read_bdf(st, nskip=0):
     """
 
     assert os.path.exists(st.metadata.filename), 'sdmfile {0} does not exist'.format(st.metadata.filename)
-    assert st.metadata.bdfstr, 'bdfstr not defined for scan %d' % scannum
+    assert st.metadata.bdfstr, 'bdfstr not defined for scan {0}'.format(st.metadata.scan)
 
     logger.info('Reading %d ints starting at int %d' % (st.readints, nskip))
+    sdm = getsdm(st.metadata.filename, bdfdir=st.metadata.bdfdir)
+    scan = sdm.scan(st.metadata.scan)
 
     data = np.empty( (st.readints, st.metadata.nbl_orig, st.metadata.nchan_orig, st.metadata.npol_orig), dtype='complex64', order='C')
-    scan = st.metadata.sdm.scan(st.metadata.scan)
     data[:] = scan.bdf.get_data(trange=[nskip, nskip+st.readints]).reshape(data.shape)
 
     return data

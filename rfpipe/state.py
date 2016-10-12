@@ -1,8 +1,10 @@
 import logging
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.captureWarnings(True)
 logger = logging.getLogger('rfpipe')
 
 import json, attr, os
-from . import source
+from . import source, util
 import numpy as np
 from scipy.special import erf
 # from collections import OrderedDict #?
@@ -46,8 +48,8 @@ class Parameters(object):
     memory_limit = attr.ib(default=20)
 
     # search
-    dmarr = attr.ib(default=None)
-    dtarr = attr.ib(default=1)
+    dmarr = attr.ib(default=[0])
+    dtarr = attr.ib(default=[1])
     dm_maxloss = attr.ib(default=0.05) # fractional sensitivity loss
     mindm = attr.ib(default=0)
     maxdm = attr.ib(default=0) # in pc/cm3
@@ -99,45 +101,40 @@ class State(object):
             inpars[key] = kwargs[key]
         self.parameters = Parameters(**inpars)
 
-        logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        logging.captureWarnings(True)
-        self.logger = logging.getLogger('rfpipe')
-        self.logger.parent.setLevel(getattr(logging, self.parameters.loglevel))
-
         # get metadata
         if sdmfile and scan:
             metadata = source.sdm_metadata(sdmfile, scan)
             self.metadata = metadata
 
-        self.logger.parent.setLevel(getattr(logging, self.parameters.loglevel))
+        logger.parent.setLevel(getattr(logging, self.parameters.loglevel))
         self.summarize()
 
 
     def summarize(self):
         """ Print overall state """
 
-        self.logger.info('')
-        self.logger.info('Pipeline summary:')
+        logger.info('')
+        logger.info('Pipeline summary:')
 
-#        self.logger.info('\t Products saved with {0}. telcal calibration with {1}.'.format(self.fileroot, os.path.basename(self.gainfile)))
-        self.logger.info('\t Using {0} segment{1} of {2} ints ({3} s) with overlap of {4} s'.format(self.nsegments, "s"[not self.nsegments-1:], self.readints, self.t_segment, self.t_overlap))
+#        logger.info('\t Products saved with {0}. telcal calibration with {1}.'.format(self.fileroot, os.path.basename(self.gainfile)))
+        logger.info('\t Using {0} segment{1} of {2} ints ({3} s) with overlap of {4} s'.format(self.nsegments, "s"[not self.nsegments-1:], self.readints, self.t_segment, self.t_overlap))
         if self.t_overlap > self.t_segment/3.:
-            self.logger.info('\t\t Lots of segments needed, since Max DM sweep ({0} s) close to segment size ({1} s)'.format(self.t_overlap, self.t_segment))
+            logger.info('\t\t Lots of segments needed, since Max DM sweep ({0} s) close to segment size ({1} s)'.format(self.t_overlap, self.t_segment))
 
-        self.logger.info('\t Downsampling in time/freq by {0}/{1}.'.format(self.parameters.read_tdownsample, self.parameters.read_fdownsample))
-        self.logger.info('\t Excluding ants {0}'.format(self.parameters.excludeants))
-        self.logger.info('\t Using pols {0}'.format(self.pols))
-        self.logger.info('')
+        logger.info('\t Downsampling in time/freq by {0}/{1}.'.format(self.parameters.read_tdownsample, self.parameters.read_fdownsample))
+        logger.info('\t Excluding ants {0}'.format(self.parameters.excludeants))
+        logger.info('\t Using pols {0}'.format(self.pols))
+        logger.info('')
 
-        self.logger.info('\t Search with {0} and threshold {1}.'.format(self.parameters.searchtype, self.parameters.sigma_image1))
-        self.logger.info('\t Using {0} DMs from {1} to {2} and dts {3}.'.format(len(self.dmarr), min(self.dmarr), max(self.dmarr), self.dtarr))
-        self.logger.info('\t Using uvgrid npix=({0}, {1}) and res={2}.'.format(self.npixx, self.npixy, self.uvres))
-        self.logger.info('\t Expect {0} thermal false positives per segment.'.format(self.nfalse))
+        logger.info('\t Search with {0} and threshold {1}.'.format(self.parameters.searchtype, self.parameters.sigma_image1))
+        logger.info('\t Using {0} DMs from {1} to {2} and dts {3}.'.format(len(self.dmarr), min(self.dmarr), max(self.dmarr), self.dtarr))
+        logger.info('\t Using uvgrid npix=({0}, {1}) and res={2}.'.format(self.npixx, self.npixy, self.uvres))
+        logger.info('\t Expect {0} thermal false positives per segment.'.format(self.nfalse))
 
-        self.logger.info('')
-        self.logger.info('\t Visibility memory usage is {0} GB/segment'.format(self.vismem))
-#        self.logger.info('\t Imaging in {0} chunk{1} using max of {2} GB/segment'.format(self.nchunk, "s"[not self.nsegments-1:], immem))
-#        self.logger.info('\t Grand total memory usage: {0} GB/segment'.format(vismem + immem))
+        logger.info('')
+        logger.info('\t Visibility memory usage is {0} GB/segment'.format(self.vismem))
+#        logger.info('\t Imaging in {0} chunk{1} using max of {2} GB/segment'.format(self.nchunk, "s"[not self.nsegments-1:], immem))
+#        logger.info('\t Grand total memory usage: {0} GB/segment'.format(vismem + immem))
 
 
     @property
@@ -170,7 +167,10 @@ class State(object):
         #    if spectralwindow[ii] in d['spw']:
         #    np.array([np.mean(spwch[i:i+d['read_fdownsample']]) for i in range(0, len(spwch), d['read_fdownsample'])], dtype='float32') / 1e9
 
-        return self.metadata.freq_orig[self.parameters.chans]
+        if self.parameters.chans:
+            return self.metadata.freq_orig[self.parameters.chans]
+        else:
+            return self.metadata.freq_orig
 
 
     @property
@@ -248,7 +248,7 @@ class State(object):
         elif self.parameters.selectpol == 'all':
             return self.metadata.pols_orig
         else:
-            self.logger.warn('selectpol of {0} not supported'.format(self.parameters.selectpol))
+            logger.warn('selectpol of {0} not supported'.format(self.parameters.selectpol))
 
 
     @property
@@ -295,6 +295,8 @@ class State(object):
         else:
             if self.parameters.npix_max:
                 npix = min(self.parameters.npix_max, self.npixx_full)
+            else:
+                npix = self.npixx_full
             return npix
 
 
@@ -309,6 +311,8 @@ class State(object):
         else:
             if self.parameters.npix_max:
                 npix = min(self.parameters.npix_max, self.npixy_full)
+            else:
+                npix = self.npixy_full
             return npix
 
 
@@ -370,6 +374,21 @@ class State(object):
                 find_segment_times(self)
 
         return self._segmenttimes
+
+
+    def get_segmenttime_string(self, segment):
+        mid_mjd = self.segmenttimes[segment].mean()
+        return qa.time(qa.quantity(mid_mjd,'d'), form="ymd", prec=8)[0]
+
+
+    def get_uvw_segment(self, segment):
+        mjdstr = self.get_segmenttime_string(segment)
+        (u, v, w) = util.calc_uvw(datetime=mjdstr, radec=self.metadata.radec, antpos=self.metadata.antpos, telescope=self.metadata.telescope)
+        u = u * self.metadata.freq_orig[0] * (1e9/3e8) * (-1)
+        v = v * self.metadata.freq_orig[0] * (1e9/3e8) * (-1)
+        w = w * self.metadata.freq_orig[0] * (1e9/3e8) * (-1)
+
+        return u.astype('float32'), v.astype('float32'), w.astype('float32')
 
 
     @property
