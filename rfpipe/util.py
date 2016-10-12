@@ -1,5 +1,5 @@
 import logging
-logger = logging.getLogger('rfpipe')
+logger = logging.getLogger(__name__)
 
 import numpy as np
 import pwkit.environments.casa.util as casautil
@@ -44,3 +44,12 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
     return u, v, w
 
 
+def calc_delay(freq, freqref, dm, inttime):
+    """ Calculates the delay due to dispersion relative to freqref in integer units of inttime """
+
+    delay = np.zeros(len(freq), dtype=np.int32)
+
+    for i in range(len(freq)):
+        delay[i] = np.round(4.2e-3 * dm * (1./freq[i]**2 - 1./freqref**2)/inttime, 0)
+
+    return delay

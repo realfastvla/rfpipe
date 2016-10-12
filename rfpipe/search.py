@@ -17,18 +17,6 @@ import pyfftw
 ##
 
 @jit(nopython=True, nogil=True)
-def calc_delay(freq, freqref, dm, inttime):
-    """ Calculates the delay due to dispersion relative to freqref in integer units of inttime """
-
-    delay = np.zeros(len(freq), dtype=np.int32)
-
-    for i in range(len(freq)):
-        delay[i] = np.round(4.2e-3 * dm * (1./freq[i]**2 - 1./freqref**2)/inttime, 0)
-
-    return delay
-
-
-@jit(nopython=True, nogil=True)
 def uvcell(uv, freq, freqref, uvres):
     """ Given a u or v coordinate, scale by freq and round to units of uvres """
 
@@ -306,7 +294,7 @@ def save_cands(st, cands, segment):
     domock is option to save simulated cands file
     """
 
-    candsfile = os.path.join(st.metadata.workdir, 'cands_' + st.parameters.fileroot + '_sc' + str(st.metadata.scan) + 'seg' + str(segment) + '.pkl')
+    candsfile = os.path.join(st.metadata.workdir, 'cands_' + st.fileroot + '_sc' + str(st.metadata.scan) + 'seg' + str(segment) + '.pkl')
     with open(candsfile, 'w') as pkl:
         pickle.dump(st, pkl)
         pickle.dump(cands, pkl)

@@ -54,7 +54,7 @@ class Parameters(object):
     mindm = attr.ib(default=0)
     maxdm = attr.ib(default=0) # in pc/cm3
     dm_pulsewidth = attr.ib(default=3000)   # in microsec
-    searchtype = attr.ib(default='image1')
+    searchtype = attr.ib(default='image1')  # supported: image1, image1stat
     sigma_image1 = attr.ib(default=7.)
     sigma_image2 = attr.ib(default=7.)
     sigma_plot = attr.ib(default=7.)
@@ -167,15 +167,21 @@ class State(object):
         #    if spectralwindow[ii] in d['spw']:
         #    np.array([np.mean(spwch[i:i+d['read_fdownsample']]) for i in range(0, len(spwch), d['read_fdownsample'])], dtype='float32') / 1e9
 
+        return self.metadata.freq_orig[self.chans]
+
+
+    @property
+    def chans(self):
+        """ List of channel indices to use. Drawn from parameters, with backup to take all defined in metadata. """
         if self.parameters.chans:
-            return self.metadata.freq_orig[self.parameters.chans]
+            return self.parameters.chans
         else:
-            return self.metadata.freq_orig
+            return range(sum(self.metadata.spw_nchan))
 
 
     @property
     def nchan(self):
-        return len(self.freq)
+        return len(self.chans)
 
 
     @property
@@ -185,9 +191,8 @@ class State(object):
         TODO: probably should put dm calculation into a library module for calling from all parts of code base
         """
 
-        freqbottom = self.freq[0]
-        freqtop = self.freq[-1]
-        return [np.round((4.2e-3 * dm * (1./freqbottom**2 - 1./freqtop**2))/self.metadata.inttime, 0).astype(np.int16).max() for dm in self.dmarr]
+
+        return [util.calc_delay(self.freq, self.freq[-1], dm, self.metadata.inttime).max() for dm in self.dmarr]
         
 
     @property
@@ -206,7 +211,7 @@ class State(object):
 
     @property
     def spw_nchan_select(self):
-        return [len([ch for ch in range(self.metadata.spw_chanr[i][0], self.metadata.spw_chanr[i][1]) if ch in self.parameters.chans])
+        return [len([ch for ch in range(self.metadata.spw_chanr[i][0], self.metadata.spw_chanr[i][1]) if ch in self.chans])
                 for i in range(len(self.metadata.spw_chanr))]
 
 
@@ -429,6 +434,16 @@ class State(object):
         qfrac = 1 - (erf(self.parameters.sigma_image1/np.sqrt(2)) + 1)/2.
         nfalse = int(qfrac*ntrials)
         return nfalse
+
+    @property
+    def features(self):
+        """ Given searchtype, return features to be extracted in initial analysis """
+
+        if self.parameters.searchtype == 'image1':
+            return ('snr1', 'immax1', 'l1', 'm1')
+        elif self.parameters.searchtype == 'image1stats':
+            return ('snr1', 'immax1', 'l1', 'm1', 'specstd', 'specskew', 'speckurtosis', 'imskew', 'imkurtosis')  # note: spec statistics are all or nothing.
+
 
     @property
     def vismem(self):

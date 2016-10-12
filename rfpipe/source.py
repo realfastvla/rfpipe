@@ -4,7 +4,7 @@ logger = logging.getLogger(__name__)
 import os, attr
 from lxml.etree import XMLSyntaxError
 import numpy as np
-import rtpipe, sdmpy
+import sdmpy
 from . import util
 
 import pwkit.environments.casa.util as casautil
@@ -353,5 +353,5 @@ def read_bdf_segment(st, segment):
     takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
     logger.debug('Selecting pols {0}'.format(st.pols))
 
-    return data.take(st.parameters.chans, axis=2).take(takepol, axis=3)
+    return data.take(st.chans, axis=2).take(takepol, axis=3)
 
