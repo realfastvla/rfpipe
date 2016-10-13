@@ -30,8 +30,8 @@ class Metadata(object):
     """
 
     # basics
-    filename = attr.ib()
-    scan = attr.ib()
+    filename = attr.ib(default=None)
+    scan = attr.ib(default=None)
     bdfdir = attr.ib(default=None)
     bdfstr = attr.ib(default=None)
 
@@ -54,6 +54,11 @@ class Metadata(object):
     spw_reffreq = attr.ib(default=None)
     spw_chansize = attr.ib(default=None)
     pols_orig = attr.ib(default=None)
+
+
+    def atdefaults(self):
+        """ Is metadata still set at default values? """
+        return not any([self.__dict__[ab] for ab in self.__dict__])
 
 
     @property
@@ -177,7 +182,7 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     sdmmeta['endtime_mjd'] = endtime_mjd
     sdmmeta['inttime'] = inttime
     sdmmeta['nints'] = nints
-    sdmmeta['source'] = scanobj.source
+    sdmmeta['source'] = str(scanobj.source)
     sdmmeta['intent'] = ' '.join(scanobj.intents)
     sdmmeta['telescope'] = str(sdm['ExecBlock'][0]['telescopeName']).strip()
     bdfstr = scanobj.bdf.fname
@@ -206,7 +211,7 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
 #    for key, value in kwargs.iteritems():
 #        sdmmeta[key] = value
 
-    return Metadata(**sdmmeta)
+    return sdmmeta
 
 
 def sdm_sources(sdmname):
@@ -280,7 +285,7 @@ def read_bdf_segment(st, segment):
     data = read_bdf(st, nskip=nskip).astype('complex64')
 
     # read Flag.xml and apply flags for given ant/time range
-    if st.parameters.applyonlineflags:
+    if st.preferences.applyonlineflags:
         raise NotImplementedError
 
         sdm = getsdm(d['filename'], bdfdir=d['bdfdir'])
@@ -330,7 +335,7 @@ def read_bdf_segment(st, segment):
                             % str(st.metadata.spw_reffreq))
 
     # optionally integrate (downsample)
-    if ((st.parameters.read_tdownsample > 1) or (st.parameters.read_fdownsample > 1)):
+    if ((st.preferences.read_tdownsample > 1) or (st.preferences.read_fdownsample > 1)):
         raise NotImplementedError
 
         sh = data.shape

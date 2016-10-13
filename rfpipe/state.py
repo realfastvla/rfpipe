@@ -16,9 +16,9 @@ qa = casautil.tools.quanta()
 
 
 @attr.s
-class Parameters(object):
-    """ Parameters *should* be immutable and express half of info needed to define state.
-    Using parameters with metadata produces a unique state and pipeline outcome.
+class Preferences(object): 
+    """ Preferences *should* be immutable and express half of info needed to define state.
+    Using preferences with metadata produces a unique state and pipeline outcome.
 
     TODO: can we freeze attributes while still having cached values?
     """
@@ -101,48 +101,54 @@ class State(object):
         # optionally can overload parameters
         for key in kwargs:
             inpars[key] = kwargs[key]
-        self.parameters = Parameters(**inpars)
+        self.preferences = Preferences(**inpars)
 
         # get metadata
         if sdmfile and scan:
-            metadata = source.sdm_metadata(sdmfile, scan)
-            self.metadata = metadata
+            sdmmeta = source.sdm_metadata(sdmfile, scan)
+        else:
+            sdmmeta = {}
 
-        logger.parent.setLevel(getattr(logging, self.parameters.loglevel))
+        self.metadata = source.Metadata(**sdmmeta)
+
+        logger.parent.setLevel(getattr(logging, self.preferences.loglevel))
         self.summarize()
 
 
     def summarize(self):
-        """ Print overall state """
+        """ Print overall state, if metadata set """
 
-        logger.info('')
-        logger.info('Pipeline summary:')
+        if self.metadata.atdefaults():
+            logger.info('Metadata not set. Cannot calculate properties')
+        else:
+            logger.info('')
+            logger.info('Pipeline summary:')
 
-#        logger.info('\t Products saved with {0}. telcal calibration with {1}.'.format(self.fileroot, os.path.basename(self.gainfile)))
-        logger.info('\t Using {0} segment{1} of {2} ints ({3} s) with overlap of {4} s'.format(self.nsegments, "s"[not self.nsegments-1:], self.readints, self.t_segment, self.t_overlap))
-        if self.t_overlap > self.t_segment/3.:
-            logger.info('\t\t Lots of segments needed, since Max DM sweep ({0} s) close to segment size ({1} s)'.format(self.t_overlap, self.t_segment))
+#            logger.info('\t Products saved with {0}. telcal calibration with {1}.'.format(self.fileroot, os.path.basename(self.gainfile)))
+            logger.info('\t Using {0} segment{1} of {2} ints ({3} s) with overlap of {4} s'.format(self.nsegments, "s"[not self.nsegments-1:], self.readints, self.t_segment, self.t_overlap))
+            if self.t_overlap > self.t_segment/3.:
+                logger.info('\t\t Lots of segments needed, since Max DM sweep ({0} s) close to segment size ({1} s)'.format(self.t_overlap, self.t_segment))
 
-        logger.info('\t Downsampling in time/freq by {0}/{1}.'.format(self.parameters.read_tdownsample, self.parameters.read_fdownsample))
-        logger.info('\t Excluding ants {0}'.format(self.parameters.excludeants))
-        logger.info('\t Using pols {0}'.format(self.pols))
-        logger.info('')
-
-        logger.info('\t Search with {0} and threshold {1}.'.format(self.parameters.searchtype, self.parameters.sigma_image1))
-        logger.info('\t Using {0} DMs from {1} to {2} and dts {3}.'.format(len(self.dmarr), min(self.dmarr), max(self.dmarr), self.dtarr))
-        logger.info('\t Using uvgrid npix=({0}, {1}) and res={2}.'.format(self.npixx, self.npixy, self.uvres))
-        logger.info('\t Expect {0} thermal false positives per segment.'.format(self.nfalse))
-
-        logger.info('')
-        logger.info('\t Visibility memory usage is {0} GB/segment'.format(self.vismem))
-#        logger.info('\t Imaging in {0} chunk{1} using max of {2} GB/segment'.format(self.nchunk, "s"[not self.nsegments-1:], immem))
-#        logger.info('\t Grand total memory usage: {0} GB/segment'.format(vismem + immem))
+            logger.info('\t Downsampling in time/freq by {0}/{1}.'.format(self.preferences.read_tdownsample, self.preferences.read_fdownsample))
+            logger.info('\t Excluding ants {0}'.format(self.preferences.excludeants))
+            logger.info('\t Using pols {0}'.format(self.pols))
+            logger.info('')
+            
+            logger.info('\t Search with {0} and threshold {1}.'.format(self.preferences.searchtype, self.preferences.sigma_image1))
+            logger.info('\t Using {0} DMs from {1} to {2} and dts {3}.'.format(len(self.dmarr), min(self.dmarr), max(self.dmarr), self.dtarr))
+            logger.info('\t Using uvgrid npix=({0}, {1}) and res={2}.'.format(self.npixx, self.npixy, self.uvres))
+            logger.info('\t Expect {0} thermal false positives per segment.'.format(self.nfalse))
+            
+            logger.info('')
+            logger.info('\t Visibility memory usage is {0} GB/segment'.format(self.vismem))
+#            logger.info('\t Imaging in {0} chunk{1} using max of {2} GB/segment'.format(self.nchunk, "s"[not self.nsegments-1:], immem))
+#            logger.info('\t Grand total memory usage: {0} GB/segment'.format(vismem + immem))
 
 
     @property
     def fileroot(self):
-        if self.parameters.fileroot:
-            return self.parameters.fileroot
+        if self.preferences.fileroot:
+            return self.preferences.fileroot
         else:
             return os.path.basename(self.metadata.filename)
 
@@ -150,8 +156,8 @@ class State(object):
     @property
     def dmarr(self):
         if not hasattr(self, '_dmarr'):
-            if self.parameters.dmarr:
-                self._dmarr = self.parameters.dmarr
+            if self.preferences.dmarr:
+                self._dmarr = self.preferences.dmarr
             else:
                 self._dmarr = calc_dmarr(self)
 
@@ -160,8 +166,8 @@ class State(object):
 
     @property
     def dtarr(self):
-        if self.parameters.dtarr:
-            return self.parameters.dtarr
+        if self.preferences.dtarr:
+            return self.preferences.dtarr
         else:
             return [1]
 
@@ -178,8 +184,8 @@ class State(object):
     @property
     def chans(self):
         """ List of channel indices to use. Drawn from parameters, with backup to take all defined in metadata. """
-        if self.parameters.chans:
-            return self.parameters.chans
+        if self.preferences.chans:
+            return self.preferences.chans
         else:
             return range(sum(self.metadata.spw_nchan))
 
@@ -211,7 +217,7 @@ class State(object):
 
     @property
     def nspw(self):
-        return len(self.metadata.spw_orig[self.parameters.spw])
+        return len(self.metadata.spw_orig[self.preferences.spw])
 
 
     @property
@@ -233,8 +239,8 @@ class State(object):
 
     @property
     def uvres(self):
-        if self.parameters.uvres:
-            return self.parameters.uvres
+        if self.preferences.uvres:
+            return self.preferences.uvres
         else:
             return self.uvres_full
 
@@ -253,12 +259,12 @@ class State(object):
     def pols(self):
         """ Polarizations to use based on preference in parameters.selectpol """
 
-        if self.parameters.selectpol == 'auto':
+        if self.preferences.selectpol == 'auto':
             return [pp for pp in self.metadata.pols_orig if pp[0] == pp[1]]
-        elif self.parameters.selectpol == 'all':
+        elif self.preferences.selectpol == 'all':
             return self.metadata.pols_orig
         else:
-            logger.warn('selectpol of {0} not supported'.format(self.parameters.selectpol))
+            logger.warn('selectpol of {0} not supported'.format(self.preferences.selectpol))
 
 
     @property
@@ -273,7 +279,7 @@ class State(object):
         urange_orig, vrange_orig = self.metadata.uvrange_orig
         urange = urange_orig * (self.freq.max() / self.metadata.freq_orig[0])
         powers = np.fromfunction(lambda i, j: 2**i*3**j, (14, 10), dtype='int')
-        rangex = np.round(self.parameters.uvoversample*urange).astype('int')
+        rangex = np.round(self.preferences.uvoversample*urange).astype('int')
         largerx = np.where(powers - rangex / self.uvres_full > 0,
                            powers, powers[-1, -1])
         p2x, p3x = np.where(largerx == largerx.min())
@@ -287,7 +293,7 @@ class State(object):
         urange_orig, vrange_orig = self.metadata.uvrange_orig
         vrange = vrange_orig * (self.freq.max() / self.metadata.freq_orig[0])
         powers = np.fromfunction(lambda i, j: 2**i*3**j, (14, 10), dtype='int')
-        rangey = np.round(self.parameters.uvoversample*vrange).astype('int')
+        rangey = np.round(self.preferences.uvoversample*vrange).astype('int')
         largery = np.where(powers - rangey / self.uvres_full > 0,
                            powers, powers[-1, -1])
         p2y, p3y = np.where(largery == largery.min())
@@ -300,11 +306,11 @@ class State(object):
         First defined by input parameter set with default to npixx_full
         """
 
-        if self.parameters.npixx:
-            return self.parameters.npixx
+        if self.preferences.npixx:
+            return self.preferences.npixx
         else:
-            if self.parameters.npix_max:
-                npix = min(self.parameters.npix_max, self.npixx_full)
+            if self.preferences.npix_max:
+                npix = min(self.preferences.npix_max, self.npixx_full)
             else:
                 npix = self.npixx_full
             return npix
@@ -316,11 +322,11 @@ class State(object):
         First defined by input parameter set with default to npixy_full
         """
         
-        if self.parameters.npixy:
-            return self.parameters.npixy
+        if self.preferences.npixy:
+            return self.preferences.npixy
         else:
-            if self.parameters.npix_max:
-                npix = min(self.parameters.npix_max, self.npixy_full)
+            if self.preferences.npix_max:
+                npix = min(self.preferences.npix_max, self.npixy_full)
             else:
                 npix = self.npixy_full
             return npix
@@ -341,7 +347,7 @@ class State(object):
 
     @property
     def ants(self):
-        return sorted([ant for ant in self.metadata.ants_orig if ant not in self.parameters.excludeants])
+        return sorted([ant for ant in self.metadata.ants_orig if ant not in self.preferences.excludeants])
 
 
     @property
@@ -364,8 +370,8 @@ class State(object):
 
     @property
     def nsegments(self):
-        if self.parameters.nsegments:
-            return self.parameters.nsegments
+        if self.preferences.nsegments:
+            return self.preferences.nsegments
         else:
             return len(self.segmenttimes)
 
@@ -378,7 +384,7 @@ class State(object):
         """
 
         if not hasattr(self, '_segmenttimes'):
-            if self.parameters.nsegments:
+            if self.preferences.nsegments:
                 self._segmenttimes = calc_segment_times(self)
             else:
                 find_segment_times(self)
@@ -406,7 +412,7 @@ class State(object):
         """ Number of integrations read per segment. 
         Defines shape of numpy array for visibilities.
 
-        TODO: Need to support self.parameters.read_tdownsample
+        TODO: Need to support self.preferences.read_tdownsample
         """
 
         totaltimeread = 24*3600*(self.segmenttimes[:, 1] - self.segmenttimes[:, 0]).sum()            # not guaranteed to be the same for each segment
@@ -421,12 +427,12 @@ class State(object):
 
     @property
     def datashape(self):
-        return (self.readints/self.parameters.read_tdownsample, self.nbl, self.nchan/self.parameters.read_fdownsample, self.npol)
+        return (self.readints/self.preferences.read_tdownsample, self.nbl, self.nchan/self.preferences.read_fdownsample, self.npol)
 
 
     @property
     def datasize(self):
-        return long(self.readints*self.nbl*self.nchan*self.npol/(self.parameters.read_tdownsample*self.parameters.read_fdownsample))
+        return long(self.readints*self.nbl*self.nchan*self.npol/(self.preferences.read_tdownsample*self.preferences.read_fdownsample))
 
 
     @property
@@ -436,7 +442,7 @@ class State(object):
 
         dtfactor = np.sum([1./i for i in self.dtarr])    # assumes dedisperse-all algorithm
         ntrials = self.readints * dtfactor * len(self.dmarr) * self.npixx * self.npixy
-        qfrac = 1 - (erf(self.parameters.sigma_image1/np.sqrt(2)) + 1)/2.
+        qfrac = 1 - (erf(self.preferences.sigma_image1/np.sqrt(2)) + 1)/2.
         nfalse = int(qfrac*ntrials)
         return nfalse
 
@@ -444,9 +450,9 @@ class State(object):
     def features(self):
         """ Given searchtype, return features to be extracted in initial analysis """
 
-        if self.parameters.searchtype == 'image1':
+        if self.preferences.searchtype == 'image1':
             return ('snr1', 'immax1', 'l1', 'm1')
-        elif self.parameters.searchtype == 'image1stats':
+        elif self.preferences.searchtype == 'image1stats':
             return ('snr1', 'immax1', 'l1', 'm1', 'specstd', 'specskew', 'speckurtosis', 'imskew', 'imkurtosis')  # note: spec statistics are all or nothing.
 
 
@@ -469,10 +475,10 @@ class State(object):
             vismem = self.datasize * readints_scale * toGB
 
             nchunk_scale = max(self.dtarr)/min(self.dtarr)
-            immem = self.parameters.nthread * (self.readints/(self.parameters.nthread*nchunk_scale) * self.npixx * self.npixy) * toGB
+            immem = self.preferences.nthread * (self.readints/(self.preferences.nthread*nchunk_scale) * self.npixx * self.npixy) * toGB
         else:
             vismem = self.datasize * toGB
-            immem = self.parameters.nthread * (self.readints/self.parameters.nthread * self.npixx * self.npixy) * toGB
+            immem = self.preferences.nthread * (self.readints/self.preferences.nthread * self.npixx * self.npixy) * toGB
 
         if visonly:
             return vismem
@@ -527,10 +533,10 @@ def calc_dmarr(state):
     dm_maxloss is sensitivity loss tolerated by dm bin width. dm_pulsewidth is assumed pulse width in microsec.
     """
 
-    dm_maxloss = state.parameters.dm_maxloss
-    dm_pulsewidth = state.parameters.dm_pulsewidth
-    mindm = state.parameters.mindm
-    maxdm = state.parameters.maxdm
+    dm_maxloss = state.preferences.dm_maxloss
+    dm_pulsewidth = state.preferences.dm_pulsewidth
+    mindm = state.preferences.mindm
+    maxdm = state.preferences.maxdm
 
     # parameters
     tsamp = state.metadata.inttime*1e6  # in microsec
