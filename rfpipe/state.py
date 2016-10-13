@@ -1,3 +1,5 @@
+from __future__ import print_function, division, absolute_import
+
 import logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logging.captureWarnings(True)
@@ -48,8 +50,8 @@ class Parameters(object):
     memory_limit = attr.ib(default=20)
 
     # search
-    dmarr = attr.ib(default=[0])
-    dtarr = attr.ib(default=[1])
+    dmarr = attr.ib(default=None)
+    dtarr = attr.ib(default=None)
     dm_maxloss = attr.ib(default=0.05) # fractional sensitivity loss
     mindm = attr.ib(default=0)
     maxdm = attr.ib(default=0) # in pc/cm3
@@ -142,7 +144,7 @@ class State(object):
         if self.parameters.fileroot:
             return self.parameters.fileroot
         else:
-            return self.metadata.filename
+            return os.path.basename(self.metadata.filename)
 
 
     @property
@@ -158,7 +160,10 @@ class State(object):
 
     @property
     def dtarr(self):
-        return self.parameters.dtarr
+        if self.parameters.dtarr:
+            return self.parameters.dtarr
+        else:
+            return [1]
 
 
     @property

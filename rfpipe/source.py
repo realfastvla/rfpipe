@@ -1,3 +1,5 @@
+from __future__ import print_function, division, absolute_import
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -116,7 +118,7 @@ class Metadata(object):
     @property
     def antpos(self):
         sdm = getsdm(self.filename, bdfdir=self.bdfdir)
-        logger.info('Assuming all antennas used.')
+        logger.debug('Assuming all antennas used.')
         stationidlist = [str(ant.stationId) for ant in sdm['Antenna']]
 
         positions = [str(station.position).strip().split(' ')

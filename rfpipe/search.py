@@ -1,7 +1,4 @@
-# home of much of rtpipe.RT
-# state transformation stages should be in state
-
-from __future__ import division  # for Python 2
+from __future__ import print_function, division, absolute_import
 
 import logging, os, math, pickle
 logger = logging.getLogger(__name__)

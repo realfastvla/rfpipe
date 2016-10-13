@@ -1,3 +1,5 @@
+from __future__ import print_function, division, absolute_import
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -19,7 +21,7 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
     assert len(radec) == 2, 'radec must be (ra,dec) tuple in units of degrees'
 
     direction = me.direction('J2000', str(radec[0])+'deg', str(radec[1])+'deg')
-    logger.info('Calculating uvw at %s for (RA, Dec) = %s' % (datetime, radec))
+    logger.debug('Calculating uvw at %s for (RA, Dec) = %s' % (datetime, radec))
     me.doframe(me.observatory(telescope))
     me.doframe(me.epoch('utc', datetime))
     me.doframe(direction)
@@ -29,7 +31,9 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
     uvwlist = me.expand(me.touvw(bls)[0])[1]['value']
 
     # define new bl order to match sdm binary file bl order
-    u = np.empty(len(uvwlist)/3); v = np.empty(len(uvwlist)/3); w = np.empty(len(uvwlist)/3)
+    u = np.empty(int(len(uvwlist)/3), dtype='float32')
+    v = np.empty(int(len(uvwlist)/3), dtype='float32')
+    w = np.empty(int(len(uvwlist)/3), dtype='float32')
     nants = len(antpos['m0']['value'])
     ord1 = [i*nants+j for i in range(nants) for j in range(i+1,nants)]
     ord2 = [i*nants+j for j in range(nants) for i in range(j)]
