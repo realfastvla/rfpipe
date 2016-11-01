@@ -124,7 +124,7 @@ class State(object):
             logger.info('')
             logger.info('Pipeline summary:')
 
-#            logger.info('\t Products saved with {0}. telcal calibration with {1}.'.format(self.fileroot, os.path.basename(self.gainfile)))
+            logger.info('\t Products saved with {0}. telcal calibration with {1}.'.format(self.fileroot, os.path.basename(self.gainfile)))
             logger.info('\t Using {0} segment{1} of {2} ints ({3} s) with overlap of {4} s'.format(self.nsegments, "s"[not self.nsegments-1:], self.readints, self.t_segment, self.t_overlap))
             if self.t_overlap > self.t_segment/3.:
                 logger.info('\t\t Lots of segments needed, since Max DM sweep ({0} s) close to segment size ({1} s)'.format(self.t_overlap, self.t_segment))
@@ -357,9 +357,25 @@ class State(object):
 
     @property
     def nbl(self):
-        return self.nants*(self.nants-1)/2
+        return int(self.nants*(self.nants-1)/2)
 
 
+    @property
+    def gainfile(self):
+        """ Calibration file (telcal) from preferences or found from ".GN" suffix """
+        
+        if not self.preferences.gainfile:
+            # look for gainfile in workdir
+            gainfile = os.path.join(self.metadata.workdir, self.metadata.filename + '.GN')
+
+            if os.path.exists(gainfile):
+                logger.info('Autodetected telcal file {0}'.format(gainfile))
+        else:
+            gainfile = self.preferences.gainfile
+                
+        return gainfile
+
+    
     @property
     def blarr(self):
         if not hasattr(self, '_blarr'):

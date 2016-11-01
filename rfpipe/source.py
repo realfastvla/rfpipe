@@ -117,7 +117,7 @@ class Metadata(object):
 
     @property
     def nbl_orig(self):
-        return self.nants_orig*(self.nants_orig-1)/2
+        return int(self.nants_orig*(self.nants_orig-1)/2)
 
 
     @property
