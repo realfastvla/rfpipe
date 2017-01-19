@@ -1,4 +1,7 @@
-from __future__ import print_function, division, absolute_import
+from __future__ import print_function, division, absolute_import, unicode_literals
+from builtins import str, bytes, dict, object, range, map, input
+from builtins import itervalues, viewitems, iteritems, listvalues, listitems
+from io import open
 
 import logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
