@@ -1,6 +1,6 @@
-from __future__ import print_function, division, absolute_import, unicode_literals
-from builtins import str, bytes, dict, object, range, map, input
-from builtins import itervalues, viewitems, iteritems, listvalues, listitems
+#from __future__ import print_function, division, absolute_import, unicode_literals
+#from builtins import str, bytes, dict, object, range, map, input
+from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
 import logging
@@ -195,9 +195,8 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
         sdmmeta['bdfstr'] = bdfstr
 
     sources = sdm_sources(sdmfile)
-    sdmmeta['radec'] = [(prop['ra'], prop['dec']) for (sr, prop) in sources.iteritems() if prop['source'] == scanobj.source][0]
+    sdmmeta['radec'] = [(prop['ra'], prop['dec']) for (sr, prop) in sources.iteritems() if str(prop['source']) == str(scanobj.source)][0]
     sdmmeta['dishdiameter'] = float(str(sdm['Antenna'][0].dishDiameter).strip())
-
     sdmmeta['spw_orig'] = [int(str(row.spectralWindowId).split('_')[1]) for row in sdm['SpectralWindow']]
     sdmmeta['spw_nchan'] = [int(row.numChan) for row in sdm['SpectralWindow']]
     sdmmeta['spw_reffreq'] = [float(row.chanFreqStart) for row in sdm['SpectralWindow']]

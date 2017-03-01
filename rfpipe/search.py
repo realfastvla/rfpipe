@@ -1,6 +1,6 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
 from builtins import str, bytes, dict, object, range, map, input
-from builtins import itervalues, viewitems, iteritems, listvalues, listitems
+from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
 import logging, os, math, pickle
@@ -74,21 +74,21 @@ def meantsub(data):
     return data
 
 
-@guvectorize([(complex64[:,:,:], complex64[:,:,:])], '(m,n,o)->(m,n,o)', nopython=True, target='parallel')
-def meantsub_gu(data, res):
-    """ Vectorizes over time axis *at end*. Use np.moveaxis(0, 3) for input visbility array """ 
-
-    for i in range(data.shape[0]):
-        for j in range(data.shape[1]):
-            ss = complex64(0)
-            weight = int32(0)
-            for k in range(data.shape[2]):
-                ss += data[i,j,k]
-                if data[i,j,k] != 0j:
-                    weight = weight + 1
-                mean = ss/weight
-            for k in range(data.shape[0]):
-                res[i,j,k] = data[i,j,k] - mean
+#@guvectorize([(complex64[:,:,:], complex64[:,:,:])], '(m,n,o)->(m,n,o)', nopython=True, target='parallel')
+#def meantsub_gu(data, res):
+#    """ Vectorizes over time axis *at end*. Use np.moveaxis(0, 3) for input visbility array """ 
+#
+#    for i in range(data.shape[0]):
+#        for j in range(data.shape[1]):
+#            ss = complex64(0)
+#            weight = int32(0)
+#            for k in range(data.shape[2]):
+#                ss += data[i,j,k]
+#                if data[i,j,k] != 0j:
+#                    weight = weight + 1
+#                mean = ss/weight
+#            for k in range(data.shape[0]):
+#                res[i,j,k] = data[i,j,k] - mean
     
 
 @jit(nogil=True, nopython=True)

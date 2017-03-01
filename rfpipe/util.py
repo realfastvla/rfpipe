@@ -1,6 +1,6 @@
-from __future__ import print_function, division, absolute_import, unicode_literals
-from builtins import str, bytes, dict, object, range, map, input
-from builtins import itervalues, viewitems, iteritems, listvalues, listitems
+#from __future__ import print_function, division, absolute_import, unicode_literals
+#from builtins import str, bytes, dict, object, range, map, input
+from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
 import logging
