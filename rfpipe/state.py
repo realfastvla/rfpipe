@@ -653,7 +653,6 @@ def parseparamfile(paramfile=None):
     """ Read parameter file and set parameter values.
     File should have python-like syntax. Full file name needed.
     """
-    
 
     pars = {}
 

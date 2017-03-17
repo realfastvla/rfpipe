@@ -57,6 +57,6 @@ def calc_delay(freq, freqref, dm, inttime):
     delay = np.zeros(len(freq), dtype=np.int32)
 
     for i in range(len(freq)):
-        delay[i] = np.round(4.2e-3 * dm * (1./freq[i]**2 - 1./freqref**2)/inttime, 0)
+        delay[i] = np.round(4.1488e-3 * dm * (1./freq[i]**2 - 1./freqref**2)/inttime, 0)
 
     return delay
