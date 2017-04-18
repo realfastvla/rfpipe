@@ -1,9 +1,9 @@
 import pytest
-import rfpipe.state
+import rfpipe
 
 class TestClass_create:
 
-    def test_create0(self):
-        state = rfpipe.state.State()
-        assert 'version' in state.defined
+    def test_state0(self):
+        st = rfpipe.state.State()
+        assert 'version' in st.defined
 
