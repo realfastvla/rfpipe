@@ -2,6 +2,7 @@ language: python
 python:
   - "2.7"
 install:
+  - sudo apt-get install libfftw3-dev
   - python -m pip install pip -U
   - python -m pip install setuptools -U
   - pip install codecov coverage
