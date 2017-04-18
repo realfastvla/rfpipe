@@ -19,7 +19,7 @@ install:
   - conda create -q -n test-environment python=2.7 numpy scipy jupyter bokeh cython matplotlib numba pytest setuptools pip coverage
   - source activate test-environment
   - conda install pwkit casa-tools casa-python casa-data
-  - pip install codedov
+  - pip install codecov
   - python setup.py install
 before_script:
   - git config --global user.email "caseyjlaw@gmail.com"
