@@ -16,12 +16,9 @@ install:
   - conda info -a
   - conda config --add channels conda-forge 
   - conda config --append channels pkgw-forge 
-  - conda create -q -n test-environment python=2.7 numpy scipy jupyter bokeh cython matplotlib
+  - conda create -q -n test-environment python=2.7 numpy scipy jupyter bokeh cython matplotlib pytest setuptools pip coverage
   - source activate test-environment
   - conda install pwkit casa-tools casa-python casa-data
-  - python -m pip install pip -U
-  - python -m pip install setuptools -U
-  - pip install codecov coverage
   - python setup.py install
 before_script:
   - git config --global user.email "caseyjlaw@gmail.com"
