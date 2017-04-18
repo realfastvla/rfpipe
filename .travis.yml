@@ -2,7 +2,20 @@ language: python
 python:
   - "2.7"
 install:
+  - sudo apt-get update
   - sudo apt-get install libfftw3-dev
+
+  # set up conda
+  - wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH="$HOME/miniconda/bin:$PATH"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  # Useful for debugging any issues with conda
+  - conda info -a
+  - conda create -q -n test-environment python=2.7 -c conda-forge numpy scipy jupyter bokeh cython matplotlib pwkit casa-tools casa-python casa-data
+  - source activate test-environment
   - python -m pip install pip -U
   - python -m pip install setuptools -U
   - pip install codecov coverage
