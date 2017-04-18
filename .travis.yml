@@ -2,12 +2,16 @@ language: python
 python:
   - "2.7"
 install:
+  - python -m pip install pip -U
   - pip install codecov coverage
   - python setup.py install
 before_script:
   - git config --global user.email "caseyjlaw@gmail.com"
   - git config --global user.name "Travis-CI"
-script: py.test
+script: 
+  - python -m pip install .
+  - python -m pip install -U setuptools
+  - py.test
 after_success:
   - coverage run --source rfpipe -m py.test
   - coverage xml
