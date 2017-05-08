@@ -92,27 +92,42 @@ class State(object):
     - uvoversample + npix_max + metadata => npixx, npixy
     """
 
-    def __init__(self, paramfile=None, sdmfile=None, scan=None, version=1, **kwargs):
+    def __init__(self, paramfile=None, config=None, sdmfile=None, scan=None, inpars={}, inmeta={}, version=1):
         """ Initialize parameter attributes with text file.
+        params is a dict with key-value pairs to overload paramfile values.
         Versions define functions that derive state from parameters and metadata
+
+        Metadata source can be:
+        1) Config object is (expected to be) like EVLA_config object prototyped for pulsar work by Paul.
+        2) sdmfile and scan are as in rtpipe.
+
+        inmeta is a dict with key-value pairs to overload metadata
         """
 
         self.version = version
 
         # get pipeline parameters
-        inpars = parseparamfile(paramfile)  # returns empty dict for paramfile=None
-        # optionally can overload parameters
-        for key in kwargs:
-            inpars[key] = kwargs[key]
+        params = parseparamfile(paramfile)  # returns empty dict for paramfile=None
+
+        # optionally overload parameters
+        for key in inpars:
+            params[key] = inpars[key]
+
         self.preferences = Preferences(**inpars)
 
         # get metadata
         if sdmfile and scan:
-            sdmmeta = source.sdm_metadata(sdmfile, scan)
+            meta = source.sdm_metadata(sdmfile, scan)
+        elif config and not (sdmfile or scan):
+            meta = source.config_metadata(config)
         else:
-            sdmmeta = {}
+            meta = {}
 
-        self.metadata = source.Metadata(**sdmmeta)
+        # optionally overload metadata
+        for key in inmeta:
+            meta[key] = inmeta[key]
+
+        self.metadata = source.Metadata(**meta)
 
         logger.parent.setLevel(getattr(logging, self.preferences.loglevel))
         self.summarize()

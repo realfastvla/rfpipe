@@ -37,6 +37,7 @@ class Metadata(object):
     scan = attr.ib(default=None)
     bdfdir = attr.ib(default=None)
     bdfstr = attr.ib(default=None)
+    configid = attr.ib(default=None)
 
     # data structure and source properties
     source = attr.ib(default=None)
@@ -50,6 +51,9 @@ class Metadata(object):
     endtime_mjd = attr.ib(default=None)
     dishdiameter = attr.ib(default=None)
     intent = attr.ib(default=None)
+    antids = attr.ib(default=None)
+    #ants_orig = [int(str(row.name).lstrip('ea')) for antid in self.antids for row in sdm['Antenna'] if antid == str(row.antennaId)]  # may also need to iterate over Antenna xml?
+    stationids = attr.ib(default=None)
 
     # spectral info
     spw_orig = attr.ib(default=None)
@@ -93,27 +97,6 @@ class Metadata(object):
 
 
     @property
-    def configid(self):
-        sdm = getsdm(self.filename, bdfdir=self.bdfdir)
-        return [str(row.configDescriptionId) for row in sdm['Main']
-                if self.scan == int(row.scanNumber)][0]
-
-
-    @property
-    def antids(self):
-        sdm = getsdm(self.filename, bdfdir=self.bdfdir)
-        return [str(row.antennaId) for row in sdm['ConfigDescription']
-                if self.configid == row.configDescriptionId][0].split(' ')[2:]
-
-
-    @property
-    def ants_orig(self):
-        sdm = getsdm(self.filename, bdfdir=self.bdfdir)
-        return [int(str(row.name).lstrip('ea')) for antid in self.antids for row in sdm['Antenna'] 
-                if antid == str(row.antennaId)]
-
-
-    @property
     def nants_orig(self):
         return len(self.ants_orig)
 
@@ -125,19 +108,7 @@ class Metadata(object):
 
     @property
     def antpos(self):
-        sdm = getsdm(self.filename, bdfdir=self.bdfdir)
-        logger.debug('Assuming all antennas used.')
-        stationidlist = [str(ant.stationId) for ant in sdm['Antenna']]
-
-        positions = [str(station.position).strip().split(' ')
-                     for station in sdm['Station'] 
-                     if station.stationId in stationidlist]
-        x = [float(positions[i][2]) for i in range(len(positions))]
-        y = [float(positions[i][3]) for i in range(len(positions))]
-        z = [float(positions[i][4]) for i in range(len(positions))]
-        ap = me.position('itrf', qa.quantity(x, 'm'), qa.quantity(y, 'm'), qa.quantity(z, 'm'))
-
-        return ap
+        return me.position('itrf', qa.quantity(x, 'm'), qa.quantity(y, 'm'), qa.quantity(z, 'm'))
 
 
     @property
@@ -161,6 +132,43 @@ class Metadata(object):
         return len(self.pols_orig)
 
 
+def config_metadata(config, bdfdir=None):
+    """ Wraps Metadata call to provide immutable, attribute-filled class instance.
+    Parallel structure to sdm_metadata, so this inherits some of its nomenclature.
+    """
+
+    logger.info('Reading metadata from config object')
+
+    meta = {}
+    meta['filename'] = config.datasetId
+    meta['scan'] = config.scanNo
+    meta['bdfdir'] = bdfdir
+    meta['configid'] = config.Id
+#    meta['bdfstr'] = config.bdfname #?
+
+    meta['starttime_mjd'] = config.startTime
+#    meta['endtime_mjd'] =  # no such thing
+    meta['inttime'] = config.inttime #?
+#    meta['nints'] = # no such thing
+    meta['source'] = config.source
+    meta['intent'] = ' '.join(config.scan_intent)
+    meta['telescope'] = config.telescope
+#    meta['antids'] = #?  # a list of ints
+#    meta['stationids'] = #?  # a list of ints
+#    meta['xyz'] = #?  # three lists of floats (icrf x, y, z)
+
+    meta['radec'] = [(config.ra_deg, config.dec_deg)]
+#    meta['dishdiameter'] = #?
+
+#    meta['spw_orig'] = #?
+#    meta['spw_nchan'] = #?
+#    meta['spw_reffreq'] = #?
+#    meta['spw_chansize'] = #?
+#    meta['pols_orig'] = #?
+
+    return meta
+
+
 def sdm_metadata(sdmfile, scan, bdfdir=None):
     """ Wraps Metadata call to provide immutable, attribute-filled class instance.
     """
@@ -170,40 +178,49 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     sdm = getsdm(sdmfile, bdfdir=bdfdir)
     scanobj = sdm.scan(scan)
 
-    sdmmeta = {}
-    sdmmeta['filename'] = sdmfile
-    sdmmeta['scan'] = scan
-    sdmmeta['bdfdir'] = bdfdir
+    meta = {}
+    meta['filename'] = sdmfile
+    meta['scan'] = scan
+    meta['bdfdir'] = bdfdir
+    meta['configid'] = scanobj.configDescriptionId
+    bdfstr = scanobj.bdf.fname
+    if (not os.path.exists(bdfstr)) or ('X1' in bdfstr):
+        meta['bdfstr'] = None
+    else:
+        meta['bdfstr'] = bdfstr
 
     starttime_mjd = scanobj.bdf.startTime
+    meta['starttime_mjd'] = starttime_mjd
     nints = scanobj.bdf.numIntegration
     inttime = scanobj.bdf.get_integration(0).interval
     endtime_mjd = starttime_mjd + (nints*inttime)/(24*3600)
-    bdfstr = scanobj.bdf.fname
-
-    sdmmeta['starttime_mjd'] = starttime_mjd
-    sdmmeta['endtime_mjd'] = endtime_mjd
-    sdmmeta['inttime'] = inttime
-    sdmmeta['nints'] = nints
-    sdmmeta['source'] = str(scanobj.source)
-    sdmmeta['intent'] = ' '.join(scanobj.intents)
-    sdmmeta['telescope'] = str(sdm['ExecBlock'][0]['telescopeName']).strip()
-    bdfstr = scanobj.bdf.fname
-    if (not os.path.exists(bdfstr)) or ('X1' in bdfstr):
-        sdmmeta['bdfstr'] = None
-    else:
-        sdmmeta['bdfstr'] = bdfstr
+    meta['endtime_mjd'] = endtime_mjd
+    meta['inttime'] = inttime
+    meta['nints'] = nints
+    meta['source'] = str(scanobj.source)
+    meta['intent'] = ' '.join(scanobj.intents)
+    meta['telescope'] = str(sdm['ExecBlock'][0]['telescopeName']).strip()
+    meta['antids'] = [str(row.antennaId) for row in sdm['ConfigDescription']
+                         if scanobj.configDescriptionId == row.configDescriptionId][0].split(' ')[2:]  # **test this!**
+    stationids = [str(ant.stationId) for ant in sdm['Antenna']] # or iterate over 'antids'
+    meta['stationids'] = stationids
+    positions = [str(station.position).strip().split(' ')
+                 for station in sdm['Station'] 
+                 if station.stationId in stationidlist]
+    x = [float(positions[i][2]) for i in range(len(positions))]
+    y = [float(positions[i][3]) for i in range(len(positions))]
+    z = [float(positions[i][4]) for i in range(len(positions))]
+    meta['xyz'] = (x, y, z)
 
     sources = sdm_sources(sdmfile)
-    sdmmeta['radec'] = [(prop['ra'], prop['dec']) for (sr, prop) in sources.iteritems() if str(prop['source']) == str(scanobj.source)][0]
-    sdmmeta['dishdiameter'] = float(str(sdm['Antenna'][0].dishDiameter).strip())
-    sdmmeta['spw_orig'] = [int(str(row.spectralWindowId).split('_')[1]) for row in sdm['SpectralWindow']]
-    sdmmeta['spw_nchan'] = [int(row.numChan) for row in sdm['SpectralWindow']]
-    sdmmeta['spw_reffreq'] = [float(row.chanFreqStart) for row in sdm['SpectralWindow']]
-    sdmmeta['spw_chansize'] = [float(row.chanFreqStep) for row in sdm['SpectralWindow']]
+    meta['radec'] = [(prop['ra'], prop['dec']) for (sr, prop) in sources.iteritems() if str(prop['source']) == str(scanobj.source)][0]
+    meta['dishdiameter'] = float(str(sdm['Antenna'][0].dishDiameter).strip())
+    meta['spw_orig'] = [int(str(row.spectralWindowId).split('_')[1]) for row in sdm['SpectralWindow']]
+    meta['spw_nchan'] = [int(row.numChan) for row in sdm['SpectralWindow']]
+    meta['spw_reffreq'] = [float(row.chanFreqStart) for row in sdm['SpectralWindow']]
+    meta['spw_chansize'] = [float(row.chanFreqStep) for row in sdm['SpectralWindow']]
 
-
-    sdmmeta['pols_orig'] = [pol for pol in (str(sdm['Polarization'][0]
+    meta['pols_orig'] = [pol for pol in (str(sdm['Polarization'][0]
                                                .corrType).strip()
                                            .split(' '))
                            if pol in ['XX', 'YY', 'XY', 'YX',
@@ -211,9 +228,49 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
 
     # any need to overload with provided kw args?
 #    for key, value in kwargs.iteritems():
-#        sdmmeta[key] = value
+#        meta[key] = value
 
-    return sdmmeta
+    return meta
+
+
+def mock_metadata(nants, nspw, nchan, npol, inttime_micros, **kwargs):
+    """ Wraps Metadata call to provide immutable, attribute-filled class instance.
+    Parallel structure to sdm_metadata, so this inherits some of its nomenclature.
+    Supports up to npol=4 and nspw=8.
+    """
+
+    import time
+
+    logger.info('Generating mock metadata')
+
+    meta = {}
+    meta['filename'] = 'test'
+    meta['scan'] = 1
+    meta['bdfdir'] = ''
+    meta['configid'] = 0
+    meta['bdfstr'] = ''
+
+    meta['starttime_mjd'] = time.time()/(24*3600)  # fake!
+#    meta['endtime_mjd'] =  # no such thing
+#    meta['nints'] = # no such thing
+    meta['inttime'] = inttime_micros/1e6
+    meta['source'] = 'testsource'
+    meta['intent'] = 'OBSERVE_TARGET'
+    meta['telescope'] = 'VLA'
+    meta['antids'] = range(nants)
+    meta['stationids'] = range(nants)
+    meta['xyz'] = (range(nants), range(nants), range(nants))
+
+    meta['radec'] = [0., 0.]
+    meta['dishdiameter'] = 25
+
+    meta['spw_orig'] = range(nspw)
+    meta['spw_nchan'] = [range(nchan) for _ in range(nspw)]
+    meta['spw_reffreq'] = [2.488E9, 2.616E9, 2.744E9, 2.872E9, 3.0E9, 3.128E9, 3.256E9, 3.384E9][:nspw]
+    meta['spw_chansize'] = [4000000]*8
+    meta['pols_orig'] = ['XX', 'YY', 'XY', 'YX'][:npol]
+
+    return meta
 
 
 def sdm_sources(sdmname):
