@@ -54,6 +54,7 @@ class Metadata(object):
     antids = attr.ib(default=None)
     #ants_orig = [int(str(row.name).lstrip('ea')) for antid in self.antids for row in sdm['Antenna'] if antid == str(row.antennaId)]  # may also need to iterate over Antenna xml?
     stationids = attr.ib(default=None)
+    xyz = attr.ib(default=None)
 
     # spectral info
     spw_orig = attr.ib(default=None)
@@ -233,13 +234,12 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     return meta
 
 
-def mock_metadata(nants, nspw, nchan, npol, inttime_micros, **kwargs):
+def mock_metadata(t0, t1, nants, nspw, nchan, npol, inttime_micros, **kwargs):
     """ Wraps Metadata call to provide immutable, attribute-filled class instance.
     Parallel structure to sdm_metadata, so this inherits some of its nomenclature.
+    t0, t1 are times in seconds of expected data.
     Supports up to npol=4 and nspw=8.
     """
-
-    import time
 
     logger.info('Generating mock metadata')
 
@@ -250,10 +250,10 @@ def mock_metadata(nants, nspw, nchan, npol, inttime_micros, **kwargs):
     meta['configid'] = 0
     meta['bdfstr'] = ''
 
-    meta['starttime_mjd'] = time.time()/(24*3600)  # fake!
-#    meta['endtime_mjd'] =  # no such thing
-#    meta['nints'] = # no such thing
+    meta['starttime_mjd'] = t0
+    meta['endtime_mjd'] =  t1
     meta['inttime'] = inttime_micros/1e6
+    meta['nints'] = (t1-t0)/meta['inttime']
     meta['source'] = 'testsource'
     meta['intent'] = 'OBSERVE_TARGET'
     meta['telescope'] = 'VLA'
@@ -264,10 +264,10 @@ def mock_metadata(nants, nspw, nchan, npol, inttime_micros, **kwargs):
     meta['radec'] = [0., 0.]
     meta['dishdiameter'] = 25
 
-    meta['spw_orig'] = range(nspw)
-    meta['spw_nchan'] = [range(nchan) for _ in range(nspw)]
-    meta['spw_reffreq'] = [2.488E9, 2.616E9, 2.744E9, 2.872E9, 3.0E9, 3.128E9, 3.256E9, 3.384E9][:nspw]
-    meta['spw_chansize'] = [4000000]*8
+    meta['spw_orig'] = np.arange(nspw)
+    meta['spw_nchan'] = [np.arange(nchan) for _ in range(nspw)]
+    meta['spw_reffreq'] = np.array([2.488E9, 2.616E9, 2.744E9, 2.872E9, 3.0E9, 3.128E9, 3.256E9, 3.384E9])[:nspw]
+    meta['spw_chansize'] = np.array([4000000])*8
     meta['pols_orig'] = ['XX', 'YY', 'XY', 'YX'][:npol]
 
     return meta
