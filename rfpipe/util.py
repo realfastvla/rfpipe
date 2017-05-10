@@ -31,7 +31,7 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
 
     # calc bl
     bls = me.asbaseline(antpos)
-    uvwlist = me.expand(me.touvw(bls)[0])[1]['value']
+    uvwlist = me.expand(me.touvw(bls))
 
     # define new bl order to match sdm binary file bl order
     u = np.empty(int(len(uvwlist)/3), dtype='float32')

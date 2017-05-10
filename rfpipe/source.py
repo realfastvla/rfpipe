@@ -37,7 +37,7 @@ class Metadata(object):
     scan = attr.ib(default=None)
     bdfdir = attr.ib(default=None)
     bdfstr = attr.ib(default=None)
-    configid = attr.ib(default=None)
+#    configid = attr.ib(default=None)
 
     # data structure and source properties
     source = attr.ib(default=None)
@@ -51,7 +51,7 @@ class Metadata(object):
     endtime_mjd = attr.ib(default=None)
     dishdiameter = attr.ib(default=None)
     intent = attr.ib(default=None)
-    antids = attr.ib(default=None)
+    antids = attr.ib(default=None)  # id is not name!
     #ants_orig = [int(str(row.name).lstrip('ea')) for antid in self.antids for row in sdm['Antenna'] if antid == str(row.antennaId)]  # may also need to iterate over Antenna xml?
     stationids = attr.ib(default=None)
     xyz = attr.ib(default=None)
@@ -109,6 +109,9 @@ class Metadata(object):
 
     @property
     def antpos(self):
+        x = self.xyz[:, 0].tolist()
+        y = self.xyz[:, 1].tolist()
+        z = self.xyz[:, 2].tolist()
         return me.position('itrf', qa.quantity(x, 'm'), qa.quantity(y, 'm'), qa.quantity(z, 'm'))
 
 
@@ -144,7 +147,7 @@ def config_metadata(config, bdfdir=None):
     meta['filename'] = config.datasetId
     meta['scan'] = config.scanNo
     meta['bdfdir'] = bdfdir
-    meta['configid'] = config.Id
+#    meta['configid'] = config.Id
 #    meta['bdfstr'] = config.bdfname #?
 
     meta['starttime_mjd'] = config.startTime
@@ -156,7 +159,7 @@ def config_metadata(config, bdfdir=None):
     meta['telescope'] = config.telescope
 #    meta['antids'] = #?  # a list of ints
 #    meta['stationids'] = #?  # a list of ints
-#    meta['xyz'] = #?  # three lists of floats (icrf x, y, z)
+#    meta['xyz'] = #?  # (nants, 3) shape as floats (icrf x, y, z)
 
     meta['radec'] = [(config.ra_deg, config.dec_deg)]
 #    meta['dishdiameter'] = #?
@@ -183,7 +186,7 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     meta['filename'] = sdmfile
     meta['scan'] = scan
     meta['bdfdir'] = bdfdir
-    meta['configid'] = scanobj.configDescriptionId
+#    meta['configid'] = scanobj.configDescriptionId
     bdfstr = scanobj.bdf.fname
     if (not os.path.exists(bdfstr)) or ('X1' in bdfstr):
         meta['bdfstr'] = None
@@ -201,17 +204,9 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     meta['source'] = str(scanobj.source)
     meta['intent'] = ' '.join(scanobj.intents)
     meta['telescope'] = str(sdm['ExecBlock'][0]['telescopeName']).strip()
-    meta['antids'] = [str(row.antennaId) for row in sdm['ConfigDescription']
-                         if scanobj.configDescriptionId == row.configDescriptionId][0].split(' ')[2:]  # **test this!**
-    stationids = [str(ant.stationId) for ant in sdm['Antenna']] # or iterate over 'antids'
-    meta['stationids'] = stationids
-    positions = [str(station.position).strip().split(' ')
-                 for station in sdm['Station'] 
-                 if station.stationId in stationidlist]
-    x = [float(positions[i][2]) for i in range(len(positions))]
-    y = [float(positions[i][3]) for i in range(len(positions))]
-    z = [float(positions[i][4]) for i in range(len(positions))]
-    meta['xyz'] = (x, y, z)
+    meta['antids'] = scanobj.antennas  # ** test that these are the same as what we expected with rtpipe **
+    meta['stationids'] = scanobj.stations
+    meta['xyz'] = np.array(scanobj.positions)
 
     sources = sdm_sources(sdmfile)
     meta['radec'] = [(prop['ra'], prop['dec']) for (sr, prop) in sources.iteritems() if str(prop['source']) == str(scanobj.source)][0]
@@ -247,7 +242,7 @@ def mock_metadata(t0, t1, nants, nspw, nchan, npol, inttime_micros, **kwargs):
     meta['filename'] = 'test'
     meta['scan'] = 1
     meta['bdfdir'] = ''
-    meta['configid'] = 0
+#    meta['configid'] = 0
     meta['bdfstr'] = ''
 
     meta['starttime_mjd'] = t0
@@ -259,7 +254,7 @@ def mock_metadata(t0, t1, nants, nspw, nchan, npol, inttime_micros, **kwargs):
     meta['telescope'] = 'VLA'
     meta['antids'] = range(nants)
     meta['stationids'] = range(nants)
-    meta['xyz'] = (range(nants), range(nants), range(nants))
+    meta['xyz'] = np.arange(3*nants).reshape(nants, 3)
 
     meta['radec'] = [0., 0.]
     meta['dishdiameter'] = 25
