@@ -2,13 +2,11 @@
 #from builtins import str, bytes, dict, object, range, map, input
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
-
+import numpy as np
 import logging
 logger = logging.getLogger(__name__)
 
-import numpy as np
 import pwkit.environments.casa.util as casautil
-
 qa = casautil.tools.quanta()
 me = casautil.tools.measures()
 
@@ -31,7 +29,7 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
 
     # calc bl
     bls = me.asbaseline(antpos)
-    uvwlist = me.expand(me.touvw(bls))
+    uvwlist = me.expand(me.touvw(bls)[0])[1]['value']
 
     # define new bl order to match sdm binary file bl order
     u = np.empty(int(len(uvwlist)/3), dtype='float32')

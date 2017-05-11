@@ -16,6 +16,7 @@ from scipy.special import erf
 
 import pwkit.environments.casa.util as casautil
 qa = casautil.tools.quanta()
+logger.info('Using pwkit casa')
 
 
 @attr.s
@@ -365,7 +366,7 @@ class State(object):
 
     @property
     def ants(self):
-        return sorted([ant for ant in self.metadata.ants_orig if ant not in self.preferences.excludeants])
+        return sorted([ant for ant in self.metadata.antids if ant not in self.preferences.excludeants])
 
 
     @property

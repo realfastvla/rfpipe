@@ -15,6 +15,7 @@ from . import util
 import pwkit.environments.casa.util as casautil
 qa = casautil.tools.quanta()
 me = casautil.tools.measures()
+logger.info('Using pwkit casa')
 
 # source.py will:
 # - define data sources for pipeline
@@ -99,7 +100,8 @@ class Metadata(object):
 
     @property
     def nants_orig(self):
-        return len(self.ants_orig)
+#        return len(self.ants_orig)
+        return len(self.antids)
 
 
     @property
@@ -259,11 +261,11 @@ def mock_metadata(t0, t1, nants, nspw, nchan, npol, inttime_micros, **kwargs):
     meta['radec'] = [0., 0.]
     meta['dishdiameter'] = 25
 
-    meta['spw_orig'] = np.arange(nspw)
-    meta['spw_nchan'] = [np.arange(nchan) for _ in range(nspw)]
-    meta['spw_reffreq'] = np.array([2.488E9, 2.616E9, 2.744E9, 2.872E9, 3.0E9, 3.128E9, 3.256E9, 3.384E9])[:nspw]
-    meta['spw_chansize'] = np.array([4000000])*8
-    meta['pols_orig'] = ['XX', 'YY', 'XY', 'YX'][:npol]
+    meta['spw_orig'] = range(nspw)
+    meta['spw_nchan'] = [nchan for _ in range(nspw)]
+    meta['spw_reffreq'] = [2.488E9, 2.616E9, 2.744E9, 2.872E9, 3.0E9, 3.128E9, 3.256E9, 3.384E9][:nspw]
+    meta['spw_chansize'] = [4000000]*8
+    meta['pols_orig'] = ['RR', 'LL', 'RL', 'LR'][:npol]
 
     return meta
 
