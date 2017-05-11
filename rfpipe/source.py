@@ -11,6 +11,8 @@ from lxml.etree import XMLSyntaxError
 import numpy as np
 import sdmpy
 from . import util
+from astropy import time
+import timefilter
 
 import pwkit.environments.casa.util as casautil
 qa = casautil.tools.quanta()
@@ -234,8 +236,8 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
 def mock_metadata(t0, t1, nants, nspw, nchan, npol, inttime_micros, **kwargs):
     """ Wraps Metadata call to provide immutable, attribute-filled class instance.
     Parallel structure to sdm_metadata, so this inherits some of its nomenclature.
-    t0, t1 are times in seconds of expected data.
-    Supports up to npol=4 and nspw=8.
+    t0, t1 are times in mjd.
+    Supports up to nant=27, npol=4, and nspw=8.
     """
 
     logger.info('Generating mock metadata')
@@ -250,17 +252,41 @@ def mock_metadata(t0, t1, nants, nspw, nchan, npol, inttime_micros, **kwargs):
     meta['starttime_mjd'] = t0
     meta['endtime_mjd'] =  t1
     meta['inttime'] = inttime_micros/1e6
-    meta['nints'] = (t1-t0)/meta['inttime']
+    meta['nints'] = (t1-t0)*24*3600/meta['inttime']
     meta['source'] = 'testsource'
     meta['intent'] = 'OBSERVE_TARGET'
     meta['telescope'] = 'VLA'
     meta['antids'] = range(nants)
     meta['stationids'] = range(nants)
-    meta['xyz'] = np.arange(3*nants).reshape(nants, 3)
-
+    meta['xyz'] = np.array([[-1604008.7444 , -5042135.8251 ,  3553403.7108 ],
+        [-1601315.9005 , -5041985.30747,  3554808.311  ],
+        [-1604865.6575 , -5042190.032  ,  3552962.3635 ],
+        [-1601068.806  , -5042051.9327 ,  3554824.8388 ],
+        [-1596127.7308 , -5045193.7421 ,  3552652.4197 ],
+        [-1601110.022  , -5041488.0826 ,  3555597.4446 ],
+        [-1601061.9544 , -5041175.8753 ,  3556058.0267 ],
+        [-1602044.9123 , -5042025.8014 ,  3554427.8357 ],
+        [-1600863.6922 , -5039885.3167 ,  3557965.3178 ],
+        [-1599340.8001 , -5043150.963  ,  3554065.2315 ],
+        [-1601004.6988 , -5040802.801  ,  3556610.1493 ],
+        [-1597899.8959 , -5044068.6847 ,  3553432.4502 ],
+        [-1600801.9314 , -5042219.3826 ,  3554706.4294 ],
+        [-1600930.0836 , -5040316.3864 ,  3557330.39   ],
+        [-1603249.6721 , -5042091.4281 ,  3553797.7842 ],
+        [-1601173.9647 , -5041902.6458 ,  3554987.5342 ],
+        [-1606841.961  , -5042279.6752 ,  3551913.0214 ],
+        [-1602592.8535 , -5042054.9924 ,  3554140.7028 ],
+        [-1599926.1041 , -5042772.9772 ,  3554319.8011 ],
+        [-1598663.082  , -5043581.3912 ,  3553767.0141 ],
+        [-1605808.6341 , -5042230.084  ,  3552459.1978 ],
+        [-1600416.518  , -5042462.4305 ,  3554536.0417 ],
+        [-1601614.0832 , -5042001.6569 ,  3554652.5059 ],
+        [-1601147.9425 , -5041733.8336 ,  3555235.947  ],
+        [-1597053.1244 , -5044604.675  ,  3553058.9927 ],
+        [-1600690.6125 , -5038758.7161 ,  3559632.0571 ],
+        [-1600781.0607 , -5039347.4391 ,  3558761.5271 ]])[:nants]
     meta['radec'] = [0., 0.]
     meta['dishdiameter'] = 25
-
     meta['spw_orig'] = range(nspw)
     meta['spw_nchan'] = [nchan for _ in range(nspw)]
     meta['spw_reffreq'] = [2.488E9, 2.616E9, 2.744E9, 2.872E9, 3.0E9, 3.128E9, 3.256E9, 3.384E9][:nspw]
@@ -305,6 +331,20 @@ def getsdm(*args, **kwargs):
 def dataprep(st, segment):
     data_read = read_bdf_segment(st, segment)
     return data_read
+
+
+def read_vys(st, cfile='/home/cbe-master/realfast/soft/vysmaw_apps/vys.conf'):
+    """ Uses vysmaw application timefilter to receive multicast messages and pull spectra on the CBE.
+    """
+
+    t0 = time.Time(st.metadata.starttime_mjd, format='mjd', precision=9).unix
+    t1 = time.Time(st.metadata.endtime_mjd, format='mjd', precision=9).unix
+    logger.info('Reading %d ints of size %f s from %d - %d unix seconds' % (st.readints, st.metadata.inttime, t0, t1))
+
+#    data = np.empty( (st.readints, st.metadata.nbl_orig, st.metadata.nchan_orig, st.metadata.npol_orig), dtype='complex64', order='C')
+    data = timefilter.filter1(t0, t1, nant=st.nants, nspw=st.nspw, nchan=st.nchan, npol=st.npol, inttime_micros=st.metadata.inttime*1e6, cfile=cfile)
+
+    return data
 
 
 def read_bdf(st, nskip=0):

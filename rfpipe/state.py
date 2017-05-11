@@ -236,7 +236,7 @@ class State(object):
 
     @property
     def nspw(self):
-        return len(self.metadata.spw_orig[self.preferences.spw])
+        return len(self.metadata.spw_orig[self.preferences.spw] if self.preferences.spw else self.metadata.spw_orig)
 
 
     @property

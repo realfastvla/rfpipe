@@ -9,10 +9,27 @@ logger = logging.getLogger(__name__)
 from . import state, source, search, util
 import distributed
 from functools import partial
+from astropy import time
 
 ##
 # testing dask distributed and numba
 ##
+
+def pipeline_vys(wait, dt, nant=3, nspw=1, nchan=64, npol=1, inttime_micros=1e5, host='cbe-node-01'):
+    """ Read dt seconds startint wait seconds from now.
+    """
+
+    cl = distributed.Client('{0}:{1}'.format(host, '8786'))
+
+    onesec = time.TimeDelta(1, format='sec')
+    t0=time.Time.now()+wait*onesec
+    t1=time.Time.now()+(wait+dt)*onesec
+
+    meta = cl.submit(source.mock_metadata, t0.mjd, t1.mjd, nant, nspw, nchan, npol, inttime_micros)
+    st = cl.submit(state.State, inmeta=meta, inpars={'nsegments':1})
+    data = cl.submit(source.read_vys, st)
+
+    return data
 
 
 def pipeline_seg(st, segment, cl, workers=None):
