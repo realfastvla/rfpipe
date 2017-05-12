@@ -54,18 +54,18 @@ def dataprep(st, segment):
     return data_read
 
 
-def read_vys_seg(st, cfile='/home/cbe-master/realfast/soft/vysmaw_apps/vys.conf'):
-    """ Uses vysmaw application timefilter to receive multicast messages and pull spectra on the CBE.
+def read_vys_seg(st, seg, cfile='/home/cbe-master/realfast/soft/vysmaw_apps/vys.conf', timeout=30):
+    """ Read segment seg defined by state st from vys stream.
+    Uses vysmaw application timefilter to receive multicast messages and pull spectra on the CBE.
     """
 
-#    t0 = time.Time(st.metadata.starttime_mjd, format='mjd', precision=9).unix
-#    t1 = time.Time(st.metadata.endtime_mjd, format='mjd', precision=9).unix
-    t0 = time.Time(st.segmenttimes[0][0], format='mjd', precision=9).unix
-    t1 = time.Time(st.segmenttimes[0][1], format='mjd', precision=9).unix
+    t0 = time.Time(st.segmenttimes[seg][0], format='mjd', precision=9).unix
+    t1 = time.Time(st.segmenttimes[seg][1], format='mjd', precision=9).unix
     logger.info('Reading %d ints of size %f s from %d - %d unix seconds' % (st.readints, st.metadata.inttime, t0, t1))
 
 #    data = np.empty( (st.readints, st.metadata.nbl_orig, st.metadata.nchan_orig, st.metadata.npol_orig), dtype='complex64', order='C')
-    data = timefilter.filter1(t0, t1, nant=st.nants, nspw=st.nspw, nchan=st.metadata.spw_nchan[0], npol=st.npol, inttime_micros=st.metadata.inttime*1e6, cfile=cfile)
+    data = timefilter.filter1(t0, t1, nant=st.nants, nspw=st.nspw, nchan=st.metadata.spw_nchan[0], npol=st.npol, 
+                              inttime_micros=st.metadata.inttime*1e6, cfile=cfile, timeout=timeout)
 
     return data
 
@@ -92,7 +92,7 @@ def read_bdf_segment(st, segment):
     """ Uses sdmpy to reads bdf (sdm) format data into numpy array in given segment.
     """
 
-    assert segment < st.nsegments, 'segment {0} is too big for nsegments {1}' % (segment, st.nsegments)
+    assert segment < st.nsegment, 'segment {0} is too big for nsegment {1}' % (segment, st.nsegment)
 
     # define integration range
     nskip = (24*3600*(st.segmenttimes[segment, 0] - st.metadata.starttime_mjd) / st.metadata.inttime).astype(int)

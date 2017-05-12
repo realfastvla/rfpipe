@@ -31,7 +31,7 @@ class State(object):
     5) run data processing for given segment
 
     these should be modified to change state based on input
-    - nsegments or dmarr + memory_limit + metadata => segmenttimes
+    - nsegment or dmarr + memory_limit + metadata => segmenttimes
     - dmarr or dm_parameters + metadata => dmarr
     - uvoversample + npix_max + metadata => npixx, npixy
     """
@@ -88,7 +88,7 @@ class State(object):
             logger.info('Pipeline summary:')
 
             logger.info('\t Products saved with {0}. telcal calibration with {1}.'.format(self.fileroot, os.path.basename(self.gainfile)))
-            logger.info('\t Using {0} segment{1} of {2} ints ({3} s) with overlap of {4} s'.format(self.nsegments, "s"[not self.nsegments-1:], self.readints, self.t_segment, self.t_overlap))
+            logger.info('\t Using {0} segment{1} of {2} ints ({3} s) with overlap of {4} s'.format(self.nsegment, "s"[not self.nsegment-1:], self.readints, self.t_segment, self.t_overlap))
             if self.t_overlap > self.t_segment/3.:
                 logger.info('\t\t Lots of segments needed, since Max DM sweep ({0} s) close to segment size ({1} s)'.format(self.t_overlap, self.t_segment))
 
@@ -104,7 +104,7 @@ class State(object):
             
             logger.info('')
             logger.info('\t Visibility memory usage is {0} GB/segment'.format(self.vismem))
-#            logger.info('\t Imaging in {0} chunk{1} using max of {2} GB/segment'.format(self.nchunk, "s"[not self.nsegments-1:], immem))
+#            logger.info('\t Imaging in {0} chunk{1} using max of {2} GB/segment'.format(self.nchunk, "s"[not self.nsegment-1:], immem))
 #            logger.info('\t Grand total memory usage: {0} GB/segment'.format(vismem + immem))
 
 
@@ -348,9 +348,9 @@ class State(object):
 
 
     @property
-    def nsegments(self):
-        if self.prefs.nsegments:
-            return self.prefs.nsegments
+    def nsegment(self):
+        if self.prefs.nsegment:
+            return self.prefs.nsegment
         else:
             return len(self.segmenttimes)
 
@@ -358,12 +358,12 @@ class State(object):
     @property
     def segmenttimes(self):
         """ List of tuples containing MJD times defining segment start and stop.
-        Calculated from prefs.nsegments first.
+        Calculated from prefs.nsegment first.
         Alternately, best times found based on fringe time and memory limit
         """
 
         if not hasattr(self, '_segmenttimes'):
-            if self.prefs.nsegments:
+            if self.prefs.nsegment:
                 self._segmenttimes = calc_segment_times(self)
             else:
                 find_segment_times(self)
@@ -395,21 +395,22 @@ class State(object):
         """
 
         totaltimeread = 24*3600*(self.segmenttimes[:, 1] - self.segmenttimes[:, 0]).sum()            # not guaranteed to be the same for each segment
-        return np.round(totaltimeread / (self.metadata.inttime*self.nsegments)).astype(int)
+        return np.round(totaltimeread / (self.metadata.inttime*self.nsegment)).astype(int)
 
 
     @property
     def nints(self):
         if self.metadata.nints:
-            return self.metadata.nints
+            return self.metadata.nints  # if using sdm, nints is known
         else:
-            return self.fringetime/self.metadata.inttime
+            return self.nsegment*self.fringetime/self.metadata.inttime  # else this is open ended
+#            return (self.nsegment*self.fringetime + self.t_overlap*(self.nsegment-1))/self.metadata.inttime  # else this is open ended
 
 
     @property
     def t_segment(self):
         totaltimeread = 24*3600*(self.segmenttimes[:, 1] - self.segmenttimes[:, 0]).sum()            # not guaranteed to be the same for each segment
-        return totaltimeread/self.nsegments
+        return totaltimeread/self.nsegment
 
 
     @property
@@ -490,7 +491,7 @@ class State(object):
     # should each of the above actually be considered transformation functions? 
     #  so, input is observation name, next step is transform by ignore ants, next step...
     #
-    #   nsegments or dmarr + memory_limit + metadata => segmenttimes
+    #   nsegment or dmarr + memory_limit + metadata => segmenttimes
     #   dmarr or dm_parameters + metadata => dmarr
     #   uvoversample + npix_max + metadata => npixx, npixy
 
@@ -553,15 +554,15 @@ def calc_dmarr(state):
     return dmgrid_final
 
 
-def calc_segment_times(state, nsegments=0):
-    """ Helper function for set_pipeline to define segmenttimes list, given nsegments definition
-    Can optionally overload state.nsegments to calculate new times
+def calc_segment_times(state, nsegment=0):
+    """ Helper function for set_pipeline to define segmenttimes list, given nsegment definition
+    Can optionally overload state.nsegment to calculate new times
     """
 
-    if not nsegments:
-        nsegments = state.nsegments
+    nsegment = nsegment if nsegment else state.nsegment
+
     # this casts to int (flooring) to avoid 0.5 int rounding issue. 
-    stopdts = np.linspace(state.t_overlap/state.metadata.inttime, state.nints, state.nsegments+1)[1:]   # nseg+1 assures that at least one seg made
+    stopdts = np.linspace(state.t_overlap/state.metadata.inttime, state.nints, state.nsegment+1)[1:]   # nseg+1 assures that at least one seg made
     startdts = np.concatenate( ([0], stopdts[:-1]-state.t_overlap/state.metadata.inttime) )
             
     segmenttimes = []
@@ -581,25 +582,25 @@ def find_segment_times(state):
     Solution found by iterating from fringe time to memory size that fits.
     """
 
-    # initialize at fringe time limit. nsegments must be between 1 and state.nints
-    scale_nsegments = 1.
-    nsegments = max(1, min(state.nints, int(scale_nsegments*state.metadata.inttime*state.nints/(state.fringetime-state.t_overlap))))
+    # initialize at fringe time limit. nsegment must be between 1 and state.nints
+    scale_nsegment = 1.
+    nsegment = max(1, min(state.nints, int(scale_nsegment*state.metadata.inttime*state.nints/(state.fringetime-state.t_overlap))))
 
     # calculate memory limit to stop iteration
     (vismem0, immem0) = state.memory_footprint(limit=True)
-    assert vismem0+immem0 < state.prefs.memory_limit, 'memory_limit of {0} is smaller than best solution of {1}. Try forcing nsegments/nchunk larger than {2}/{3} or reducing maxdm/npix'.format(state.prefs.memory_limit, vismem0+immem0, state.nsegments, max(state.dtarr)/min(state.dtarr))
+    assert vismem0+immem0 < state.prefs.memory_limit, 'memory_limit of {0} is smaller than best solution of {1}. Try forcing nsegment/nchunk larger than {2}/{3} or reducing maxdm/npix'.format(state.prefs.memory_limit, vismem0+immem0, state.nsegment, max(state.dtarr)/min(state.dtarr))
 
     (vismem, immem) = state.memory_footprint()
     if vismem+immem > state.prefs.memory_limit:
-        logger.info('Over memory limit of {4} when reading {0} segments with {1} chunks ({2}/{3} GB for visibilities/imaging). Searching for solution down to {5}/{6} GB...'.format(state.nsegments, state.prefs.nchunk, vismem, immem, state.prefs.memory_limit, vismem0, immem0))
+        logger.info('Over memory limit of {4} when reading {0} segments with {1} chunks ({2}/{3} GB for visibilities/imaging). Searching for solution down to {5}/{6} GB...'.format(state.nsegment, state.prefs.nchunk, vismem, immem, state.prefs.memory_limit, vismem0, immem0))
 
         while vismem+immem > state.prefs.memory_limit:
             (vismem, immem) = state.memory_footprint()
             logger.debug('Using {0} segments with {1} chunks ({2}/{3} GB for visibilities/imaging). Searching for better solution...'.format(state.prefs.nchunk, vismem, immem, state.prefs.memory_limit))
 
-            scale_nsegments *= (vismem+immem)/float(state.prefs.memory_limit)
-            nsegments = max(1, min(state.nints, int(scale_nsegments*state.metadata.inttime*state.nints/(fringetime-state.t_overlap))))  # at least 1, at most nints
-            state._segment_times = calc_segment_times(state, nsegments=nsegments)
+            scale_nsegment *= (vismem+immem)/float(state.prefs.memory_limit)
+            nsegment = max(1, min(state.nints, int(scale_nsegment*state.metadata.inttime*state.nints/(fringetime-state.t_overlap))))  # at least 1, at most nints
+            state._segment_times = calc_segment_times(state, nsegment=nsegment)
 
             (vismem, immem) = state.memory_footprint()
             while vismem+immem > state.prefs.memory_limit:

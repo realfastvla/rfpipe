@@ -6,7 +6,7 @@ from io import open
 import logging
 logger = logging.getLogger(__name__)
 
-from . import state, source, search, util
+from . import state, source, search, util, metadata
 import distributed
 from functools import partial
 from astropy import time
@@ -15,7 +15,7 @@ from astropy import time
 # testing dask distributed and numba
 ##
 
-def pipeline_vys(wait, nsegment=1, nant=3, nspw=1, nchan=64, npol=1, inttime_micros=1e5, host='cbe-node-01'):
+def pipeline_vys(wait, nsegment=1, nant=3, nspw=1, nchan=64, npol=1, inttime_micros=1e5, host='cbe-node-01', preffile=None):
     """ Start nsegment vysmaw jobs reading a segment each after time wait
     """
 
@@ -26,17 +26,9 @@ def pipeline_vys(wait, nsegment=1, nant=3, nspw=1, nchan=64, npol=1, inttime_mic
 
     datalist = []
     meta = cl.submit(metadata.mock_metadata, t0.mjd, nant, nspw, nchan, npol, inttime_micros)
-    st = cl.submit(state.State, inmeta=meta, inpars={'nsegments':1})
-    fringetime = time.TimeDelta(st.result().fringetime, format='sec')
+    st = cl.submit(state.State, preffile=preffile, inmeta=meta, inpars={'nsegment':nsegment})
 
-    data = cl.submit(source.read_vys_seg, st)
-    datalist.append(data)
-
-    for i in range(1, nsegment):
-        meta = cl.submit(metadata.mock_metadata, (t0+i*fringetime).mjd, nant, nspw, nchan, npol, inttime_micros)
-        st = cl.submit(state.State, inmeta=meta, inpars={'nsegments':1})
-        data = cl.submit(source.read_vys_seg, st)
-        datalist.append(data)
+    fut = cl.map(lambda seg: source.rad_vys_seg(st, seg), range(nsegment), pure=False)  # not pure if data can only be read once?
 
     return datalist
 
@@ -125,7 +117,7 @@ def pipeline_scan(st, host='nmpost-master'):
     logger.debug('submitting segments')
 
     saved = []
-    for segment in range(st.nsegments):
+    for segment in range(st.nsegment):
         saved.append(pipeline_seg_delayed(st, segment, cl))
 
     return saved
