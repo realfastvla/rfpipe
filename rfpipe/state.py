@@ -455,6 +455,14 @@ class State(object):
 
 
     @property
+    def nints(self):
+        if self.metadata.nints:
+            return self.metadata.nints
+        else:
+            return self.fringetime/self.metadata.inttime
+
+
+    @property
     def t_segment(self):
         totaltimeread = 24*3600*(self.segmenttimes[:, 1] - self.segmenttimes[:, 0]).sum()            # not guaranteed to be the same for each segment
         return totaltimeread/self.nsegments
@@ -609,7 +617,7 @@ def calc_segment_times(state, nsegments=0):
     if not nsegments:
         nsegments = state.nsegments
     # this casts to int (flooring) to avoid 0.5 int rounding issue. 
-    stopdts = np.linspace(state.t_overlap/state.metadata.inttime, state.metadata.nints, state.nsegments+1)[1:]   # nseg+1 assures that at least one seg made
+    stopdts = np.linspace(state.t_overlap/state.metadata.inttime, state.nints, state.nsegments+1)[1:]   # nseg+1 assures that at least one seg made
     startdts = np.concatenate( ([0], stopdts[:-1]-state.t_overlap/state.metadata.inttime) )
             
     segmenttimes = []
@@ -631,7 +639,7 @@ def find_segment_times(state):
 
     # initialize at fringe time limit. nsegments must be between 1 and state.nints
     scale_nsegments = 1.
-    nsegments = max(1, min(state.metadata.nints, int(scale_nsegments*state.metadata.inttime*state.metadata.nints/(state.fringetime-state.t_overlap))))
+    nsegments = max(1, min(state.nints, int(scale_nsegments*state.metadata.inttime*state.nints/(state.fringetime-state.t_overlap))))
 
     # calculate memory limit to stop iteration
     (vismem0, immem0) = state.memory_footprint(limit=True)
@@ -646,7 +654,7 @@ def find_segment_times(state):
             logger.debug('Using {0} segments with {1} chunks ({2}/{3} GB for visibilities/imaging). Searching for better solution...'.format(state.parameter.nchunk, vismem, immem, state.parameter.memory_limit))
 
             scale_nsegments *= (vismem+immem)/float(state.parameter.memory_limit)
-            nsegments = max(1, min(state.metadata.nints, int(scale_nsegments*state.metadata.inttime*state.metadata.nints/(fringetime-state.t_overlap))))  # at least 1, at most nints
+            nsegments = max(1, min(state.nints, int(scale_nsegments*state.metadata.inttime*state.nints/(fringetime-state.t_overlap))))  # at least 1, at most nints
             state._segment_times = calc_segment_times(state, nsegments=nsegments)
 
             (vismem, immem) = state.memory_footprint()

@@ -15,21 +15,30 @@ from astropy import time
 # testing dask distributed and numba
 ##
 
-def pipeline_vys(wait, dt, nant=3, nspw=1, nchan=64, npol=1, inttime_micros=1e5, host='cbe-node-01'):
-    """ Read dt seconds startint wait seconds from now.
+def pipeline_vys(wait, nsegment=1, nant=3, nspw=1, nchan=64, npol=1, inttime_micros=1e5, host='cbe-node-01'):
+    """ Start nsegment vysmaw jobs reading a segment each after time wait
     """
 
+    assert nsegment > 0
+
     cl = distributed.Client('{0}:{1}'.format(host, '8786'))
+    t0 = time.Time.now() + time.TimeDelta(wait, format='sec')
 
-    onesec = time.TimeDelta(1, format='sec')
-    t0=time.Time.now()+wait*onesec
-    t1=time.Time.now()+(wait+dt)*onesec
-
-    meta = cl.submit(source.mock_metadata, t0.mjd, t1.mjd, nant, nspw, nchan, npol, inttime_micros)
+    datalist = []
+    meta = cl.submit(source.mock_metadata, t0.mjd, nant, nspw, nchan, npol, inttime_micros)
     st = cl.submit(state.State, inmeta=meta, inpars={'nsegments':1})
-    data = cl.submit(source.read_vys, st)
+    fringetime = time.TimeDelta(st.result().fringetime, format='sec')
 
-    return data
+    data = cl.submit(source.read_vys_seg, st)
+    datalist.append(data)
+
+    for i in range(1, nsegment):
+        meta = cl.submit(source.mock_metadata, (t0+i*fringetime).mjd, nant, nspw, nchan, npol, inttime_micros)
+        st = cl.submit(state.State, inmeta=meta, inpars={'nsegments':1})
+        data = cl.submit(source.read_vys_seg, st)
+        datalist.append(data)
+
+    return datalist
 
 
 def pipeline_seg(st, segment, cl, workers=None):

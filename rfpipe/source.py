@@ -51,7 +51,7 @@ class Metadata(object):
 
     # array/antenna info
     starttime_mjd = attr.ib(default=None)
-    endtime_mjd = attr.ib(default=None)
+#    endtime_mjd = attr.ib(default=None)
     dishdiameter = attr.ib(default=None)
     intent = attr.ib(default=None)
     antids = attr.ib(default=None)  # id is not name!
@@ -122,6 +122,14 @@ class Metadata(object):
     @property
     def starttime_string(self):
         return qa.time(qa.quantity(self.starttime_mjd,'d'), form="ymd", prec=8)[0]
+
+
+    @property
+    def endtime_mjd(self):
+        if self.nints:
+            return starttime_mjd + (self.nints*self.inttime)/(24*3600)
+        else:
+            return None
 
 
     @property
@@ -201,8 +209,6 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     meta['starttime_mjd'] = starttime_mjd
     nints = scanobj.bdf.numIntegration
     inttime = scanobj.bdf.get_integration(0).interval
-    endtime_mjd = starttime_mjd + (nints*inttime)/(24*3600)
-    meta['endtime_mjd'] = endtime_mjd
     meta['inttime'] = inttime
     meta['nints'] = nints
     meta['source'] = str(scanobj.source)
@@ -233,7 +239,7 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     return meta
 
 
-def mock_metadata(t0, t1, nants, nspw, nchan, npol, inttime_micros, **kwargs):
+def mock_metadata(t0, nants, nspw, nchan, npol, inttime_micros, **kwargs):
     """ Wraps Metadata call to provide immutable, attribute-filled class instance.
     Parallel structure to sdm_metadata, so this inherits some of its nomenclature.
     t0, t1 are times in mjd.
@@ -250,9 +256,9 @@ def mock_metadata(t0, t1, nants, nspw, nchan, npol, inttime_micros, **kwargs):
     meta['bdfstr'] = ''
 
     meta['starttime_mjd'] = t0
-    meta['endtime_mjd'] =  t1
+#    meta['endtime_mjd'] =  t1
     meta['inttime'] = inttime_micros/1e6
-    meta['nints'] = (t1-t0)*24*3600/meta['inttime']
+#    meta['nints'] = (t1-t0)*24*3600/meta['inttime']
     meta['source'] = 'testsource'
     meta['intent'] = 'OBSERVE_TARGET'
     meta['telescope'] = 'VLA'
@@ -333,12 +339,14 @@ def dataprep(st, segment):
     return data_read
 
 
-def read_vys(st, cfile='/home/cbe-master/realfast/soft/vysmaw_apps/vys.conf'):
+def read_vys_seg(st, cfile='/home/cbe-master/realfast/soft/vysmaw_apps/vys.conf'):
     """ Uses vysmaw application timefilter to receive multicast messages and pull spectra on the CBE.
     """
 
-    t0 = time.Time(st.metadata.starttime_mjd, format='mjd', precision=9).unix
-    t1 = time.Time(st.metadata.endtime_mjd, format='mjd', precision=9).unix
+#    t0 = time.Time(st.metadata.starttime_mjd, format='mjd', precision=9).unix
+#    t1 = time.Time(st.metadata.endtime_mjd, format='mjd', precision=9).unix
+    t0 = time.Time(st.segmenttimes[0][0], format='mjd', precision=9).unix
+    t1 = time.Time(st.segmenttimes[0][1], format='mjd', precision=9).unix
     logger.info('Reading %d ints of size %f s from %d - %d unix seconds' % (st.readints, st.metadata.inttime, t0, t1))
 
 #    data = np.empty( (st.readints, st.metadata.nbl_orig, st.metadata.nchan_orig, st.metadata.npol_orig), dtype='complex64', order='C')
