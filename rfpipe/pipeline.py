@@ -25,7 +25,7 @@ def pipeline_vys(wait, nsegment=1, nant=3, nspw=1, nchan=64, npol=1, inttime_mic
     t0 = time.Time.now() + time.TimeDelta(wait, format='sec')
 
     datalist = []
-    meta = cl.submit(source.mock_metadata, t0.mjd, nant, nspw, nchan, npol, inttime_micros)
+    meta = cl.submit(metadata.mock_metadata, t0.mjd, nant, nspw, nchan, npol, inttime_micros)
     st = cl.submit(state.State, inmeta=meta, inpars={'nsegments':1})
     fringetime = time.TimeDelta(st.result().fringetime, format='sec')
 
@@ -33,7 +33,7 @@ def pipeline_vys(wait, nsegment=1, nant=3, nspw=1, nchan=64, npol=1, inttime_mic
     datalist.append(data)
 
     for i in range(1, nsegment):
-        meta = cl.submit(source.mock_metadata, (t0+i*fringetime).mjd, nant, nspw, nchan, npol, inttime_micros)
+        meta = cl.submit(metadata.mock_metadata, (t0+i*fringetime).mjd, nant, nspw, nchan, npol, inttime_micros)
         st = cl.submit(state.State, inmeta=meta, inpars={'nsegments':1})
         data = cl.submit(source.read_vys_seg, st)
         datalist.append(data)
@@ -67,7 +67,7 @@ def pipeline_seg(st, segment, cl, workers=None):
 #            ims_thresh = cl.submit(search.threshold_images, images, st['sigma_image1'])
             # schedule them as single call
             uvw = st.get_uvw_segment(segment)
-            ims_thresh = cl.submit(search.resample_image, data_dm, st.dtarr[dtind], uvw, st.freq, st.npixx, st.npixy, st.uvres, st.preferences.sigma_image1, wisdom, pure=True, workers=workers, allow_other_workers=allow_other_workers)
+            ims_thresh = cl.submit(search.resample_image, data_dm, st.dtarr[dtind], uvw, st.freq, st.npixx, st.npixy, st.uvres, st.prefs.sigma_image1, wisdom, pure=True, workers=workers, allow_other_workers=allow_other_workers)
 
 #            candplot = cl.submit(search.candplot, ims_thresh, data_dm)
             feature = cl.submit(search.calc_features, ims_thresh, dmind, st.dtarr[dtind], dtind, segment, st.features, pure=True, workers=workers, allow_other_workers=allow_other_workers)
@@ -106,7 +106,7 @@ def pipeline_seg_delayed(st, segment, cl, workers=None):
 #            ims_thresh = cl.submit(search.threshold_images, images, st['sigma_image1'])
             # schedule them as single call
             uvw = st.get_uvw_segment(segment)
-            ims_thresh = delayed(search.resample_image)(data_dm, st.dtarr[dtind], uvw, st.freq, st.npixx, st.npixy, st.uvres, st.preferences.sigma_image1, wisdom)
+            ims_thresh = delayed(search.resample_image)(data_dm, st.dtarr[dtind], uvw, st.freq, st.npixx, st.npixy, st.uvres, st.prefs.sigma_image1, wisdom)
 
 #            candplot = cl.submit(search.candplot, ims_thresh, data_dm)
             feature = delayed(search.calc_features)(ims_thresh, dmind, st.dtarr[dtind], dtind, segment, st.features)

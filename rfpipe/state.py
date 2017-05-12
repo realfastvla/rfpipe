@@ -8,8 +8,8 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logging.captureWarnings(True)
 logger = logging.getLogger('rfpipe')
 
-import json, attr, os
-from . import source, util
+import json, attr, os, yaml
+from . import source, util, preferences, metadata
 import numpy as np
 from scipy.special import erf
 # from collections import OrderedDict #?
@@ -17,63 +17,6 @@ from scipy.special import erf
 import pwkit.environments.casa.util as casautil
 qa = casautil.tools.quanta()
 logger.info('Using pwkit casa')
-
-
-@attr.s
-class Preferences(object): 
-    """ Preferences *should* be immutable and express half of info needed to define state.
-    Using preferences with metadata produces a unique state and pipeline outcome.
-
-    TODO: can we freeze attributes while still having cached values?
-    """
-
-    # data selection
-    chans = attr.ib(default=None)
-    spw = attr.ib(default=None)
-    excludeants = attr.ib(default=())
-    selectpol = attr.ib(default='auto')  # 'auto', 'all'
-    fileroot = attr.ib(default=None)
-
-    # preprocessing
-    read_tdownsample = attr.ib(default=1)
-    read_fdownsample = attr.ib(default=1)
-    l0 = attr.ib(default=0.)  # in radians
-    m0 = attr.ib(default=0.)  # in radians
-    timesub = attr.ib(default=None)
-    flaglist = attr.ib(default=[('badchtslide', 4., 0.) , ('badap', 3., 0.2), ('blstd', 3.0, 0.05)])
-    flagantsol = attr.ib(default=True)
-    badspwpol = attr.ib(default=2.)
-    applyonlineflags = attr.ib(default=True)
-    gainfile = attr.ib(default=None)
-    mock = attr.ib(default=0)
-
-    # processing
-    nthread = attr.ib(default=1)
-    nchunk = attr.ib(default=0)
-    nsegments = attr.ib(default=0)
-    memory_limit = attr.ib(default=20)
-
-    # search
-    dmarr = attr.ib(default=None)
-    dtarr = attr.ib(default=None)
-    dm_maxloss = attr.ib(default=0.05) # fractional sensitivity loss
-    mindm = attr.ib(default=0)
-    maxdm = attr.ib(default=0) # in pc/cm3
-    dm_pulsewidth = attr.ib(default=3000)   # in microsec
-    searchtype = attr.ib(default='image1')  # supported: image1, image1stat
-    sigma_image1 = attr.ib(default=7.)
-    sigma_image2 = attr.ib(default=7.)
-    sigma_plot = attr.ib(default=7.)
-    uvres = attr.ib(default=0)
-    npixx = attr.ib(default=0)
-    npixy = attr.ib(default=0)
-    npix_max = attr.ib(default=0)
-    uvoversample = attr.ib(default=1.)
-
-    savenoise = attr.ib(default=False)
-    savecands = attr.ib(default=False)
-#    logfile = attr.ib(default=True)
-    loglevel = attr.ib(default='INFO')
 
 
 class State(object):
@@ -93,28 +36,29 @@ class State(object):
     - uvoversample + npix_max + metadata => npixx, npixy
     """
 
-    def __init__(self, paramfile=None, config=None, sdmfile=None, scan=None, inpars={}, inmeta={}, version=1):
-        """ Initialize parameter attributes with text file.
-        params is a dict with key-value pairs to overload paramfile values.
-        Versions define functions that derive state from parameters and metadata
+    def __init__(self, config=None, sdmfile=None, scan=None, inprefs={}, inmeta={}, preffile=None, name=None, version=1):
+        """ Initialize preference attributes with text file, preffile.
+        name can select preference set from within yaml file.
+        preferences are overloaded with inprefs.
+        Versions define functions that derive state from preferences and metadata
 
         Metadata source can be:
         1) Config object is (expected to be) like EVLA_config object prototyped for pulsar work by Paul.
         2) sdmfile and scan are as in rtpipe.
 
-        inmeta is a dict with key-value pairs to overload metadata
+        inmeta is a dict with key-value pairs to overload metadata (e.g., to mock metadata from a simulation)
         """
 
         self.version = version
 
-        # get pipeline parameters
-        params = parseparamfile(paramfile)  # returns empty dict for paramfile=None
+        # get pipeline preferences
+        prefs = preferences.parsepreffile(preffile)  # returns empty dict for paramfile=None
 
-        # optionally overload parameters
-        for key in inpars:
-            params[key] = inpars[key]
+        # optionally overload preferences
+        for key in inprefs:
+            prefs[key] = inprefs[key]
 
-        self.preferences = Preferences(**inpars)
+        self.prefs = preferences.Preferences(**prefs)
 
         # get metadata
         if sdmfile and scan:
@@ -128,9 +72,9 @@ class State(object):
         for key in inmeta:
             meta[key] = inmeta[key]
 
-        self.metadata = source.Metadata(**meta)
+        self.metadata = metadata.Metadata(**meta)
 
-        logger.parent.setLevel(getattr(logging, self.preferences.loglevel))
+        logger.parent.setLevel(getattr(logging, self.prefs.loglevel))
         self.summarize()
 
 
@@ -148,12 +92,12 @@ class State(object):
             if self.t_overlap > self.t_segment/3.:
                 logger.info('\t\t Lots of segments needed, since Max DM sweep ({0} s) close to segment size ({1} s)'.format(self.t_overlap, self.t_segment))
 
-            logger.info('\t Downsampling in time/freq by {0}/{1}.'.format(self.preferences.read_tdownsample, self.preferences.read_fdownsample))
-            logger.info('\t Excluding ants {0}'.format(self.preferences.excludeants))
+            logger.info('\t Downsampling in time/freq by {0}/{1}.'.format(self.prefs.read_tdownsample, self.prefs.read_fdownsample))
+            logger.info('\t Excluding ants {0}'.format(self.prefs.excludeants))
             logger.info('\t Using pols {0}'.format(self.pols))
             logger.info('')
             
-            logger.info('\t Search with {0} and threshold {1}.'.format(self.preferences.searchtype, self.preferences.sigma_image1))
+            logger.info('\t Search with {0} and threshold {1}.'.format(self.prefs.searchtype, self.prefs.sigma_image1))
             logger.info('\t Using {0} DMs from {1} to {2} and dts {3}.'.format(len(self.dmarr), min(self.dmarr), max(self.dmarr), self.dtarr))
             logger.info('\t Using uvgrid npix=({0}, {1}) and res={2}.'.format(self.npixx, self.npixy, self.uvres))
             logger.info('\t Expect {0} thermal false positives per segment.'.format(self.nfalse))
@@ -166,8 +110,8 @@ class State(object):
 
     @property
     def fileroot(self):
-        if self.preferences.fileroot:
-            return self.preferences.fileroot
+        if self.prefs.fileroot:
+            return self.prefs.fileroot
         else:
             return os.path.basename(self.metadata.filename)
 
@@ -175,8 +119,8 @@ class State(object):
     @property
     def dmarr(self):
         if not hasattr(self, '_dmarr'):
-            if self.preferences.dmarr:
-                self._dmarr = self.preferences.dmarr
+            if self.prefs.dmarr:
+                self._dmarr = self.prefs.dmarr
             else:
                 self._dmarr = calc_dmarr(self)
 
@@ -185,8 +129,8 @@ class State(object):
 
     @property
     def dtarr(self):
-        if self.preferences.dtarr:
-            return self.preferences.dtarr
+        if self.prefs.dtarr:
+            return self.prefs.dtarr
         else:
             return [1]
 
@@ -202,9 +146,9 @@ class State(object):
 
     @property
     def chans(self):
-        """ List of channel indices to use. Drawn from parameters, with backup to take all defined in metadata. """
-        if self.preferences.chans:
-            return self.preferences.chans
+        """ List of channel indices to use. Drawn from preferences, with backup to take all defined in metadata. """
+        if self.prefs.chans:
+            return self.prefs.chans
         else:
             return range(sum(self.metadata.spw_nchan))
 
@@ -236,7 +180,7 @@ class State(object):
 
     @property
     def nspw(self):
-        return len(self.metadata.spw_orig[self.preferences.spw] if self.preferences.spw else self.metadata.spw_orig)
+        return len(self.metadata.spw_orig[self.prefs.spw] if self.prefs.spw else self.metadata.spw_orig)
 
 
     @property
@@ -258,8 +202,8 @@ class State(object):
 
     @property
     def uvres(self):
-        if self.preferences.uvres:
-            return self.preferences.uvres
+        if self.prefs.uvres:
+            return self.prefs.uvres
         else:
             return self.uvres_full
 
@@ -276,14 +220,14 @@ class State(object):
 
     @property
     def pols(self):
-        """ Polarizations to use based on preference in parameters.selectpol """
+        """ Polarizations to use based on preference in prefs.selectpol """
 
-        if self.preferences.selectpol == 'auto':
+        if self.prefs.selectpol == 'auto':
             return [pp for pp in self.metadata.pols_orig if pp[0] == pp[1]]
-        elif self.preferences.selectpol == 'all':
+        elif self.prefs.selectpol == 'all':
             return self.metadata.pols_orig
         else:
-            logger.warn('selectpol of {0} not supported'.format(self.preferences.selectpol))
+            logger.warn('selectpol of {0} not supported'.format(self.prefs.selectpol))
 
 
     @property
@@ -298,7 +242,7 @@ class State(object):
         urange_orig, vrange_orig = self.metadata.uvrange_orig
         urange = urange_orig * (self.freq.max() / self.metadata.freq_orig[0])
         powers = np.fromfunction(lambda i, j: 2**i*3**j, (14, 10), dtype='int')
-        rangex = np.round(self.preferences.uvoversample*urange).astype('int')
+        rangex = np.round(self.prefs.uvoversample*urange).astype('int')
         largerx = np.where(powers - rangex / self.uvres_full > 0,
                            powers, powers[-1, -1])
         p2x, p3x = np.where(largerx == largerx.min())
@@ -312,7 +256,7 @@ class State(object):
         urange_orig, vrange_orig = self.metadata.uvrange_orig
         vrange = vrange_orig * (self.freq.max() / self.metadata.freq_orig[0])
         powers = np.fromfunction(lambda i, j: 2**i*3**j, (14, 10), dtype='int')
-        rangey = np.round(self.preferences.uvoversample*vrange).astype('int')
+        rangey = np.round(self.prefs.uvoversample*vrange).astype('int')
         largery = np.where(powers - rangey / self.uvres_full > 0,
                            powers, powers[-1, -1])
         p2y, p3y = np.where(largery == largery.min())
@@ -322,14 +266,14 @@ class State(object):
     @property
     def npixx(self):
         """ Number of x pixels in uv/image grid.
-        First defined by input parameter set with default to npixx_full
+        First defined by input preference set with default to npixx_full
         """
 
-        if self.preferences.npixx:
-            return self.preferences.npixx
+        if self.prefs.npixx:
+            return self.prefs.npixx
         else:
-            if self.preferences.npix_max:
-                npix = min(self.preferences.npix_max, self.npixx_full)
+            if self.prefs.npix_max:
+                npix = min(self.prefs.npix_max, self.npixx_full)
             else:
                 npix = self.npixx_full
             return npix
@@ -338,14 +282,14 @@ class State(object):
     @property
     def npixy(self):
         """ Number of y pixels in uv/image grid.
-        First defined by input parameter set with default to npixy_full
+        First defined by input preference set with default to npixy_full
         """
         
-        if self.preferences.npixy:
-            return self.preferences.npixy
+        if self.prefs.npixy:
+            return self.prefs.npixy
         else:
-            if self.preferences.npix_max:
-                npix = min(self.preferences.npix_max, self.npixy_full)
+            if self.prefs.npix_max:
+                npix = min(self.prefs.npix_max, self.npixy_full)
             else:
                 npix = self.npixy_full
             return npix
@@ -366,7 +310,7 @@ class State(object):
 
     @property
     def ants(self):
-        return sorted([ant for ant in self.metadata.antids if ant not in self.preferences.excludeants])
+        return sorted([ant for ant in self.metadata.antids if ant not in self.prefs.excludeants])
 
 
     @property
@@ -383,14 +327,14 @@ class State(object):
     def gainfile(self):
         """ Calibration file (telcal) from preferences or found from ".GN" suffix """
         
-        if not self.preferences.gainfile:
+        if not self.prefs.gainfile:
             # look for gainfile in workdir
             gainfile = os.path.join(self.metadata.workdir, self.metadata.filename + '.GN')
 
             if os.path.exists(gainfile):
                 logger.info('Autodetected telcal file {0}'.format(gainfile))
         else:
-            gainfile = self.preferences.gainfile
+            gainfile = self.prefs.gainfile
                 
         return gainfile
 
@@ -405,8 +349,8 @@ class State(object):
 
     @property
     def nsegments(self):
-        if self.preferences.nsegments:
-            return self.preferences.nsegments
+        if self.prefs.nsegments:
+            return self.prefs.nsegments
         else:
             return len(self.segmenttimes)
 
@@ -414,12 +358,12 @@ class State(object):
     @property
     def segmenttimes(self):
         """ List of tuples containing MJD times defining segment start and stop.
-        Calculated from parameters.nsegments first.
+        Calculated from prefs.nsegments first.
         Alternately, best times found based on fringe time and memory limit
         """
 
         if not hasattr(self, '_segmenttimes'):
-            if self.preferences.nsegments:
+            if self.prefs.nsegments:
                 self._segmenttimes = calc_segment_times(self)
             else:
                 find_segment_times(self)
@@ -447,7 +391,7 @@ class State(object):
         """ Number of integrations read per segment. 
         Defines shape of numpy array for visibilities.
 
-        TODO: Need to support self.preferences.read_tdownsample
+        TODO: Need to support self.prefs.read_tdownsample
         """
 
         totaltimeread = 24*3600*(self.segmenttimes[:, 1] - self.segmenttimes[:, 0]).sum()            # not guaranteed to be the same for each segment
@@ -470,12 +414,12 @@ class State(object):
 
     @property
     def datashape(self):
-        return (self.readints/self.preferences.read_tdownsample, self.nbl, self.nchan/self.preferences.read_fdownsample, self.npol)
+        return (self.readints/self.prefs.read_tdownsample, self.nbl, self.nchan/self.prefs.read_fdownsample, self.npol)
 
 
     @property
     def datasize(self):
-        return long(self.readints*self.nbl*self.nchan*self.npol/(self.preferences.read_tdownsample*self.preferences.read_fdownsample))
+        return long(self.readints*self.nbl*self.nchan*self.npol/(self.prefs.read_tdownsample*self.prefs.read_fdownsample))
 
 
     @property
@@ -485,7 +429,7 @@ class State(object):
 
         dtfactor = np.sum([1./i for i in self.dtarr])    # assumes dedisperse-all algorithm
         ntrials = self.readints * dtfactor * len(self.dmarr) * self.npixx * self.npixy
-        qfrac = 1 - (erf(self.preferences.sigma_image1/np.sqrt(2)) + 1)/2.
+        qfrac = 1 - (erf(self.prefs.sigma_image1/np.sqrt(2)) + 1)/2.
         nfalse = int(qfrac*ntrials)
         return nfalse
 
@@ -493,9 +437,9 @@ class State(object):
     def features(self):
         """ Given searchtype, return features to be extracted in initial analysis """
 
-        if self.preferences.searchtype == 'image1':
+        if self.prefs.searchtype == 'image1':
             return ('snr1', 'immax1', 'l1', 'm1')
-        elif self.preferences.searchtype == 'image1stats':
+        elif self.prefs.searchtype == 'image1stats':
             return ('snr1', 'immax1', 'l1', 'm1', 'specstd', 'specskew', 'speckurtosis', 'imskew', 'imkurtosis')  # note: spec statistics are all or nothing.
 
 
@@ -518,10 +462,10 @@ class State(object):
             vismem = self.datasize * readints_scale * toGB
 
             nchunk_scale = max(self.dtarr)/min(self.dtarr)
-            immem = self.preferences.nthread * (self.readints/(self.preferences.nthread*nchunk_scale) * self.npixx * self.npixy) * toGB
+            immem = self.prefs.nthread * (self.readints/(self.prefs.nthread*nchunk_scale) * self.npixx * self.npixy) * toGB
         else:
             vismem = self.datasize * toGB
-            immem = self.preferences.nthread * (self.readints/self.preferences.nthread * self.npixx * self.npixy) * toGB
+            immem = self.prefs.nthread * (self.readints/self.prefs.nthread * self.npixx * self.npixy) * toGB
 
         if visonly:
             return vismem
@@ -576,10 +520,10 @@ def calc_dmarr(state):
     dm_maxloss is sensitivity loss tolerated by dm bin width. dm_pulsewidth is assumed pulse width in microsec.
     """
 
-    dm_maxloss = state.preferences.dm_maxloss
-    dm_pulsewidth = state.preferences.dm_pulsewidth
-    mindm = state.preferences.mindm
-    maxdm = state.preferences.maxdm
+    dm_maxloss = state.prefs.dm_maxloss
+    dm_pulsewidth = state.prefs.dm_pulsewidth
+    mindm = state.prefs.mindm
+    maxdm = state.prefs.maxdm
 
     # parameters
     tsamp = state.metadata.inttime*1e6  # in microsec
@@ -643,26 +587,26 @@ def find_segment_times(state):
 
     # calculate memory limit to stop iteration
     (vismem0, immem0) = state.memory_footprint(limit=True)
-    assert vismem0+immem0 < state.parameter.memory_limit, 'memory_limit of {0} is smaller than best solution of {1}. Try forcing nsegments/nchunk larger than {2}/{3} or reducing maxdm/npix'.format(state.parameter.memory_limit, vismem0+immem0, state.nsegments, max(state.dtarr)/min(state.dtarr))
+    assert vismem0+immem0 < state.prefs.memory_limit, 'memory_limit of {0} is smaller than best solution of {1}. Try forcing nsegments/nchunk larger than {2}/{3} or reducing maxdm/npix'.format(state.prefs.memory_limit, vismem0+immem0, state.nsegments, max(state.dtarr)/min(state.dtarr))
 
     (vismem, immem) = state.memory_footprint()
-    if vismem+immem > state.parameter.memory_limit:
-        logger.info('Over memory limit of {4} when reading {0} segments with {1} chunks ({2}/{3} GB for visibilities/imaging). Searching for solution down to {5}/{6} GB...'.format(state.nsegments, state.parameter.nchunk, vismem, immem, state.parameter.memory_limit, vismem0, immem0))
+    if vismem+immem > state.prefs.memory_limit:
+        logger.info('Over memory limit of {4} when reading {0} segments with {1} chunks ({2}/{3} GB for visibilities/imaging). Searching for solution down to {5}/{6} GB...'.format(state.nsegments, state.prefs.nchunk, vismem, immem, state.prefs.memory_limit, vismem0, immem0))
 
-        while vismem+immem > state.parameter.memory_limit:
+        while vismem+immem > state.prefs.memory_limit:
             (vismem, immem) = state.memory_footprint()
-            logger.debug('Using {0} segments with {1} chunks ({2}/{3} GB for visibilities/imaging). Searching for better solution...'.format(state.parameter.nchunk, vismem, immem, state.parameter.memory_limit))
+            logger.debug('Using {0} segments with {1} chunks ({2}/{3} GB for visibilities/imaging). Searching for better solution...'.format(state.prefs.nchunk, vismem, immem, state.prefs.memory_limit))
 
-            scale_nsegments *= (vismem+immem)/float(state.parameter.memory_limit)
+            scale_nsegments *= (vismem+immem)/float(state.prefs.memory_limit)
             nsegments = max(1, min(state.nints, int(scale_nsegments*state.metadata.inttime*state.nints/(fringetime-state.t_overlap))))  # at least 1, at most nints
             state._segment_times = calc_segment_times(state, nsegments=nsegments)
 
             (vismem, immem) = state.memory_footprint()
-            while vismem+immem > state.parameter.memory_limit:
-                logger.debug('Doubling nchunk from %d to fit in %d GB memory limit.' % (state.parameter.nchunk, state.parameter.memory_limit))
-                self.parameter.nchunk = 2*self.parameter.nchunk
+            while vismem+immem > state.prefs.memory_limit:
+                logger.debug('Doubling nchunk from %d to fit in %d GB memory limit.' % (state.prefs.nchunk, state.prefs.memory_limit))
+                self.prefs.nchunk = 2*self.prefs.nchunk
                 (vismem, immem) = state.memory_footprint()
-                if self.parameter.nchunk >= max(self.dtarr)/min(self.dtarr)*self.nthread: # limit nchunk/nthread to at most the range in dt
+                if self.prefs.nchunk >= max(self.dtarr)/min(self.dtarr)*self.nthread: # limit nchunk/nthread to at most the range in dt
                     self.nchunk = self.nthread
                     break
 
@@ -671,35 +615,5 @@ def find_segment_times(state):
     # final set up of memory
     state._segment_times = calc_segment_times(state)
     (vismem, immem) = state.memory_footprint()
-
-
-def parseparamfile(paramfile=None):
-    """ Read parameter file and set parameter values.
-    File should have python-like syntax. Full file name needed.
-    """
-
-    pars = {}
-
-    if paramfile:
-        with open(paramfile, 'r') as f:
-            for line in f.readlines():
-                line_clean = line.rstrip('\n').split('#')[0]   # trim out comments and trailing cr
-                if line_clean and '=' in line:   # use valid lines only
-                    attribute, value = line_clean.split('=')
-                    try:
-                        value_eval = eval(value.strip())
-                    except NameError:
-                        value_eval = value.strip()
-                    finally:
-                        pars[attribute.strip()] =  value_eval
-
-    return pars
-
-
-def parseyaml(self, paramfile, name='default'):
-    # maybe use pyyaml to parse parameters more reliably
-    # could save multiple per yml paramfile
-    pass
-
 
 
