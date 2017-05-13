@@ -67,6 +67,10 @@ def read_vys_seg(st, seg, cfile='/home/cbe-master/realfast/soft/vysmaw_apps/vys.
     data = timefilter.filter1(t0, t1, nant=st.nants, nspw=st.nspw, nchan=st.metadata.spw_nchan[0], npol=st.npol, 
                               inttime_micros=st.metadata.inttime*1e6, cfile=cfile, timeout=timeout)
 
+    # use distributed to start next segment here?
+#    with local_client as cl:
+#        fut = cl.submit(st, seg+1, cfile=cfile, timeout=timeout)
+
     return data
 
 
