@@ -11,9 +11,6 @@ import distributed
 from functools import partial
 from astropy import time
 
-##
-# testing dask distributed and numba
-##
 
 def pipeline_vys(wait, nsegment=1, nant=3, nspw=1, nchan=64, npol=1, inttime_micros=1e5, host='cbe-node-01', preffile=None):
     """ Start nsegment vysmaw jobs reading a segment each after time wait
@@ -24,11 +21,12 @@ def pipeline_vys(wait, nsegment=1, nant=3, nspw=1, nchan=64, npol=1, inttime_mic
     cl = distributed.Client('{0}:{1}'.format(host, '8786'))
     t0 = time.Time.now() + time.TimeDelta(wait, format='sec')
 
-    datalist = []
     meta = cl.submit(metadata.mock_metadata, t0.mjd, nant, nspw, nchan, npol, inttime_micros)
-    st = cl.submit(state.State, preffile=preffile, inmeta=meta, inpars={'nsegment':nsegment})
+    st = cl.submit(state.State, preffile=preffile, inmeta=meta, inprefs={'nsegment':nsegment})
 
-    fut = cl.map(lambda seg: source.rad_vys_seg(st, seg), range(nsegment), pure=False)  # not pure if data can only be read once?
+    datalist = []
+    for seg in range(nsegment):
+        datalist.append(cl.submit(source.read_vys_seg, st, seg)) # pure=False)  # not pure if data can only be read once?
 
     return datalist
 
