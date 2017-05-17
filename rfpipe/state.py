@@ -395,7 +395,7 @@ class State(object):
         """
 
         totaltimeread = 24*3600*(self.segmenttimes[:, 1] - self.segmenttimes[:, 0]).sum()            # not guaranteed to be the same for each segment
-        return np.round(totaltimeread / (self.metadata.inttime*self.nsegment)).astype(int)
+        return round(totaltimeread / (self.metadata.inttime*self.nsegment))
 
 
     @property
@@ -403,7 +403,7 @@ class State(object):
         if self.metadata.nints:
             return self.metadata.nints  # if using sdm, nints is known
         else:
-            return self.nsegment*self.fringetime/self.metadata.inttime  # else this is open ended
+            return round(self.nsegment*self.fringetime/self.metadata.inttime)  # else this is open ended
 #            return (self.nsegment*self.fringetime + self.t_overlap*(self.nsegment-1))/self.metadata.inttime  # else this is open ended
 
 

@@ -8,11 +8,14 @@ logger = logging.getLogger(__name__)
 
 from . import state, source, search, util, metadata
 import distributed
+from dask import delayed
 from functools import partial
 from astropy import time
+from time import sleep
+import numpy as np
 
 
-def pipeline_vys(wait, nsegment=1, nant=3, nspw=1, nchan=64, npol=1, inttime_micros=1e5, host='cbe-node-01', preffile=None):
+def pipeline_vys(wait, nsegment=1, nant=3, nspw=1, nchan=64, npol=1, inttime_micros=1e5, host='cbe-node-01', preffile=None, cfile=None):
     """ Start nsegment vysmaw jobs reading a segment each after time wait
     """
 
@@ -23,12 +26,20 @@ def pipeline_vys(wait, nsegment=1, nant=3, nspw=1, nchan=64, npol=1, inttime_mic
 
     meta = cl.submit(metadata.mock_metadata, t0.mjd, nant, nspw, nchan, npol, inttime_micros)
     st = cl.submit(state.State, preffile=preffile, inmeta=meta, inprefs={'nsegment':nsegment})
+    data_delayed = [delayed(source.read_vys_seg)(st, seg, cfile=cfile) for seg in range(nsegment)]
 
-    datalist = []
-    for seg in range(nsegment):
-        datalist.append(cl.submit(source.read_vys_seg, st, seg)) # pure=False)  # not pure if data can only be read once?
+    data_fut = []
+    calc_fut = []
+    while len(data_delayed):
+        if len([df for df in data_fut if not df.done()]) < 2:
+            dd = data_delayed.pop()
+            df = cl.compute(dd)
+            data_fut.append(df)
+#            calc_fut.append(cl.submit(, df))
+        else:
+            sleep(0.1)
 
-    return datalist
+    return data_fut
 
 
 def pipeline_seg(st, segment, cl, workers=None):

@@ -11,7 +11,11 @@ from lxml.etree import XMLSyntaxError
 import numpy as np
 import sdmpy
 from astropy import time
-import timefilter
+try:
+    import timefilter
+except ImportError:
+    logger.warn('timefilter not imported. No vysmaw?')
+
 
 import pwkit.environments.casa.util as casautil
 qa = casautil.tools.quanta()
@@ -54,7 +58,7 @@ def dataprep(st, segment):
     return data_read
 
 
-def read_vys_seg(st, seg, cfile='/home/cbe-master/realfast/soft/vysmaw_apps/vys.conf', timeout=30):
+def read_vys_seg(st, seg, cfile=None, timeout=30):
     """ Read segment seg defined by state st from vys stream.
     Uses vysmaw application timefilter to receive multicast messages and pull spectra on the CBE.
     """
@@ -66,10 +70,6 @@ def read_vys_seg(st, seg, cfile='/home/cbe-master/realfast/soft/vysmaw_apps/vys.
 #    data = np.empty( (st.readints, st.metadata.nbl_orig, st.metadata.nchan_orig, st.metadata.npol_orig), dtype='complex64', order='C')
     data = timefilter.filter1(t0, t1, nant=st.nants, nspw=st.nspw, nchan=st.metadata.spw_nchan[0], npol=st.npol, 
                               inttime_micros=st.metadata.inttime*1e6, cfile=cfile, timeout=timeout)
-
-    # use distributed to start next segment here?
-#    with local_client as cl:
-#        fut = cl.submit(st, seg+1, cfile=cfile, timeout=timeout)
 
     return data
 

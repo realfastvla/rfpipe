@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 import os.path, attr
 
 import numpy as np
-from . import util
+from . import util, source
 
 import pwkit.environments.casa.util as casautil
 qa = casautil.tools.quanta()
@@ -180,7 +180,7 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
 
     logger.info('Reading metadata from {0}, scan {1}'.format(sdmfile, scan))
 
-    sdm = getsdm(sdmfile, bdfdir=bdfdir)
+    sdm = source.getsdm(sdmfile, bdfdir=bdfdir)
     scanobj = sdm.scan(scan)
 
     meta = {}
@@ -207,7 +207,7 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     meta['stationids'] = scanobj.stations
     meta['xyz'] = np.array(scanobj.positions)
 
-    sources = sdm_sources(sdmfile)
+    sources = source.sdm_sources(sdmfile)
     meta['radec'] = [(prop['ra'], prop['dec']) for (sr, prop) in sources.iteritems() if str(prop['source']) == str(scanobj.source)][0]
     meta['dishdiameter'] = float(str(sdm['Antenna'][0].dishDiameter).strip())
     meta['spw_orig'] = [int(str(row.spectralWindowId).split('_')[1]) for row in sdm['SpectralWindow']]
