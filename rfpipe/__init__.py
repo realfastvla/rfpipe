@@ -1,3 +1,3 @@
-__all__ = ['search', 'state', 'source', 'pipeline', 'util']
+__all__ = ['search', 'state', 'source', 'pipeline', 'util', 'metadata', 'preferences']
 
 from rfpipe import *

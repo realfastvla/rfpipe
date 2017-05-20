@@ -6,214 +6,19 @@ from io import open
 import logging
 logger = logging.getLogger(__name__)
 
-import os, attr
+import os.path
 from lxml.etree import XMLSyntaxError
 import numpy as np
 import sdmpy
-from . import util
+from astropy import time
+try:
+    import timefilter
+except ImportError:
+    logger.warn('timefilter not imported. No vysmaw?')
+
 
 import pwkit.environments.casa.util as casautil
 qa = casautil.tools.quanta()
-me = casautil.tools.measures()
-
-# source.py will:
-# - define data sources for pipeline
-# - have first rate support for sdm files
-# - can generalize to include streaming data from CBE?
-
-
-@attr.s
-class Metadata(object):
-    """ Metadata we need to translate parameters into a pipeline state.
-    Called from a function defined for a given source (e.g., an sdm file).
-    Built from *nominally* immutable attributes and properties.
-    To modify metadata, use attr.assoc(inst, key=newval)
-
-    TODO: can we freeze attributes while still having cached values?
-    """
-
-    # basics
-    filename = attr.ib(default=None)
-    scan = attr.ib(default=None)
-    bdfdir = attr.ib(default=None)
-    bdfstr = attr.ib(default=None)
-
-    # data structure and source properties
-    source = attr.ib(default=None)
-    radec = attr.ib(default=None)
-    inttime = attr.ib(default=None)
-    nints = attr.ib(default=None)
-    telescope = attr.ib(default=None)
-
-    # array/antenna info
-    starttime_mjd = attr.ib(default=None)
-    endtime_mjd = attr.ib(default=None)
-    dishdiameter = attr.ib(default=None)
-    intent = attr.ib(default=None)
-
-    # spectral info
-    spw_orig = attr.ib(default=None)
-    spw_nchan = attr.ib(default=None)
-    spw_reffreq = attr.ib(default=None)
-    spw_chansize = attr.ib(default=None)
-    pols_orig = attr.ib(default=None)
-
-
-    def atdefaults(self):
-        """ Is metadata still set at default values? """
-        return not any([self.__dict__[ab] for ab in self.__dict__])
-
-
-    @property
-    def workdir(self):
-        return os.path.dirname(os.path.abspath(self.filename))
-
-
-    @property
-    def spw_chanr(self):
-        chanr = []
-        i0 = 0
-        for nch in self.spw_nchan:
-            chanr.append((i0, i0+nch))
-            i0 = nch
-        return chanr
-
-    @property
-    def freq_orig(self):
-        """Spacing of channel centers in GHz"""
-
-        return np.array([np.linspace(self.spw_reffreq[ii], self.spw_reffreq[ii] +
-                                     (self.spw_nchan[ii]-1) * self.spw_chansize[ii], self.spw_nchan[ii])
-                        for ii in range(len((self.spw_reffreq)))], dtype='float32').flatten()/1e9
-
-
-    @property
-    def nchan_orig(self):
-        return len(self.freq_orig)
-
-
-    @property
-    def configid(self):
-        sdm = getsdm(self.filename, bdfdir=self.bdfdir)
-        return [str(row.configDescriptionId) for row in sdm['Main']
-                if self.scan == int(row.scanNumber)][0]
-
-
-    @property
-    def antids(self):
-        sdm = getsdm(self.filename, bdfdir=self.bdfdir)
-        return [str(row.antennaId) for row in sdm['ConfigDescription']
-                if self.configid == row.configDescriptionId][0].split(' ')[2:]
-
-
-    @property
-    def ants_orig(self):
-        sdm = getsdm(self.filename, bdfdir=self.bdfdir)
-        return [int(str(row.name).lstrip('ea')) for antid in self.antids for row in sdm['Antenna'] 
-                if antid == str(row.antennaId)]
-
-
-    @property
-    def nants_orig(self):
-        return len(self.ants_orig)
-
-
-    @property
-    def nbl_orig(self):
-        return int(self.nants_orig*(self.nants_orig-1)/2)
-
-
-    @property
-    def antpos(self):
-        sdm = getsdm(self.filename, bdfdir=self.bdfdir)
-        logger.debug('Assuming all antennas used.')
-        stationidlist = [str(ant.stationId) for ant in sdm['Antenna']]
-
-        positions = [str(station.position).strip().split(' ')
-                     for station in sdm['Station'] 
-                     if station.stationId in stationidlist]
-        x = [float(positions[i][2]) for i in range(len(positions))]
-        y = [float(positions[i][3]) for i in range(len(positions))]
-        z = [float(positions[i][4]) for i in range(len(positions))]
-        ap = me.position('itrf', qa.quantity(x, 'm'), qa.quantity(y, 'm'), qa.quantity(z, 'm'))
-
-        return ap
-
-
-    @property
-    def starttime_string(self):
-        return qa.time(qa.quantity(self.starttime_mjd,'d'), form="ymd", prec=8)[0]
-
-
-    @property
-    def uvrange_orig(self):
-        if not hasattr(self, '_uvrange_orig'):
-            (u, v, w) = util.calc_uvw(datetime=self.starttime_string, radec=self.radec, antpos=self.antpos, telescope=self.telescope)
-            u = u * self.freq_orig[0] * (1e9/3e8) * (-1)
-            v = v * self.freq_orig[0] * (1e9/3e8) * (-1)
-            self._uvrange_orig = (u.max() - u.min(), v.max() - v.min())
-
-        return self._uvrange_orig
-
-
-    @property
-    def npol_orig(self):
-        return len(self.pols_orig)
-
-
-def sdm_metadata(sdmfile, scan, bdfdir=None):
-    """ Wraps Metadata call to provide immutable, attribute-filled class instance.
-    """
-
-    logger.info('Reading metadata from {0}, scan {1}'.format(sdmfile, scan))
-
-    sdm = getsdm(sdmfile, bdfdir=bdfdir)
-    scanobj = sdm.scan(scan)
-
-    sdmmeta = {}
-    sdmmeta['filename'] = sdmfile
-    sdmmeta['scan'] = scan
-    sdmmeta['bdfdir'] = bdfdir
-
-    starttime_mjd = scanobj.bdf.startTime
-    nints = scanobj.bdf.numIntegration
-    inttime = scanobj.bdf.get_integration(0).interval
-    endtime_mjd = starttime_mjd + (nints*inttime)/(24*3600)
-    bdfstr = scanobj.bdf.fname
-
-    sdmmeta['starttime_mjd'] = starttime_mjd
-    sdmmeta['endtime_mjd'] = endtime_mjd
-    sdmmeta['inttime'] = inttime
-    sdmmeta['nints'] = nints
-    sdmmeta['source'] = str(scanobj.source)
-    sdmmeta['intent'] = ' '.join(scanobj.intents)
-    sdmmeta['telescope'] = str(sdm['ExecBlock'][0]['telescopeName']).strip()
-    bdfstr = scanobj.bdf.fname
-    if (not os.path.exists(bdfstr)) or ('X1' in bdfstr):
-        sdmmeta['bdfstr'] = None
-    else:
-        sdmmeta['bdfstr'] = bdfstr
-
-    sources = sdm_sources(sdmfile)
-    sdmmeta['radec'] = [(prop['ra'], prop['dec']) for (sr, prop) in sources.iteritems() if str(prop['source']) == str(scanobj.source)][0]
-    sdmmeta['dishdiameter'] = float(str(sdm['Antenna'][0].dishDiameter).strip())
-    sdmmeta['spw_orig'] = [int(str(row.spectralWindowId).split('_')[1]) for row in sdm['SpectralWindow']]
-    sdmmeta['spw_nchan'] = [int(row.numChan) for row in sdm['SpectralWindow']]
-    sdmmeta['spw_reffreq'] = [float(row.chanFreqStart) for row in sdm['SpectralWindow']]
-    sdmmeta['spw_chansize'] = [float(row.chanFreqStep) for row in sdm['SpectralWindow']]
-
-
-    sdmmeta['pols_orig'] = [pol for pol in (str(sdm['Polarization'][0]
-                                               .corrType).strip()
-                                           .split(' '))
-                           if pol in ['XX', 'YY', 'XY', 'YX',
-                                      'RR', 'LL', 'RL', 'LR']]
-
-    # any need to overload with provided kw args?
-#    for key, value in kwargs.iteritems():
-#        sdmmeta[key] = value
-
-    return sdmmeta
 
 
 def sdm_sources(sdmname):
@@ -253,6 +58,22 @@ def dataprep(st, segment):
     return data_read
 
 
+def read_vys_seg(st, seg, cfile=None, timeout=30):
+    """ Read segment seg defined by state st from vys stream.
+    Uses vysmaw application timefilter to receive multicast messages and pull spectra on the CBE.
+    """
+
+    t0 = time.Time(st.segmenttimes[seg][0], format='mjd', precision=9).unix
+    t1 = time.Time(st.segmenttimes[seg][1], format='mjd', precision=9).unix
+    logger.info('Reading %d ints of size %f s from %d - %d unix seconds' % (st.readints, st.metadata.inttime, t0, t1))
+
+#    data = np.empty( (st.readints, st.metadata.nbl_orig, st.metadata.nchan_orig, st.metadata.npol_orig), dtype='complex64', order='C')
+    data = timefilter.filter1(t0, t1, nant=st.nants, nspw=st.nspw, nchan=st.metadata.spw_nchan[0], npol=st.npol, 
+                              inttime_micros=st.metadata.inttime*1e6, cfile=cfile, timeout=timeout, excludeants=st.excludeants)
+
+    return data
+
+
 def read_bdf(st, nskip=0):
     """ Uses sdmpy to read a given range of integrations from sdm of given scan.
     readints=0 will read all of bdf (skipping nskip).
@@ -275,7 +96,7 @@ def read_bdf_segment(st, segment):
     """ Uses sdmpy to reads bdf (sdm) format data into numpy array in given segment.
     """
 
-    assert segment < st.nsegments, 'segment {0} is too big for nsegments {1}' % (segment, st.nsegments)
+    assert segment < st.nsegment, 'segment {0} is too big for nsegment {1}' % (segment, st.nsegment)
 
     # define integration range
     nskip = (24*3600*(st.segmenttimes[segment, 0] - st.metadata.starttime_mjd) / st.metadata.inttime).astype(int)
@@ -287,7 +108,7 @@ def read_bdf_segment(st, segment):
     data = read_bdf(st, nskip=nskip).astype('complex64')
 
     # read Flag.xml and apply flags for given ant/time range
-    if st.preferences.applyonlineflags:
+    if st.prefs.applyonlineflags:
         raise NotImplementedError
 
         sdm = getsdm(d['filename'], bdfdir=d['bdfdir'])
@@ -337,7 +158,7 @@ def read_bdf_segment(st, segment):
                             % str(st.metadata.spw_reffreq))
 
     # optionally integrate (downsample)
-    if ((st.preferences.read_tdownsample > 1) or (st.preferences.read_fdownsample > 1)):
+    if ((st.prefs.read_tdownsample > 1) or (st.prefs.read_fdownsample > 1)):
         raise NotImplementedError
 
         sh = data.shape

@@ -2,13 +2,11 @@
 #from builtins import str, bytes, dict, object, range, map, input
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
-
+import numpy as np
 import logging
 logger = logging.getLogger(__name__)
 
-import numpy as np
 import pwkit.environments.casa.util as casautil
-
 qa = casautil.tools.quanta()
 me = casautil.tools.measures()
 
