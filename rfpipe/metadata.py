@@ -137,7 +137,7 @@ class Metadata(object):
         return len(self.pols_orig)
 
 
-def config_metadata(config, bdfdir=None):
+def config_metadata(config):
     """ Wraps Metadata call to provide immutable, attribute-filled class instance.
     Parallel structure to sdm_metadata, so this inherits some of its nomenclature.
     """
@@ -147,24 +147,25 @@ def config_metadata(config, bdfdir=None):
     meta = {}
     meta['filename'] = config.datasetId
     meta['scan'] = config.scanNo
-    meta['bdfdir'] = bdfdir
-#    meta['configid'] = config.Id
-#    meta['bdfstr'] = config.bdfname #?
+    meta['configid'] = config.Id
 
     meta['starttime_mjd'] = config.startTime
-#    meta['endtime_mjd'] =  # no such thing
-    meta['inttime'] = config.inttime #?
-#    meta['nints'] = # no such thing
+#    meta['inttime'] = config.inttime #?
+#    meta['endtime_mjd'] =  # no such thing, yet
+#    meta['nints'] = # no such thing, yet
     meta['source'] = config.source
     meta['intent'] = ' '.join(config.scan_intent)
     meta['telescope'] = config.telescope
-#    meta['antids'] = #?  # a list of ints
-#    meta['stationids'] = #?  # a list of ints
-#    meta['xyz'] = #?  # (nants, 3) shape as floats (icrf x, y, z)
+    antennas = config.get_antennas()
+    meta['antids'] = [ant.name for ant in antennas]
+    meta['stationids'] = config.listOfStations()
+    meta['xyz'] = [ant.xyz for ant in antennas]
 
     meta['radec'] = [(config.ra_deg, config.dec_deg)]
-#    meta['dishdiameter'] = #?
+    meta['dishdiameter'] = 25.  # ?
 
+    subbands = config.get_subbands(self, only_vdif=False)
+    print(subbands[0])
 #    meta['spw_orig'] = #?
 #    meta['spw_nchan'] = #?
 #    meta['spw_reffreq'] = #?
