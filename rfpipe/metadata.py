@@ -150,7 +150,6 @@ def config_metadata(config):
     meta['configid'] = config.Id
 
     meta['starttime_mjd'] = config.startTime
-#    meta['inttime'] = config.inttime #?
 #    meta['endtime_mjd'] =  # no such thing, yet
 #    meta['nints'] = # no such thing, yet
     meta['source'] = config.source
@@ -164,13 +163,15 @@ def config_metadata(config):
     meta['radec'] = [(config.ra_deg, config.dec_deg)]
     meta['dishdiameter'] = 25.  # ?
 
-    subbands = config.get_subbands(self, only_vdif=False)
-    print(subbands[0])
-#    meta['spw_orig'] = #?
-#    meta['spw_nchan'] = #?
-#    meta['spw_reffreq'] = #?
-#    meta['spw_chansize'] = #?
-#    meta['pols_orig'] = #?
+    subbands = config.get_subbands(self)
+    subband0 = subbands[0]  # **parsing single subband for now
+    print(subband0)
+    meta['inttime'] = subband0.hw_time_res  # assumes that vys stream comes after hw integration
+    meta['spw_nchan'] = subband0.spectralChannels
+    meta['pols_orig'] = subband0.pp
+    meta['spw_chansize'] = subband0.bw/subband0.spectralChannels
+    meta['spw_orig'] = [sb.sbid for sb in subbands]
+    meta['spw_reffreq'] = [sb.sky_center_freq for sb in subbands]
 
     return meta
 
