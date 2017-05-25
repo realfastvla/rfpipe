@@ -153,17 +153,17 @@ def config_metadata(config):
 #    meta['endtime_mjd'] =  # no such thing, yet
 #    meta['nints'] = # no such thing, yet
     meta['source'] = config.source
-    meta['intent'] = ' '.join(config.scan_intent)
+    meta['intent'] = config.scan_intent
     meta['telescope'] = config.telescope
     antennas = config.get_antennas()
     meta['antids'] = [ant.name for ant in antennas]
-    meta['stationids'] = config.listOfStations()
+    meta['stationids'] = config.listOfStations
     meta['xyz'] = [ant.xyz for ant in antennas]
 
     meta['radec'] = [(config.ra_deg, config.dec_deg)]
     meta['dishdiameter'] = 25.  # ?
 
-    subbands = config.get_subbands(self)
+    subbands = config.get_subbands()
     subband0 = subbands[0]  # **parsing single subband for now
     print(subband0)
     meta['inttime'] = subband0.hw_time_res  # assumes that vys stream comes after hw integration
