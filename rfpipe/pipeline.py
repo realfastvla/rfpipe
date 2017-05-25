@@ -47,7 +47,6 @@ def pipeline_vys2(st, seg, host='cbe-node-01', cfile=None, workers=None):
     Uses 
     """
 
-    assert nsegment > 0
     allow_other_workers = workers != None
 
     cl = distributed.Client('{0}:{1}'.format(host, '8786'))
@@ -64,14 +63,14 @@ def pipeline_vys2(st, seg, host='cbe-node-01', cfile=None, workers=None):
         data_dm = cl.submit(search.dedisperse, data_prep, delay, pure=True, workers=workers, allow_other_workers=allow_other_workers)
 
         for dtind in range(len(st.dtarr)):
-            uvw = st.get_uvw_segment(segment)
+            uvw = st.get_uvw_segment(seg)
             ims_thresh = cl.submit(search.resample_image, data_dm, st.dtarr[dtind], uvw, st.freq, st.npixx, st.npixy, st.uvres, st.prefs.sigma_image1, wisdom, pure=True, workers=workers, allow_other_workers=allow_other_workers)
 
-            feature = cl.submit(search.calc_features, ims_thresh, dmind, st.dtarr[dtind], dtind, segment, st.features, pure=True, workers=workers, allow_other_workers=allow_other_workers)
+            feature = cl.submit(search.calc_features, ims_thresh, dmind, st.dtarr[dtind], dtind, seg, st.features, pure=True, workers=workers, allow_other_workers=allow_other_workers)
             features.append(feature)
 
     cands = cl.submit(search.collect_cands, features, pure=True, workers=workers, allow_other_workers=allow_other_workers)
-    saved.append(cl.submit(search.save_cands, st, cands, segment, pure=True, workers=workers, allow_other_workers=allow_other_workers))
+    saved.append(cl.submit(search.save_cands, st, cands, seg, pure=True, workers=workers, allow_other_workers=allow_other_workers))
 
     return saved
 

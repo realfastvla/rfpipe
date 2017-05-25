@@ -157,19 +157,19 @@ def config_metadata(config):
     antennas = config.get_antennas()
     meta['antids'] = [ant.name for ant in antennas]
 #    meta['stationids'] = config.listOfStations
-    meta['xyz'] = [ant.xyz for ant in antennas]
+    meta['xyz'] = np.array([ant.xyz for ant in antennas])
 
-    meta['radec'] = [(config.ra_deg, config.dec_deg)]
+    meta['radec'] = (config.ra_deg, config.dec_deg)
     meta['dishdiameter'] = 25.  # ?
 
     subbands = config.get_subbands()
     subband0 = subbands[0]  # **parsing single subband for now
     meta['inttime'] = subband0.hw_time_res  # assumes that vys stream comes after hw integration
-    meta['spw_nchan'] = subband0.spectralChannels
     meta['pols_orig'] = subband0.pp
-    meta['spw_chansize'] = subband0.bw/subband0.spectralChannels
+    meta['spw_nchan'] = [sb.spectralChannels for sb in subbands]
+    meta['spw_chansize'] = [sb.bw/subband0.spectralChannels for sb in subbands]
     meta['spw_orig'] = [sb.sbid for sb in subbands]
-    meta['spw_reffreq'] = [sb.sky_center_freq for sb in subbands]
+    meta['spw_reffreq'] = [sb.sky_center_freq*1e6 for sb in subbands]
 
     return meta
 
