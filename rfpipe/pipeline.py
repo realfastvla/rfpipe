@@ -22,10 +22,6 @@ def pipeline_vys(wait, nsegment=1, nant=3, nspw=1, nchan=64, npol=1, inttime_mic
     assert nsegment > 0
 
     cl = distributed.Client('{0}:{1}'.format(host, '8786'))
-    t0 = time.Time.now() + time.TimeDelta(wait, format='sec')
-
-    meta = cl.submit(metadata.mock_metadata, t0.mjd, nant, nspw, nchan, npol, inttime_micros)
-    st = cl.submit(state.State, preffile=preffile, inmeta=meta, inprefs={'nsegment':nsegment})
     data_delayed = [delayed(source.read_vys_seg)(st, seg, cfile=cfile) for seg in range(nsegment)]
 
     data_fut = []

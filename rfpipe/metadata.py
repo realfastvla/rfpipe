@@ -43,9 +43,8 @@ class Metadata(object):
 #    endtime_mjd = attr.ib(default=None)
     dishdiameter = attr.ib(default=None)
     intent = attr.ib(default=None)
-    antids = attr.ib(default=None)  # id is not name!
-    #ants_orig = [int(str(row.name).lstrip('ea')) for antid in self.antids for row in sdm['Antenna'] if antid == str(row.antennaId)]  # may also need to iterate over Antenna xml?
-    stationids = attr.ib(default=None)
+    antids = attr.ib(default=None)
+#    stationids = attr.ib(default=None) # needed?
     xyz = attr.ib(default=None)
 
     # spectral info
@@ -147,7 +146,7 @@ def config_metadata(config):
     meta = {}
     meta['filename'] = config.datasetId
     meta['scan'] = config.scanNo
-    meta['configid'] = config.Id
+#    meta['configid'] = config.Id
 
     meta['starttime_mjd'] = config.startTime
 #    meta['endtime_mjd'] =  # no such thing, yet
@@ -157,7 +156,7 @@ def config_metadata(config):
     meta['telescope'] = config.telescope
     antennas = config.get_antennas()
     meta['antids'] = [ant.name for ant in antennas]
-    meta['stationids'] = config.listOfStations
+#    meta['stationids'] = config.listOfStations
     meta['xyz'] = [ant.xyz for ant in antennas]
 
     meta['radec'] = [(config.ra_deg, config.dec_deg)]
@@ -165,7 +164,6 @@ def config_metadata(config):
 
     subbands = config.get_subbands()
     subband0 = subbands[0]  # **parsing single subband for now
-    print(subband0)
     meta['inttime'] = subband0.hw_time_res  # assumes that vys stream comes after hw integration
     meta['spw_nchan'] = subband0.spectralChannels
     meta['pols_orig'] = subband0.pp
@@ -206,7 +204,7 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     meta['intent'] = ' '.join(scanobj.intents)
     meta['telescope'] = str(sdm['ExecBlock'][0]['telescopeName']).strip()
     meta['antids'] = scanobj.antennas  # ** test that these are the same as what we expected with rtpipe **
-    meta['stationids'] = scanobj.stations
+#    meta['stationids'] = scanobj.stations
     meta['xyz'] = np.array(scanobj.positions)
 
     sources = source.sdm_sources(sdmfile)
@@ -254,7 +252,7 @@ def mock_metadata(t0, nants, nspw, nchan, npol, inttime_micros, **kwargs):
     meta['intent'] = 'OBSERVE_TARGET'
     meta['telescope'] = 'VLA'
     meta['antids'] = range(nants)
-    meta['stationids'] = range(nants)
+#    meta['stationids'] = range(nants)
     meta['xyz'] = np.array([[-1604008.7444 , -5042135.8251 ,  3553403.7108 ],
         [-1601315.9005 , -5041985.30747,  3554808.311  ],
         [-1604865.6575 , -5042190.032  ,  3552962.3635 ],
