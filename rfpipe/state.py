@@ -223,7 +223,7 @@ class State(object):
         """ Polarizations to use based on preference in prefs.selectpol """
 
         if self.prefs.selectpol == 'auto':
-            return [pp for pp in self.metadata.pols_orig if pp[0] == pp[1]]
+            return [pp for pp in self.metadata.pols_orig if pp[0] == pp[-1]]
         elif self.prefs.selectpol == 'all':
             return self.metadata.pols_orig
         else:

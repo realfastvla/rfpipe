@@ -219,11 +219,8 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
                                                .corrType).strip()
                                            .split(' '))
                            if pol in ['XX', 'YY', 'XY', 'YX',
-                                      'RR', 'LL', 'RL', 'LR']]
-
-    # any need to overload with provided kw args?
-#    for key, value in kwargs.iteritems():
-#        meta[key] = value
+                                      'RR', 'LL', 'RL', 'LR',
+                                      'A*A', 'B*B', 'A*B', 'B*A']]
 
     return meta
 
