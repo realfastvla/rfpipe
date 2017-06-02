@@ -10,12 +10,12 @@ from . import state, source, search, util, metadata
 import distributed
 from dask import delayed
 from functools import partial
-from astropy import time
 from time import sleep
+from astropy import time
 import numpy as np
+from evla_mcast import scan_config
 
-
-def pipeline_vys(wait, nsegment=1, nant=3, nspw=1, nchan=64, npol=1, inttime_micros=1e5, host='cbe-node-01', preffile=None, cfile=None):
+def pipeline_vys(wait, nsegment=1, host='cbe-node-01', preffile=None, cfile=None):
     """ Start nsegment vysmaw jobs reading a segment each after time wait
     Mocks metadata.
     """
@@ -23,28 +23,36 @@ def pipeline_vys(wait, nsegment=1, nant=3, nspw=1, nchan=64, npol=1, inttime_mic
     assert nsegment > 0
 
     cl = distributed.Client('{0}:{1}'.format(host, '8786'))
-    t0 = time.Time.now() + time.TimeDelta(wait, format='sec')
 
-    meta = cl.submit(metadata.mock_metadata, t0.mjd, nant, nspw, nchan, npol, inttime_micros)
+    config = scan_config.ScanConfig(vci='/home/cbe-master/realfast/soft/evla_mcast/test/data/test_vci.xml',
+                                    obs='/home/cbe-master/realfast/soft/evla_mcast/test/data/test_obs.xml',
+                                    ant='/home/cbe-master/realfast/soft/evla_mcast/test/data/test_antprop.xml')
+    meta = metadata.config_metadata(config)
+
+    dt = time.TimeDelta(wait, format='sec')
+    t0 = (time.Time.now()+dt).mjd
+    meta['starttime_mjd'] = t0
+    meta['antids'] = ['ea{0}'.format(i) for i in range(1,26)]  # fixed for scan_config test docs
+
     st = cl.submit(state.State, preffile=preffile, inmeta=meta, inprefs={'nsegment':nsegment})
-    data_delayed = [delayed(source.read_vys_seg)(st, seg, cfile=cfile) for seg in range(nsegment)]
+#    data_delayed = [delayed(source.read_vys_seg)(st, seg, cfile=cfile) for seg in range(nsegment)]
+#
+#    data_fut = []
+#    while len(data_delayed):
+#        if len([df for df in data_fut if not df.done()]) < 2:
+#            dd = data_delayed.pop()
+#            data_prep = cl.compute(dd)
+#            data_fut.append(data_prep)
+#        else:
+#            sleep(0.1)
 
-    data_fut = []
-
-    while len(data_delayed):
-        if len([df for df in data_fut if not df.done()]) < 2:
-            dd = data_delayed.pop()
-            data_prep = cl.compute(dd)
-            data_fut.append(data_prep)
-        else:
-            sleep(0.1)
+    data_fut = [cl.submit(source.read_vys_seg, st, segment, cfile=cfile) for segment in range(nsegment)]
 
     return data_fut
 
 
 def pipeline_vys2(st, seg, host='cbe-node-01', cfile=None, workers=None):
     """ Start pipeline search of a segment by catching vysmaw data.
-    Uses 
     """
 
     allow_other_workers = workers != None
