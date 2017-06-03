@@ -64,7 +64,7 @@ class State(object):
         if sdmfile and scan:
             meta = source.sdm_metadata(sdmfile, scan)
         elif config and not (sdmfile or scan):
-            meta = source.config_metadata(config)
+            meta = metadata.config_metadata(config)
         else:
             meta = {}
 

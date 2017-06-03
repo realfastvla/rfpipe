@@ -59,7 +59,7 @@ def dataprep(st, segment):
     return data_read
 
 
-def read_vys_seg(st, seg, cfile=None, timeout=20):
+def read_vys_seg(st, seg, cfile=None, timeout=10):
     """ Read segment seg defined by state st from vys stream.
     Uses vysmaw application timefilter to receive multicast messages and pull spectra on the CBE.
     """

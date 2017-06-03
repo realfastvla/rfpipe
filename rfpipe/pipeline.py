@@ -15,70 +15,49 @@ from astropy import time
 import numpy as np
 from evla_mcast import scan_config
 
-def pipeline_vys(wait, nsegment=1, host='cbe-node-01', preffile=None, cfile=None):
-    """ Start nsegment vysmaw jobs reading a segment each after time wait
-    Mocks metadata.
+def pipeline_vys(wait, host='cbe-node-01', preffile=None, cfile=None, workers=None):
+    """ Start one segment vysmaw jobs reading a segment each after time wait
+    Uses example realfast scan configuration from files.
     """
 
-    assert nsegment > 0
+    allow_other_workers = workers != None
 
     cl = distributed.Client('{0}:{1}'.format(host, '8786'))
 
     config = scan_config.ScanConfig(vci='/home/cbe-master/realfast/soft/evla_mcast/test/data/test_vci.xml',
                                     obs='/home/cbe-master/realfast/soft/evla_mcast/test/data/test_obs.xml',
                                     ant='/home/cbe-master/realfast/soft/evla_mcast/test/data/test_antprop.xml')
-    meta = metadata.config_metadata(config)
 
+    meta = {}
     dt = time.TimeDelta(wait, format='sec')
     t0 = (time.Time.now()+dt).mjd
     meta['starttime_mjd'] = t0
     meta['antids'] = ['ea{0}'.format(i) for i in range(1,26)]  # fixed for scan_config test docs
 
-    st = cl.submit(state.State, preffile=preffile, inmeta=meta, inprefs={'nsegment':nsegment})
-#    data_delayed = [delayed(source.read_vys_seg)(st, seg, cfile=cfile) for seg in range(nsegment)]
-#
-#    data_fut = []
-#    while len(data_delayed):
-#        if len([df for df in data_fut if not df.done()]) < 2:
-#            dd = data_delayed.pop()
-#            data_prep = cl.compute(dd)
-#            data_fut.append(data_prep)
-#        else:
-#            sleep(0.1)
+    prefs = {}
+    prefs['nsegment'] = 1
 
-    data_fut = [cl.submit(source.read_vys_seg, st, segment, cfile=cfile) for segment in range(nsegment)]
+    segment = 0
 
-    return data_fut
-
-
-def pipeline_vys2(st, seg, host='cbe-node-01', cfile=None, workers=None):
-    """ Start pipeline search of a segment by catching vysmaw data.
-    """
-
-    allow_other_workers = workers != None
-
-    cl = distributed.Client('{0}:{1}'.format(host, '8786'))
-    data_prep = cl.submit(source.read_vys_seg, st, seg, cfile=cfile)
+    st = state.State(config=config, preffile=preffile, inmeta=meta, inprefs=prefs)
+    data_prep = cl.submit(source.read_vys_seg, st, segment, cfile=cfile)
+    wisdom = cl.submit(search.set_wisdom, st.npixx, st.npixy, pure=True, workers=workers, allow_other_workers=allow_other_workers)
 
     features = []
     saved = []
-    data_fut = []
-
-    wisdom = cl.submit(search.set_wisdom, st.npixx, st.npixy, pure=True, workers=workers, allow_other_workers=allow_other_workers)
-
     for dmind in range(len(st.dmarr)):
         delay = cl.submit(util.calc_delay, st.freq, st.freq[-1], st.dmarr[dmind], st.metadata.inttime, pure=True, workers=workers, allow_other_workers=allow_other_workers)
         data_dm = cl.submit(search.dedisperse, data_prep, delay, pure=True, workers=workers, allow_other_workers=allow_other_workers)
 
         for dtind in range(len(st.dtarr)):
-            uvw = st.get_uvw_segment(seg)
+            uvw = st.get_uvw_segment(segment)
             ims_thresh = cl.submit(search.resample_image, data_dm, st.dtarr[dtind], uvw, st.freq, st.npixx, st.npixy, st.uvres, st.prefs.sigma_image1, wisdom, pure=True, workers=workers, allow_other_workers=allow_other_workers)
 
-            feature = cl.submit(search.calc_features, ims_thresh, dmind, st.dtarr[dtind], dtind, seg, st.features, pure=True, workers=workers, allow_other_workers=allow_other_workers)
+            feature = cl.submit(search.calc_features, ims_thresh, dmind, st.dtarr[dtind], dtind, segment, st.features, pure=True, workers=workers, allow_other_workers=allow_other_workers)
             features.append(feature)
 
     cands = cl.submit(search.collect_cands, features, pure=True, workers=workers, allow_other_workers=allow_other_workers)
-    saved.append(cl.submit(search.save_cands, st, cands, seg, pure=True, workers=workers, allow_other_workers=allow_other_workers))
+    saved.append(cl.submit(search.save_cands, st, cands, segment, pure=True, workers=workers, allow_other_workers=allow_other_workers))
 
     return saved
 
