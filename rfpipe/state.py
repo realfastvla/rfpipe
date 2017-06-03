@@ -224,6 +224,8 @@ class State(object):
 
         if self.prefs.selectpol == 'auto':
             return [pp for pp in self.metadata.pols_orig if pp[0] == pp[-1]]
+        elif self.prefs.selectpol == 'cross':
+            return [pp for pp in self.metadata.pols_orig if pp[0] != pp[-1]]
         elif self.prefs.selectpol == 'all':
             return self.metadata.pols_orig
         else:

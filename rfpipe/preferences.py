@@ -19,7 +19,7 @@ class Preferences(object):
     chans = attr.ib(default=None)
     spw = attr.ib(default=None)
     excludeants = attr.ib(default=())
-    selectpol = attr.ib(default='auto')  # 'auto', 'all'
+    selectpol = attr.ib(default='auto')  # 'auto', 'all', 'cross'
     fileroot = attr.ib(default=None)
 
     # preprocessing

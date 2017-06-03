@@ -295,7 +295,7 @@ def save_cands(st, cands, segment):
     """
 
     candsfile = os.path.join(st.metadata.workdir, 'cands_' + st.fileroot + '_sc' + str(st.metadata.scan) + 'seg' + str(segment) + '.pkl')
-    with open(candsfile, 'w') as pkl:
+    with open(candsfile, 'wb') as pkl:
         pickle.dump(st, pkl)
         pickle.dump(cands, pkl)
 

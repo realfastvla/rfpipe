@@ -41,11 +41,11 @@ def pipeline_vys(wait, host='cbe-node-01', preffile=None, cfile=None, workers=No
 
     st = state.State(config=config, preffile=preffile, inmeta=meta, inprefs=prefs)
 
-    saved = pipeline_scan(st)
+    saved = pipeline_scan(st, cfile=cfile)
 
     return saved
 
-def pipeline_seg(st, segment, cl, workers=None):
+def pipeline_seg(st, segment, cl, workers=None, cfile=None):
     """ Run segment pipelne with cl.submit calls """
 
     features = []
@@ -85,7 +85,7 @@ def pipeline_seg(st, segment, cl, workers=None):
     return saved
 
 
-def pipeline_seg_delayed(st, segment, cl, workers=None):
+def pipeline_seg_delayed(st, segment, cl, workers=None, cfile=None):
     """ Run segment pipelne with cl.submit calls """
 
     from dask import delayed
@@ -127,7 +127,7 @@ def pipeline_seg_delayed(st, segment, cl, workers=None):
     return cl.persist(saved)
 
 
-def pipeline_scan(st, host='cbe-node-01'):
+def pipeline_scan(st, host='cbe-node-01', cfile=None):
     """ Given rfpipe state and dask distributed client, run search pipline """
 
     cl = distributed.Client('{0}:{1}'.format(host, '8786'))
@@ -136,6 +136,6 @@ def pipeline_scan(st, host='cbe-node-01'):
 
     saved = []
     for segment in range(st.nsegment):
-        saved.append(pipeline_seg_delayed(st, segment, cl))
+        saved.append(pipeline_seg(st, segment, cl, cfile=cfile))
 
     return saved
