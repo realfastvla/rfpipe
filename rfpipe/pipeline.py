@@ -40,27 +40,10 @@ def pipeline_vys(wait, host='cbe-node-01', preffile=None, cfile=None, workers=No
     segment = 0
 
     st = state.State(config=config, preffile=preffile, inmeta=meta, inprefs=prefs)
-    data_prep = cl.submit(source.read_vys_seg, st, segment, cfile=cfile)
-    wisdom = cl.submit(search.set_wisdom, st.npixx, st.npixy, pure=True, workers=workers, allow_other_workers=allow_other_workers)
 
-    features = []
-    saved = []
-    for dmind in range(len(st.dmarr)):
-        delay = cl.submit(util.calc_delay, st.freq, st.freq[-1], st.dmarr[dmind], st.metadata.inttime, pure=True, workers=workers, allow_other_workers=allow_other_workers)
-        data_dm = cl.submit(search.dedisperse, data_prep, delay, pure=True, workers=workers, allow_other_workers=allow_other_workers)
-
-        for dtind in range(len(st.dtarr)):
-            uvw = st.get_uvw_segment(segment)
-            ims_thresh = cl.submit(search.resample_image, data_dm, st.dtarr[dtind], uvw, st.freq, st.npixx, st.npixy, st.uvres, st.prefs.sigma_image1, wisdom, pure=True, workers=workers, allow_other_workers=allow_other_workers)
-
-            feature = cl.submit(search.calc_features, ims_thresh, dmind, st.dtarr[dtind], dtind, segment, st.features, pure=True, workers=workers, allow_other_workers=allow_other_workers)
-            features.append(feature)
-
-    cands = cl.submit(search.collect_cands, features, pure=True, workers=workers, allow_other_workers=allow_other_workers)
-    saved.append(cl.submit(search.save_cands, st, cands, segment, pure=True, workers=workers, allow_other_workers=allow_other_workers))
+    saved = pipeline_scan(st)
 
     return saved
-
 
 def pipeline_seg(st, segment, cl, workers=None):
     """ Run segment pipelne with cl.submit calls """
@@ -73,7 +56,10 @@ def pipeline_seg(st, segment, cl, workers=None):
     wisdom = cl.submit(search.set_wisdom, st.npixx, st.npixy, pure=True, workers=workers, allow_other_workers=allow_other_workers)
 
     logger.info('reading data...')
-    data_prep = cl.submit(source.dataprep, st, segment, pure=True, workers=workers, allow_other_workers=allow_other_workers)
+    if st.metadata.bdfstr:
+        data_prep = cl.submit(source.dataprep, st, segment, pure=True, workers=workers, allow_other_workers=allow_other_workers)
+    else:
+        data_prep = cl.submit(source.read_vys_seg, st, segment, cfile=cfile)
 #    cl.replicate([data_prep, uvw, wisdom])  # spread data around to search faster
 
     for dmind in range(len(st.dmarr)):
@@ -112,7 +98,10 @@ def pipeline_seg_delayed(st, segment, cl, workers=None):
     wisdom = delayed(search.set_wisdom)(st.npixx, st.npixy)
 
     logger.info('reading data...')
-    data_prep = delayed(source.dataprep)(st, segment)
+    if st.metadata.bdfstr:
+        data_prep = delayed(source.dataprep)(st, segment)
+    else:
+        data_prep = delayed(source.read_vys_seg)(st, segment, cfile=cfile)
 #    cl.replicate([data_prep, uvw, wisdom])  # spread data around to search faster
 
     for dmind in range(len(st.dmarr)):
@@ -138,12 +127,12 @@ def pipeline_seg_delayed(st, segment, cl, workers=None):
     return cl.persist(saved)
 
 
-def pipeline_scan(st, host='nmpost-master'):
+def pipeline_scan(st, host='cbe-node-01'):
     """ Given rfpipe state and dask distributed client, run search pipline """
 
     cl = distributed.Client('{0}:{1}'.format(host, '8786'))
 
-    logger.debug('submitting segments')
+    logger.debug('Submitting segments...')
 
     saved = []
     for segment in range(st.nsegment):
