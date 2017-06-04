@@ -63,7 +63,7 @@ def pipeline_seg(st, segment, cl, workers=None, cfile=None):
 #    cl.replicate([data_prep, uvw, wisdom])  # spread data around to search faster
 
     for dmind in range(len(st.dmarr)):
-        delay = cl.submit(util.calc_delay, st.freq, st.freq[-1], st.dmarr[dmind], st.metadata.inttime, pure=True, workers=workers, allow_other_workers=allow_other_workers)
+        delay = cl.submit(util.calc_delay, st.freq, st.freq.max(), st.dmarr[dmind], st.metadata.inttime, pure=True, workers=workers, allow_other_workers=allow_other_workers)
         data_dm = cl.submit(search.dedisperse, data_prep, delay, pure=True, workers=workers, allow_other_workers=allow_other_workers)
 
         for dtind in range(len(st.dtarr)):
@@ -105,7 +105,7 @@ def pipeline_seg_delayed(st, segment, cl, workers=None, cfile=None):
 #    cl.replicate([data_prep, uvw, wisdom])  # spread data around to search faster
 
     for dmind in range(len(st.dmarr)):
-        delay = delayed(util.calc_delay)(st.freq, st.freq[-1], st.dmarr[dmind], st.metadata.inttime)
+        delay = delayed(util.calc_delay)(st.freq, st.freq.max(), st.dmarr[dmind], st.metadata.inttime)
         data_dm = delayed(search.dedisperse)(data_prep, delay)
 
         for dtind in range(len(st.dtarr)):

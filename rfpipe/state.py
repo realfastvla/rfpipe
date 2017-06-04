@@ -166,7 +166,7 @@ class State(object):
         """
 
 
-        return [util.calc_delay(self.freq, self.freq[-1], dm, self.metadata.inttime).max() for dm in self.dmarr]
+        return [util.calc_delay(self.freq, self.freq.max(), dm, self.metadata.inttime).max() for dm in self.dmarr]
         
 
     @property
@@ -532,8 +532,8 @@ def calc_dmarr(state):
     tsamp = state.metadata.inttime*1e6  # in microsec
     k = 8.3
     freq = state.freq.mean()  # central (mean) frequency in GHz
-    bw = 1e3*(state.freq[-1] - state.freq[0])
-    ch = 1e3*(state.freq[1] - state.freq[0])  # channel width in MHz
+    bw = state.freq.max() - state.freq.min()  # in GHz
+    ch = 1e3*state.metadata.spw_chansize[0]  # in MHz ** first spw only
 
     # width functions and loss factor
     dt0 = lambda dm: np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2)
