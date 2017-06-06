@@ -16,7 +16,7 @@ import pyfftw
 ## utilities
 ##
 
-@jit(nopython=True, nogil=True)
+#@jit(nopython=True, nogil=True)
 def uvcell(uv, freq, freqref, uvres):
     """ Given a u or v coordinate, scale by freq and round to units of uvres """
 
@@ -47,7 +47,7 @@ def runcuda(func, arr, threadsperblock, *args, **kwargs):
 ## data prep
 ##
 
-@jit(nogil=True, nopython=True)
+#@jit(nogil=True, nopython=True)
 def meantsub(data):
     """ Calculate mean in time (ignoring zeros) and subtract in place
 
@@ -91,7 +91,7 @@ def meantsub(data):
 #                res[i,j,k] = data[i,j,k] - mean
     
 
-@jit(nogil=True, nopython=True)
+#@jit(nogil=True, nopython=True)
 def dedisperse(data, delay):
     """ Dispersion shift to new array """
 
@@ -111,7 +111,7 @@ def dedisperse(data, delay):
         return data
 
 
-@jit(nogil=True, nopython=True)
+#@jit(nogil=True, nopython=True)
 def resample(data, dt):
     """ Resample (integrate) in place by factor dt """
 
@@ -174,7 +174,7 @@ def resample_image(data, dt, uvw, freqs, npixx, npixy, uvres, threshold, wisdom=
     return images_thresh
 
 
-@jit(nogil=True, nopython=True)
+#@jit(nogil=True, nopython=True)
 def grid_visibilities(visdata, uvw, freqs, npixx, npixy, uvres):
     """ Grid visibilities into rounded uv coordinates """
 

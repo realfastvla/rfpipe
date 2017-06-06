@@ -165,7 +165,6 @@ class State(object):
         TODO: probably should put dm calculation into a library module for calling from all parts of code base
         """
 
-
         return [util.calc_delay(self.freq, self.freq.max(), dm, self.metadata.inttime).max() for dm in self.dmarr]
         
 
