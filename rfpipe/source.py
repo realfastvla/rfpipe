@@ -114,32 +114,22 @@ def read_bdf_segment(st, segment):
 
     # read Flag.xml and apply flags for given ant/time range
     if st.prefs.applyonlineflags:
-        raise NotImplementedError
 
-        sdm = getsdm(d['filename'], bdfdir=d['bdfdir'])
+        sdm = getsdm(st.metadata.filename, bdfdir=st.metadata.bdfdir)
+        scan = sdm.scan(st.metadata.scan)
 
-        allantdict = dict(zip([str(ant.antennaId) for ant in sdm['Antenna']],
-                              [int(str(ant.name).lstrip('ea'))
-                               for ant in sdm['Antenna']]))
-        antflags = [(allantdict[str(flag.antennaId).split(' ')[2]],
-                     int(flag.startTime)/(1e9*24*3600),
-                     int(flag.endTime)/(1e9*24*3600))
-                    for flag in sdm['Flag']]  # assumes one flag per entry
-        logger.info('Found online flags for %d antenna/time ranges.'
-                    % (len(antflags)))
-        blarr = calc_blarr(d)  # d may define different ants than in allantdict
-        timearr = np.linspace(d['segmenttimes'][segment][0],
-                              d['segmenttimes'][segment][1], d['readints'])
-        badints_cum = []
-        for antflag in antflags:
-            antnum, time0, time1 = antflag
-            badbls = np.where((blarr == antnum).any(axis=1))[0]
-            badints = np.where((timearr >= time0) & (timearr <= time1))[0]
-            for badint in badints:
-                data[badint, badbls] = 0j
-            badints_cum = badints_cum + list(badints)
-        logger.info('Applied online flags to %d ints.'
-                    % (len(set(badints_cum))))
+# calculate per int?
+#        timearr = np.linspace(st['segmenttimes'][segment][0],
+#                              st['segmenttimes'][segment][1], st['readints'])
+# or per segment
+        t0,t1 = st.segmenttimes[segment]
+        flags = scan.flags([t0,t1]).all(axis=0)  # 0=bad, 1=good. axis=0 is time axis.
+
+        if not flags.all():
+            logger.info('Found antennas to flag in time range {0}-{1} '.format(t0, t1))
+            data = np.where(flags[None,:,None, None] == 1, data, 0j)
+        else:
+            logger.info('No flagged antennas in time range {0}-{1} '.format(t0, t1))
     else:
         logger.info('Not applying online flags.')
 
@@ -167,22 +157,19 @@ def read_bdf_segment(st, segment):
         raise NotImplementedError
 
         sh = data.shape
-        tsize = sh[0]/d['read_tdownsample']
-        fsize = sh[2]/d['read_fdownsample']
+        tsize = sh[0]/st.prefs.read_tdownsample
+        fsize = sh[2]/st.prefs.read_fdownsample
         data2 = np.zeros((tsize, sh[1], fsize, sh[3]), dtype='complex64')
-        if d['read_tdownsample'] > 1:
-            logger.info('Downsampling in time by %d' % d['read_tdownsample'])
+        if st.prefs.read_tdownsample > 1:
+            logger.info('Downsampling in time by {0}'.format(st.prefs.read_tdownsample))
             for i in range(tsize):
                 data2[i] = data[
-                    i*d['read_tdownsample']:(i+1)*d['read_tdownsample']
-                    ].mean(axis=0)
-        if d['read_fdownsample'] > 1:
-            logger.info('Downsampling in frequency by %d'
-                        % d['read_fdownsample'])
+                    i*st.prefs.read_tdownsample:(i+1)*st.prefs.read_tdownsample].mean(axis=0)
+        if st.prefs.read_fdownsample > 1:
+            logger.info('Downsampling in frequency by {0}'.format(st.prefs.read_fdownsample))
             for i in range(fsize):
                 data2[:, :, i, :] = data[
-                    :, :, i * d['read_fdownsample']:(i+1)*d['read_fdownsample']
-                    ].mean(axis=2)
+                    :, :, i * st.prefs.read_fdownsample:(i+1)*st.prefs.read_fdownsample].mean(axis=2)
         data = data2
 
     takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]

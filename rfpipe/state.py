@@ -62,7 +62,7 @@ class State(object):
 
         # get metadata
         if sdmfile and scan:
-            meta = source.sdm_metadata(sdmfile, scan)
+            meta = metadata.sdm_metadata(sdmfile, scan)
         elif config and not (sdmfile or scan):
             meta = metadata.config_metadata(config)
         else:
@@ -183,21 +183,21 @@ class State(object):
         return len(self.metadata.spw_orig[self.prefs.spw] if self.prefs.spw else self.metadata.spw_orig)
 
 
-    @property
-    def spw_nchan_select(self):
-        return [len([ch for ch in range(self.metadata.spw_chanr[i][0], self.metadata.spw_chanr[i][1]) if ch in self.chans])
-                for i in range(len(self.metadata.spw_chanr))]
+#    @property
+#    def spw_nchan_select(self):
+#        return [len([ch for ch in range(self.metadata.spw_chanr[i][0], self.metadata.spw_chanr[i][1]) if ch in self.chans])
+#                for i in range(len(self.metadata.spw_chanr))]
 
 
-    @property
-    def spw_chanr_select(self):
-        chanr_select = []
-        i0 = 0
-        for nch in self.spw_nchan_select:
-            chanr_select.append((i0, i0+nch))
-            i0 += nch
-
-        return chanr_select
+#    @property
+#    def spw_chanr_select(self):
+#        chanr_select = []
+#        i0 = 0
+#        for nch in self.spw_nchan_select:
+#            chanr_select.append((i0, i0+nch))
+#            i0 += nch
+#
+#        return chanr_select
 
 
     @property
@@ -397,7 +397,7 @@ class State(object):
         """
 
         totaltimeread = 24*3600*(self.segmenttimes[:, 1] - self.segmenttimes[:, 0]).sum()            # not guaranteed to be the same for each segment
-        return round(totaltimeread / (self.metadata.inttime*self.nsegment))
+        return int(round(totaltimeread / (self.metadata.inttime*self.nsegment)))
 
 
     @property
@@ -405,7 +405,7 @@ class State(object):
         if self.metadata.nints:
             return self.metadata.nints  # if using sdm, nints is known
         else:
-            return round(self.nsegment*self.fringetime/self.metadata.inttime)  # else this is open ended
+            return int(round(self.nsegment*self.fringetime/self.metadata.inttime))  # else this is open ended
 #            return (self.nsegment*self.fringetime + self.t_overlap*(self.nsegment-1))/self.metadata.inttime  # else this is open ended
 
 
@@ -532,8 +532,8 @@ def calc_dmarr(state):
     tsamp = state.metadata.inttime*1e6  # in microsec
     k = 8.3
     freq = state.freq.mean()  # central (mean) frequency in GHz
-    bw = state.freq.max() - state.freq.min()  # in GHz
-    ch = 1e3*state.metadata.spw_chansize[0]  # in MHz ** first spw only
+    bw = 1e3*(state.freq.max() - state.freq.min())  # in MHz
+    ch = 1e-6*state.metadata.spw_chansize[0]  # in MHz ** first spw only
 
     # width functions and loss factor
     dt0 = lambda dm: np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2)

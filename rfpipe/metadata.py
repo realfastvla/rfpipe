@@ -45,13 +45,13 @@ class Metadata(object):
     intent = attr.ib(default=None)
     antids = attr.ib(default=None)
 #    stationids = attr.ib(default=None) # needed?
-    xyz = attr.ib(default=None)
+    xyz = attr.ib(default=None) # in m, geocentric
 
     # spectral info
-    spw_orig = attr.ib(default=None)
-    spw_nchan = attr.ib(default=None)
-    spw_reffreq = attr.ib(default=None)
-    spw_chansize = attr.ib(default=None)
+    spw_orig = attr.ib(default=None) # indexes for spw
+    spw_nchan = attr.ib(default=None) # channesl per spw
+    spw_reffreq = attr.ib(default=None) # reference frequency in Hz
+    spw_chansize = attr.ib(default=None) # channel size in Hz
     pols_orig = attr.ib(default=None)
 
 
@@ -65,14 +65,14 @@ class Metadata(object):
         return os.path.dirname(os.path.abspath(self.filename))
 
 
-    @property
-    def spw_chanr(self):
-        chanr = []
-        i0 = 0
-        for nch in self.spw_nchan:
-            chanr.append((i0, i0+nch))
-            i0 = nch
-        return chanr
+#    @property
+#    def spw_chanr(self):
+#        chanr = []
+#        i0 = 0
+#        for nch in self.spw_nchan:
+#            chanr.append((i0, i0+nch))
+#            i0 = nch
+#        return chanr
 
     @property
     def freq_orig(self):
@@ -115,7 +115,7 @@ class Metadata(object):
     @property
     def endtime_mjd(self):
         if self.nints:
-            return starttime_mjd + (self.nints*self.inttime)/(24*3600)
+            return self.starttime_mjd + (self.nints*self.inttime)/(24*3600)
         else:
             return None
 

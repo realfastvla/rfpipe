@@ -163,7 +163,7 @@ def meantsub_cuda(data):
 
 
 #@jit
-def resample_image(data, dt, uvw, freqs, npixx, npixy, uvres, threshold, wisdom):
+def resample_image(data, dt, uvw, freqs, npixx, npixy, uvres, threshold, wisdom=None):
     """ All stages of analysis for a given dt image grid """
 
     data_resampled = resample(data, dt)
