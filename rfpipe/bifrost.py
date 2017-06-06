@@ -15,6 +15,9 @@ from rfpipe.search import meantsub, dedisperse, resample_image
 from rfpipe.source import dataprep
 from rfpipe.calibration import apply_telcal
 
+import logging
+logger = logging.getLogger(__name__)
+
 #resample_image(data, dt, uvw, freqs, npixx, npixy, uvres, threshold, wisdom)
 
 class SdmFileRead(sdmpy.sdm.SDM):

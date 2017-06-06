@@ -6,12 +6,14 @@ from io import open
 import logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logging.captureWarnings(True)
-logger = logging.getLogger('rfpipe')
+logger = logging.getLogger(__name__)
 
 import json, attr, os, yaml
 from . import source, util, preferences, metadata
 import numpy as np
 from scipy.special import erf
+from evla_mcast import scan_config
+from astropy import time
 # from collections import OrderedDict #?
 
 import pwkit.environments.casa.util as casautil
@@ -57,6 +59,8 @@ class State(object):
         # get pipeline preferences
         prefs = preferences.parsepreffile(preffile)  # returns empty dict for paramfile=None
 
+        logger.parent.setLevel(getattr(logging, self.prefs.loglevel))
+
         # optionally overload preferences
         for key in inprefs:
             prefs[key] = inprefs[key]
@@ -77,7 +81,6 @@ class State(object):
 
         self.metadata = metadata.Metadata(**meta)
 
-        logger.parent.setLevel(getattr(logging, self.prefs.loglevel))
         self.summarize()
 
 
@@ -94,6 +97,8 @@ class State(object):
             logger.info('\t Using {0} segment{1} of {2} ints ({3} s) with overlap of {4} s'.format(self.nsegment, "s"[not self.nsegment-1:], self.readints, self.t_segment, self.t_overlap))
             if self.t_overlap > self.t_segment/3.:
                 logger.info('\t\t Lots of segments needed, since Max DM sweep ({0} s) close to segment size ({1} s)'.format(self.t_overlap, self.t_segment))
+            elif self.t_overlap > self.t_segment:
+                logger.warn('\t\t Max DM sweep ({0} s) is larger than segment size ({1} s). Pipeline will fail'.format(self.t_overlap, self.t_segment))
 
             logger.info('\t Downsampling in time/freq by {0}/{1}.'.format(self.prefs.read_tdownsample, self.prefs.read_fdownsample))
             logger.info('\t Excluding ants {0}'.format(self.prefs.excludeants))
@@ -115,7 +120,7 @@ class State(object):
     def source(self):
         if (self.sdmfile and self.scan) and not self.config:
             return "sdm"
-        elif self.config and not (sdmfile or scan):
+        elif self.config and not (self.sdmfile or self.scan):
             return "config"
         else:
             return None
@@ -634,3 +639,26 @@ def find_segment_times(state):
     (vismem, immem) = state.memory_footprint()
 
 
+def state_vystest(wait, nsegment=1, preffile=None, **kwargs):
+    """ Create state to read vys data after wait seconds with nsegment segments.
+    kwargs passed in as preferences via inpref argument to State.
+    """
+
+    config = scan_config.ScanConfig(vci='/home/cbe-master/realfast/soft/evla_mcast/test/data/test_vci.xml',
+                                    obs='/home/cbe-master/realfast/soft/evla_mcast/test/data/test_obs.xml',
+                                    ant='/home/cbe-master/realfast/soft/evla_mcast/test/data/test_antprop.xml')
+
+    meta = {}
+    dt = time.TimeDelta(wait, format='sec')
+    t0 = (time.Time.now()+dt).mjd
+    meta['starttime_mjd'] = t0
+    meta['antids'] = ['ea{0}'.format(i) for i in range(1,26)]  # fixed for scan_config test docs
+
+    prefs = {}
+    for key in kwargs:
+        prefs[key] = kwargs[key]
+    prefs['nsegment'] = nsegment
+
+    st = State(config=config, preffile=preffile, inmeta=meta, inprefs=prefs)
+
+    return st
