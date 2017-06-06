@@ -50,6 +50,9 @@ class State(object):
         """
 
         self.version = version
+        self.config = config
+        self.sdmfile = sdmfile
+        self.scan = scan
 
         # get pipeline preferences
         prefs = preferences.parsepreffile(preffile)  # returns empty dict for paramfile=None
@@ -61,9 +64,9 @@ class State(object):
         self.prefs = preferences.Preferences(**prefs)
 
         # get metadata
-        if sdmfile and scan:
+        if self.source == "sdm":
             meta = metadata.sdm_metadata(sdmfile, scan)
-        elif config and not (sdmfile or scan):
+        elif self.source == "config":
             meta = metadata.config_metadata(config)
         else:
             meta = {}
@@ -109,7 +112,19 @@ class State(object):
 
 
     @property
+    def source(self):
+        if (self.sdmfile and self.scan) and not self.config:
+            return "sdm"
+        elif self.config and not (sdmfile or scan):
+            return "config"
+        else:
+            return None
+
+
+    @property
     def fileroot(self):
+        # **TODO: update for sdm or config sources
+
         if self.prefs.fileroot:
             return self.prefs.fileroot
         else:
@@ -160,12 +175,12 @@ class State(object):
 
     @property
     def dmshifts(self):
-        """ Calculate max DM delay in units of integrations for each dm trial.
-
-        TODO: probably should put dm calculation into a library module for calling from all parts of code base
+        """ Calculate max DM delay in units of integrations for each dm trial. Gets cached.
         """
 
-        return [util.calc_delay(self.freq, self.freq.max(), dm, self.metadata.inttime).max() for dm in self.dmarr]
+        if not hasattr(self, '_dmshifts'):
+            self._dmshifts = [util.calc_delay(self.freq, self.freq.max(), dm, self.metadata.inttime).max() for dm in self.dmarr]
+        return self._dmshifts
         
 
     @property

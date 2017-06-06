@@ -6,14 +6,13 @@ from io import open
 import logging
 logger = logging.getLogger(__name__)
 
-from . import state, source, search, util, metadata
+from . import state, source, search, util
 import distributed
 from dask import delayed
-from functools import partial
-from time import sleep
 from astropy import time
 import numpy as np
 from evla_mcast import scan_config
+
 
 def pipeline_vys(wait, host='cbe-node-01', preffile=None, cfile=None, workers=None):
     """ Start one segment vysmaw jobs reading a segment each after time wait
@@ -21,8 +20,6 @@ def pipeline_vys(wait, host='cbe-node-01', preffile=None, cfile=None, workers=No
     """
 
     allow_other_workers = workers != None
-
-    cl = distributed.Client('{0}:{1}'.format(host, '8786'))
 
     config = scan_config.ScanConfig(vci='/home/cbe-master/realfast/soft/evla_mcast/test/data/test_vci.xml',
                                     obs='/home/cbe-master/realfast/soft/evla_mcast/test/data/test_obs.xml',
@@ -41,7 +38,7 @@ def pipeline_vys(wait, host='cbe-node-01', preffile=None, cfile=None, workers=No
 
     st = state.State(config=config, preffile=preffile, inmeta=meta, inprefs=prefs)
 
-    saved = pipeline_scan(st, cfile=cfile)
+    saved = pipeline_scan(st, host=host, cfile=cfile)
 
     return st, saved
 
@@ -130,12 +127,10 @@ def pipeline_seg_delayed(st, segment, cl, workers=None, cfile=None):
 def pipeline_scan(st, host='cbe-node-01', cfile=None):
     """ Given rfpipe state and dask distributed client, run search pipline """
 
-    cl = distributed.Client('{0}:{1}'.format(host, '8786'))
-
-    logger.debug('Submitting segments...')
-
     saved = []
-    for segment in range(st.nsegment):
-        saved.append(pipeline_seg(st, segment, cl, cfile=cfile))
+
+    with distributed.Client('{0}:{1}'.format(host, '8786')) as cl:
+        for segment in range(st.nsegment):
+            saved.append(pipeline_seg(st, segment, cl, cfile=cfile))
 
     return saved
