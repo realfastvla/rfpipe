@@ -59,13 +59,13 @@ class State(object):
         # get pipeline preferences
         prefs = preferences.parsepreffile(preffile)  # returns empty dict for paramfile=None
 
-        logger.parent.setLevel(getattr(logging, self.prefs.loglevel))
-
         # optionally overload preferences
         for key in inprefs:
             prefs[key] = inprefs[key]
 
         self.prefs = preferences.Preferences(**prefs)
+
+        logger.parent.setLevel(getattr(logging, self.prefs.loglevel))
 
         # get metadata
         if self.source == "sdm":
@@ -94,11 +94,11 @@ class State(object):
             logger.info('Pipeline summary:')
 
             logger.info('\t Products saved with {0}. telcal calibration with {1}.'.format(self.fileroot, os.path.basename(self.gainfile)))
-            logger.info('\t Using {0} segment{1} of {2} ints ({3} s) with overlap of {4} s'.format(self.nsegment, "s"[not self.nsegment-1:], self.readints, self.t_segment, self.t_overlap))
-            if self.t_overlap > self.t_segment/3.:
-                logger.info('\t\t Lots of segments needed, since Max DM sweep ({0} s) close to segment size ({1} s)'.format(self.t_overlap, self.t_segment))
-            elif self.t_overlap > self.t_segment:
-                logger.warn('\t\t Max DM sweep ({0} s) is larger than segment size ({1} s). Pipeline will fail'.format(self.t_overlap, self.t_segment))
+            logger.info('\t Using {0} segment{1} of {2} ints ({3:.1f} s) with overlap of {4:.1f} s'.format(self.nsegment, "s"[not self.nsegment-1:], self.readints, self.t_segment, self.t_overlap))
+            if self.t_overlap > self.t_segment/3. and self.t_overlap < self.t_segment:
+                logger.info('\t\t Lots of segments needed, since Max DM sweep ({0:.1f} s) close to segment size ({1:.1f} s)'.format(self.t_overlap, self.t_segment))
+            elif self.t_overlap >= self.t_segment:
+                logger.warn('\t\t Max DM sweep ({0:.1f} s) is larger than segment size ({1:.1f} s). Pipeline will fail!'.format(self.t_overlap, self.t_segment))
 
             logger.info('\t Downsampling in time/freq by {0}/{1}.'.format(self.prefs.read_tdownsample, self.prefs.read_fdownsample))
             logger.info('\t Excluding ants {0}'.format(self.prefs.excludeants))
@@ -387,7 +387,7 @@ class State(object):
             if self.prefs.nsegment:
                 self._segmenttimes = calc_segment_times(self)
             else:
-                find_segment_times(self)
+                self._segmenttimes = find_segment_times(self)
 
         return self._segmenttimes
 
@@ -411,12 +411,9 @@ class State(object):
     def readints(self):
         """ Number of integrations read per segment. 
         Defines shape of numpy array for visibilities.
-
-        TODO: Need to support self.prefs.read_tdownsample
         """
 
-        totaltimeread = 24*3600*(self.segmenttimes[:, 1] - self.segmenttimes[:, 0]).sum()            # not guaranteed to be the same for each segment
-        return int(round(totaltimeread / (self.metadata.inttime*self.nsegment)))
+        return int(round(self.t_segment / self.metadata.inttime))
 
 
     @property
@@ -424,12 +421,14 @@ class State(object):
         if self.metadata.nints:
             return self.metadata.nints  # if using sdm, nints is known
         else:
-            return int(round(self.nsegment*self.fringetime/self.metadata.inttime))  # else this is open ended
-#            return (self.nsegment*self.fringetime + self.t_overlap*(self.nsegment-1))/self.metadata.inttime  # else this is open ended
+#            return int(round(self.nsegment*self.fringetime/self.metadata.inttime))  # else this is open ended
+            return int(round((self.nsegment*self.fringetime - self.t_overlap*(self.nsegment-1))/self.metadata.inttime))  # else this is open ended
 
 
     @property
     def t_segment(self):
+        """ Time read per segment in seconds """
+
         totaltimeread = 24*3600*(self.segmenttimes[:, 1] - self.segmenttimes[:, 0]).sum()            # not guaranteed to be the same for each segment
         return totaltimeread/self.nsegment
 
@@ -603,6 +602,8 @@ def find_segment_times(state):
     Solution found by iterating from fringe time to memory size that fits.
     """
 
+    assert state.source == "sdm", "Can only find segment times for data stream with defined end time (sdm for now)"
+
     # initialize at fringe time limit. nsegment must be between 1 and state.nints
     scale_nsegment = 1.
     nsegment = max(1, min(state.nints, int(scale_nsegment*state.metadata.inttime*state.nints/(state.fringetime-state.t_overlap))))
@@ -621,7 +622,7 @@ def find_segment_times(state):
 
             scale_nsegment *= (vismem+immem)/float(state.prefs.memory_limit)
             nsegment = max(1, min(state.nints, int(scale_nsegment*state.metadata.inttime*state.nints/(fringetime-state.t_overlap))))  # at least 1, at most nints
-            state._segment_times = calc_segment_times(state, nsegment=nsegment)
+            segmenttimes = calc_segment_times(state, nsegment=nsegment)
 
             (vismem, immem) = state.memory_footprint()
             while vismem+immem > state.prefs.memory_limit:
@@ -635,18 +636,16 @@ def find_segment_times(state):
                 (vismem, immem) = state.memory_footprint()
 
     # final set up of memory
-    state._segment_times = calc_segment_times(state)
     (vismem, immem) = state.memory_footprint()
+    segmenttimes = calc_segment_times(state)
+
+    return segmenttimes
 
 
 def state_vystest(wait, nsegment=1, preffile=None, **kwargs):
     """ Create state to read vys data after wait seconds with nsegment segments.
     kwargs passed in as preferences via inpref argument to State.
     """
-
-    config = scan_config.ScanConfig(vci='/home/cbe-master/realfast/soft/evla_mcast/test/data/test_vci.xml',
-                                    obs='/home/cbe-master/realfast/soft/evla_mcast/test/data/test_obs.xml',
-                                    ant='/home/cbe-master/realfast/soft/evla_mcast/test/data/test_antprop.xml')
 
     meta = {}
     dt = time.TimeDelta(wait, format='sec')
@@ -658,6 +657,10 @@ def state_vystest(wait, nsegment=1, preffile=None, **kwargs):
     for key in kwargs:
         prefs[key] = kwargs[key]
     prefs['nsegment'] = nsegment
+
+    config = scan_config.ScanConfig(vci='/home/cbe-master/realfast/soft/evla_mcast/test/data/test_vci.xml',
+                                    obs='/home/cbe-master/realfast/soft/evla_mcast/test/data/test_obs.xml',
+                                    ant='/home/cbe-master/realfast/soft/evla_mcast/test/data/test_antprop.xml')
 
     st = State(config=config, preffile=preffile, inmeta=meta, inprefs=prefs)
 

@@ -11,6 +11,31 @@ import distributed
 import numpy as np
 
 
+def pipeline_scan(st, host='cbe-node-01', cfile=None):
+    """ Given rfpipe state and dask distributed client, run search pipline """
+
+    saved = []
+
+    cl = distributed.Client('{0}:{1}'.format(host, '8786'))
+
+    for segment in range(st.nsegment):
+        saved.append(pipeline_seg(st, segment, cl, cfile=cfile))
+
+    return saved
+
+
+def pipeline_vystest(wait, nsegment=1, host='cbe-node-01', preffile=None, cfile=None, **kwargs):
+    """ Start one segment vysmaw jobs reading a segment each after time wait
+    Uses example realfast scan configuration from files.
+    """
+
+    st = state.state_vystest(wait, nsegment=nsegment, preffile=preffile, **kwargs)
+
+    saved = pipeline_scan(st, host=host, cfile=cfile)
+
+    return saved
+
+
 def pipeline_seg(st, segment, cl, workers=None, cfile=None):
     """ Run segment pipelne with cl.submit calls """
 
@@ -54,29 +79,4 @@ def pipeline_seg(st, segment, cl, workers=None, cfile=None):
 
     cands = cl.submit(search.collect_cands, features, pure=True, workers=workers, allow_other_workers=allow_other_workers)
     saved = cl.submit(search.save_cands, st, cands, segment, pure=True, workers=workers, allow_other_workers=allow_other_workers)
-    return saved
-
-
-def pipeline_scan(st, host='cbe-node-01', cfile=None):
-    """ Given rfpipe state and dask distributed client, run search pipline """
-
-    saved = []
-
-    cl = distributed.Client('{0}:{1}'.format(host, '8786'))
-
-    for segment in range(st.nsegment):
-        saved.append(pipeline_seg(st, segment, cl, cfile=cfile))
-
-    return saved
-
-
-def pipeline_vystest(wait, nsegment=1, host='cbe-node-01', preffile=None, cfile=None, **kwargs):
-    """ Start one segment vysmaw jobs reading a segment each after time wait
-    Uses example realfast scan configuration from files.
-    """
-
-    st = state.state_vystest(wait, nsegment=nsegment, preffile=preffile, **kwargs)
-
-    saved = pipeline_scan(st, host=host, cfile=cfile)
-
     return saved
