@@ -3,8 +3,8 @@ python:
   - "2.7"
 
 install:
-  - sudo apt-get update
-  - sudo apt-get install libfftw3-dev
+  - sudo apt-get update -y
+  - sudo apt-get install -y libfftw3-dev
 
   # set up conda
   - wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh
