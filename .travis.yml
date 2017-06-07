@@ -14,11 +14,12 @@ install:
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
   # Useful for debugging any issues with conda
+  - pip install git+git://github.com/realfastvla/evla_mcast.git
   - conda info -a
   - conda config --add channels conda-forge 
   - conda config --append channels pkgw-forge 
-  - conda install python=2.7 numpy scipy jupyter bokeh cython matplotlib numba pytest setuptools pip coverage pyfftw
-  - conda install pwkit casa-tools casa-python casa-data
+  - conda install -q python=2.7 numpy scipy jupyter bokeh cython matplotlib numba pytest setuptools pip coverage pyfftw
+  - conda install -q pwkit casa-tools casa-python casa-data
   - pip install codecov
   - python setup.py install
 before_script:
