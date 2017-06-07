@@ -11,12 +11,6 @@ from lxml.etree import XMLSyntaxError
 import numpy as np
 import sdmpy
 from astropy import time
-try:
-#    import timefilter
-    import vysmaw_reader
-except ImportError:
-    logger.warn('ImportError for vysmaw app. No vysmaw?')
-
 
 import pwkit.environments.casa.util as casautil
 qa = casautil.tools.quanta()
@@ -63,6 +57,11 @@ def read_vys_seg(st, seg, cfile=None, timeout=10):
     """ Read segment seg defined by state st from vys stream.
     Uses vysmaw application timefilter to receive multicast messages and pull spectra on the CBE.
     """
+
+    try:
+        import vysmaw_reader
+    except ImportError:
+        logger.error('ImportError for vysmaw app. Need vysmaw to consume vys data.')
 
     t0 = time.Time(st.segmenttimes[seg][0], format='mjd', precision=9).unix
     t1 = time.Time(st.segmenttimes[seg][1], format='mjd', precision=9).unix

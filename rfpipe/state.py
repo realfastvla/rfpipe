@@ -12,7 +12,6 @@ import json, attr, os, yaml
 from . import source, util, preferences, metadata
 import numpy as np
 from scipy.special import erf
-from evla_mcast import scan_config
 from astropy import time
 # from collections import OrderedDict #?
 
@@ -646,6 +645,11 @@ def state_vystest(wait, nsegment=1, preffile=None, **kwargs):
     """ Create state to read vys data after wait seconds with nsegment segments.
     kwargs passed in as preferences via inpref argument to State.
     """
+
+    try:
+        from evla_mcast import scan_config
+    except ImportError:
+        logger.error('ImportError for evla_mcast. Need this library to consume multicast messages from CBE.')
 
     meta = {}
     dt = time.TimeDelta(wait, format='sec')
