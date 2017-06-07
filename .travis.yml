@@ -17,7 +17,7 @@ install:
   - conda info -a
   - conda config --add channels conda-forge 
   - conda config --append channels pkgw-forge 
-  - conda create -q -n test-environment python=2.7 numpy scipy jupyter bokeh cython matplotlib numba pytest setuptools pip coverage
+  - conda install python=2.7 numpy scipy jupyter bokeh cython matplotlib numba pytest setuptools pip coverage
   - source activate test-environment
   - conda install pwkit casa-tools casa-python casa-data
   - pip install codecov
