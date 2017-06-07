@@ -40,6 +40,7 @@ class Metadata(object):
 
     # array/antenna info
     starttime_mjd = attr.ib(default=None)
+# **TODO: need to think about which of nints and endditme is more fundamental. make other a derived property
 #    endtime_mjd = attr.ib(default=None)
     dishdiameter = attr.ib(default=None)
     intent = attr.ib(default=None)
@@ -149,6 +150,7 @@ def config_metadata(config):
 #    meta['configid'] = config.Id
 
     meta['starttime_mjd'] = config.startTime
+# **TODO: need to think about which of these two is more fundamental. make other a derived property
 #    meta['endtime_mjd'] =  # no such thing, yet
 #    meta['nints'] = # no such thing, yet
     meta['source'] = config.source

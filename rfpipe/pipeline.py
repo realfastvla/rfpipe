@@ -52,13 +52,18 @@ def pipeline_seg(st, segment, cl, workers=None, cfile=None):
     logger.info('Planning FFT...')
     wisdom = cl.submit(search.set_wisdom, st.npixx, st.npixy, pure=True, workers=workers, allow_other_workers=allow_other_workers)
 
-    logger.info('reading data...')
-    if st.metadata.bdfstr:
+    logger.info('Reading data...')
+    if st.source == 'sdm':
         data_prep = cl.submit(source.dataprep, st, segment, pure=True, workers=workers, allow_other_workers=allow_other_workers)
-    else:
+    elif st.source == 'config':
         data_prep = cl.submit(source.read_vys_seg, st, segment, cfile=cfile)
+    else:
+        logger.error('Data source {0} not recognized.'.format(st.source))
 #    cl.replicate([data_prep, uvw, wisdom])  # spread data around to search faster
 
+    # **TODO: need to add condition on data_prep being nonzero
+
+    logger.info('Iterating search over DM/dt...')
     for dmind in range(len(st.dmarr)):
         delay = cl.submit(util.calc_delay, st.freq, st.freq.max(), st.dmarr[dmind], st.metadata.inttime, pure=True, workers=workers, allow_other_workers=allow_other_workers)
         data_dm = cl.submit(search.dedisperse, data_prep, delay, pure=True, workers=workers, allow_other_workers=allow_other_workers)
@@ -77,6 +82,8 @@ def pipeline_seg(st, segment, cl, workers=None, cfile=None):
             feature = cl.submit(search.calc_features, ims_thresh, dmind, st.dtarr[dtind], dtind, segment, st.features, pure=True, workers=workers, allow_other_workers=allow_other_workers)
             features.append(feature)
 
+    logger.info('Saving candidates...')
     cands = cl.submit(search.collect_cands, features, pure=True, workers=workers, allow_other_workers=allow_other_workers)
     saved = cl.submit(search.save_cands, st, cands, segment, pure=True, workers=workers, allow_other_workers=allow_other_workers)
+
     return saved

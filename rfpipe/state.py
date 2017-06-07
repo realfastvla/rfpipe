@@ -90,8 +90,8 @@ class State(object):
             logger.info('Metadata not set. Cannot calculate properties')
         else:
             logger.info('')
+# **TODO: add metadata summary
             logger.info('Pipeline summary:')
-
             logger.info('\t Products saved with {0}. telcal calibration with {1}.'.format(self.fileroot, os.path.basename(self.gainfile)))
             logger.info('\t Using {0} segment{1} of {2} ints ({3:.1f} s) with overlap of {4:.1f} s'.format(self.nsegment, "s"[not self.nsegment-1:], self.readints, self.t_segment, self.t_overlap))
             if self.t_overlap > self.t_segment/3. and self.t_overlap < self.t_segment:
@@ -386,7 +386,7 @@ class State(object):
             if self.prefs.nsegment:
                 self._segmenttimes = calc_segment_times(self)
             else:
-                self._segmenttimes = find_segment_times(self)
+                find_segment_times(self)
 
         return self._segmenttimes
 
@@ -407,29 +407,35 @@ class State(object):
 
 
     @property
-    def readints(self):
-        """ Number of integrations read per segment. 
-        Defines shape of numpy array for visibilities.
-        """
-
-        return int(round(self.t_segment / self.metadata.inttime))
-
-
-    @property
     def nints(self):
         if self.metadata.nints:
-            return self.metadata.nints  # if using sdm, nints is known
-        else:
-#            return int(round(self.nsegment*self.fringetime/self.metadata.inttime))  # else this is open ended
+            return self.metadata.nints  # if nints known (e.g., from sdm) or set (e.g., forced during vys reading)
+        elif self.prefs.nsegment:  # if overloading segment time calculation
             return int(round((self.nsegment*self.fringetime - self.t_overlap*(self.nsegment-1))/self.metadata.inttime))  # else this is open ended
+        else:
+            raise ValueError, "Number of integrations in scan is not known or cannot be inferred. Set metadata.nints of prefs.nsegment."
 
 
     @property
     def t_segment(self):
         """ Time read per segment in seconds """
 
-        totaltimeread = 24*3600*(self.segmenttimes[:, 1] - self.segmenttimes[:, 0]).sum()            # not guaranteed to be the same for each segment
-        return totaltimeread/self.nsegment
+        if self.metadata.nints:
+            totaltimeread = 24*3600*(self.segmenttimes[:, 1] - self.segmenttimes[:, 0]).sum()            # not guaranteed to be the same for each segment
+            return totaltimeread/self.nsegment
+        elif self.prefs.nsegment:
+            return self.nints*self.metadata.inttime/self.nsegment
+        else:
+            raise ValueError, "Number of integrations in scan is not known or cannot be inferred. Set metadata.nints of prefs.nsegment."
+
+
+    @property
+    def readints(self):
+        """ Number of integrations read per segment. 
+        Defines shape of numpy array for visibilities.
+        """
+
+        return int(round(self.t_segment / self.metadata.inttime))
 
 
     @property
@@ -465,32 +471,46 @@ class State(object):
 
     @property
     def vismem(self):
-        return self.memory_footprint(visonly=True)
-
-
-    def memory_footprint(self, visonly=False, limit=False):
-        """ Calculates the memory required to store visibilities and make images.
-        limit=True returns a the minimum memory configuration
-        Returns tuple of (vismem, immem) in units of GB.
+        """ Memory required to store read data (in GB)
         """
 
         toGB = 8/1024.**3   # number of complex64s to GB
 
-        # limit defined for dm sweep time and max nchunk/nthread ratio
-        if limit:
-            readints_scale = (self.t_overlap/self.metadata.inttime)/self.readints
-            vismem = self.datasize * readints_scale * toGB
+        return self.datasize * toGB
 
-            nchunk_scale = max(self.dtarr)/min(self.dtarr)
-            immem = self.prefs.nthread * (self.readints/(self.prefs.nthread*nchunk_scale) * self.npixx * self.npixy) * toGB
-        else:
-            vismem = self.datasize * toGB
-            immem = self.prefs.nthread * (self.readints/self.prefs.nthread * self.npixx * self.npixy) * toGB
 
-        if visonly:
-            return vismem
-        else:
-            return (vismem, immem)
+    @property
+    def vismem_limit(self):
+        """ Memory required to store read data (in GB)
+        Limit defined for time range equal to the overlap time between segments.
+        """
+
+        toGB = 8/1024.**3   # number of complex64s to GB
+        return toGB*long(self.t_overlap/self.metadata.inttime*self.nbl*self.nchan*self.npol/(self.prefs.read_tdownsample*self.prefs.read_fdownsample))
+
+
+    @property
+    def immem(self):
+        """ Memory required to create all images in a chunk of read integrations
+        """
+
+        toGB = 8/1024.**3   # number of complex64s to GB
+        immem = self.prefs.nthread * (self.readints/self.prefs.nthread * self.npixx * self.npixy) * toGB
+
+        return immem
+
+
+    @property
+    def immem_limit(self):
+        """ Memory required to create all images in a chunk of read integrations
+        Limit defined for 
+        """
+
+        toGB = 8/1024.**3   # number of complex64s to GB
+        nchunk_scale = max(self.dtarr)/min(self.dtarr)
+        immem = self.prefs.nthread * ((self.t_overlap/self.metadata.inttime)/(self.prefs.nthread*nchunk_scale) * self.npixx * self.npixy) * toGB
+
+        return immem
 
 
     @property
@@ -581,7 +601,7 @@ def calc_segment_times(state, nsegment=0):
     nsegment = nsegment if nsegment else state.nsegment
 
     # this casts to int (flooring) to avoid 0.5 int rounding issue. 
-    stopdts = np.linspace(state.t_overlap/state.metadata.inttime, state.nints, state.nsegment+1)[1:]   # nseg+1 assures that at least one seg made
+    stopdts = np.linspace(state.t_overlap/state.metadata.inttime, state.nints, nsegment+1)[1:]   # nseg+1 assures that at least one seg made
     startdts = np.concatenate( ([0], stopdts[:-1]-state.t_overlap/state.metadata.inttime) )
             
     segmenttimes = []
@@ -599,49 +619,42 @@ def find_segment_times(state):
     """ Iterates to optimal segment time list, given memory and fringe time limits.
     Segment sizes bounded by fringe time and memory limit,
     Solution found by iterating from fringe time to memory size that fits.
+
+    **TODO: this is still pretty awkward. Setting nsegment and nints may produce different outcomes.
     """
 
-    assert state.source == "sdm", "Can only find segment times for data stream with defined end time (sdm for now)"
+    assert state.metadata.nints or state.prefs.nsegment, "Can only find segment times if nints or nsegments defined"
 
     # initialize at fringe time limit. nsegment must be between 1 and state.nints
     scale_nsegment = 1.
-    nsegment = max(1, min(state.nints, int(scale_nsegment*state.metadata.inttime*state.nints/(state.fringetime-state.t_overlap))))
+    nsegment = max(1, min(state.metadata.nints, int(round(scale_nsegment*state.metadata.inttime*state.metadata.nints/(state.fringetime-state.t_overlap)))))  # at least 1, at most nints
+    state._segmenttimes = calc_segment_times(state, nsegment)
 
     # calculate memory limit to stop iteration
-    (vismem0, immem0) = state.memory_footprint(limit=True)
-    assert vismem0+immem0 < state.prefs.memory_limit, 'memory_limit of {0} is smaller than best solution of {1}. Try forcing nsegment/nchunk larger than {2}/{3} or reducing maxdm/npix'.format(state.prefs.memory_limit, vismem0+immem0, state.nsegment, max(state.dtarr)/min(state.dtarr))
+    assert state.immem_limit+state.vismem_limit < state.prefs.memory_limit, 'memory_limit of {0} is smaller than best solution of {1}. Try forcing nsegment/nchunk larger than {2}/{3} or reducing maxdm/npix'.format(state.prefs.memory_limit, state.immem_limit+state.vismem_limit, state.nsegment, max(state.dtarr)/min(state.dtarr))
 
-    (vismem, immem) = state.memory_footprint()
-    if vismem+immem > state.prefs.memory_limit:
-        logger.info('Over memory limit of {4} when reading {0} segments with {1} chunks ({2}/{3} GB for visibilities/imaging). Searching for solution down to {5}/{6} GB...'.format(state.nsegment, state.prefs.nchunk, vismem, immem, state.prefs.memory_limit, vismem0, immem0))
+    if state.vismem+state.immem > state.prefs.memory_limit:
+        logger.info('Over memory limit of {4} when reading {0} segments with {1} chunks ({2}/{3} GB for visibilities/imaging). Searching for solution down to {5}/{6} GB...'.format(state.nsegment, state.prefs.nchunk, state.vismem, state.immem, state.prefs.memory_limit, state.vismem_limit, state.immem_limit))
 
         while vismem+immem > state.prefs.memory_limit:
-            (vismem, immem) = state.memory_footprint()
-            logger.debug('Using {0} segments with {1} chunks ({2}/{3} GB for visibilities/imaging). Searching for better solution...'.format(state.prefs.nchunk, vismem, immem, state.prefs.memory_limit))
+            logger.debug('Using {0} segments with {1} chunks ({2}/{3} GB for visibilities/imaging). Searching for better solution...'.format(state.prefs.nchunk, state.vismem, state.immem, state.prefs.memory_limit))
 
-            scale_nsegment *= (vismem+immem)/float(state.prefs.memory_limit)
-            nsegment = max(1, min(state.nints, int(scale_nsegment*state.metadata.inttime*state.nints/(fringetime-state.t_overlap))))  # at least 1, at most nints
-            segmenttimes = calc_segment_times(state, nsegment=nsegment)
+            scale_nsegment *= (state.vismem+state.immem)/float(state.prefs.memory_limit)
+            nsegment = max(1, min(state.metadata.nints, int(round(scale_nsegment*state.metadata.inttime*state.metadata.nints/(state.fringetime-state.t_overlap)))))  # at least 1, at most nints
+            state._segmenttimes = calc_segment_times(state, nsegment=nsegment)
 
-            (vismem, immem) = state.memory_footprint()
-            while vismem+immem > state.prefs.memory_limit:
+            while state.vismem+state.immem > state.prefs.memory_limit:
                 logger.debug('Doubling nchunk from %d to fit in %d GB memory limit.' % (state.prefs.nchunk, state.prefs.memory_limit))
                 self.prefs.nchunk = 2*self.prefs.nchunk
-                (vismem, immem) = state.memory_footprint()
                 if self.prefs.nchunk >= max(self.dtarr)/min(self.dtarr)*self.nthread: # limit nchunk/nthread to at most the range in dt
                     self.nchunk = self.nthread
                     break
 
-                (vismem, immem) = state.memory_footprint()
-
     # final set up of memory
-    (vismem, immem) = state.memory_footprint()
-    segmenttimes = calc_segment_times(state)
-
-    return segmenttimes
+    state._segmenttimes = calc_segment_times(state)
 
 
-def state_vystest(wait, nsegment=1, preffile=None, **kwargs):
+def state_vystest(wait, nsegment=0, scantime=0, preffile=None, **kwargs):
     """ Create state to read vys data after wait seconds with nsegment segments.
     kwargs passed in as preferences via inpref argument to State.
     """
@@ -652,19 +665,30 @@ def state_vystest(wait, nsegment=1, preffile=None, **kwargs):
         logger.error('ImportError for evla_mcast. Need this library to consume multicast messages from CBE.')
 
     meta = {}
+    prefs = {}
+
+    # set start time (and fix antids)
     dt = time.TimeDelta(wait, format='sec')
     t0 = (time.Time.now()+dt).mjd
     meta['starttime_mjd'] = t0
     meta['antids'] = ['ea{0}'.format(i) for i in range(1,26)]  # fixed for scan_config test docs
 
-    prefs = {}
-    for key in kwargs:
-        prefs[key] = kwargs[key]
-    prefs['nsegment'] = nsegment
-
+    # read example scan configuration
     config = scan_config.ScanConfig(vci='/home/cbe-master/realfast/soft/evla_mcast/test/data/test_vci.xml',
                                     obs='/home/cbe-master/realfast/soft/evla_mcast/test/data/test_obs.xml',
                                     ant='/home/cbe-master/realfast/soft/evla_mcast/test/data/test_antprop.xml')
+
+    # define amount of time to catch either by nsegment or by setting total time
+    if nsegment and not scantime:
+        for key in kwargs:
+            prefs[key] = kwargs[key]
+        prefs['nsegment'] = nsegment
+    elif scantime and not nsegment:
+        subband0 = config.get_subbands()[0]
+        inttime = subband0.hw_time_res  # assumes that vys stream comes after hw integration
+        nints = int(scantime/inttime)
+        logger.info('Pipeline will be set to catch {0} s of data ({1} integrations)'.format(scantime, nints))
+        meta['nints'] = nints
 
     st = State(config=config, preffile=preffile, inmeta=meta, inprefs=prefs)
 

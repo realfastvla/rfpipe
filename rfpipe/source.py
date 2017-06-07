@@ -68,9 +68,6 @@ def read_vys_seg(st, seg, cfile=None, timeout=10):
     logger.info('Reading %d ints of size %f s from %d - %d unix seconds' % (st.readints, st.metadata.inttime, t0, t1))
 
 #    data = np.empty( (st.readints, st.metadata.nbl_orig, st.metadata.nchan_orig, st.metadata.npol_orig), dtype='complex64', order='C')
-#    data = timefilter.filter1(t0, t1, nant=st.nants, nspw=st.nspw, nchan=st.metadata.spw_nchan[0], npol=st.npol, 
-#                              inttime_micros=st.metadata.inttime*1e6, cfile=cfile, timeout=timeout, excludeants=st.prefs.excludeants)
-
     with vysmaw_reader.Reader(t0, t1, cfile=cfile) as reader:
         data = reader.readwindow(nant=st.nants, nspw=st.nspw, nchan=st.metadata.spw_nchan[0], npol=st.npol, 
                                  inttime_micros=st.metadata.inttime*1e6, timeout=timeout, excludeants=st.prefs.excludeants)
