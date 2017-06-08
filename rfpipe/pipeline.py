@@ -10,8 +10,9 @@ from . import state, source, search, util
 import distributed
 import numpy as np
 
+vys_timeout_default = 10
 
-def pipeline_scan(st, host='cbe-node-01', cfile=None):
+def pipeline_scan(st, host='cbe-node-01', cfile=None, vys_timeout=vys_timeout_default):
     """ Given rfpipe state and dask distributed client, run search pipline """
 
     saved = []
@@ -19,7 +20,7 @@ def pipeline_scan(st, host='cbe-node-01', cfile=None):
     cl = distributed.Client('{0}:{1}'.format(host, '8786'))
 
     for segment in range(st.nsegment):
-        saved.append(pipeline_seg(st, segment, cl, cfile=cfile))
+        saved.append(pipeline_seg(st, segment, cl, cfile=cfile, vys_timeout=vys_timeout))
 
     return saved
 
@@ -36,7 +37,7 @@ def pipeline_vystest(wait, nsegment=1, host='cbe-node-01', preffile=None, cfile=
     return saved
 
 
-def pipeline_seg(st, segment, cl, workers=None, cfile=None):
+def pipeline_seg(st, segment, cl, workers=None, cfile=None, vys_timeout=vys_timeout_default):
     """ Run segment pipelne with cl.submit calls """
 
 # alternative formulation with dask.delayed:
@@ -56,7 +57,7 @@ def pipeline_seg(st, segment, cl, workers=None, cfile=None):
     if st.source == 'sdm':
         data_prep = cl.submit(source.dataprep, st, segment, pure=True, workers=workers, allow_other_workers=allow_other_workers)
     elif st.source == 'config':
-        data_prep = cl.submit(source.read_vys_seg, st, segment, cfile=cfile)
+        data_prep = cl.submit(source.read_vys_seg, st, segment, timeout=vys_timeout, cfile=cfile)
     else:
         logger.error('Data source {0} not recognized.'.format(st.source))
 #    cl.replicate([data_prep, uvw, wisdom])  # spread data around to search faster
