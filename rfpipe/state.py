@@ -37,7 +37,7 @@ class State(object):
     - uvoversample + npix_max + metadata => npixx, npixy
     """
 
-    def __init__(self, config=None, sdmfile=None, scan=None, inprefs={}, inmeta={}, preffile=None, name=None, version=1):
+    def __init__(self, config=None, sdmfile=None, sdmscan=None, inprefs={}, inmeta={}, preffile=None, name=None, version=1):
         """ Initialize preference attributes with text file, preffile.
         name can select preference set from within yaml file.
         preferences are overloaded with inprefs.
@@ -45,7 +45,7 @@ class State(object):
 
         Metadata source can be:
         1) Config object is (expected to be) like EVLA_config object prototyped for pulsar work by Paul.
-        2) sdmfile and scan are as in rtpipe.
+        2) sdmfile and sdmscan are as in rtpipe.
 
         inmeta is a dict with key-value pairs to overload metadata (e.g., to mock metadata from a simulation)
         """
@@ -53,7 +53,7 @@ class State(object):
         self.version = version
         self.config = config
         self.sdmfile = sdmfile
-        self.scan = scan
+        self.sdmscan = sdmscan
 
         # get pipeline preferences
         prefs = preferences.parsepreffile(preffile)  # returns empty dict for paramfile=None
@@ -89,8 +89,16 @@ class State(object):
         if self.metadata.atdefaults():
             logger.info('Metadata not set. Cannot calculate properties')
         else:
-            logger.info('')
-# **TODO: add metadata summary
+            logger.info('Metadata summary:')
+            logger.info('\t Working directory and fileroot: {0}, {1}'.format(self.metadata.workdir, self.fileroot))
+            logger.info('\t Using scan {0}, source {1}'.format(int(self.metadata.scan), self.metadata.source))
+            logger.info('\t nants, nbl: {0}, {1}'.format(self.nants, self.nbl))
+            logger.info('\t nchan, nspw: {0}, {1}'.format(self.nchan, self.nspw))
+            logger.info('\t Freq range: {0:.3f} -- {1:.3f}'.format(self.freq.min(), self.freq.max()))
+            logger.info('\t Scan has {0} ints ({0:.1f} s) and inttime {1:.3f} s'.format(self.nints, self.nints*self.metadata.inttime, self.metadata.inttime))
+            logger.info('\t {0} polarizations: {1}'.format(self.metadata.npol_orig, self.metadata.pols_orig))
+            logger.info('\t Ideal uvgrid npix=({0}, {1}) and res={2} (oversample {3:.1f})'.format(self.npixx_full, self.npixy_full, self.uvres_full, self.prefs.uvoversample))
+
             logger.info('Pipeline summary:')
             logger.info('\t Products saved with {0}. telcal calibration with {1}.'.format(self.fileroot, os.path.basename(self.gainfile)))
             logger.info('\t Using {0} segment{1} of {2} ints ({3:.1f} s) with overlap of {4:.1f} s'.format(self.nsegment, "s"[not self.nsegment-1:], self.readints, self.t_segment, self.t_overlap))
@@ -98,6 +106,9 @@ class State(object):
                 logger.info('\t\t Lots of segments needed, since Max DM sweep ({0:.1f} s) close to segment size ({1:.1f} s)'.format(self.t_overlap, self.t_segment))
             elif self.t_overlap >= self.t_segment:
                 logger.warn('\t\t Max DM sweep ({0:.1f} s) is larger than segment size ({1:.1f} s). Pipeline will fail!'.format(self.t_overlap, self.t_segment))
+
+            if self.metadata.inttime > self.fringetime:
+                logger.warn('\t\t Integration time larger than fringe timescale ({0} > {1}). Mean visibility subtraction will not work well.'.format(self.metadata.inttime, self.fringetime))
 
             logger.info('\t Downsampling in time/freq by {0}/{1}.'.format(self.prefs.read_tdownsample, self.prefs.read_fdownsample))
             logger.info('\t Excluding ants {0}'.format(self.prefs.excludeants))
@@ -117,9 +128,9 @@ class State(object):
 
     @property
     def source(self):
-        if (self.sdmfile and self.scan) and not self.config:
+        if (self.sdmfile and self.sdmscan) and not self.config:
             return "sdm"
-        elif self.config and not (self.sdmfile or self.scan):
+        elif self.config and not (self.sdmfile or self.sdmscan):
             return "config"
         else:
             return None
