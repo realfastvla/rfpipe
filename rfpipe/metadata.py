@@ -35,13 +35,13 @@ class Metadata(object):
     source = attr.ib(default=None)
     radec = attr.ib(default=None)
     inttime = attr.ib(default=None)
-    nints = attr.ib(default=None)
+# **TODO: need to think about which of nints and endditme is more fundamental. make other a derived property
+#    nints = attr.ib(default=None) 
     telescope = attr.ib(default=None)
 
     # array/antenna info
     starttime_mjd = attr.ib(default=None)
-# **TODO: need to think about which of nints and endditme is more fundamental. make other a derived property
-#    endtime_mjd = attr.ib(default=None)
+    endtime_mjd = attr.ib(default=None)
     dishdiameter = attr.ib(default=None)
     intent = attr.ib(default=None)
     antids = attr.ib(default=None)
@@ -113,12 +113,17 @@ class Metadata(object):
         return qa.time(qa.quantity(self.starttime_mjd,'d'), form="ymd", prec=8)[0]
 
 
+#    @property
+#    def endtime_mjd(self):
+#        if self.nints:
+#            return self.starttime_mjd + (self.nints*self.inttime)/(24*3600)
+#        else:
+#            return None
+
+
     @property
-    def endtime_mjd(self):
-        if self.nints:
-            return self.starttime_mjd + (self.nints*self.inttime)/(24*3600)
-        else:
-            return None
+    def nints(self):
+        return (self.starttime_mjd - self.stoptime_mjd)*(24*3600)/self.inttime
 
 
     @property
@@ -151,7 +156,7 @@ def config_metadata(config):
 
     meta['starttime_mjd'] = config.startTime
 # **TODO: need to think about which of these two is more fundamental. make other a derived property
-#    meta['endtime_mjd'] =  # no such thing, yet
+    meta['endtime_mjd'] =  config.stopTime
 #    meta['nints'] = # no such thing, yet
     meta['source'] = config.source
     meta['intent'] = config.scan_intent
@@ -200,8 +205,9 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     meta['starttime_mjd'] = starttime_mjd
     nints = scanobj.bdf.numIntegration
     inttime = scanobj.bdf.get_integration(0).interval
+    meta['endtime_mjd'] = scanobj.bdf.stopTime
     meta['inttime'] = inttime
-    meta['nints'] = nints
+#    meta['nints'] = nints
     meta['source'] = str(scanobj.source)
     meta['intent'] = ' '.join(scanobj.intents)
     meta['telescope'] = str(sdm['ExecBlock'][0]['telescopeName']).strip()
@@ -227,7 +233,7 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     return meta
 
 
-def mock_metadata(t0, nants, nspw, nchan, npol, inttime_micros, **kwargs):
+def mock_metadata(t0, t1, nants, nspw, nchan, npol, inttime_micros, **kwargs):
     """ Wraps Metadata call to provide immutable, attribute-filled class instance.
     Parallel structure to sdm_metadata, so this inherits some of its nomenclature.
     t0, t1 are times in mjd.
@@ -244,9 +250,8 @@ def mock_metadata(t0, nants, nspw, nchan, npol, inttime_micros, **kwargs):
     meta['bdfstr'] = ''
 
     meta['starttime_mjd'] = t0
-#    meta['endtime_mjd'] =  t1
+    meta['endtime_mjd'] =  t1
     meta['inttime'] = inttime_micros/1e6
-#    meta['nints'] = (t1-t0)*24*3600/meta['inttime']
     meta['source'] = 'testsource'
     meta['intent'] = 'OBSERVE_TARGET'
     meta['telescope'] = 'VLA'
