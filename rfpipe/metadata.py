@@ -123,7 +123,7 @@ class Metadata(object):
 
     @property
     def nints(self):
-        return (self.starttime_mjd - self.stoptime_mjd)*(24*3600)/self.inttime
+        return (self.endtime_mjd - self.starttime_mjd)*(24*3600)/self.inttime
 
 
     @property
