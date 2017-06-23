@@ -20,6 +20,7 @@ except ImportError:
 
 import pwkit.environments.casa.util as casautil
 qa = casautil.tools.quanta()
+default_timeout = 10
 
 
 def sdm_sources(sdmname):
@@ -54,12 +55,80 @@ def getsdm(*args, **kwargs):
     return sdm
 
 
-def dataprep(st, segment):
-    data_read = read_bdf_segment(st, segment)
-    return data_read
+def read_segment(st, segment, cfile=None, timeout=default_timeout):
+    """ Read a segment of data, apply antenna flags, calibration and other data preparation.
+    cfile and timeout are specific to vys data.
+    """
 
 
-def read_vys_seg(st, seg, cfile=None, timeout=10):
+    if ...:
+        data_read = read_bdf_segment(st, segment)
+    else ... :  
+        data_read = read_vys_segment(st, segment, cfile=cfile, timeout=timeout)
+
+    # read Flag.xml and apply flags for given ant/time range
+    if st.prefs.applyonlineflags:
+
+        sdm = getsdm(st.metadata.filename, bdfdir=st.metadata.bdfdir)
+        scan = sdm.scan(st.metadata.scan)
+
+        # segment flagged from logical OR from (start, stop) flags
+        t0,t1 = st.segmenttimes[segment]
+        flags = scan.flags([t0,t1]).all(axis=0)  # 0=bad, 1=good. axis=0 is time axis.
+
+        if not flags.all():
+            logger.info('Found antennas to flag in time range {0}-{1} '.format(t0, t1))
+            data = np.where(flags[None,:,None, None] == 1, data, 0j)
+        else:
+            logger.info('No flagged antennas in time range {0}-{1} '.format(t0, t1))
+    else:
+        logger.info('Not applying online flags.')
+
+    # If spw are rolled, roll them to increasing frequency order
+    dfreq = np.array([st.metadata.spw_reffreq[i+1] - st.metadata.spw_reffreq[i]
+                      for i in range(len(st.metadata.spw_reffreq)-1)])
+    dfreqneg = [df for df in dfreq if df < 0]     # not a perfect test of permutability!
+
+    if len(dfreqneg) <= 1:
+        if len(dfreqneg) == 1:
+            logger.info('Rolling spw frequencies to increasing order: %s'
+                        % str(st.metadata.spw_reffreq))
+            rollch = np.sum([st.metadata.spw_nchan[ss]
+                             for ss in range(np.where(dfreq < 0)[0][0]+1)])
+            data = np.roll(data, rollch, axis=2)
+    else:
+        raise StandardError('SPW out of order and can\'t be permuted '
+                            'to increasing order: %s'
+                            % str(st.metadata.spw_reffreq))
+
+    # optionally integrate (downsample)
+    if ((st.prefs.read_tdownsample > 1) or (st.prefs.read_fdownsample > 1)):
+        raise NotImplementedError
+
+        sh = data.shape
+        tsize = sh[0]/st.prefs.read_tdownsample
+        fsize = sh[2]/st.prefs.read_fdownsample
+        data2 = np.zeros((tsize, sh[1], fsize, sh[3]), dtype='complex64')
+        if st.prefs.read_tdownsample > 1:
+            logger.info('Downsampling in time by {0}'.format(st.prefs.read_tdownsample))
+            for i in range(tsize):
+                data2[i] = data[
+                    i*st.prefs.read_tdownsample:(i+1)*st.prefs.read_tdownsample].mean(axis=0)
+        if st.prefs.read_fdownsample > 1:
+            logger.info('Downsampling in frequency by {0}'.format(st.prefs.read_fdownsample))
+            for i in range(fsize):
+                data2[:, :, i, :] = data[
+                    :, :, i * st.prefs.read_fdownsample:(i+1)*st.prefs.read_fdownsample].mean(axis=2)
+        data = data2
+
+#    takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
+#    logger.debug('Selecting pols {0}'.format(st.pols))
+#    return data.take(st.chans, axis=2).take(takepol, axis=3)
+
+    return data.take(st.chans, axis=2)
+
+
+def read_vys_seg(st, seg, cfile=None, timeout=default_timeout):
     """ Read segment seg defined by state st from vys stream.
     Uses vysmaw application timefilter to receive multicast messages and pull spectra on the CBE.
     """
@@ -112,68 +181,4 @@ def read_bdf_segment(st, segment):
                                                                                      form=['hms'], prec=9)[0]))
     data = read_bdf(st, nskip=nskip).astype('complex64')
 
-    # read Flag.xml and apply flags for given ant/time range
-    if st.prefs.applyonlineflags:
-
-        sdm = getsdm(st.metadata.filename, bdfdir=st.metadata.bdfdir)
-        scan = sdm.scan(st.metadata.scan)
-
-# calculate per int?
-#        timearr = np.linspace(st['segmenttimes'][segment][0],
-#                              st['segmenttimes'][segment][1], st['readints'])
-# or per segment
-        t0,t1 = st.segmenttimes[segment]
-        flags = scan.flags([t0,t1]).all(axis=0)  # 0=bad, 1=good. axis=0 is time axis.
-
-        if not flags.all():
-            logger.info('Found antennas to flag in time range {0}-{1} '.format(t0, t1))
-            data = np.where(flags[None,:,None, None] == 1, data, 0j)
-        else:
-            logger.info('No flagged antennas in time range {0}-{1} '.format(t0, t1))
-    else:
-        logger.info('Not applying online flags.')
-
-    # test that spw are in freq sorted order
-    # only one use case supported: rolled spw
-    dfreq = np.array([st.metadata.spw_reffreq[i+1] - st.metadata.spw_reffreq[i]
-                      for i in range(len(st.metadata.spw_reffreq)-1)])
-    dfreqneg = [df for df in dfreq if df < 0]
-    # if spw are permuted, then roll them.
-    # !! not a perfect test of permutability!!
-    if len(dfreqneg) <= 1:
-        if len(dfreqneg) == 1:
-            logger.info('Rolling spw frequencies to increasing order: %s'
-                        % str(st.metadata.spw_reffreq))
-            rollch = np.sum([st.metadata.spw_nchan[ss]
-                             for ss in range(np.where(dfreq < 0)[0][0]+1)])
-            data = np.roll(data, rollch, axis=2)
-    else:
-        raise StandardError('SPW out of order and can\'t be permuted '
-                            'to increasing order: %s'
-                            % str(st.metadata.spw_reffreq))
-
-    # optionally integrate (downsample)
-    if ((st.prefs.read_tdownsample > 1) or (st.prefs.read_fdownsample > 1)):
-        raise NotImplementedError
-
-        sh = data.shape
-        tsize = sh[0]/st.prefs.read_tdownsample
-        fsize = sh[2]/st.prefs.read_fdownsample
-        data2 = np.zeros((tsize, sh[1], fsize, sh[3]), dtype='complex64')
-        if st.prefs.read_tdownsample > 1:
-            logger.info('Downsampling in time by {0}'.format(st.prefs.read_tdownsample))
-            for i in range(tsize):
-                data2[i] = data[
-                    i*st.prefs.read_tdownsample:(i+1)*st.prefs.read_tdownsample].mean(axis=0)
-        if st.prefs.read_fdownsample > 1:
-            logger.info('Downsampling in frequency by {0}'.format(st.prefs.read_fdownsample))
-            for i in range(fsize):
-                data2[:, :, i, :] = data[
-                    :, :, i * st.prefs.read_fdownsample:(i+1)*st.prefs.read_fdownsample].mean(axis=2)
-        data = data2
-
-    takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
-    logger.debug('Selecting pols {0}'.format(st.pols))
-
-    return data.take(st.chans, axis=2).take(takepol, axis=3)
-
+    return data

@@ -239,7 +239,7 @@ def mock_metadata(t0, nants, nspw, nchan, npol, inttime_micros, **kwargs):
     meta['scan'] = 1
     meta['bdfdir'] = ''
 #    meta['configid'] = 0
-    meta['bdfstr'] = ''
+#    meta['bdfstr'] = ''
 
     meta['starttime_mjd'] = t0
 #    meta['endtime_mjd'] =  t1
@@ -288,3 +288,36 @@ def mock_metadata(t0, nants, nspw, nchan, npol, inttime_micros, **kwargs):
     return meta
 
 
+def oldstate_metadata(d, scan=None, bdfdir=None):
+    """ Parses old state function ("d", a dictionary) into new metadata instance
+    Note: d from merged candidate file will have some parameters defined by last scan.
+    """
+    
+    if not scan: scan = d['scan']
+
+    logger.info('Reading metadata from old state dictionary for scan {0}'.format(scan))
+
+    meta = {}
+    meta['filename'] = d['fileroot']
+    meta['scan'] = scan
+    meta['bdfdir'] = bdfdir
+
+    meta['starttime_mjd'] = d['starttime_mjddict'][scan]
+    meta['inttime'] = d['inttime']
+    meta['nints'] = d['nints']
+
+    meta['source'] = str(d['source'])
+    meta['telescope'] = 'VLA'
+    meta['antids'] = ['ea'+str(ant) for ant in d['ants']]  # ** test that these are the same as what we expected with rtpipe **
+#    meta['xyz'] = #
+
+    meta['radec'] = d['radec']  # ** for last scan! **
+    meta['dishdiameter'] = d['dishdiameter']
+    meta['spw_orig'] = d['spw_orig']
+    meta['spw_nchan'] = d['spw_nchan']
+    meta['spw_reffreq'] = d['spw_reffreq']
+    meta['spw_chansize'] = d['spw_chansize']
+
+    meta['pols_orig'] = d['pols_orig']
+
+    return meta

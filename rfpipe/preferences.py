@@ -132,3 +132,20 @@ def preffiletype(preffile):
         return 'yaml'
     else:
         return None
+
+
+def oldstate_preferences(d):
+    """ Parse old state dictionary "d" and to define preferences instance
+    """
+
+    prefs = {}
+    allowed = attr.asdict(Preferences()).keys()
+
+    for key in d.keys():
+        if key in allowed:
+            prefs[key] = d[key]
+
+    prefs['nsegment'] = d['nsegments']
+    prefs['selectpol'] = 'auto'
+
+    return prefs
