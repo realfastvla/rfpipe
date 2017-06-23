@@ -5,6 +5,9 @@ from io import open
 
 from rtpipe.parsecal import telcal_sol
 
+import logging
+logger = logging.getLogger(__name__)
+
 def apply_telcal(st, segment, data):
     """ Applies gain calibration from telcal file to input data """
 

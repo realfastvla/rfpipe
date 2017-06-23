@@ -5,7 +5,7 @@ from io import open
 
 import logging, os, math, pickle
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+
 import numba
 from numba import cuda
 from numba import jit, vectorize, guvectorize, int32, int64, float_, complex64, bool_

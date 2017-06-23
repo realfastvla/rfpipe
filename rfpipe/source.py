@@ -11,12 +11,6 @@ from lxml.etree import XMLSyntaxError
 import numpy as np
 import sdmpy
 from astropy import time
-try:
-#    import timefilter
-    import vysmaw_reader
-except ImportError:
-    logger.warn('ImportError for vysmaw app. No vysmaw?')
-
 
 import pwkit.environments.casa.util as casautil
 qa = casautil.tools.quanta()
@@ -60,7 +54,6 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
     cfile and timeout are specific to vys data.
     """
 
-
     if ...:
         data_read = read_bdf_segment(st, segment)
     else ... :  
@@ -78,7 +71,7 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
 
         if not flags.all():
             logger.info('Found antennas to flag in time range {0}-{1} '.format(t0, t1))
-            data = np.where(flags[None,:,None, None] == 1, data, 0j)
+            data_read = np.where(flags[None,:,None, None] == 1, data_read, 0j)
         else:
             logger.info('No flagged antennas in time range {0}-{1} '.format(t0, t1))
     else:
@@ -95,7 +88,7 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
                         % str(st.metadata.spw_reffreq))
             rollch = np.sum([st.metadata.spw_nchan[ss]
                              for ss in range(np.where(dfreq < 0)[0][0]+1)])
-            data = np.roll(data, rollch, axis=2)
+            data_read = np.roll(data_read, rollch, axis=2)
     else:
         raise StandardError('SPW out of order and can\'t be permuted '
                             'to increasing order: %s'
@@ -105,7 +98,7 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
     if ((st.prefs.read_tdownsample > 1) or (st.prefs.read_fdownsample > 1)):
         raise NotImplementedError
 
-        sh = data.shape
+        sh = data_read.shape
         tsize = sh[0]/st.prefs.read_tdownsample
         fsize = sh[2]/st.prefs.read_fdownsample
         data2 = np.zeros((tsize, sh[1], fsize, sh[3]), dtype='complex64')
@@ -125,7 +118,7 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
 #    logger.debug('Selecting pols {0}'.format(st.pols))
 #    return data.take(st.chans, axis=2).take(takepol, axis=3)
 
-    return data.take(st.chans, axis=2)
+    return data_read.take(st.chans, axis=2)
 
 
 def read_vys_seg(st, seg, cfile=None, timeout=default_timeout):
@@ -133,35 +126,19 @@ def read_vys_seg(st, seg, cfile=None, timeout=default_timeout):
     Uses vysmaw application timefilter to receive multicast messages and pull spectra on the CBE.
     """
 
+    try:
+        import vysmaw_reader
+    except ImportError:
+        logger.error('ImportError for vysmaw app. Need vysmaw to consume vys data.')
+
     t0 = time.Time(st.segmenttimes[seg][0], format='mjd', precision=9).unix
     t1 = time.Time(st.segmenttimes[seg][1], format='mjd', precision=9).unix
     logger.info('Reading %d ints of size %f s from %d - %d unix seconds' % (st.readints, st.metadata.inttime, t0, t1))
 
-#    data = np.empty( (st.readints, st.metadata.nbl_orig, st.metadata.nchan_orig, st.metadata.npol_orig), dtype='complex64', order='C')
-#    data = timefilter.filter1(t0, t1, nant=st.nants, nspw=st.nspw, nchan=st.metadata.spw_nchan[0], npol=st.npol, 
-#                              inttime_micros=st.metadata.inttime*1e6, cfile=cfile, timeout=timeout, excludeants=st.prefs.excludeants)
-
-    with vysmaw_reader.Reader(t0, t1, cfile=cfile) as reader:
-        data = reader.readwindow(nant=st.nants, nspw=st.nspw, nchan=st.metadata.spw_nchan[0], npol=st.npol, 
-                                 inttime_micros=st.metadata.inttime*1e6, timeout=timeout, excludeants=st.prefs.excludeants)
-
-    return data
-
-
-def read_bdf(st, nskip=0):
-    """ Uses sdmpy to read a given range of integrations from sdm of given scan.
-    readints=0 will read all of bdf (skipping nskip).
-    """
-
-    assert os.path.exists(st.metadata.filename), 'sdmfile {0} does not exist'.format(st.metadata.filename)
-    assert st.metadata.bdfstr, 'bdfstr not defined for scan {0}'.format(st.metadata.scan)
-
-    logger.info('Reading %d ints starting at int %d' % (st.readints, nskip))
-    sdm = getsdm(st.metadata.filename, bdfdir=st.metadata.bdfdir)
-    scan = sdm.scan(st.metadata.scan)
-
     data = np.empty( (st.readints, st.metadata.nbl_orig, st.metadata.nchan_orig, st.metadata.npol_orig), dtype='complex64', order='C')
-    data[:] = scan.bdf.get_data(trange=[nskip, nskip+st.readints]).reshape(data.shape)
+    with vysmaw_reader.Reader(t0, t1, cfile=cfile) as reader:
+        data[:] = reader.readwindow(nant=st.nants, nspw=st.nspw, nchan=st.metadata.spw_nchan[0], npol=st.npol, 
+                                    inttime_micros=st.metadata.inttime*1e6, timeout=timeout, excludeants=st.prefs.excludeants)
 
     return data
 
@@ -180,5 +157,23 @@ def read_bdf_segment(st, segment):
                                                                              qa.time(qa.quantity(st.segmenttimes[segment, 1], 'd'),
                                                                                      form=['hms'], prec=9)[0]))
     data = read_bdf(st, nskip=nskip).astype('complex64')
+
+    return data
+
+
+def read_bdf(st, nskip=0):
+    """ Uses sdmpy to read a given range of integrations from sdm of given scan.
+    readints=0 will read all of bdf (skipping nskip).
+    """
+
+    assert os.path.exists(st.metadata.filename), 'sdmfile {0} does not exist'.format(st.metadata.filename)
+    assert st.metadata.bdfstr, 'bdfstr not defined for scan {0}'.format(st.metadata.scan)
+
+    logger.info('Reading %d ints starting at int %d' % (st.readints, nskip))
+    sdm = getsdm(st.metadata.filename, bdfdir=st.metadata.bdfdir)
+    scan = sdm.scan(st.metadata.scan)
+
+    data = np.empty( (st.readints, st.metadata.nbl_orig, st.metadata.nchan_orig, st.metadata.npol_orig), dtype='complex64', order='C')
+    data[:] = scan.bdf.get_data(trange=[nskip, nskip+st.readints]).reshape(data.shape)
 
     return data

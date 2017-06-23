@@ -1,10 +1,10 @@
 language: python
-python:
-  - "2.7"
+
+python: 2.7
 
 install:
-  - sudo apt-get update
-  - sudo apt-get install libfftw3-dev
+  - sudo apt-get update -y
+  - sudo apt-get install -y libfftw3-dev
 
   # set up conda
   - wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh
@@ -13,24 +13,27 @@ install:
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
-  # Useful for debugging any issues with conda
-  - conda info -a
   - conda config --add channels conda-forge 
   - conda config --append channels pkgw-forge 
-  - conda create -q -n test-environment python=2.7 numpy scipy jupyter bokeh cython matplotlib numba pytest setuptools pip coverage
-  - source activate test-environment
-  - conda install pwkit casa-tools casa-python casa-data
+
+  # install with conda and pip
+  - conda install -q python=2.7 numpy scipy jupyter bokeh cython matplotlib numba pytest setuptools pip coverage pyfftw
+  - conda install -q python=2.7 pwkit casa-tools casa-python casa-data
   - pip install codecov
   - python setup.py install
+
 before_script:
   - git config --global user.email "caseyjlaw@gmail.com"
   - git config --global user.name "Travis-CI"
+
 script: 
   - py.test
+
 after_success:
   - coverage run --source rfpipe -m py.test
   - coverage xml
   - codecov
+
 notifications:
   email: false
   slack: realfastvla:ID1qIFG70HGYf3G6Y3oWoFFk
