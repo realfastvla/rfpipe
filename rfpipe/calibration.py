@@ -86,7 +86,7 @@ def parseGN(telcalfile, onlycomplete=True):
     antnum = n.array(antnum)
 
     sols = {'mjd': mjd, 'utc': utc, 'lstd': lstd, 'lsts': lsts, 'ifid': ifid, 'skyfreq': skyfreq,
-            'antname': antname, 'amp': amp, 'phase', phase, 'residual': residual, 'delay': delay,
+            'antname': antname, 'amp': amp, 'phase': phase, 'residual': residual, 'delay': delay,
             'flagged': flagged, 'zeroed': zeroed, 'ha': ha, 'az': az, 'el': el, 'source': source}
 
     return sols
@@ -159,3 +159,75 @@ def set_selection(sols, time, freqs, blarr):
     logger.debug('IFID: %s' % str(n.unique(sols['ifid'][sols['select']])))
     logger.info('Source: %s' % str(n.unique(sols['source'][sols['select']])))
     logger.debug('Ants: %s' % str(n.unique(sols['antname'][sols['select']])))
+
+
+def apply(sols, data):
+    """ Applies calibration solution to data array. Assumes structure of (nint, nbl, nch, npol).
+    """
+
+    # find best skyfreq for each channel
+    skyfreqs = n.unique(sols['skyfreq'][sols['select']])    # one per spw
+    nch_tot = len(sols['freqs'])
+    chan_bandnum = [range(nch_tot*i/len(skyfreqs), nch_tot*(i+1)/len(skyfreqs)) for i in range(len(skyfreqs))]  # divide chans by number of spw in solution
+    logger.info('Solutions for %d spw: (%s)' % (len(skyfreqs), skyfreqs))
+
+    for j in range(len(skyfreqs)):
+        skyfreq = skyfreqs[j]
+        chans = chan_bandnum[j]
+        logger.info('Applying gain solution for chans from %d-%d' % (chans[0], chans[-1]))
+
+        # define freq structure to apply delay solution
+        nch = len(chans)
+        chanref = nch/2    # reference channel at center
+        relfreq = sols['chansize']*(n.arange(nch) - chanref)   # relative frequency
+
+        for i in range(len(sols['blarr'])):
+            ant1, ant2 = sols['blarr'][i]  # ant numbers (1-based)
+            for pol in sols['polind']:
+                # apply gain correction
+                invg1g2 = calcgain(sols, ant1, ant2, skyfreq, pol)
+                data[:,i,chans,pol-sols['polind'][0]] = data[:,i,chans,pol-sols['polind'][0]] * invg1g2    # hack: lousy data pol indexing
+
+                # apply delay correction
+                d1d2 = calcdelay(sols, ant1, ant2, skyfreq, pol)
+                delayrot = 2*n.pi*(d1d2[0] * 1e-9) * relfreq      # phase to rotate across band
+                data[:,i,chans,pol-sols['polind'][0]] = data[:,i,chans,pol-sols['polind'][0]] * n.exp(-1j*delayrot[None, None, :])     # do rotation
+
+
+def calcgain(sols, ant1, ant2, skyfreq, pol):
+    """ Calculates the complex gain product (g1*g2) for a pair of antennas.
+    """
+
+    select = sols['select'][n.where( (sols['skyfreq'][sols['select']] == skyfreq) & (sols['polarization'][sols['select']] == pol) )[0]]
+
+    if len(select):  # for when telcal solutions don't exist
+        ind1 = n.where(ant1 == sols['antnum'][select])
+        ind2 = n.where(ant2 == sols['antnum'][select])
+        g1 = sols['amp'][select][ind1]*n.exp(1j*n.radians(sols['phase'][select][ind1])) * (not sols['flagged'].astype(int)[select][ind1][0])
+        g2 = sols['amp'][select][ind2]*n.exp(-1j*n.radians(sols['phase'][select][ind2])) * (not sols['flagged'].astype(int)[select][ind2][0])
+    else:
+        g1 = [0]; g2 = [0]
+        
+    try:
+        assert (g1[0] != 0j) and (g2[0] != 0j)
+        invg1g2 = 1./(g1[0]*g2[0])
+    except (AssertionError, IndexError):
+        invg1g2 = 0
+
+    return invg1g2
+
+
+def calcdelay(sols, ant1, ant2, skyfreq, pol):
+    """ Calculates the relative delay (d1-d2) for a pair of antennas in ns.
+    """
+
+    select = sols['select'][n.where( (sols['skyfreq'][sols['select']] == skyfreq) & (sols['polarization'][sols['select']] == pol) )[0]]
+    
+    ind1 = n.where(ant1 == sols['antnum'][select])
+    ind2 = n.where(ant2 == sols['antnum'][select])
+    d1 = sols['delay'][select][ind1]
+    d2 = sols['delay'][select][ind2]
+    if len(d1-d2) > 0:
+        return d1-d2
+    else:
+        return n.array([0])
