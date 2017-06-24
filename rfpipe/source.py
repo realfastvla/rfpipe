@@ -12,8 +12,6 @@ import numpy as np
 import sdmpy
 from astropy import time
 from . import search, calibration
-from . import calibration 
-
 
 import pwkit.environments.casa.util as casautil
 qa = casautil.tools.quanta()
@@ -24,7 +22,7 @@ def data_prep(st, data):
     """ Applies calibration, flags, and subtracts time mean for data.
     """
 
-    data = apply_telcal(st, data)  # ** need to make this portable or at least reimplement in rfpipe
+    data = calibration.apply_telcal(st, data)  # ** need to make this portable or at least reimplement in rfpipe
 
     # ** these probably deserve their own rfpipe module. dataflag not even in rfpipe yet.
     data = search.dataflag(data)  
@@ -162,30 +160,6 @@ def read_bdf(st, nskip=0):
 
     data = np.empty( (st.readints, st.metadata.nbl_orig, st.metadata.nchan_orig, st.metadata.npol_orig), dtype='complex64', order='C')
     data[:] = scan.bdf.get_data(trange=[nskip, nskip+st.readints]).reshape(data.shape)
-
-    return data
-
-
-def apply_telcal(st, data):
-    """ Parse telcalfile and apply gain solutions to data
-    """
-
-    import rtpipe.parsecal as pc  # ** replace with module in rfpipe **
-    import rtlib_cython as rtlib
-
-    # **hack!**
-    d = {'dataformat': 'sdm', 'ants': [ant.lstrip('ea') for ant in st.ants], 'excludeants': st.prefs.excludeants, 'nants': len(st.ants)}
-
-    if os.path.exists(st.gainfile):
-        assert '.GN' in st.gainfile
-        radec = (); spwind = []; calname = ''  # set defaults
-
-        sols = pc.telcal_sol(st.gainfile)   # parse gainfile
-        sols.set_selection(st.segmenttimes.mean(), st.freq*1e9, rtlib.calc_blarr(d),
-                           calname=calname, pols=st.pols, radec=radec, spwind=spwind)                # if gainfile parsed ok, choose best solution for data
-        sols.apply(data)
-    else:
-        logger.warn('No telcalfile {0} found.'.format(st.gainfile))
 
     return data
 
