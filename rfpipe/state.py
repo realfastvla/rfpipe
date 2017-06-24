@@ -67,9 +67,9 @@ class State(object):
         logger.parent.setLevel(getattr(logging, self.prefs.loglevel))
 
         # get metadata
-        if self.source == "sdm":
-            meta = metadata.sdm_metadata(sdmfile, scan)
-        elif self.source == "config":
+        if (self.sdmfile and self.sdmscan) and not self.config:
+            meta = metadata.sdm_metadata(sdmfile, sdmscan)
+        elif self.config and not (self.sdmfile or self.sdmscan):
             meta = metadata.config_metadata(config)
         else:
             meta = {}
@@ -124,16 +124,6 @@ class State(object):
             logger.info('\t Visibility memory usage is {0} GB/segment'.format(self.vismem))
 #            logger.info('\t Imaging in {0} chunk{1} using max of {2} GB/segment'.format(self.nchunk, "s"[not self.nsegment-1:], immem))
 #            logger.info('\t Grand total memory usage: {0} GB/segment'.format(vismem + immem))
-
-
-    @property
-    def source(self):
-        if (self.sdmfile and self.sdmscan) and not self.config:
-            return "sdm"
-        elif self.config and not (self.sdmfile or self.sdmscan):
-            return "config"
-        else:
-            return None
 
 
     @property
@@ -208,8 +198,16 @@ class State(object):
 
 
     @property
+    def spw(self):
+        if self.prefs.spw:
+            return self.prefs.spw
+        else:
+            return self.metadata.spw_orig
+
+
+    @property
     def nspw(self):
-        return len(self.metadata.spw_orig[self.prefs.spw] if self.prefs.spw else self.metadata.spw_orig)
+        return len(self.spw)
 
 
 #    @property

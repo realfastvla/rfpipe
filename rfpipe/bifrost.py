@@ -1,4 +1,10 @@
-from __future__ import print_function, division, absolute_import
+#from __future__ import print_function, division, absolute_import, unicode_literals
+#from builtins import str, bytes, dict, object, range, map, input
+from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
+from io import open
+
+import logging
+logger = logging.getLogger(__name__)
 
 import sys, time, glob
 from datetime import datetime
@@ -14,9 +20,6 @@ import sdmpy
 from rfpipe.search import meantsub, dedisperse, resample_image
 from rfpipe.source import dataprep
 from rfpipe.calibration import apply_telcal
-
-import logging
-logger = logging.getLogger(__name__)
 
 #resample_image(data, dt, uvw, freqs, npixx, npixy, uvres, threshold, wisdom)
 

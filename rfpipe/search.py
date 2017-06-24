@@ -16,7 +16,7 @@ import pyfftw
 ## utilities
 ##
 
-#@jit(nopython=True, nogil=True)
+@jit(nopython=True, nogil=True)
 def uvcell(uv, freq, freqref, uvres):
     """ Given a u or v coordinate, scale by freq and round to units of uvres """
 
@@ -47,7 +47,41 @@ def runcuda(func, arr, threadsperblock, *args, **kwargs):
 ## data prep
 ##
 
-#@jit(nogil=True, nopython=True)
+def dataflag(st, data):
+    """ Flagging data in single process 
+    """
+
+    import rtlib_cython as rtlib
+
+    # **hack!**
+    d = {'dataformat': 'sdm', 'ants': [ant.lstrip('ea') for ant in st.ants], 'excludeants': st.prefs.excludeants, 'nants': len(st.ants)}
+
+    for flag in st.prefs.flaglist:
+        mode, sig, conv = flag
+        for ss in st.spw:
+            chans = n.arange(st.metadata.spw_chanr_select[ss][0], st.metadata.spw_chanr_select[ss][1])
+            for pol in range(st.npol):
+                status = rtlib.dataflag(data, chans, pol, d, sig, mode, conv)
+                logger.info(status)
+
+    # hack to get rid of bad spw/pol combos whacked by rfi
+    if hasattr(st.prefs, 'badspwpol'):
+        logger.info('Comparing overall power between spw/pol. Removing those with %d times typical value' % st.prefs.badspwpol)
+        spwpol = {}
+        for spw in st.spw:
+            chans = n.arange(st.metadata.spw_chanr_select[spw][0], st.metadtaa.spw_chanr_select[spw][1])
+            for pol in range(st.npol):
+                spwpol[(spw, pol)] = n.abs(data[:,:,chans,pol]).std()
+        
+        meanstd = n.mean(spwpol.values())
+        for (spw,pol) in spwpol:
+            if spwpol[(spw, pol)] > st.prefs.badspwpol*meanstd:
+                logger.info('Flagging all of (spw %d, pol %d) for excess noise.' % (spw, pol))
+                chans = n.arange(st.metadata.spw_chanr_select[spw][0], st.metadata.spw_chanr_select[spw][1])
+                data[:,:,chans,pol] = 0j
+
+
+@jit(nogil=True, nopython=True)
 def meantsub(data):
     """ Calculate mean in time (ignoring zeros) and subtract in place
 
@@ -91,7 +125,7 @@ def meantsub(data):
 #                res[i,j,k] = data[i,j,k] - mean
     
 
-#@jit(nogil=True, nopython=True)
+@jit(nogil=True, nopython=True)
 def dedisperse(data, delay):
     """ Dispersion shift to new array """
 
@@ -111,7 +145,7 @@ def dedisperse(data, delay):
         return data
 
 
-#@jit(nogil=True, nopython=True)
+@jit(nogil=True, nopython=True)
 def resample(data, dt):
     """ Resample (integrate) in place by factor dt """
 

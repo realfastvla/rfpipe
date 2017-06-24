@@ -11,53 +11,40 @@ from lxml.etree import XMLSyntaxError
 import numpy as np
 import sdmpy
 from astropy import time
+from . import search, calibration
+from . import calibration 
+
 
 import pwkit.environments.casa.util as casautil
 qa = casautil.tools.quanta()
 default_timeout = 10
 
 
-def sdm_sources(sdmname):
-    """ Use sdmpy to get all sources and ra,dec per scan as dict """
+def data_prep(st, data):
+    """ Applies calibration, flags, and subtracts time mean for data.
+    """
 
-    sdm = getsdm(sdmname)
-    sourcedict = {}
+    data = apply_telcal(st, data)  # ** need to make this portable or at least reimplement in rfpipe
 
-    for row in sdm['Field']:
-        src = str(row.fieldName)
-        sourcenum = int(row.sourceId)
-        direction = str(row.referenceDir)
-        (ra,dec) = [float(val) for val in direction.split(' ')[3:]]  # skip first two values in string
+    # ** these probably deserve their own rfpipe module. dataflag not even in rfpipe yet.
+    data = search.dataflag(data)  
+    data = search.meantsub(data)
 
-        sourcedict[sourcenum] = {}
-        sourcedict[sourcenum]['source'] = src
-        sourcedict[sourcenum]['ra'] = ra
-        sourcedict[sourcenum]['dec'] = dec
-
-    return sourcedict
-
-
-def getsdm(*args, **kwargs):
-    """ Wrap sdmpy.SDM to get around schema change error """
-
-    try:
-        sdm = sdmpy.SDM(*args, **kwargs)
-    except XMLSyntaxError:
-        kwargs['use_xsd'] = False
-        sdm = sdmpy.SDM(*args, **kwargs)
-
-    return sdm
+    return data
 
 
 def read_segment(st, segment, cfile=None, timeout=default_timeout):
-    """ Read a segment of data, apply antenna flags, calibration and other data preparation.
+    """ Read a segment of data and do low-level data preparation.
+    Optionally applies antenna flags, rolls out of order data, and can downsample data in time or frequency.
     cfile and timeout are specific to vys data.
     """
 
-    if ...:
+    if st.metadata.datasource == 'sdm':
         data_read = read_bdf_segment(st, segment)
-    else ... :  
+    elif st.metadata.datasource == 'vys':
         data_read = read_vys_segment(st, segment, cfile=cfile, timeout=timeout)
+    else:
+        logger.error('Datasource {0} not recognized.'.format(st.metadata.datasource))
 
     # read Flag.xml and apply flags for given ant/time range
     if st.prefs.applyonlineflags:
@@ -177,3 +164,59 @@ def read_bdf(st, nskip=0):
     data[:] = scan.bdf.get_data(trange=[nskip, nskip+st.readints]).reshape(data.shape)
 
     return data
+
+
+def apply_telcal(st, data):
+    """ Parse telcalfile and apply gain solutions to data
+    """
+
+    import rtpipe.parsecal as pc  # ** replace with module in rfpipe **
+    import rtlib_cython as rtlib
+
+    # **hack!**
+    d = {'dataformat': 'sdm', 'ants': [ant.lstrip('ea') for ant in st.ants], 'excludeants': st.prefs.excludeants, 'nants': len(st.ants)}
+
+    if os.path.exists(st.gainfile):
+        assert '.GN' in st.gainfile
+        radec = (); spwind = []; calname = ''  # set defaults
+
+        sols = pc.telcal_sol(st.gainfile)   # parse gainfile
+        sols.set_selection(st.segmenttimes.mean(), st.freq*1e9, rtlib.calc_blarr(d),
+                           calname=calname, pols=st.pols, radec=radec, spwind=spwind)                # if gainfile parsed ok, choose best solution for data
+        sols.apply(data)
+    else:
+        logger.warn('No telcalfile {0} found.'.format(st.gainfile))
+
+    return data
+
+
+def sdm_sources(sdmname):
+    """ Use sdmpy to get all sources and ra,dec per scan as dict """
+
+    sdm = getsdm(sdmname)
+    sourcedict = {}
+
+    for row in sdm['Field']:
+        src = str(row.fieldName)
+        sourcenum = int(row.sourceId)
+        direction = str(row.referenceDir)
+        (ra,dec) = [float(val) for val in direction.split(' ')[3:]]  # skip first two values in string
+
+        sourcedict[sourcenum] = {}
+        sourcedict[sourcenum]['source'] = src
+        sourcedict[sourcenum]['ra'] = ra
+        sourcedict[sourcenum]['dec'] = dec
+
+    return sourcedict
+
+
+def getsdm(*args, **kwargs):
+    """ Wrap sdmpy.SDM to get around schema change error """
+
+    try:
+        sdm = sdmpy.SDM(*args, **kwargs)
+    except XMLSyntaxError:
+        kwargs['use_xsd'] = False
+        sdm = sdmpy.SDM(*args, **kwargs)
+
+    return sdm

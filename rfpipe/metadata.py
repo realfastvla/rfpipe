@@ -25,6 +25,7 @@ class Metadata(object):
     """
 
     # basics
+    datasource = attr.ib(default=None)
     filename = attr.ib(default=None)
     scan = attr.ib(default=None)
     bdfdir = attr.ib(default=None)
@@ -35,13 +36,12 @@ class Metadata(object):
     source = attr.ib(default=None)
     radec = attr.ib(default=None)
     inttime = attr.ib(default=None)
-# **TODO: need to think about which of nints and endditme is more fundamental. make other a derived property
-#    nints = attr.ib(default=None) 
+    nints_ = attr.ib(default=None) 
     telescope = attr.ib(default=None)
 
     # array/antenna info
     starttime_mjd = attr.ib(default=None)
-    endtime_mjd = attr.ib(default=None)
+    endtime_mjd_ = attr.ib(default=None)
     dishdiameter = attr.ib(default=None)
     intent = attr.ib(default=None)
     antids = attr.ib(default=None)
@@ -113,17 +113,28 @@ class Metadata(object):
         return qa.time(qa.quantity(self.starttime_mjd,'d'), form="ymd", prec=8)[0]
 
 
-#    @property
-#    def endtime_mjd(self):
-#        if self.nints:
-#            return self.starttime_mjd + (self.nints*self.inttime)/(24*3600)
-#        else:
-#            return None
+    @property
+    def endtime_mjd(self):
+        """ If nints_ is defined (e.g., for SDM data), then endtime_mjd is calculated.
+        Otherwise (e.g., for scan_config/vys data), it looks for endtime_mjd_0 attribute
+        """
+
+        if self.nints_:
+            return self.starttime_mjd + (self.nints_*self.inttime)/(24*3600)
+        else:
+            return self.endtime_mjd_
 
 
     @property
     def nints(self):
-        return (self.endtime_mjd - self.starttime_mjd)*(24*3600)/self.inttime
+        """ If endtime_mjd_ is defined (e.g., for scan_config/vys data), then endtime_mjd is calculated.
+        Otherwise (e.g., for SDM data), it looks for nints_ attribute
+        """
+
+        if self.endtime_mjd_:
+            return (self.endtime_mjd_ - self.starttime_mjd)*(24*3600)/self.inttime
+        else:
+            return self.nints_
 
 
     @property
@@ -142,27 +153,28 @@ class Metadata(object):
         return len(self.pols_orig)
 
 
-def config_metadata(config):
+def config_metadata(config, datasource='vys'):
     """ Wraps Metadata call to provide immutable, attribute-filled class instance.
     Parallel structure to sdm_metadata, so this inherits some of its nomenclature.
+    datasource defines expected data source (vys expected when using scan config)
     """
 
     logger.info('Reading metadata from config object')
 
     meta = {}
+    meta['datasource'] = datasource
     meta['filename'] = config.datasetId
     meta['scan'] = config.scanNo
 #    meta['configid'] = config.Id
 
     meta['starttime_mjd'] = config.startTime
 # **TODO: need to think about which of these two is more fundamental. make other a derived property
-    meta['endtime_mjd'] =  config.stopTime
-#    meta['nints'] = # no such thing, yet
-    meta['source'] = config.source
-    meta['intent'] = config.scan_intent
-    meta['telescope'] = config.telescope
+    meta['endtime_mjd_'] =  config.stopTime
+    meta['source'] = str(config.source)
+    meta['intent'] = str(config.scan_intent)
+    meta['telescope'] = str(config.telescope)
     antennas = config.get_antennas()
-    meta['antids'] = [ant.name for ant in antennas]
+    meta['antids'] = [str(ant.name) for ant in antennas]
 #    meta['stationids'] = config.listOfStations
     meta['xyz'] = np.array([ant.xyz for ant in antennas])
 
@@ -191,6 +203,7 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     scanobj = sdm.scan(scan)
 
     meta = {}
+    meta['datasource'] = 'sdm'
     meta['filename'] = sdmfile
     meta['scan'] = scan
     meta['bdfdir'] = bdfdir
@@ -205,13 +218,12 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     meta['starttime_mjd'] = starttime_mjd
     nints = scanobj.bdf.numIntegration
     inttime = scanobj.bdf.get_integration(0).interval
-    meta['endtime_mjd'] = scanobj.bdf.stopTime
     meta['inttime'] = inttime
-#    meta['nints'] = nints
+    meta['nints_'] = nints
     meta['source'] = str(scanobj.source)
     meta['intent'] = ' '.join(scanobj.intents)
     meta['telescope'] = str(sdm['ExecBlock'][0]['telescopeName']).strip()
-    meta['antids'] = scanobj.antennas  # ** test that these are the same as what we expected with rtpipe **
+    meta['antids'] = [str(ant) for ant in scanobj.antennas]  # ** test that these are the same as what we expected with rtpipe **
 #    meta['stationids'] = scanobj.stations
     meta['xyz'] = np.array(scanobj.positions)
 
@@ -233,16 +245,18 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     return meta
 
 
-def mock_metadata(t0, t1, nants, nspw, nchan, npol, inttime_micros, **kwargs):
+def mock_metadata(t0, t1, nants, nspw, nchan, npol, inttime_micros, datasource='vys', **kwargs):
     """ Wraps Metadata call to provide immutable, attribute-filled class instance.
     Parallel structure to sdm_metadata, so this inherits some of its nomenclature.
     t0, t1 are times in mjd.
     Supports up to nant=27, npol=4, and nspw=8.
+    datasource is expected source of data (typically vys when mocking)
     """
 
     logger.info('Generating mock metadata')
 
     meta = {}
+    meta['datasource'] = datasource
     meta['filename'] = 'test'
     meta['scan'] = 1
     meta['bdfdir'] = ''
@@ -250,7 +264,7 @@ def mock_metadata(t0, t1, nants, nspw, nchan, npol, inttime_micros, **kwargs):
 #    meta['bdfstr'] = ''
 
     meta['starttime_mjd'] = t0
-    meta['endtime_mjd'] =  t1
+    meta['endtime_mjd_'] =  t1
     meta['inttime'] = inttime_micros/1e6
     meta['source'] = 'testsource'
     meta['intent'] = 'OBSERVE_TARGET'
@@ -305,13 +319,14 @@ def oldstate_metadata(d, scan=None, bdfdir=None):
     logger.info('Reading metadata from old state dictionary for scan {0}'.format(scan))
 
     meta = {}
+    meta['datasource'] = 'sdm'
     meta['filename'] = d['fileroot']
     meta['scan'] = scan
     meta['bdfdir'] = bdfdir
 
     meta['starttime_mjd'] = d['starttime_mjddict'][scan]
     meta['inttime'] = d['inttime']
-    meta['nints'] = d['nints']
+    meta['nints_'] = d['nints']
 
     meta['source'] = str(d['source'])
     meta['telescope'] = 'VLA'
