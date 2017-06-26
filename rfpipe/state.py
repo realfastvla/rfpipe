@@ -371,9 +371,14 @@ class State(object):
     @property
     def blarr(self):
         if not hasattr(self, '_blarr'):
-            self._blarr = np.array([ [self.ants[i], self.ants[j]] for j in range(self.nants) for i in range(0,j)])
+            self._blarr = np.array([ [int(self.ants[i].lstrip('ea')), int(self.ants[j].lstrip('ea'))] for j in range(self.nants) for i in range(0,j)])
 
         return self._blarr
+
+
+    @property
+    def blarr_names(self):
+        return np.array([ [self.ants[i], self.ants[j]] for j in range(self.nants) for i in range(0,j)])
 
 
     @property
