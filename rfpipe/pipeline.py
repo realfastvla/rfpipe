@@ -54,7 +54,7 @@ def pipeline_seg(st, segment, cl, workers=None, cfile=None, vys_timeout=vys_time
     wisdom = cl.submit(search.set_wisdom, st.npixx, st.npixy, pure=True, workers=workers, allow_other_workers=allow_other_workers)
 
     logger.info('Reading data...')
-    data_prep = cl.submit(source.dataprep, st, segment, timeout=vys_timeout, cfile=cfile, pure=True, workers=workers, allow_other_workers=allow_other_workers)
+    data_prep = cl.submit(source.data_prep, st, segment, timeout=vys_timeout, cfile=cfile, pure=True, workers=workers, allow_other_workers=allow_other_workers)
 #    cl.replicate([data_prep, uvw, wisdom])  # spread data around to search faster
 
     # **TODO: need to add condition on data_prep being nonzero

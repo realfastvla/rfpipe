@@ -22,10 +22,12 @@ def data_prep(st, data):
     """ Applies calibration, flags, and subtracts time mean for data.
     """
 
-    calibration.apply_telcal(st, data)  # ** need to make this portable or at least reimplement in rfpipe
+    # ** need to make this portable or at least reimplement in rfpipe
+    calibration.apply_telcal(st, data)  
 
     # ** dataflag points to rtpipe for now
     util.dataflag(st, data)
+
     util.meantsub(data)
 
 
