@@ -11,7 +11,7 @@ from lxml.etree import XMLSyntaxError
 import numpy as np
 import sdmpy
 from astropy import time
-from . import search, calibration
+from . import util, calibration
 
 import pwkit.environments.casa.util as casautil
 qa = casautil.tools.quanta()
@@ -22,13 +22,11 @@ def data_prep(st, data):
     """ Applies calibration, flags, and subtracts time mean for data.
     """
 
-    data = calibration.apply_telcal(st, data)  # ** need to make this portable or at least reimplement in rfpipe
+    calibration.apply_telcal(st, data)  # ** need to make this portable or at least reimplement in rfpipe
 
-    # ** these probably deserve their own rfpipe module. dataflag not even in rfpipe yet.
-    data = search.dataflag(data)  
-    data = search.meantsub(data)
-
-    return data
+    # ** dataflag points to rtpipe for now
+    util.dataflag(st, data)
+    util.meantsub(data)
 
 
 def read_segment(st, segment, cfile=None, timeout=default_timeout):

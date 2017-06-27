@@ -10,6 +10,110 @@ import pwkit.environments.casa.util as casautil
 qa = casautil.tools.quanta()
 me = casautil.tools.measures()
 
+from numba import cuda
+from numba import jit, complex64
+import numpy as np
+
+
+##
+## data prep
+##
+
+def dataflag(st, data):
+    """ Flagging data in single process 
+    """
+
+    import rtlib_cython as rtlib
+
+    # **hack!**
+    d = {'dataformat': 'sdm', 'ants': [int(ant.lstrip('ea')) for ant in st.ants], 'excludeants': st.prefs.excludeants, 'nants': len(st.ants)}
+
+    for flag in st.prefs.flaglist:
+        mode, sig, conv = flag
+        for ss in st.spw:
+            chans = np.arange(st.metadata.spw_nchan[ss]*ss, st.metadata.spw_nchan[ss]*(1+ss))
+            for pol in range(st.npol):
+                status = rtlib.dataflag(data, chans, pol, d, sig, mode, conv)
+                logger.info(status)
+
+    # hack to get rid of bad spw/pol combos whacked by rfi
+    if hasattr(st.prefs, 'badspwpol'):
+        logger.info('Comparing overall power between spw/pol. Removing those with %d times typical value' % st.prefs.badspwpol)
+        spwpol = {}
+        for spw in st.spw:
+            chans = np.arange(st.metadata.spw_nchan[ss]*ss, st.metadata.spw_nchan[ss]*(1+ss))
+            for pol in range(st.npol):
+                spwpol[(spw, pol)] = np.abs(data[:,:,chans,pol]).std()
+        
+        meanstd = np.mean(spwpol.values())
+        for (spw,pol) in spwpol:
+            if spwpol[(spw, pol)] > st.prefs.badspwpol*meanstd:
+                logger.info('Flagging all of (spw %d, pol %d) for excess noise.' % (spw, pol))
+                chans = np.arange(st.metadata.spw_nchan[ss]*ss, st.metadata.spw_nchan[ss]*(1+ss))
+                data[:,:,chans,pol] = 0j
+
+
+@jit(nogil=True, nopython=True)
+def meantsub(data):
+    """ Calculate mean in time (ignoring zeros) and subtract in place
+
+    Could ultimately parallelize by computing only on subset of data.
+    """
+
+    nint, nbl, nchan, npol = data.shape
+
+    for i in range(nbl):
+        for j in range(nchan):
+            for k in range(npol):
+                ss = complex64(0)
+                weight = 0
+                for l in range(nint):
+                    ss += data[l, i, j, k]
+                    if data[l, i, j, k] != 0j:
+                        weight = weight + 1
+                if weight:
+                    mean = ss/weight
+                else:
+                    mean = 0j
+                for l in range(nint):
+                    data[l, i, j, k] -= mean
+#    return data
+
+
+#@guvectorize([(complex64[:,:,:], complex64[:,:,:])], '(m,n,o)->(m,n,o)', nopython=True, target='parallel')
+#def meantsub_gu(data, res):
+#    """ Vectorizes over time axis *at end*. Use np.moveaxis(0, 3) for input visbility array """ 
+#
+#    for i in range(data.shape[0]):
+#        for j in range(data.shape[1]):
+#            ss = complex64(0)
+#            weight = int32(0)
+#            for k in range(data.shape[2]):
+#                ss += data[i,j,k]
+#                if data[i,j,k] != 0j:
+#                    weight = weight + 1
+#                mean = ss/weight
+#            for k in range(data.shape[0]):
+#                res[i,j,k] = data[i,j,k] - mean
+    
+
+@cuda.jit
+def meantsub_cuda(data):
+    """ Calculate mean in time (ignoring zeros) and subtract in place """
+
+    x,y,z = cuda.grid(3)
+    nint, nbl, nchan, npol = data.shape
+    if x < nbl and y < nchan and z < npol:
+        sum = complex64(0)
+        weight = 0
+        for i in range(nint):
+            sum = sum + data[i, x, y, z]
+            if data[i,x,y,z] == 0j:
+                weight = weight + 1
+        mean = sum/weight
+        for i in range(nint):
+            data[i, x, y, z] = data[i, x, y, z] - mean
+
 
 def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
     """ Calculates and returns uvw in meters for a given time and pointing direction.

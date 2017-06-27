@@ -11,10 +11,8 @@ from numba import cuda
 from numba import jit, vectorize, guvectorize, int32, int64, float_, complex64, bool_
 import numpy as np
 import pyfftw
+# import pycuda?
 
-##
-## utilities
-##
 
 @jit(nopython=True, nogil=True)
 def uvcell(uv, freq, freqref, uvres):
@@ -42,88 +40,6 @@ def runcuda(func, arr, threadsperblock, *args, **kwargs):
         blockspergrid.append = int32(math.ceil(sh / tpb))
     func[tuple(blockspergrid), threadsperblock](arr, *args, **kwargs)
 
-
-##
-## data prep
-##
-
-def dataflag(st, data):
-    """ Flagging data in single process 
-    """
-
-    import rtlib_cython as rtlib
-
-    # **hack!**
-    d = {'dataformat': 'sdm', 'ants': [ant.lstrip('ea') for ant in st.ants], 'excludeants': st.prefs.excludeants, 'nants': len(st.ants)}
-
-    for flag in st.prefs.flaglist:
-        mode, sig, conv = flag
-        for ss in st.spw:
-            chans = n.arange(st.metadata.spw_chanr_select[ss][0], st.metadata.spw_chanr_select[ss][1])
-            for pol in range(st.npol):
-                status = rtlib.dataflag(data, chans, pol, d, sig, mode, conv)
-                logger.info(status)
-
-    # hack to get rid of bad spw/pol combos whacked by rfi
-    if hasattr(st.prefs, 'badspwpol'):
-        logger.info('Comparing overall power between spw/pol. Removing those with %d times typical value' % st.prefs.badspwpol)
-        spwpol = {}
-        for spw in st.spw:
-            chans = n.arange(st.metadata.spw_chanr_select[spw][0], st.metadtaa.spw_chanr_select[spw][1])
-            for pol in range(st.npol):
-                spwpol[(spw, pol)] = n.abs(data[:,:,chans,pol]).std()
-        
-        meanstd = n.mean(spwpol.values())
-        for (spw,pol) in spwpol:
-            if spwpol[(spw, pol)] > st.prefs.badspwpol*meanstd:
-                logger.info('Flagging all of (spw %d, pol %d) for excess noise.' % (spw, pol))
-                chans = n.arange(st.metadata.spw_chanr_select[spw][0], st.metadata.spw_chanr_select[spw][1])
-                data[:,:,chans,pol] = 0j
-
-
-@jit(nogil=True, nopython=True)
-def meantsub(data):
-    """ Calculate mean in time (ignoring zeros) and subtract in place
-
-    Could ultimately parallelize by computing only on subset of data.
-    """
-
-    nint, nbl, nchan, npol = data.shape
-
-    for i in range(nbl):
-        for j in range(nchan):
-            for k in range(npol):
-                ss = complex64(0)
-                weight = 0
-                for l in range(nint):
-                    ss += data[l, i, j, k]
-                    if data[l, i, j, k] != 0j:
-                        weight = weight + 1
-                if weight:
-                    mean = ss/weight
-                else:
-                    mean = 0j
-                for l in range(nint):
-                    data[l, i, j, k] -= mean
-    return data
-
-
-#@guvectorize([(complex64[:,:,:], complex64[:,:,:])], '(m,n,o)->(m,n,o)', nopython=True, target='parallel')
-#def meantsub_gu(data, res):
-#    """ Vectorizes over time axis *at end*. Use np.moveaxis(0, 3) for input visbility array """ 
-#
-#    for i in range(data.shape[0]):
-#        for j in range(data.shape[1]):
-#            ss = complex64(0)
-#            weight = int32(0)
-#            for k in range(data.shape[2]):
-#                ss += data[i,j,k]
-#                if data[i,j,k] != 0j:
-#                    weight = weight + 1
-#                mean = ss/weight
-#            for k in range(data.shape[0]):
-#                res[i,j,k] = data[i,j,k] - mean
-    
 
 @jit(nogil=True, nopython=True)
 def dedisperse(data, delay):
@@ -169,27 +85,10 @@ def resample(data, dt):
         return data
 
 
-
 ##
 ## CUDA 
 ##
 
-@cuda.jit
-def meantsub_cuda(data):
-    """ Calculate mean in time (ignoring zeros) and subtract in place """
-
-    x,y,z = cuda.grid(3)
-    nint, nbl, nchan, npol = data.shape
-    if x < nbl and y < nchan and z < npol:
-        sum = complex64(0)
-        weight = 0
-        for i in range(nint):
-            sum = sum + data[i, x, y, z]
-            if data[i,x,y,z] == 0j:
-                weight = weight + 1
-        mean = sum/weight
-        for i in range(nint):
-            data[i, x, y, z] = data[i, x, y, z] - mean
 
 ## 
 ## fft and imaging
