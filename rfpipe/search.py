@@ -239,25 +239,26 @@ def save_cands(st, candidates, search_coords):
     Writes to location defined by state using a file lock to allow multiple writers.
     """
 
-    segment = search_coords['segment']
+    if st.prefs.savecands:
+        segment = search_coords['segment']
 
-    df = pd.DataFrame(OrderedDict(zip(st.search_dimensions, candidates.keys())))
-    df2 = pd.DataFrame(OrderedDict(zip(st.features, candidates.values())))
-    df3 = pd.concat([df, df2], axis=1)
+        df = pd.DataFrame(OrderedDict(zip(st.search_dimensions, candidates.keys())))
+        df2 = pd.DataFrame(OrderedDict(zip(st.features, candidates.values())))
+        df3 = pd.concat([df, df2], axis=1)
 
-    df3.metadata = st.metadata
-    df3.prefs = st.prefs
+        df3.metadata = st.metadata
+        df3.prefs = st.prefs
 
-    try:
-        with fileLock.FileLock(st.candsfile+'.lock', timeout=10):
-            with open(st.candsfile, 'wb') as pkl:
+        try:
+            with fileLock.FileLock(st.candsfile+'.lock', timeout=10):
+                with open(st.candsfile, 'wb') as pkl:
+                    pickle.dump(df3, pkl)
+        except FileLock.FileLockException:
+            suffix = ''.join([str(key)+str(dd[key]) for key in search_coords])
+            newcandsfile = st.candsfile+suffix
+            logger.warn('Candidate file writing timeout. Spilling to new file {0}.'.format(newcandsfile))
+            with open(newcandsfile, 'wb') as pkl:
                 pickle.dump(df3, pkl)
-    except FileLock.FileLockException:
-        suffix = ''.join([str(key)+str(dd[key]) for key in search_coords])
-        newcandsfile = st.candsfile+suffix
-        logger.warn('Candidate file writing timeout. Spilling to new file {0}.'.format(newcandsfile))
-        with open(newcandsfile, 'wb') as pkl:
-            pickle.dump(df3, pkl)
         
 
 def candplot(imgall, data_dm):

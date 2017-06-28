@@ -55,30 +55,40 @@ class State(object):
         self.sdmfile = sdmfile
         self.sdmscan = sdmscan
 
-        # get pipeline preferences
-        prefs = preferences.parsepreffile(preffile)  # returns empty dict for paramfile=None
+        if isinstance(inprefs, dict):
+            # get pipeline preferences
+            prefs = preferences.parsepreffile(preffile)  # returns empty dict for paramfile=None
 
-        # optionally overload preferences
-        for key in inprefs:
-            prefs[key] = inprefs[key]
-
-        self.prefs = preferences.Preferences(**prefs)
+            # optionally overload preferences
+            for key in inprefs:
+                prefs[key] = inprefs[key]
+                
+            self.prefs = preferences.Preferences(**prefs)
+        elif isinstance(inprefs, preferences.Preferences):
+            self.prefs = inprefs
+        else:
+            logger.warn('inprefs should be either a dictionary or preferences.Preferences object')
 
         logger.parent.setLevel(getattr(logging, self.prefs.loglevel))
 
-        # get metadata
-        if (self.sdmfile and self.sdmscan) and not self.config:
-            meta = metadata.sdm_metadata(sdmfile, sdmscan)
-        elif self.config and not (self.sdmfile or self.sdmscan):
-            meta = metadata.config_metadata(config)
+        if isinstance(inmeta, dict):
+            # get metadata
+            if (self.sdmfile and self.sdmscan) and not self.config:
+                meta = metadata.sdm_metadata(sdmfile, sdmscan)
+            elif self.config and not (self.sdmfile or self.sdmscan):
+                meta = metadata.config_metadata(config)
+            else:
+                meta = {}
+
+            # optionally overload metadata
+            for key in inmeta:
+                meta[key] = inmeta[key]
+
+            self.metadata = metadata.Metadata(**meta)
+        elif isinstance(inmeta, metadata.Metadata):
+            self.metadata = inmeta
         else:
-            meta = {}
-
-        # optionally overload metadata
-        for key in inmeta:
-            meta[key] = inmeta[key]
-
-        self.metadata = metadata.Metadata(**meta)
+            logger.warn('inmeta should be either a dictionary or metadata.Metadata object')
 
         if showsummary:
             self.summarize()
