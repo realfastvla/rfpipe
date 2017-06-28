@@ -17,9 +17,8 @@ import bifrost.blocks as blocks
 import bifrost.views as views
 import sdmpy
 
-from rfpipe.search import meantsub, dedisperse, resample_image
-from rfpipe.source import dataprep
-from rfpipe.calibration import apply_telcal
+from rfpipe.util import meantsub, dedisperse, resample_image
+from rfpipe.source import data_prep
 
 #resample_image(data, dt, uvw, freqs, npixx, npixy, uvres, threshold, wisdom)
 

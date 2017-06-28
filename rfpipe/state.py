@@ -9,7 +9,7 @@ logging.captureWarnings(True)
 logger = logging.getLogger(__name__)
 
 import json, attr, os, yaml
-from . import source, util, preferences, metadata
+from rfpipe import source, util, preferences, metadata
 import numpy as np
 from scipy.special import erf
 from astropy import time

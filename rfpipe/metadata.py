@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 import os.path, attr
 
 import numpy as np
-from . import util, source
+from rfpipe import source, util
 
 import pwkit.environments.casa.util as casautil
 qa = casautil.tools.quanta()

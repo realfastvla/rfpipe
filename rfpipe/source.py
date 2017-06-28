@@ -11,7 +11,7 @@ from lxml.etree import XMLSyntaxError
 import numpy as np
 import sdmpy
 from astropy import time
-from . import util, calibration
+from rfpipe import util, calibration
 
 import pwkit.environments.casa.util as casautil
 qa = casautil.tools.quanta()

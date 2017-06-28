@@ -6,7 +6,7 @@ from io import open
 import logging
 logger = logging.getLogger(__name__)
 
-from . import state, source, search, util
+from rfpipe import state, source, search, util
 import distributed
 import numpy as np
 

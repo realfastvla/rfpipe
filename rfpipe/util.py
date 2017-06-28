@@ -15,8 +15,6 @@ from numba import jit, complex64
 import numpy as np
 import pandas
 
-from . import preferences, metadata
-
 ##
 ## data prep
 ##
@@ -117,6 +115,17 @@ def meantsub_cuda(data):
             data[i, x, y, z] = data[i, x, y, z] - mean
 
 
+def calc_delay(freq, freqref, dm, inttime):
+    """ Calculates the delay due to dispersion relative to freqref in integer units of inttime """
+
+    delay = np.zeros(len(freq), dtype=np.int32)
+
+    for i in range(len(freq)):
+        delay[i] = np.round(4.1488e-3 * dm * (1./freq[i]**2 - 1./freqref**2)/inttime, 0)
+
+    return delay
+
+
 def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
     """ Calculates and returns uvw in meters for a given time and pointing direction.
     datetime is time (as string) to calculate uvw (format: '2014/09/03/08:33:04.20')
@@ -155,42 +164,3 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
     return u, v, w
 
 
-def calc_delay(freq, freqref, dm, inttime):
-    """ Calculates the delay due to dispersion relative to freqref in integer units of inttime """
-
-    delay = np.zeros(len(freq), dtype=np.int32)
-
-    for i in range(len(freq)):
-        delay[i] = np.round(4.1488e-3 * dm * (1./freq[i]**2 - 1./freqref**2)/inttime, 0)
-
-    return delay
-
-
-def oldcands_read(candsfile, sdmscan=None, sdmfile=None):
-    """ Read old-style candfile and create new-style DataFrame
-    """
-
-
-    with open(candsfile) as pkl:                                                                                                       
-        d = pickle.load(pkl)
-        loc, prop = pickle.load(pkl)
-
-    colnames = d['featureind']
-
-    prefs = preferences.Preferences(**rfpipe.preferences.oldstate_preferences(d))
-    if sdmfile and sdmscan:
-        st = rfpipe.state.State(sdmfile=sdmfile, sdmscan=sdmscan, inprefs=prefs)
-    else:
-        meta = metadata.Metadata(**rfpipe.metadata.oldstate_metadata(d, scan=sdmscan))
-        st = state.State(inprefs=prefs, inmeta=meta)
-
-    # ** Probably also need to iterate state definition for each scan
-
-    df = pandas.DataFrame(OrderedDict(zip(colnames, loc.transpose())))
-    df2 = pandas.DataFrame(OrderedDict(zip(st.features, prop.transpose())))
-    df3 = pandas.concat([df, df2], axis=1)
-
-    df3.metadata = meta
-    df3.prefs = prefs
-
-    return df3
