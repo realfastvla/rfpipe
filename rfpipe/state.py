@@ -137,6 +137,10 @@ class State(object):
 #            logger.info('\t Grand total memory usage: {0} GB/segment'.format(vismem + immem))
 
 
+    def clearcache(self):
+        del self._dmarr, self._t_overlap, self._dmshifts, self._npol, self._blarr, self._segmenttimes
+
+
     @property
     def fileroot(self):
         # **TODO: update for sdm or config sources
