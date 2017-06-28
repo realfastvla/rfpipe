@@ -12,7 +12,8 @@ from numba import jit, vectorize, guvectorize, int32, int64, float_, complex64, 
 import numpy as np
 import pyfftw
 # import pycuda?
-
+import pandas as pd
+from collections import OrderedDict
 
 @jit(nopython=True, nogil=True)
 def uvcell(uv, freq, freqref, uvres):
@@ -183,28 +184,80 @@ def image_arm():
 ## candidates and features
 ##
 
-def calc_features(imgall, dmind, dt, dtind, segment, featurelist):
-    ims, snr, candints = imgall
-    beamnum = 0
+def calc_features(st, imgall, search_coords):
+    """ Calculates the candidate featuers for a given search of a segment of data.
+    imgall is a tuple returned from the search function.
+    search_coords is a dictionary of dimension name (e.g., dtind) and the value searched.
+    returns dictionary of candidate with keys as defined in st.search_dimensions
+    """
 
-    feat = {}
+    ims, snr, candints = imgall
+
+    # ** need some thinking about how to use st.search_dimensions here
+    segment = search_coords['segment']
+    dmind = search_coords['dmind']
+    dtind = search_coords['dtind']
+    beamnum = search_coords['beamnum']
+    dt = st.dtarr[search_coords['dtind']]
+
+    candidates = {}
     for i in xrange(len(candints)):
         candid =  (segment, candints[i]*dt, dmind, dtind, beamnum)
 
         # assemble feature in requested order
         ff = []
-        for feature in featurelist:
-            if feature == 'snr1':
+        for feat in st.features:
+            if feat == 'snr1':
                 ff.append(snr[i])
-            elif feature == 'immax1':
+            elif feat == 'immax1':
                 if snr[i] > 0:
                     ff.append(ims[i].max())
                 else:
                     ff.append(ims[i].min())
 
-        feat[candid] = list(ff)
-    return feat
+        candidates[candid] = list(ff)
 
+    return candidates
+
+
+# If we need to collect from multiple segments...
+#
+#def collect_cands(feature_list):
+#
+#    cands = {}
+#    for features in feature_list:
+#        for kk in features.iterkeys():
+#            cands[kk] = features[kk]
+#                
+#    return cands
+
+
+def save_cands(st, candidates, search_coords):
+    """ Save candidates in reproducible form.
+    Saves as DataFrame with metadata and preferences attached.
+    Writes to location defined by state using a file lock to allow multiple writers.
+    """
+
+    segment = search_coords['segment']
+
+    df = pandas.DataFrame(OrderedDict(zip(st.search_dimensions, candidates.keys())))
+    df2 = pandas.DataFrame(OrderedDict(zip(st.features, candidates.values())))
+    df3 = pandas.concat([df, df2], axis=1)
+
+    df3.metadata = meta
+    df3.prefs = prefs
+
+    try:
+        with fileLock.FileLock(st.candsfile+'.lock', timeout=10):
+            with open(st.candsfile, 'w') as pkl:
+                pickle.dump(df3, pkl)
+    except FileLock.FileLockException:
+        suffix = ''.join([str(key)+str(dd[key]) for key in search_coords])
+        newcandsfile = st.candsfile+suffix
+        logger.warn('Candidate file writing timeout. Spilling to new file {0}.'.format(newcandsfile))
+        with open(newcandsfile, 'w') as pkl:
+            pickle.dump(df3, pkl)
+        
 
 def candplot(imgall, data_dm):
     """ Takes results of imaging threshold operation and data to make candidate plot """
@@ -212,24 +265,3 @@ def candplot(imgall, data_dm):
     pass
 
 
-def collect_cands(feature_list):
-
-    cands = {}
-    for features in feature_list:
-        for kk in features.iterkeys():
-            cands[kk] = features[kk]
-                
-    return cands
-
-
-def save_cands(st, cands, segment):
-    """ Save all candidates in pkl file for later aggregation and filtering.
-    domock is option to save simulated cands file
-    """
-
-    candsfile = os.path.join(st.metadata.workdir, 'cands_' + st.fileroot + '_sc' + str(st.metadata.scan) + 'seg' + str(segment) + '.pkl')
-    with open(candsfile, 'wb') as pkl:
-        pickle.dump(st, pkl)
-        pickle.dump(cands, pkl)
-
-    return cands

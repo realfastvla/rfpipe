@@ -46,7 +46,7 @@ def pipeline_seg(st, segment, cl, workers=None, cfile=None, vys_timeout=vys_time
 #    return cl.persist(saved)
 
 
-    features = []
+#    features = []
     allow_other_workers = workers != None
 
     # plan fft
@@ -75,11 +75,13 @@ def pipeline_seg(st, segment, cl, workers=None, cfile=None, vys_timeout=vys_time
             ims_thresh = cl.submit(search.resample_image, data_dm, st.dtarr[dtind], uvw, st.freq, st.npixx, st.npixy, st.uvres, st.prefs.sigma_image1, wisdom, pure=True, workers=workers, allow_other_workers=allow_other_workers)
 
 #            candplot = cl.submit(search.candplot, ims_thresh, data_dm)
-            feature = cl.submit(search.calc_features, ims_thresh, dmind, st.dtarr[dtind], dtind, segment, st.features, pure=True, workers=workers, allow_other_workers=allow_other_workers)
-            features.append(feature)
+            search_coords = OrderedDict(segment = segment, dmind = dmind, dtind = dtind, beamnum = 0)
 
-    logger.info('Saving candidates...')
-    cands = cl.submit(search.collect_cands, features, pure=True, workers=workers, allow_other_workers=allow_other_workers)
-    saved = cl.submit(search.save_cands, st, cands, segment, pure=True, workers=workers, allow_other_workers=allow_other_workers)
+            feature = cl.submit(search.calc_features, st, ims_thresh, search_coords, pure=True, workers=workers, allow_other_workers=allow_other_workers)
+#            features.append(feature)
+
+#    logger.info('Saving candidates...')
+#    cands = cl.submit(search.collect_cands, features, pure=True, workers=workers, allow_other_workers=allow_other_workers)
+            saved = cl.submit(search.save_cands, st, cands, segment, pure=True, workers=workers, allow_other_workers=allow_other_workers)
 
     return saved

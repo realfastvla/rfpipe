@@ -358,7 +358,7 @@ class State(object):
         
         if not self.prefs.gainfile:
             # look for gainfile in workdir
-            gainfile = os.path.join(self.metadata.workdir, self.metadata.filename + '.GN')
+            gainfile = os.path.join(self.metadata.workdir, self.metadata.filename, '.GN')
 
             if os.path.exists(gainfile):
                 logger.info('Autodetected telcal file {0}'.format(gainfile))
@@ -473,6 +473,16 @@ class State(object):
         nfalse = int(qfrac*ntrials)
         return nfalse
 
+
+    @property
+    def search_dimensions(self):
+        """ Define dimensions searched for a given piece of data. 
+        Actual algorithm defined in pipeline iteration.
+        """
+
+        return ('segment', 'integration', 'dmind', 'dtind', 'beamnum')
+
+
     @property
     def features(self):
         """ Given searchtype, return features to be extracted in initial analysis """
@@ -481,6 +491,16 @@ class State(object):
             return ('snr1', 'immax1', 'l1', 'm1')
         elif self.prefs.searchtype == 'image1stats':
             return ('snr1', 'immax1', 'l1', 'm1', 'specstd', 'specskew', 'speckurtosis', 'imskew', 'imkurtosis')  # note: spec statistics are all or nothing.
+
+
+    @property
+    def candsfile(self):
+        """ File name to write candidates to """
+
+        if self.prefs.candsfile:
+            return self.prefs.candsfile
+        else:
+            return os.path.join(self.metadata.workdir, self.fileroot, '.pkl')
 
 
     @property
@@ -526,20 +546,21 @@ class State(object):
 
         return immem
 
-
-    @property
-    def reproducekeys(self):
-        """ Minimal set of state keys required to assure that state can reproduce a given candidate. 
-
-        Should be independent of data? Or assumes post-reading of metadata and applying parameter generation functions?
-        """
-
-        # this set is input, version defines functions that transform this to pipeline state
-        return sorted(['sdmfile', 'excludeants', 'read_tdownsample', 'read_fdownsample',
-                       'selectpol', 'timesub', 'dmarr', 'dtarr', 'searchtype',
-#                       'features', 'sigma_image1', 'sigma_image2', 'sigma_bisp',   # not sure about this set
-                       'uvres', 'npixx', 'npixy', 'version',
-                       'flaglist', 'gainfile', 'bpfile', 'onlineflags'])
+# **not sure we need this
+#
+#    @property
+#    def reproducekeys(self):
+#        """ Minimal set of state keys required to assure that state can reproduce a given candidate. 
+#
+#        Should be independent of data? Or assumes post-reading of metadata and applying parameter generation functions?
+#        """
+#
+#        # this set is input, version defines functions that transform this to pipeline state
+#        return sorted(['sdmfile', 'excludeants', 'read_tdownsample', 'read_fdownsample',
+#                       'selectpol', 'timesub', 'dmarr', 'dtarr', 'searchtype',
+##                       'features', 'sigma_image1', 'sigma_image2', 'sigma_bisp',   # not sure about this set
+#                       'uvres', 'npixx', 'npixy', 'version',
+#                       'flaglist', 'gainfile', 'bpfile', 'onlineflags'])
 
     # should each of the above actually be considered transformation functions? 
     #  so, input is observation name, next step is transform by ignore ants, next step...
@@ -550,18 +571,19 @@ class State(object):
 
     # flagantsol should be merged with flaglist
 
-
-    @property
-    def hash(self):
-        """ Hash that identifies pipeline state that produces unique set of output products """
-
-        extant_keys = self.keys()
-        if all([kk in self.reproducekeys for kk in extant_keys]):
-            values = [self[key] for key in self.reproducekeys]
-            return hash(json.dumps(repr(values)))  # is repr safe?
-        else:
-            print('Cannot make hash without minimal set defined in reproducekeys property.')
-            return None
+# ** not sure we need this yet.
+#
+#    @property
+#    def hash(self):
+#        """ Hash that identifies pipeline state that produces unique set of output products """
+#
+#        extant_keys = self.keys()
+#        if all([kk in self.reproducekeys for kk in extant_keys]):
+#            values = [self[key] for key in self.reproducekeys]
+#            return hash(json.dumps(repr(values)))  # is repr safe?
+#        else:
+#            print('Cannot make hash without minimal set defined in reproducekeys property.')
+#            return None
 
 
     @property
