@@ -1,16 +1,20 @@
-from __future__ import print_function, division, absolute_import, unicode_literals
-from builtins import str, bytes, dict, object, range, map, input
+from __future__ import print_function, division, absolute_import #, unicode_literals # not casa compatible
+from builtins import bytes, dict, object, range, map, input#, str # not casa compatible
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
 import logging
 logger = logging.getLogger(__name__)
 
-from rfpipe import state, source, search, util
-import distributed
 import numpy as np
+import distributed
+from collections import OrderedDict
+
+from rfpipe import state, source, search, util
+
 
 vys_timeout_default = 10
+
 
 def pipeline_scan(st, host='cbe-node-01', cfile=None, vys_timeout=vys_timeout_default):
     """ Given rfpipe state and dask distributed client, run search pipline """

@@ -1,19 +1,19 @@
-from __future__ import print_function, division, absolute_import, unicode_literals
-from builtins import str, bytes, dict, object, range, map, input
+from __future__ import print_function, division, absolute_import #, unicode_literals # not casa compatible
+from builtins import bytes, dict, object, range, map, input#, str # not casa compatible
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
 import logging, os, math, pickle
 logger = logging.getLogger(__name__)
 
+import numpy as np
 import numba
 from numba import cuda
 from numba import jit, vectorize, guvectorize, int32, int64, float_, complex64, bool_
-import numpy as np
+from collections import OrderedDict
+import pandas as pd
 import pyfftw
 # import pycuda?
-import pandas as pd
-from collections import OrderedDict
 
 
 @jit(nopython=True, nogil=True)
@@ -241,22 +241,22 @@ def save_cands(st, candidates, search_coords):
 
     segment = search_coords['segment']
 
-    df = pandas.DataFrame(OrderedDict(zip(st.search_dimensions, candidates.keys())))
-    df2 = pandas.DataFrame(OrderedDict(zip(st.features, candidates.values())))
-    df3 = pandas.concat([df, df2], axis=1)
+    df = pd.DataFrame(OrderedDict(zip(st.search_dimensions, candidates.keys())))
+    df2 = pd.DataFrame(OrderedDict(zip(st.features, candidates.values())))
+    df3 = pd.concat([df, df2], axis=1)
 
-    df3.metadata = meta
-    df3.prefs = prefs
+    df3.metadata = st.metadata
+    df3.prefs = st.prefs
 
     try:
         with fileLock.FileLock(st.candsfile+'.lock', timeout=10):
-            with open(st.candsfile, 'w') as pkl:
+            with open(st.candsfile, 'wb') as pkl:
                 pickle.dump(df3, pkl)
     except FileLock.FileLockException:
         suffix = ''.join([str(key)+str(dd[key]) for key in search_coords])
         newcandsfile = st.candsfile+suffix
         logger.warn('Candidate file writing timeout. Spilling to new file {0}.'.format(newcandsfile))
-        with open(newcandsfile, 'w') as pkl:
+        with open(newcandsfile, 'wb') as pkl:
             pickle.dump(df3, pkl)
         
 

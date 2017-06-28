@@ -1,19 +1,18 @@
-#from __future__ import print_function, division, absolute_import, unicode_literals
-#from builtins import str, bytes, dict, object, range, map, input
+from __future__ import print_function, division, absolute_import #, unicode_literals # not casa compatible
+from builtins import bytes, dict, object, range, map, input#, str # not casa compatible
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
-import numpy as np
+
 import logging
 logger = logging.getLogger(__name__)
+
+import numpy as np
+from numba import cuda
+from numba import jit, complex64
 
 import pwkit.environments.casa.util as casautil
 qa = casautil.tools.quanta()
 me = casautil.tools.measures()
-
-from numba import cuda
-from numba import jit, complex64
-import numpy as np
-import pandas
 
 ##
 ## data prep

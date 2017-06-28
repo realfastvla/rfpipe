@@ -1,5 +1,5 @@
-#from __future__ import print_function, division, absolute_import, unicode_literals
-#from builtins import str, bytes, dict, object, range, map, input
+from __future__ import print_function, division, absolute_import #, unicode_literals # not casa compatible
+from builtins import bytes, dict, object, range, map, input#, str # not casa compatible
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
@@ -12,8 +12,8 @@ import json, attr, os, yaml
 from rfpipe import source, util, preferences, metadata
 import numpy as np
 from scipy.special import erf
+from collections import OrderedDict
 from astropy import time
-# from collections import OrderedDict #?
 
 import pwkit.environments.casa.util as casautil
 qa = casautil.tools.quanta()
@@ -37,7 +37,7 @@ class State(object):
     - uvoversample + npix_max + metadata => npixx, npixy
     """
 
-    def __init__(self, config=None, sdmfile=None, sdmscan=None, inprefs={}, inmeta={}, preffile=None, name=None, version=1):
+    def __init__(self, config=None, sdmfile=None, sdmscan=None, inprefs={}, inmeta={}, preffile=None, name=None, version=1, showsummary=True):
         """ Initialize preference attributes with text file, preffile.
         name can select preference set from within yaml file.
         preferences are overloaded with inprefs.
@@ -80,7 +80,8 @@ class State(object):
 
         self.metadata = metadata.Metadata(**meta)
 
-        self.summarize()
+        if showsummary:
+            self.summarize()
 
 
     def summarize(self):
@@ -407,7 +408,7 @@ class State(object):
 
     def get_segmenttime_string(self, segment):
         mid_mjd = self.segmenttimes[segment].mean()
-        return qa.time(qa.quantity(mid_mjd,'d'), form="ymd", prec=8)[0]
+        return qa.time(qa.quantity(mid_mjd, 'd'), form='ymd', prec=8)[0]
 
 
     def get_uvw_segment(self, segment):

@@ -1,3 +1,5 @@
+from __future__ import print_function, division, absolute_import #, unicode_literals # not casa compatible
+from builtins import bytes, dict, object, range, map, input#, str # not casa compatible
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
@@ -110,7 +112,7 @@ class Metadata(object):
 
     @property
     def starttime_string(self):
-        return qa.time(qa.quantity(self.starttime_mjd,'d'), form="ymd", prec=8)[0]
+        return qa.time(qa.quantity(self.starttime_mjd, 'd'), form='ymd', prec=8)[0]
 
 
     @property
