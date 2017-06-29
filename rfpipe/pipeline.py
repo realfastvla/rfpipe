@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 import numpy as np
 import distributed
 from collections import OrderedDict
-from dask import delayed
+from dask import delayed, compute
 
 from rfpipe import state, source, search, util
 
@@ -77,7 +77,7 @@ def pipeline_seg(st, segment, cl=None, cfile=None, vys_timeout=vys_timeout_defau
         return cl.persist(saved)
     else:
         # otherwise return the delayed objects
-        return saved
+        return compute(*saved)
 
 
 def pipeline_seg_delayed(st, segment, cl, workers=None, cfile=None, vys_timeout=vys_timeout_default):
