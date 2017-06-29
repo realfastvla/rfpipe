@@ -14,6 +14,7 @@ from collections import OrderedDict
 import pandas as pd
 import pyfftw
 # import pycuda?
+from rfpipe import fileLock
 
 
 @jit(nopython=True, nogil=True)
@@ -43,7 +44,7 @@ def runcuda(func, arr, threadsperblock, *args, **kwargs):
     func[tuple(blockspergrid), threadsperblock](arr, *args, **kwargs)
 
 
-@jit(nogil=True, nopython=True)
+#@jit(nogil=True, nopython=True)
 def dedisperse(data, delay):
     """ Dispersion shift to new array """
 
@@ -63,7 +64,7 @@ def dedisperse(data, delay):
         return data
 
 
-@jit(nogil=True, nopython=True)
+#@jit(nogil=True, nopython=True)
 def resample(data, dt):
     """ Resample (integrate) in place by factor dt """
 
@@ -253,7 +254,7 @@ def save_cands(st, candidates, search_coords):
             with fileLock.FileLock(st.candsfile+'.lock', timeout=10):
                 with open(st.candsfile, 'wb') as pkl:
                     pickle.dump(df3, pkl)
-        except FileLock.FileLockException:
+        except fileLock.FileLock.FileLockException:
             suffix = ''.join([str(key)+str(dd[key]) for key in search_coords])
             newcandsfile = st.candsfile+suffix
             logger.warn('Candidate file writing timeout. Spilling to new file {0}.'.format(newcandsfile))

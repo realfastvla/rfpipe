@@ -138,7 +138,12 @@ class State(object):
 
 
     def clearcache(self):
-        del self._dmarr, self._t_overlap, self._dmshifts, self._npol, self._blarr, self._segmenttimes
+        cached = ['_dmarr', '_t_overlap', '_dmshifts', '_npol', '_blarr', '_segmenttimes']
+        for obj in cached:
+            try:
+                delattr(self, obj)
+            except AttributeError:
+                pass
 
 
     @property
@@ -515,7 +520,7 @@ class State(object):
         if self.prefs.candsfile:
             return self.prefs.candsfile
         else:
-            return os.path.join(self.metadata.workdir, self.fileroot, '.pkl')
+            return os.path.join(self.metadata.workdir, 'cands_' + self.fileroot + '.pkl')
 
 
     @property
@@ -687,7 +692,7 @@ def find_segment_times(state):
     if state.vismem+state.immem > state.prefs.memory_limit:
         logger.info('Over memory limit of {4} when reading {0} segments with {1} chunks ({2}/{3} GB for visibilities/imaging). Searching for solution down to {5}/{6} GB...'.format(state.nsegment, state.prefs.nchunk, state.vismem, state.immem, state.prefs.memory_limit, state.vismem_limit, state.immem_limit))
 
-        while vismem+immem > state.prefs.memory_limit:
+        while state.vismem+state.immem > state.prefs.memory_limit:
             logger.debug('Using {0} segments with {1} chunks ({2}/{3} GB for visibilities/imaging). Searching for better solution...'.format(state.prefs.nchunk, state.vismem, state.immem, state.prefs.memory_limit))
 
             scale_nsegment *= (state.vismem+state.immem)/float(state.prefs.memory_limit)
@@ -696,9 +701,9 @@ def find_segment_times(state):
 
             while state.vismem+state.immem > state.prefs.memory_limit:
                 logger.debug('Doubling nchunk from %d to fit in %d GB memory limit.' % (state.prefs.nchunk, state.prefs.memory_limit))
-                self.prefs.nchunk = 2*self.prefs.nchunk
-                if self.prefs.nchunk >= max(self.dtarr)/min(self.dtarr)*self.nthread: # limit nchunk/nthread to at most the range in dt
-                    self.nchunk = self.nthread
+                state.prefs.nchunk = 2*state.prefs.nchunk
+                if state.prefs.nchunk >= max(state.dtarr)/min(state.dtarr)*state.prefs.nthread: # limit nchunk/nthread to at most the range in dt
+                    state.prefs.nchunk = state.prefs.nthread
                     break
 
     # final set up of memory

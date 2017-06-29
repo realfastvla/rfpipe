@@ -13,7 +13,7 @@ import pandas as pd
 from rfpipe import preferences, state, metadata
 
 
-def oldcands_read(candsfile, sdmscan=None, sdmfile=None):
+def oldcands_read(candsfile, sdmscan=None, sdmfile=None, returnstate=False, returndf=True):
     """ Read old-style candfile and create new-style DataFrame
     Metadata best defined by sdmfile/sdmscan, but can get most from old candsfile.
     """
@@ -21,8 +21,6 @@ def oldcands_read(candsfile, sdmscan=None, sdmfile=None):
     with open(candsfile, 'rb') as pkl:                                                                                                       
         d = pickle.load(pkl)
         loc, prop = pickle.load(pkl)
-
-    colnames = d['featureind']
 
     inprefs = preferences.oldstate_preferences(d)
     if sdmfile and sdmscan:
@@ -33,6 +31,8 @@ def oldcands_read(candsfile, sdmscan=None, sdmfile=None):
 
     # ** Probably also need to iterate state definition for each scan
 
+    colnames = d['featureind']
+
     df = pd.DataFrame(OrderedDict(zip(colnames, loc.transpose())))
     df2 = pd.DataFrame(OrderedDict(zip(st.features, prop.transpose())))
     df3 = pd.concat([df, df2], axis=1)
@@ -40,4 +40,14 @@ def oldcands_read(candsfile, sdmscan=None, sdmfile=None):
     df3.metadata = st.metadata
     df3.prefs = st.prefs
 
-    return df3
+    if returndf and not returnstate:
+        return df3
+    elif returnstate and not returndf:
+        return st
+    elif returnstate and returndf:
+        return st, df3
+    else:
+        return
+
+
+

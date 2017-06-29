@@ -42,37 +42,35 @@ def pipeline_vystest(wait, nsegment=1, host='cbe-node-01', preffile=None, cfile=
     return saved
 
 
-def pipeline_seg(st, segment, cl=None, workers=None, cfile=None, vys_timeout=vys_timeout_default):
+def pipeline_seg(st, segment, cl=None, cfile=None, vys_timeout=vys_timeout_default):
     """ Build DAG from delayed objects and execute at end with preferred scheduler """
 
-#    saved = delayed(search.save_cands)(st, cands, segment)
-
-
-    allow_other_workers = workers != None
+    # ** how to use distributed arguments? (pure=True, workers=workers, allow_other_workers=allow_other_workers)
 
     # plan fft
     logger.info('Planning FFT...')
-    wisdom = delayed(search.set_wisdom)(st.npixx, st.npixy, pure=True, workers=workers, allow_other_workers=allow_other_workers)
+    wisdom = delayed(search.set_wisdom)(st.npixx, st.npixy)
 
-    logger.info('Reading data...')
-    data_prep = delayed(source.data_prep)(st, segment, timeout=vys_timeout, cfile=cfile, pure=True, workers=workers, allow_other_workers=allow_other_workers)
+    logger.info('Reading and preparing data...')
+    data = delayed(source.read_segment)(st, segment, timeout=vys_timeout, cfile=cfile)
+    data_prep = delayed(source.data_prep)(st, data)
 
     # **TODO: need to add condition on data_prep being nonzero
-
+    saved = []
     logger.info('Iterating search over DM/dt...')
     for dmind in range(len(st.dmarr)):
-        delay = delayed(util.calc_delay)(st.freq, st.freq.max(), st.dmarr[dmind], st.metadata.inttime, pure=True, workers=workers, allow_other_workers=allow_other_workers)
-        data_dm = delayed(search.dedisperse)(data_prep, delay, pure=True, workers=workers, allow_other_workers=allow_other_workers)
+        delay = delayed(util.calc_delay)(st.freq, st.freq.max(), st.dmarr[dmind], st.metadata.inttime)
+        data_dm = delayed(search.dedisperse)(data_prep, delay)
 
         for dtind in range(len(st.dtarr)):
             # ** could get_uvw_segment be distributed if it was a staticmethod?
             uvw = st.get_uvw_segment(segment)
-            ims_thresh = delayed(search.resample_image)(data_dm, st.dtarr[dtind], uvw, st.freq, st.npixx, st.npixy, st.uvres, st.prefs.sigma_image1, wisdom, pure=True, workers=workers, allow_other_workers=allow_other_workers)
+            ims_thresh = delayed(search.resample_image)(data_dm, st.dtarr[dtind], uvw, st.freq, st.npixx, st.npixy, st.uvres, st.prefs.sigma_image1, wisdom)
 #            candplot = delayed(search.candplot)(ims_thresh, data_dm)
 
-            search_coords = OrderedDict(segment = segment, dmind = dmind, dtind = dtind, beamnum = 0)
-            feature = delayed(search.calc_features)(st, ims_thresh, search_coords, pure=True, workers=workers, allow_other_workers=allow_other_workers)
-            saved = delayed(search.save_cands)(st, cands, segment, pure=True, workers=workers, allow_other_workers=allow_other_workers)
+            search_coords = OrderedDict(dict(zip(['segment', 'dmind', 'dtind', 'beamnum'], [segment, dmind, dtind, 0])))
+            candidates = delayed(search.calc_features)(st, ims_thresh, search_coords)
+            saved.append(delayed(search.save_cands)(st, candidates, search_coords))
 
     if cl:
         # if using distributed client, return futures
@@ -118,11 +116,11 @@ def pipeline_seg_delayed(st, segment, cl, workers=None, cfile=None, vys_timeout=
 #            candplot = cl.submit(search.candplot, ims_thresh, data_dm)
             search_coords = OrderedDict(segment = segment, dmind = dmind, dtind = dtind, beamnum = 0)
 
-            feature = cl.submit(search.calc_features, st, ims_thresh, search_coords, pure=True, workers=workers, allow_other_workers=allow_other_workers)
+            candidates = cl.submit(search.calc_features, st, ims_thresh, search_coords, pure=True, workers=workers, allow_other_workers=allow_other_workers)
 #            features.append(feature)
 
 #    logger.info('Saving candidates...')
 #    cands = cl.submit(search.collect_cands, features, pure=True, workers=workers, allow_other_workers=allow_other_workers)
-            saved = cl.submit(search.save_cands, st, cands, segment, pure=True, workers=workers, allow_other_workers=allow_other_workers)
+            saved = cl.submit(search.save_cands, st, candidates, segment, pure=True, workers=workers, allow_other_workers=allow_other_workers)
 
     return saved

@@ -62,6 +62,7 @@ class Preferences(object):
 
     savenoise = attr.ib(default=False)
     savecands = attr.ib(default=False)
+    candsfile = attr.ib(default=None)
 #    logfile = attr.ib(default=True)
     loglevel = attr.ib(default='INFO')
 
