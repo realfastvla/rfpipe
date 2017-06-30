@@ -48,6 +48,8 @@ def runcuda(func, arr, threadsperblock, *args, **kwargs):
 def dedisperse(data, delay):
     """ Dispersion shift to new array """
 
+    logger.info('Dedispersing up to delay shift of {0} integrations'.format(delay.max()))
+
     sh = data.shape
     newsh = (sh[0]-delay.max(), sh[1], sh[2], sh[3])
     result = np.zeros(shape=newsh, dtype=data.dtype)
@@ -101,6 +103,8 @@ def resample(data, dt):
 #@jit
 def resample_image(data, dt, uvw, freqs, npixx, npixy, uvres, threshold, wisdom=None):
     """ All stages of analysis for a given dt image grid """
+
+    logger.info('Resampling (by {0}), gridding (to {1}x{2}), imaging, and thresholding ({3} sigma).'.format(dt, npixx, npixy, threshold))
 
     data_resampled = resample(data, dt)
     grids = grid_visibilities(data_resampled, uvw, freqs, npixx, npixy, uvres)
@@ -193,6 +197,8 @@ def calc_features(st, imgall, search_coords):
     returns dictionary of candidate with keys as defined in st.search_dimensions
     """
 
+    logger.info('Calculating features for {0} candidates.'.format(len(imgall[0])))
+
     ims, snr, candints = imgall
 
     # ** need some thinking about how to use st.search_dimensions here
@@ -241,25 +247,27 @@ def save_cands(st, candidates, search_coords):
     """
 
     if st.prefs.savecands:
+        logger.info('Saving {0} candidates to {1}.'.format(len(candidates), st.candsfile))
         segment = search_coords['segment']
 
-        df = pd.DataFrame(OrderedDict(zip(st.search_dimensions, candidates.keys())))
-        df2 = pd.DataFrame(OrderedDict(zip(st.features, candidates.values())))
+        df = pd.DataFrame(OrderedDict(zip(st.search_dimensions, np.transpose(candidates.keys()))))
+        df2 = pd.DataFrame(OrderedDict(zip(st.features, np.transpose(candidates.values()))))
         df3 = pd.concat([df, df2], axis=1)
 
-        df3.metadata = st.metadata
-        df3.prefs = st.prefs
+        cdf = CandidateDF(df3, prefs=st.prefs, metadata=st.metadata)
 
         try:
             with fileLock.FileLock(st.candsfile+'.lock', timeout=10):
-                with open(st.candsfile, 'wb') as pkl:
-                    pickle.dump(df3, pkl)
+                with open(st.candsfile, 'ab+') as pkl:
+                    pickle.dump(cdf, pkl)
         except fileLock.FileLock.FileLockException:
             suffix = ''.join([str(key)+str(dd[key]) for key in search_coords])
             newcandsfile = st.candsfile+suffix
             logger.warn('Candidate file writing timeout. Spilling to new file {0}.'.format(newcandsfile))
-            with open(newcandsfile, 'wb') as pkl:
-                pickle.dump(df3, pkl)
+            with open(newcandsfile, 'ab+') as pkl:
+                pickle.dump(cdf, pkl)
+    else:
+        logger.info('Not saving candidates.')
         
 
 def candplot(imgall, data_dm):
@@ -267,4 +275,13 @@ def candplot(imgall, data_dm):
 
     pass
 
+
+class CandidateDF(object):
+    """ Wrap pandas DataFrame that allows candidate metadata and prefs to be attached and pickled.
+    """
+
+    def __init__(self, df, prefs=None, metadata=None):
+        self.df = df
+        self.prefs = prefs
+        self.metadata = metadata
 

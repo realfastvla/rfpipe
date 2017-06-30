@@ -29,18 +29,18 @@ def dataflag(st, data):
 
     for flag in st.prefs.flaglist:
         mode, sig, conv = flag
-        for ss in st.spw:
-            chans = np.arange(st.metadata.spw_nchan[ss]*ss, st.metadata.spw_nchan[ss]*(1+ss))
+        for spw in st.spw:
+            chans = np.arange(st.metadata.spw_nchan[spw]*spw, st.metadata.spw_nchan[spw]*(1+spw))
             for pol in range(st.npol):
                 status = rtlib.dataflag(data, chans, pol, d, sig, mode, conv)
                 logger.info(status)
 
     # hack to get rid of bad spw/pol combos whacked by rfi
-    if hasattr(st.prefs, 'badspwpol'):
-        logger.info('Comparing overall power between spw/pol. Removing those with %d times typical value' % st.prefs.badspwpol)
+    if st.prefs.badspwpol:
+        logger.info('Comparing overall power between spw/pol. Removing those with {0} times typical value'.format(st.prefs.badspwpol))
         spwpol = {}
         for spw in st.spw:
-            chans = np.arange(st.metadata.spw_nchan[ss]*ss, st.metadata.spw_nchan[ss]*(1+ss))
+            chans = np.arange(st.metadata.spw_nchan[spw]*spw, st.metadata.spw_nchan[spw]*(1+spw))
             for pol in range(st.npol):
                 spwpol[(spw, pol)] = np.abs(data[:,:,chans,pol]).std()
         
@@ -48,7 +48,7 @@ def dataflag(st, data):
         for (spw,pol) in spwpol:
             if spwpol[(spw, pol)] > st.prefs.badspwpol*meanstd:
                 logger.info('Flagging all of (spw %d, pol %d) for excess noise.' % (spw, pol))
-                chans = np.arange(st.metadata.spw_nchan[ss]*ss, st.metadata.spw_nchan[ss]*(1+ss))
+                chans = np.arange(st.metadata.spw_nchan[spw]*spw, st.metadata.spw_nchan[spw]*(1+spw))
                 data[:,:,chans,pol] = 0j
 
 

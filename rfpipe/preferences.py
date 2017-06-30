@@ -32,7 +32,7 @@ class Preferences(object):
     timesub = attr.ib(default=None)
     flaglist = attr.ib(default=[('badchtslide', 4., 0.) , ('badap', 3., 0.2), ('blstd', 3.0, 0.05)])
     flagantsol = attr.ib(default=True)
-    badspwpol = attr.ib(default=2.)
+    badspwpol = attr.ib(default=2.)  # 0 means no flagging done
     applyonlineflags = attr.ib(default=True)
     gainfile = attr.ib(default=None)
     mock = attr.ib(default=0)
