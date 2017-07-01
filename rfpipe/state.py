@@ -417,12 +417,33 @@ class State(object):
         """
 
         if not hasattr(self, '_segmenttimes'):
-            if self.prefs.nsegment:
+            if len(self.prefs.segmenttimes):
+                self._segmenttimes = self.prefs.segmenttimes
+            elif self.prefs.nsegment:
                 self._segmenttimes = calc_segment_times(self)
             else:
                 find_segment_times(self)
 
         return self._segmenttimes
+
+
+    def pixtolm(self, pix):
+        """ Helper function to calculate (l,m) coords of given pixel.
+        Example: st.pixtolm(np.where(im == im.max()))
+        """
+
+        assert len(pix) == 2
+
+        peaky, peakx = pix
+        if isinstance(peaky, np.ndarray) and len(peaky) == 1: # np.where output
+            peaky = peaky[0]
+            peakx = peakx[0]
+
+        l1 = (self.npixx/2. - peakx)/(self.npixx*self.uvres)
+        m1 = (self.npixy/2. - peaky)/(self.npixy*self.uvres)
+
+        # ** this is flipped relative to rtpipe, but this seems right to me.
+        return l1, m1
 
 
     def get_segmenttime_string(self, segment):
@@ -652,6 +673,7 @@ def calc_dmarr(state):
 def calc_segment_times(state, nsegment=0):
     """ Helper function for set_pipeline to define segmenttimes list, given nsegment definition
     Can optionally overload state.nsegment to calculate new times
+    ** TODO: why is this slightly off from rtpipe calculation?
     """
 
     nsegment = nsegment if nsegment else state.nsegment

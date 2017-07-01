@@ -65,9 +65,9 @@ def pipeline_seg(st, segment, cl=None, cfile=None, vys_timeout=vys_timeout_defau
             # ** could get_uvw_segment be distributed if it was a staticmethod?
             uvw = st.get_uvw_segment(segment)
             ims_thresh = delayed(search.resample_image, pure=True)(data_dm, st.dtarr[dtind], uvw, st.freq, st.npixx, st.npixy, st.uvres, st.prefs.sigma_image1, wisdom)
-#            candplot = delayed(search.candplot)(ims_thresh, data_dm)
+#            candplot = delayed(search.candplot)(st, ims_thresh, data_dm)
 
-            search_coords = OrderedDict(dict(zip(['segment', 'dmind', 'dtind', 'beamnum'], [segment, dmind, dtind, 0])))
+            search_coords = OrderedDict(zip(['segment', 'dmind', 'dtind', 'beamnum'], [segment, dmind, dtind, 0]))
             candidates = delayed(search.calc_features, pure=True)(st, ims_thresh, search_coords)
             saved.append(delayed(search.save_cands, pure=True)(st, candidates, search_coords))
 

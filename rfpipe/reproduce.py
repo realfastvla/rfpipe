@@ -10,7 +10,7 @@ import pickle
 from collections import OrderedDict
 import pandas as pd
 
-from rfpipe import preferences, state, metadata
+from rfpipe import preferences, state, metadata, util, search, source
 
 
 def oldcands_read(candsfile, sdmscan=None, sdmfile=None, returnstate=False, returndf=True):
@@ -22,7 +22,7 @@ def oldcands_read(candsfile, sdmscan=None, sdmfile=None, returnstate=False, retu
         d = pickle.load(pkl)
         loc, prop = pickle.load(pkl)
 
-    inprefs = preferences.oldstate_preferences(d)
+    inprefs = preferences.oldstate_preferences(d, scan=sdmscan)
     if sdmfile and sdmscan:
         st = state.State(sdmfile=sdmfile, sdmscan=sdmscan, inprefs=inprefs)
     else:
@@ -50,4 +50,30 @@ def oldcands_read(candsfile, sdmscan=None, sdmfile=None, returnstate=False, retu
         return
 
 
+def pipeline(st, candloc):
+    """ End-to-end processing to reproduce a given candloc (segment, integration, dmind, dtind, beamnum).
+    Assumes sdm data for now.
+    """
 
+    # ** not supporting dt>1
+
+    segment, candint, dmind, dtind, beamnum = candloc
+
+    # prep data
+    data = source.read_segment(st, segment)#, timeout=vys_timeout, cfile=cfile)
+    data_prep = source.data_prep(st, data)
+
+    # prepare to transform data
+    uvw = st.get_uvw_segment(segment)
+    wisdom = search.set_wisdom(st.npixx, st.npixy)
+    delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind], st.metadata.inttime)
+
+    # dedisperse, resample, image, threshold
+    data_dm = search.dedisperse(data_prep, delay)
+    ims_thresh = search.resample_image(data_dm, st.dtarr[dtind], uvw, st.freq, st.npixx, st.npixy, st.uvres, st.prefs.sigma_image1, wisdom, integrations=[candint])
+#    candplot = delayed(search.candplot)(st, ims_thresh, data_dm)
+
+    search_coords = OrderedDict(zip(['segment', 'dmind', 'dtind', 'beamnum'], [segment, dmind, dtind, 0]))
+    candidates = search.calc_features(st, ims_thresh, search_coords)
+
+    return candidates, data_prep, data_dm

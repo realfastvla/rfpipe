@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 import numpy as np
 from numba import cuda
-from numba import jit, complex64
+from numba import jit, complex64, int64
 
 import pwkit.environments.casa.util as casautil
 qa = casautil.tools.quanta()
@@ -65,17 +65,19 @@ def meantsub(data):
         for j in range(nchan):
             for k in range(npol):
                 ss = complex64(0)
-                weight = 0
+                weight = int64(0)
                 for l in range(nint):
                     ss += data[l, i, j, k]
                     if data[l, i, j, k] != 0j:
-                        weight = weight + 1
-                if weight:
+                        weight += 1
+                if weight > 0:
                     mean = ss/weight
                 else:
-                    mean = 0j
+                    mean = complex64(0)
+
                 for l in range(nint):
-                    data[l, i, j, k] -= mean
+                    if data[l, i, j, k] != 0j:
+                        data[l, i, j, k] -= mean
 #    return data
 
 

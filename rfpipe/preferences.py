@@ -41,6 +41,7 @@ class Preferences(object):
     nthread = attr.ib(default=1)
     nchunk = attr.ib(default=0)
     nsegment = attr.ib(default=0)
+    segmenttimes = attr.ib(default=[[]])
     memory_limit = attr.ib(default=20)
 
     # search
@@ -137,7 +138,7 @@ def preffiletype(preffile):
         return None
 
 
-def oldstate_preferences(d):
+def oldstate_preferences(d, scan=None):
     """ Parse old state dictionary "d" and to define preferences instance
     """
 
@@ -150,5 +151,9 @@ def oldstate_preferences(d):
 
     prefs['nsegment'] = d['nsegments']
     prefs['selectpol'] = 'auto'
+
+    if not scan:
+        scan = d['scan']
+    prefs['segmenttimes'] = d['segmenttimesdict'][scan]
 
     return prefs
