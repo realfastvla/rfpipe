@@ -75,9 +75,10 @@ def meantsub(data):
                 else:
                     mean = complex64(0)
 
-                for l in range(nint):
-                    if data[l, i, j, k] != 0j:
-                        data[l, i, j, k] -= mean
+                if mean:
+                    for l in range(nint):
+                        if data[l, i, j, k] != 0j:
+                            data[l, i, j, k] -= mean
 #    return data
 
 
@@ -116,13 +117,15 @@ def meantsub_cuda(data):
             data[i, x, y, z] = data[i, x, y, z] - mean
 
 
-def calc_delay(freq, freqref, dm, inttime):
-    """ Calculates the delay due to dispersion relative to freqref in integer units of inttime """
+def calc_delay(freq, freqref, dm, inttime, scale=4.1488e-3):
+    """ Calculates the delay due to dispersion relative to freqref in integer units of inttime.
+    scale argument linearly scales delay: 4.1488e-3 is correct, but rtpipe<=1.54 used 4.2e-3.
+    """
 
     delay = np.zeros(len(freq), dtype=np.int32)
 
     for i in range(len(freq)):
-        delay[i] = np.round(4.1488e-3 * dm * (1./freq[i]**2 - 1./freqref**2)/inttime, 0)
+        delay[i] = np.round(scale * dm * (1./freq[i]**2 - 1./freqref**2)/inttime, 0)
 
     return delay
 
@@ -137,7 +140,8 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
     assert '/' in datetime, 'datetime must be in yyyy/mm/dd/hh:mm:ss.sss format'
     assert len(radec) == 2, 'radec must be (ra,dec) tuple in units of degrees'
 
-    direction = me.direction('J2000', str(radec[0])+'deg', str(radec[1])+'deg')
+    direction = me.direction('J2000', str(np.degrees(radec[0]))+'deg', str(np.degrees(radec[1]))+'deg')
+
     logger.debug('Calculating uvw at %s for (RA, Dec) = %s' % (datetime, radec))
     me.doframe(me.observatory(telescope))
     me.doframe(me.epoch('utc', datetime))

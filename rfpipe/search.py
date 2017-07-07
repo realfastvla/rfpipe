@@ -18,12 +18,13 @@ from rfpipe import fileLock
 
 
 @jit(nopython=True, nogil=True)
-def uvcell(uv, freq, freqref, uvres):
+def uvcell(uv, freqs, uvres):
     """ Given a u or v coordinate, scale by freq and round to units of uvres """
 
-    cell = np.zeros(len(freq), dtype=np.int32)
-    for i in range(len(freq)):
-        cell[i] = np.round(uv*freq[i]/freqref/uvres, 0)
+    cell = np.zeros(len(freqs), dtype=np.int32)
+    freqref = freqs.min()
+    for i in range(len(freqs)):
+        cell[i] = np.round(uv*freqs[i]/freqref/uvres, 0)
 
     return cell
 
@@ -133,8 +134,8 @@ def grid_visibilities(visdata, uvw, freqs, npixx, npixy, uvres):
     grids = np.zeros(shape=(nint, npixx, npixy), dtype=np.complex64)
 
     for j in range(nbl):
-        ubl = uvcell(us[j], freqs, freqs[-1], uvres)
-        vbl = uvcell(vs[j], freqs, freqs[-1], uvres)
+        ubl = uvcell(us[j], freqs, uvres)
+        vbl = uvcell(vs[j], freqs, uvres)
 
 #        if np.logical_and((np.abs(ubl) < npixx/2), (np.abs(vbl) < npixy/2)):
         for k in range(nchan):
