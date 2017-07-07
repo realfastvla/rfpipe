@@ -17,18 +17,6 @@ import pyfftw
 from rfpipe import fileLock
 
 
-@jit(nopython=True, nogil=True)
-def uvcell(uv, freqs, uvres):
-    """ Given a u or v coordinate, scale by freq and round to units of uvres """
-
-    cell = np.zeros(len(freqs), dtype=np.int32)
-    freqref = freqs.min()
-    for i in range(len(freqs)):
-        cell[i] = np.round(uv*freqs[i]/freqref/uvres, 0)
-
-    return cell
-
-
 @vectorize(nopython=True)
 def get_mask(x):
     """ Returns equal sized array of 0/1 """
@@ -102,7 +90,7 @@ def resample(data, dt):
 
 
 #@jit
-def resample_image(data, dt, uvw, freqs, npixx, npixy, uvres, threshold, wisdom=None, integrations=None):
+def resample_image(data, dt, uvw, npixx, npixy, uvres, threshold, wisdom=None, integrations=None):
     """ All stages of analysis for a given dt image grid.
     Optionally image integrations in list i.
     """
@@ -117,7 +105,7 @@ def resample_image(data, dt, uvw, freqs, npixx, npixy, uvres, threshold, wisdom=
         assert isinstance(integrations, list)
         logger.info('Imaging int{0} {1}'.format('s'[not len(integrations)-1:], ','.join([str(i) for i in integrations])))
 
-    grids = grid_visibilities(data_resampled.take(integrations, axis=0), uvw, freqs, npixx, npixy, uvres)
+    grids = grid_visibilities(data_resampled.take(integrations, axis=0), uvw, npixx, npixy, uvres)
     images = image_fftw(grids, wisdom=wisdom)
     images_thresh = threshold_images(images, threshold)
 
@@ -125,23 +113,22 @@ def resample_image(data, dt, uvw, freqs, npixx, npixy, uvres, threshold, wisdom=
 
 
 #@jit(nogil=True, nopython=True)
-def grid_visibilities(visdata, uvw, freqs, npixx, npixy, uvres):
+def grid_visibilities(visdata, uvw, npixx, npixy, uvres):
     """ Grid visibilities into rounded uv coordinates """
 
     us, vs, ws = uvw
     nint, nbl, nchan, npol = visdata.shape
 
+    ubl = np.round(us/uvres, 0).astype(np.int32)
+    vbl = np.round(vs/uvres, 0).astype(np.int32)
+
     grids = np.zeros(shape=(nint, npixx, npixy), dtype=np.complex64)
 
     for j in range(nbl):
-        ubl = uvcell(us[j], freqs, uvres)
-        vbl = uvcell(vs[j], freqs, uvres)
-
-#        if np.logical_and((np.abs(ubl) < npixx/2), (np.abs(vbl) < npixy/2)):
         for k in range(nchan):
-            if (ubl[k] < npixx/2) and (np.abs(vbl[k]) < npixy/2):
-                u = int64(np.mod(ubl[k], npixx))
-                v = int64(np.mod(vbl[k], npixy))
+            if (np.abs(ubl[j,k]) < npixx/2) and (np.abs(vbl[j,k]) < npixy/2):
+                u = int64(np.mod(ubl[j,k], npixx))
+                v = int64(np.mod(vbl[j,k], npixy))
                 for i in range(nint):
                     for l in xrange(npol):
                         grids[i, u, v] = grids[i, u, v] + visdata[i, j, k, l]

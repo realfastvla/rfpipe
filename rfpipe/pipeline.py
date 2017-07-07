@@ -64,7 +64,7 @@ def pipeline_seg(st, segment, cl=None, cfile=None, vys_timeout=vys_timeout_defau
         for dtind in range(len(st.dtarr)):
             # ** could get_uvw_segment be distributed if it was a staticmethod?
             uvw = st.get_uvw_segment(segment)
-            ims_thresh = delayed(search.resample_image, pure=True)(data_dm, st.dtarr[dtind], uvw, st.freq, st.npixx, st.npixy, st.uvres, st.prefs.sigma_image1, wisdom)
+            ims_thresh = delayed(search.resample_image, pure=True)(data_dm, st.dtarr[dtind], uvw, st.npixx, st.npixy, st.uvres, st.prefs.sigma_image1, wisdom)
 #            candplot = delayed(search.candplot)(st, ims_thresh, data_dm)
 
             search_coords = OrderedDict(zip(['segment', 'dmind', 'dtind', 'beamnum'], [segment, dmind, dtind, 0]))
@@ -110,7 +110,7 @@ def pipeline_seg_delayed(st, segment, cl, workers=None, cfile=None, vys_timeout=
 #            ims_thresh = cl.submit(search.threshold_images, images, st['sigma_image1'])
             # schedule them as single call
             uvw = st.get_uvw_segment(segment)
-            ims_thresh = cl.submit(search.resample_image, data_dm, st.dtarr[dtind], uvw, st.freq, st.npixx, st.npixy, st.uvres, st.prefs.sigma_image1, wisdom, pure=True, workers=workers, allow_other_workers=allow_other_workers)
+            ims_thresh = cl.submit(search.resample_image, data_dm, st.dtarr[dtind], uvw, st.npixx, st.npixy, st.uvres, st.prefs.sigma_image1, wisdom, pure=True, workers=workers, allow_other_workers=allow_other_workers)
 
 #            candplot = cl.submit(search.candplot, ims_thresh, data_dm)
             search_coords = OrderedDict(segment = segment, dmind = dmind, dtind = dtind, beamnum = 0)

@@ -452,11 +452,18 @@ class State(object):
 
 
     def get_uvw_segment(self, segment):
+        """ Returns uvw in units of baselines for a given segment.
+        Tuple of u, v, w given with each a numpy array of (nbl, nchan) shape.
+        """
+
         mjdstr = self.get_segmenttime_string(segment)
         (u, v, w) = util.calc_uvw(datetime=mjdstr, radec=self.metadata.radec, antpos=self.metadata.antpos, telescope=self.metadata.telescope)
-        u = u * self.metadata.freq_orig[0] * (1e9/3e8) * (-1)
-        v = v * self.metadata.freq_orig[0] * (1e9/3e8) * (-1)
-        w = w * self.metadata.freq_orig[0] * (1e9/3e8) * (-1)
+#        u = u * self.metadata.freq_orig[0] * (1e9/3e8) * (-1)
+#        v = v * self.metadata.freq_orig[0] * (1e9/3e8) * (-1)
+#        w = w * self.metadata.freq_orig[0] * (1e9/3e8) * (-1)
+        u = np.outer(u, self.freq * (1e9/3e8) * (-1))
+        v = np.outer(v, self.freq * (1e9/3e8) * (-1))
+        w = np.outer(w, self.freq * (1e9/3e8) * (-1))
 
         return u.astype('float32'), v.astype('float32'), w.astype('float32')
 
