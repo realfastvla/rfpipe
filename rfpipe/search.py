@@ -33,11 +33,18 @@ def runcuda(func, arr, threadsperblock, *args, **kwargs):
     func[tuple(blockspergrid), threadsperblock](arr, *args, **kwargs)
 
 
-#@jit(nogil=True, nopython=True)
 def dedisperse(data, delay):
-    """ Dispersion shift to new array """
+    """ Shift data in time (axis=0) by channel-dependent value given in delay. 
+    Returns new array with time length shortened by max delay in integrations.
+    wraps _dedisperse to add logging.
+    """
 
     logger.info('Dedispersing up to delay shift of {0} integrations'.format(delay.max()))
+    return _dedisperse(data, delay)
+
+
+@jit(nogil=True, nopython=True)
+def _dedisperse(data, delay):
 
     sh = data.shape
     newsh = (sh[0]-delay.max(), sh[1], sh[2], sh[3])
@@ -55,9 +62,17 @@ def dedisperse(data, delay):
         return data
 
 
-#@jit(nogil=True, nopython=True)
 def resample(data, dt):
-    """ Resample (integrate) in place by factor dt """
+    """ Resample (integrate) by factor dt and return new data structure
+    wraps _resample to add logging.
+    """
+
+    logger.info('Resampling data of length {0} by a factor of {1}'.format(len(data), dt))
+    return _resample(data, dt)
+
+
+@jit(nogil=True, nopython=True)
+def _resample(data, dt):
 
     sh = data.shape
     newsh = (int64(sh[0]/dt), sh[1], sh[2], sh[3])
@@ -90,24 +105,22 @@ def resample(data, dt):
 
 
 #@jit
-def resample_image(data, dt, uvw, npixx, npixy, uvres, threshold, wisdom=None, integrations=None):
+def image_thresh(data, uvw, npixx, npixy, uvres, threshold, wisdom=None, integrations=None):
     """ All stages of analysis for a given dt image grid.
     Optionally image integrations in list i.
     """
 
-    logger.info('Resampling (by {0}), gridding (to {1}x{2}), imaging, and thresholding ({3} sigma).'.format(dt, npixx, npixy, threshold))
-
-    data_resampled = resample(data, dt)
+    logger.info('Imaging ({0}x{1} pix) and thresholding ({2} sigma).'.format(npixx, npixy, threshold))
 
     if not integrations:
-        integrations = range(len(data_resampled))
+        integrations = range(len(data))
     else:
         assert isinstance(integrations, list)
         logger.info('Imaging int{0} {1}'.format('s'[not len(integrations)-1:], ','.join([str(i) for i in integrations])))
 
-    grids = grid_visibilities(data_resampled.take(integrations, axis=0), uvw, npixx, npixy, uvres)
+    grids = grid_visibilities(data.take(integrations, axis=0), uvw, npixx, npixy, uvres)
     images = image_fftw(grids, wisdom=wisdom)
-    images_thresh = threshold_images(images, threshold)
+    images_thresh = threshold_images(images, threshold, integrations)
 
     return images_thresh
 
@@ -160,7 +173,7 @@ def image_fftw(grids, wisdom=None):
 
 
 #@jit(nopython=True)  # not working. lowering error?
-def threshold_images(images, threshold):
+def threshold_images(images, threshold, integrations):
     """ Take time images and return subset above threshold """
 
     ims = []
@@ -172,7 +185,7 @@ def threshold_images(images, threshold):
         if snr > threshold:
             ims.append(im)
             snrs.append(snr)
-            ints.append(i)
+            ints.append(integrations[i])
 
     return (ims, snrs, ints)
 

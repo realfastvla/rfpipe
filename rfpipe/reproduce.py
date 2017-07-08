@@ -29,6 +29,11 @@ def oldcands_read(candsfile, sdmscan=None, sdmfile=None, returnstate=False, retu
         inmeta = metadata.oldstate_metadata(d, scan=sdmscan)
         st = state.State(inprefs=inprefs, inmeta=inmeta)
 
+    # need to track this to recalculate delay properly for old candidates
+    st.rtpipe_version = float(d['rtpipe_version']) 
+    if st.rtpipe_version <= 1.54:
+        logger.info('Candidates detected with rtpipe version {0}. All versions <=1.54 used an incorrect DM scaling prefactor.'.format(st.rtpipe_version))
+
     # ** Probably also need to iterate state definition for each scan
 
     colnames = d['featureind']
@@ -55,25 +60,27 @@ def pipeline(st, candloc):
     Assumes sdm data for now.
     """
 
-    # ** not supporting dt>1
-
     segment, candint, dmind, dtind, beamnum = candloc
+    dt = st.dtarr[dtind]
+    dm = st.dmarr[dmind]
 
     # prep data
-    data = source.read_segment(st, segment)#, timeout=vys_timeout, cfile=cfile)
+    data = source.read_segment(st, segment)
     data_prep = source.data_prep(st, data)
 
     # prepare to transform data
     uvw = st.get_uvw_segment(segment)
     wisdom = search.set_wisdom(st.npixx, st.npixy)
-    delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind], st.metadata.inttime)
+    scale = 4.2e-3 if st.rtpipe_version <= 1.54 else None
+    delay = util.calc_delay(st.freq, st.freq.max(), dm, st.metadata.inttime, scale=scale)
 
     # dedisperse, resample, image, threshold
     data_dm = search.dedisperse(data_prep, delay)
-    ims_thresh = search.resample_image(data_dm, st.dtarr[dtind], uvw, st.npixx, st.npixy, st.uvres, st.prefs.sigma_image1, wisdom, integrations=[candint])
+    data_dmdt = search.resample(data_dm, dt)
+    ims_thresh = search.image_thresh(data_dmdt, uvw, st.npixx, st.npixy, st.uvres, st.prefs.sigma_image1, wisdom, integrations=[candint/dt])
 #    candplot = delayed(search.candplot)(st, ims_thresh, data_dm)
 
     search_coords = OrderedDict(zip(['segment', 'dmind', 'dtind', 'beamnum'], [segment, dmind, dtind, 0]))
     candidates = search.calc_features(st, ims_thresh, search_coords)
 
-    return candidates, data_prep, data_dm
+    return candidates

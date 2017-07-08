@@ -117,11 +117,12 @@ def meantsub_cuda(data):
             data[i, x, y, z] = data[i, x, y, z] - mean
 
 
-def calc_delay(freq, freqref, dm, inttime, scale=4.1488e-3):
+def calc_delay(freq, freqref, dm, inttime, scale=None):
     """ Calculates the delay due to dispersion relative to freqref in integer units of inttime.
-    scale argument linearly scales delay: 4.1488e-3 is correct, but rtpipe<=1.54 used 4.2e-3.
+    default scale is 4.1488e-3 as linear prefactor (reproducing for rtpipe<=1.54 requires 4.2e-3).
     """
 
+    scale = 4.1488e-3 if not scale else scale
     delay = np.zeros(len(freq), dtype=np.int32)
 
     for i in range(len(freq)):
