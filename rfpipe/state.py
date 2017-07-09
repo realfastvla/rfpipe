@@ -9,11 +9,11 @@ logging.captureWarnings(True)
 logger = logging.getLogger(__name__)
 
 import json, attr, os, yaml
-from rfpipe import source, util, preferences, metadata
 import numpy as np
 from scipy.special import erf
 from collections import OrderedDict
 from astropy import time
+from rfpipe import source, util, preferences, metadata, version
 
 import pwkit.environments.casa.util as casautil
 qa = casautil.tools.quanta()
@@ -37,11 +37,10 @@ class State(object):
     - uvoversample + npix_max + metadata => npixx, npixy
     """
 
-    def __init__(self, config=None, sdmfile=None, sdmscan=None, inprefs={}, inmeta={}, preffile=None, name=None, version=1, showsummary=True):
+    def __init__(self, config=None, sdmfile=None, sdmscan=None, inprefs={}, inmeta={}, preffile=None, name=None, showsummary=True):
         """ Initialize preference attributes with text file, preffile.
         name can select preference set from within yaml file.
         preferences are overloaded with inprefs.
-        Versions define functions that derive state from preferences and metadata
 
         Metadata source can be:
         1) Config object is (expected to be) like EVLA_config object prototyped for pulsar work by Paul.
@@ -50,7 +49,6 @@ class State(object):
         inmeta is a dict with key-value pairs to overload metadata (e.g., to mock metadata from a simulation)
         """
 
-        self.version = version
         self.config = config
         self.sdmfile = sdmfile
         self.sdmscan = sdmscan
@@ -144,6 +142,14 @@ class State(object):
                 delattr(self, obj)
             except AttributeError:
                 pass
+
+
+    @property
+    def version(self):
+        if self.prefs.rfpipe_version:
+            return self.prefs.rfpipe_version
+        else:
+            return version.__version__
 
 
     @property

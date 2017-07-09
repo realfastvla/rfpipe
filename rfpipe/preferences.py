@@ -7,6 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 import attr, yaml
+from rfpipe.version import __version__
 
 
 @attr.s
@@ -17,6 +18,8 @@ class Preferences(object):
     TODO: can we freeze attributes while still having cached values?
     """
 
+    rfpipe_version = attr.ib(default=__version__)
+    
     # data selection
     chans = attr.ib(default=None)
     spw = attr.ib(default=None)
