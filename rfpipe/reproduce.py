@@ -77,7 +77,8 @@ def pipeline(st, candloc):
     # dedisperse, resample, image, threshold
     data_dm = search.dedisperse(data_prep, delay)
     data_dmdt = search.resample(data_dm, dt)
-    ims_thresh = search.image_thresh(data_dmdt, uvw, st.npixx, st.npixy, st.uvres, st.prefs.sigma_image1, wisdom, integrations=[candint/dt])
+#    ims_thresh = search.image_thresh(data_dmdt, uvw, st.npixx, st.npixy, st.uvres, st.prefs.sigma_image1, wisdom, integrations=[candint/dt])
+    ims_thresh = search.image_thresh(data_dmdt, uvw, st.npixx, st.npixy, st.uvres, 4, wisdom, integrations=[candint/dt])
 #    candplot = delayed(search.candplot)(st, ims_thresh, data_dm)
 
     search_coords = OrderedDict(zip(['segment', 'dmind', 'dtind', 'beamnum'], [segment, dmind, dtind, 0]))
