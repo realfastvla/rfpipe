@@ -73,57 +73,76 @@ def oldcands_readone(candsfile, scan):
     return st, df3
 
 
-def pipeline(st, candloc, get='candidate'):
-    """ End-to-end processing to reproduce a given candloc (segment,
-    integration, dmind, dtind, beamnum).
-    Assumes sdm data and positive SNR candidates for now.
+def pipeline_dataprep(st, candloc):
+    """ Prepare (read, cal, flag) data for a given state and candloc.
+    """
+
+    segment, candint, dmind, dtind, beamnum = candloc.astype(int)
+
+    # prep data
+    data = source.read_segment(st, segment)
+    data_prep = source.data_prep(st, data)
+
+    return data_prep
+
+
+def pipeline_datacorrect(st, candloc):
+    """ Prepare and correct for dm and dt sampling of a given candloc
+    """
+
+    data_prep = pipeline_dataprep(st, candloc)
+
+    segment, candint, dmind, dtind, beamnum = candloc.astype(int)
+    dt = st.dtarr[dtind]
+    dm = st.dmarr[dmind]
+    scale = 4.2e-3 if st.rtpipe_version <= 1.54 else None
+    delay = util.calc_delay(st.freq, st.freq.max(), dm, st.metadata.inttime,
+                            scale=scale)
+
+    data_dm = search.dedisperse(data_prep, delay)
+    data_dmdt = search.resample(data_dm, dt)
+
+    return data_dmdt
+
+
+def pipeline_imdata(st, candloc):
+    """ Generate image and phased visibility data for candloc.
+    Phases to peak pixel in image of candidate.
     """
 
     segment, candint, dmind, dtind, beamnum = candloc.astype(int)
     dt = st.dtarr[dtind]
     dm = st.dmarr[dmind]
 
-    # prep data
-    data = source.read_segment(st, segment)
-    data_prep = source.data_prep(st, data)
-
-    # prepare to transform data
     uvw = st.get_uvw_segment(segment)
-
     wisdom = search.set_wisdom(st.npixx, st.npixy)
-    scale = 4.2e-3 if st.rtpipe_version <= 1.54 else None
-    delay = util.calc_delay(st.freq, st.freq.max(), dm, st.metadata.inttime,
-                            scale=scale)
 
-    # dedisperse, resample, image, threshold
-    data_dm = search.dedisperse(data_prep, delay)
-    data_dmdt = search.resample(data_dm, dt)
-#    candplot = delayed(search.candplot)(st, ims_thresh, data_dm)
+    data_dmdt = pipeline_datacorrect(st, candloc)
 
-    if get == 'dmdt':
-        return data_dmdt
-    elif get == 'image':
-        image = search.image(data_dmdt, uvw, st.npixx, st.npixy, st.uvres,
-                             wisdom, integrations=[candint/dt])
-        return image
-    elif get == 'phased':
-        dl, dm = st.pixtolm(np.where(image == image.max()))
-        search.phase_shift(data_dmdt, uvw, dl, dm)
-        return data_dmdt
-    elif get == 'candidate':
-        image = search.image(data_dmdt, uvw, st.npixx, st.npixy, st.uvres,
-                             wisdom, integrations=[candint/dt])
-        snr = image.max()/util.madtostd(image)
-        imgall = ([image], [snr], [candint/dt])
-        search_coords = OrderedDict(zip(['segment', 'dmind', 'dtind',
-                                         'beamnum'],
-                                        [segment, dmind, dtind, 0]))
-        candidate = search.calc_features(st, imgall, search_coords)
-        return candidate
-    elif get == 'plot':
-        image = search.image(data_dmdt, uvw, st.npixx, st.npixy, st.uvres,
-                             wisdom, integrations=[candint/dt])
-        snr = image.max()/util.madtostd(image)
-        imgall = ([image], [snr], [candint/dt])
-        loclabel = [st.metadata.scan, segment, candint, dmind, dtind, beamnum]
-        search.candplot(st, imgall, data_dmdt, loclabel, snrs=[snr])
+    image = search.image(data_dmdt, uvw, st.npixx, st.npixy, st.uvres,
+                         wisdom, integrations=[candint/dt])[0]
+    dl, dm = st.pixtolm(np.where(image == image.max()))
+    search.phase_shift(data_dmdt, uvw, dl, dm)
+
+    return image, data_dmdt
+
+
+def pipeline_candidate(st, candloc):
+    """ End-to-end pipeline to reproduce candidate plot and calculate features.
+    """
+
+    segment, candint, dmind, dtind, beamnum = candloc.astype(int)
+    dt = st.dtarr[dtind]
+    search_coords = OrderedDict(zip(['segment', 'dmind', 'dtind', 'beamnum'],
+                                    [segment, dmind, dtind, 0]))
+
+    image, data_dmdt = pipeline_imdata(st, candloc)
+    snr = image.max()/util.madtostd(image)
+
+    imgall = ([image], [snr], [candint/dt])
+    candidate = search.calc_features(st, imgall, search_coords)
+
+    loclabel = [st.metadata.scan, segment, candint, dmind, dtind, beamnum]
+    search.candplot(st, imgall, data_dmdt, loclabel, snrs=[snr])
+
+    return candidate
