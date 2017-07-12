@@ -3,36 +3,37 @@ from builtins import bytes, dict, object, range, map, input#, str # not casa com
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
-import logging
-logger = logging.getLogger(__name__)
-
 import pickle
 import os.path
 from collections import OrderedDict
-from numpy import unique
+import numpy as np
 import pandas as pd
+from rfpipe import preferences, state, util, search, source
 
-from rfpipe import preferences, state, metadata, util, search, source
+import logging
+logger = logging.getLogger(__name__)
 
 
 def oldcands_read(candsfile, sdmscan=None, sdmfile=None):
     """ Read old-style candfile and create new-style DataFrame
-    Metadata best defined by sdmfile/sdmscan, but can get most from old candsfile.
-    If no file or scan argument specified, it will return a list of (st, df) tuples.
+    Metadata best defined by sdmfile/sdmscan, but can get most from old
+    candsfile.
+    If no file or scan argument specified, it will return a list of (st, df)
+    tuples.
     """
 
-    with open(candsfile, 'rb') as pkl:                                                                                                       
+    with open(candsfile, 'rb') as pkl:
         d = pickle.load(pkl)
         loc, prop = pickle.load(pkl)
 
     scanind = d['featureind'].index('scan')
-    scans = unique(loc[:, scanind])
+    scans = np.unique(loc[:, scanind])
 
     ll = []
     for scan in scans:
         try:
             st, df = oldcands_readone(candsfile, scan)
-            ll.append( (st, df) )
+            ll.append((st, df))
         except AttributeError:
             pass
 
@@ -40,21 +41,25 @@ def oldcands_read(candsfile, sdmscan=None, sdmfile=None):
 
 
 def oldcands_readone(candsfile, scan):
-    """ For old-style merged candidate file, create new state and candidate dataframe for a given scan.
+    """ For old-style merged candidate file, create new state and candidate
+    dataframe for a given scan.
     Requires sdm locally with bdf for given scan.
     """
 
-    with open(candsfile, 'rb') as pkl:                                                                                                       
+    with open(candsfile, 'rb') as pkl:
         d = pickle.load(pkl)
         loc, prop = pickle.load(pkl)
 
     inprefs = preferences.oldstate_preferences(d, scan=scan)
+    inprefs.pop('gainfile')
     sdmfile = os.path.basename(d['filename'])
     st = state.State(sdmfile=sdmfile, sdmscan=scan, inprefs=inprefs)
 
-    st.rtpipe_version = float(d['rtpipe_version']) 
+    st.rtpipe_version = float(d['rtpipe_version'])
     if st.rtpipe_version <= 1.54:
-        logger.info('Candidates detected with rtpipe version {0}. All versions <=1.54 used an incorrect DM scaling prefactor.'.format(st.rtpipe_version))
+        logger.info('Candidates detected with rtpipe version {0}. All versions \
+                    <=1.54 used an incorrect DM scaling prefactor.'
+                    .format(st.rtpipe_version))
 
     colnames = d['featureind']
     logger.info('Calculating candidate properties for scan {0}'.format(scan))
@@ -69,7 +74,8 @@ def oldcands_readone(candsfile, scan):
 
 
 def pipeline(st, candloc, get='candidate'):
-    """ End-to-end processing to reproduce a given candloc (segment, integration, dmind, dtind, beamnum).
+    """ End-to-end processing to reproduce a given candloc (segment,
+    integration, dmind, dtind, beamnum).
     Assumes sdm data and positive SNR candidates for now.
     """
 
@@ -83,9 +89,11 @@ def pipeline(st, candloc, get='candidate'):
 
     # prepare to transform data
     uvw = st.get_uvw_segment(segment)
+
     wisdom = search.set_wisdom(st.npixx, st.npixy)
     scale = 4.2e-3 if st.rtpipe_version <= 1.54 else None
-    delay = util.calc_delay(st.freq, st.freq.max(), dm, st.metadata.inttime, scale=scale)
+    delay = util.calc_delay(st.freq, st.freq.max(), dm, st.metadata.inttime,
+                            scale=scale)
 
     # dedisperse, resample, image, threshold
     data_dm = search.dedisperse(data_prep, delay)
@@ -95,16 +103,27 @@ def pipeline(st, candloc, get='candidate'):
     if get == 'dmdt':
         return data_dmdt
     elif get == 'image':
-        image = search.image(data_dmdt, uvw, st.npixx, st.npixy, st.uvres, wisdom, integrations=[candint/dt])
+        image = search.image(data_dmdt, uvw, st.npixx, st.npixy, st.uvres,
+                             wisdom, integrations=[candint/dt])
         return image
     elif get == 'phased':
         dl, dm = st.pixtolm(np.where(image == image.max()))
-        phase_shift(data_dmdt, uvw, dl, dm)
+        search.phase_shift(data_dmdt, uvw, dl, dm)
         return data_dmdt
     elif get == 'candidate':
-        image = search.image(data_dmdt, uvw, st.npixx, st.npixy, st.uvres, wisdom, integrations=[candint/dt])
-        snr = image.max()/madtostd(image)
+        image = search.image(data_dmdt, uvw, st.npixx, st.npixy, st.uvres,
+                             wisdom, integrations=[candint/dt])
+        snr = image.max()/util.madtostd(image)
         imgall = ([image], [snr], [candint/dt])
-        search_coords = OrderedDict(zip(['segment', 'dmind', 'dtind', 'beamnum'], [segment, dmind, dtind, 0]))
+        search_coords = OrderedDict(zip(['segment', 'dmind', 'dtind',
+                                         'beamnum'],
+                                        [segment, dmind, dtind, 0]))
         candidate = search.calc_features(st, imgall, search_coords)
         return candidate
+    elif get == 'plot':
+        image = search.image(data_dmdt, uvw, st.npixx, st.npixy, st.uvres,
+                             wisdom, integrations=[candint/dt])
+        snr = image.max()/util.madtostd(image)
+        imgall = ([image], [snr], [candint/dt])
+        loclabel = [st.metadata.scan, segment, candint, dmind, dtind, beamnum]
+        search.candplot(st, imgall, data_dmdt, loclabel, snrs=[snr])

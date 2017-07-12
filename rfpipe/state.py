@@ -3,30 +3,32 @@ from builtins import bytes, dict, object, range, map, input#, str # not casa com
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
+import os
+import numpy as np
+from scipy.special import erf
+from astropy import time
+from rfpipe import util, preferences, metadata, version
+import pwkit.environments.casa.util as casautil
+
 import logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logging.captureWarnings(True)
 logger = logging.getLogger(__name__)
 
-import json, attr, os, yaml
-import numpy as np
-from scipy.special import erf
-from collections import OrderedDict
-from astropy import time
-from rfpipe import source, util, preferences, metadata, version
-
-import pwkit.environments.casa.util as casautil
 qa = casautil.tools.quanta()
 logger.info('Using pwkit casa')
 
 
 class State(object):
     """ Defines initial pipeline preferences and methods for calculating state.
-    Uses attributes for immutable inputs and properties for derived quantities that depend on metadata.
+    Uses attributes for immutable inputs and properties for derived quantities
+    that depend on metadata.
 
     Scheme:
-    1) initial, minimal state defines either parameters for later use or fixes final state
-    2) read metadata from observation for given scan (if final value not yet set)
+    1) initial, minimal state defines either parameters for later use or fixes
+        final state
+    2) read metadata from observation for given scan (if final value not
+        yet set)
     3) run functions to set state (sets hashable state)
     4) may also set convenience attibutes
     5) run data processing for given segment
@@ -37,7 +39,8 @@ class State(object):
     - uvoversample + npix_max + metadata => npixx, npixy
     """
 
-    def __init__(self, config=None, sdmfile=None, sdmscan=None, inprefs={}, inmeta={}, preffile=None, name=None, showsummary=True):
+    def __init__(self, config=None, sdmfile=None, sdmscan=None, inprefs={},
+                 inmeta={}, preffile=None, name=None, showsummary=True):
         """ Initialize preference attributes with text file, preffile.
         name can select preference set from within yaml file.
         preferences are overloaded with inprefs.
@@ -109,7 +112,12 @@ class State(object):
             logger.info('\t Ideal uvgrid npix=({0}, {1}) and res={2} (oversample {3:.1f})'.format(self.npixx_full, self.npixy_full, self.uvres_full, self.prefs.uvoversample))
 
             logger.info('Pipeline summary:')
+            if os.path.exists(self.gainfile):
+                logger.info('Autodetected telcal file {0}'.format(self.gainfile))
+            else:
+                logger.warn('telcal file not found at {0}'.format(self.gainfile))
             logger.info('\t Products saved with {0}. telcal calibration with {1}.'.format(self.fileroot, os.path.basename(self.gainfile)))
+
             logger.info('\t Using {0} segment{1} of {2} ints ({3:.1f} s) with overlap of {4:.1f} s'.format(self.nsegment, "s"[not self.nsegment-1:], self.readints, self.t_segment, self.t_overlap))
             if self.t_overlap > self.t_segment/3. and self.t_overlap < self.t_segment:
                 logger.info('\t\t Lots of segments needed, since Max DM sweep ({0:.1f} s) close to segment size ({1:.1f} s)'.format(self.t_overlap, self.t_segment))
@@ -136,7 +144,8 @@ class State(object):
 
 
     def clearcache(self):
-        cached = ['_dmarr', '_t_overlap', '_dmshifts', '_npol', '_blarr', '_segmenttimes']
+        cached = ['_dmarr', '_t_overlap', '_dmshifts', '_npol', '_blarr',
+                  '_segmenttimes', '_npixx_full', '_npixy_full']
         for obj in cached:
             try:
                 delattr(self, obj)
@@ -270,7 +279,6 @@ class State(object):
 
         return self._npol
 
-
     @property
     def pols(self):
         """ Polarizations to use based on preference in prefs.selectpol """
@@ -282,41 +290,49 @@ class State(object):
         elif self.prefs.selectpol == 'all':
             return self.metadata.pols_orig
         else:
-            logger.warn('selectpol of {0} not supported'.format(self.prefs.selectpol))
-
+            logger.warn('selectpol of {0} not supported'
+                        .format(self.prefs.selectpol))
 
     @property
     def uvres_full(self):
-        return np.round(self.metadata.dishdiameter / (3e-1 / self.freq.min()) / 2).astype('int')
-
+        return np.round(self.metadata.dishdiameter / (3e-1
+                        / self.freq.min()) / 2).astype('int')
 
     @property
     def npixx_full(self):
         """ Finds optimal uv/image pixel extent in powers of 2 and 3"""
 
-        urange_orig, vrange_orig = self.metadata.uvrange_orig
-        urange = urange_orig * (self.freq.max() / self.metadata.freq_orig[0])
-        powers = np.fromfunction(lambda i, j: 2**i*3**j, (14, 10), dtype='int')
-        rangex = np.round(self.prefs.uvoversample*urange).astype('int')
-        largerx = np.where(powers - rangex / self.uvres_full > 0,
-                           powers, powers[-1, -1])
-        p2x, p3x = np.where(largerx == largerx.min())
-        return (2**p2x * 3**p3x)[0]
+        if not hasattr(self, '_npixx_full'):
+            urange_orig, vrange_orig = self.metadata.uvrange_orig
+            urange = urange_orig * (self.freq.max()
+                                    / self.metadata.freq_orig.min())
+            powers = np.fromfunction(lambda i, j: 2**i*3**j, (14, 10),
+                                     dtype='int')
+            rangex = np.round(self.prefs.uvoversample*urange).astype('int')
+            largerx = np.where(powers - rangex / self.uvres_full > 0,
+                               powers, powers[-1, -1])
+            p2x, p3x = np.where(largerx == largerx.min())
+            self._npixx_full = (2**p2x * 3**p3x)[0]
 
+        return self._npixx_full
 
     @property
     def npixy_full(self):
         """ Finds optimal uv/image pixel extent in powers of 2 and 3"""
 
-        urange_orig, vrange_orig = self.metadata.uvrange_orig
-        vrange = vrange_orig * (self.freq.max() / self.metadata.freq_orig[0])
-        powers = np.fromfunction(lambda i, j: 2**i*3**j, (14, 10), dtype='int')
-        rangey = np.round(self.prefs.uvoversample*vrange).astype('int')
-        largery = np.where(powers - rangey / self.uvres_full > 0,
-                           powers, powers[-1, -1])
-        p2y, p3y = np.where(largery == largery.min())
-        return (2**p2y * 3**p3y)[0]
+        if not hasattr(self, '_npixy_full'):
+            urange_orig, vrange_orig = self.metadata.uvrange_orig
+            vrange = vrange_orig * (self.freq.max()
+                                    / self.metadata.freq_orig.min())
+            powers = np.fromfunction(lambda i, j: 2**i*3**j, (14, 10),
+                                     dtype='int')
+            rangey = np.round(self.prefs.uvoversample*vrange).astype('int')
+            largery = np.where(powers - rangey / self.uvres_full > 0,
+                               powers, powers[-1, -1])
+            p2y, p3y = np.where(largery == largery.min())
+            self._npixy_full = (2**p2y * 3**p3y)[0]
 
+        return self._npixy_full
 
     @property
     def npixx(self):
@@ -333,13 +349,12 @@ class State(object):
                 npix = self.npixx_full
             return npix
 
-
     @property
     def npixy(self):
         """ Number of y pixels in uv/image grid.
         First defined by input preference set with default to npixy_full
         """
-        
+
         if self.prefs.npixy:
             return self.prefs.npixy
         else:
@@ -349,6 +364,14 @@ class State(object):
                 npix = self.npixy_full
             return npix
 
+    @property
+    def beamsize_deg(self):
+        """ Takes gridding spec to estimate beam size in degrees
+        ** TODO: check for accuracy
+        """
+
+        return (np.degrees(self.npixx*self.uvres/2),
+                np.degrees(self.npixy*self.uvres/2))
 
     @property
     def fringetime(self):
@@ -384,10 +407,7 @@ class State(object):
         
         if not self.prefs.gainfile:
             # look for gainfile in workdir
-            gainfile = os.path.join(self.metadata.workdir, self.metadata.filename, '.GN')
-
-            if os.path.exists(gainfile):
-                logger.info('Autodetected telcal file {0}'.format(gainfile))
+            gainfile = os.path.join(self.metadata.workdir, self.metadata.filename+'.GN')
         else:
             gainfile = self.prefs.gainfile
                 
