@@ -440,7 +440,7 @@ class State(object):
 
         assert len(pix) == 2
 
-        peaky, peakx = pix
+        peakx, peaky = pix
         if isinstance(peaky, np.ndarray) and len(peaky) == 1: # np.where output
             peaky = peaky[0]
             peakx = peakx[0]
@@ -448,7 +448,6 @@ class State(object):
         l1 = (self.npixx/2. - peakx)/(self.npixx*self.uvres)
         m1 = (self.npixy/2. - peaky)/(self.npixy*self.uvres)
 
-        # ** this is flipped relative to rtpipe, but this seems right to me.
         return l1, m1
 
 

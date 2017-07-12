@@ -170,3 +170,5 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
     return u, v, w
 
 
+def madtostd(array):
+    return 1.4826*np.median(np.abs(array-np.median(array)))

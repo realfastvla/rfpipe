@@ -7,60 +7,73 @@ import logging
 logger = logging.getLogger(__name__)
 
 import pickle
+import os.path
 from collections import OrderedDict
+from numpy import unique
 import pandas as pd
 
 from rfpipe import preferences, state, metadata, util, search, source
 
 
-def oldcands_read(candsfile, sdmscan=None, sdmfile=None, returnstate=False, returndf=True):
+def oldcands_read(candsfile, sdmscan=None, sdmfile=None):
     """ Read old-style candfile and create new-style DataFrame
     Metadata best defined by sdmfile/sdmscan, but can get most from old candsfile.
+    If no file or scan argument specified, it will return a list of (st, df) tuples.
     """
 
     with open(candsfile, 'rb') as pkl:                                                                                                       
         d = pickle.load(pkl)
         loc, prop = pickle.load(pkl)
 
-    inprefs = preferences.oldstate_preferences(d, scan=sdmscan)
-    if sdmfile and sdmscan:
-        st = state.State(sdmfile=sdmfile, sdmscan=sdmscan, inprefs=inprefs)
-    else:
-        inmeta = metadata.oldstate_metadata(d, scan=sdmscan)
-        st = state.State(inprefs=inprefs, inmeta=inmeta)
+    scanind = d['featureind'].index('scan')
+    scans = unique(loc[:, scanind])
 
-    # need to track this to recalculate delay properly for old candidates
+    ll = []
+    for scan in scans:
+        try:
+            st, df = oldcands_readone(candsfile, scan)
+            ll.append( (st, df) )
+        except AttributeError:
+            pass
+
+    return ll
+
+
+def oldcands_readone(candsfile, scan):
+    """ For old-style merged candidate file, create new state and candidate dataframe for a given scan.
+    Requires sdm locally with bdf for given scan.
+    """
+
+    with open(candsfile, 'rb') as pkl:                                                                                                       
+        d = pickle.load(pkl)
+        loc, prop = pickle.load(pkl)
+
+    inprefs = preferences.oldstate_preferences(d, scan=scan)
+    sdmfile = os.path.basename(d['filename'])
+    st = state.State(sdmfile=sdmfile, sdmscan=scan, inprefs=inprefs)
+
     st.rtpipe_version = float(d['rtpipe_version']) 
     if st.rtpipe_version <= 1.54:
         logger.info('Candidates detected with rtpipe version {0}. All versions <=1.54 used an incorrect DM scaling prefactor.'.format(st.rtpipe_version))
 
-    # ** Probably also need to iterate state definition for each scan
-
     colnames = d['featureind']
-
+    logger.info('Calculating candidate properties for scan {0}'.format(scan))
     df = pd.DataFrame(OrderedDict(zip(colnames, loc.transpose())))
     df2 = pd.DataFrame(OrderedDict(zip(st.features, prop.transpose())))
-    df3 = pd.concat([df, df2], axis=1)
+    df3 = pd.concat([df, df2], axis=1)[df.scan == scan]
 
     df3.metadata = st.metadata
     df3.prefs = st.prefs
 
-    if returndf and not returnstate:
-        return df3
-    elif returnstate and not returndf:
-        return st
-    elif returnstate and returndf:
-        return st, df3
-    else:
-        return
+    return st, df3
 
 
-def pipeline(st, candloc):
+def pipeline(st, candloc, get='candidate'):
     """ End-to-end processing to reproduce a given candloc (segment, integration, dmind, dtind, beamnum).
-    Assumes sdm data for now.
+    Assumes sdm data and positive SNR candidates for now.
     """
 
-    segment, candint, dmind, dtind, beamnum = candloc
+    segment, candint, dmind, dtind, beamnum = candloc.astype(int)
     dt = st.dtarr[dtind]
     dm = st.dmarr[dmind]
 
@@ -77,11 +90,21 @@ def pipeline(st, candloc):
     # dedisperse, resample, image, threshold
     data_dm = search.dedisperse(data_prep, delay)
     data_dmdt = search.resample(data_dm, dt)
-#    ims_thresh = search.image_thresh(data_dmdt, uvw, st.npixx, st.npixy, st.uvres, st.prefs.sigma_image1, wisdom, integrations=[candint/dt])
-    ims_thresh = search.image_thresh(data_dmdt, uvw, st.npixx, st.npixy, st.uvres, 4, wisdom, integrations=[candint/dt])
 #    candplot = delayed(search.candplot)(st, ims_thresh, data_dm)
 
-    search_coords = OrderedDict(zip(['segment', 'dmind', 'dtind', 'beamnum'], [segment, dmind, dtind, 0]))
-    candidates = search.calc_features(st, ims_thresh, search_coords)
-
-    return candidates
+    if get == 'dmdt':
+        return data_dmdt
+    elif get == 'image':
+        image = search.image(data_dmdt, uvw, st.npixx, st.npixy, st.uvres, wisdom, integrations=[candint/dt])
+        return image
+    elif get == 'phased':
+        dl, dm = st.pixtolm(np.where(image == image.max()))
+        phase_shift(data_dmdt, uvw, dl, dm)
+        return data_dmdt
+    elif get == 'candidate':
+        image = search.image(data_dmdt, uvw, st.npixx, st.npixy, st.uvres, wisdom, integrations=[candint/dt])
+        snr = image.max()/madtostd(image)
+        imgall = ([image], [snr], [candint/dt])
+        search_coords = OrderedDict(zip(['segment', 'dmind', 'dtind', 'beamnum'], [segment, dmind, dtind, 0]))
+        candidate = search.calc_features(st, imgall, search_coords)
+        return candidate

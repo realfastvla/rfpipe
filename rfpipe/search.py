@@ -14,7 +14,7 @@ from collections import OrderedDict
 import pandas as pd
 import pyfftw
 # import pycuda?
-from rfpipe import fileLock
+from rfpipe import fileLock, util
 
 
 @vectorize(nopython=True)
@@ -104,13 +104,24 @@ def _resample(data, dt):
 ##
 
 
-#@jit
 def image_thresh(data, uvw, npixx, npixy, uvres, threshold, wisdom=None, integrations=None):
     """ All stages of analysis for a given dt image grid.
     Optionally image integrations in list i.
     """
 
-    logger.info('Imaging ({0}x{1} pix) and thresholding ({2} sigma).'.format(npixx, npixy, threshold))
+    logger.info('Imaging {0}x{1} pix with uvres of {2}.'.format(npixx, npixy, uvres))
+    images = image(data, uvw, npixx, npixy, uvres, wisdom=wisdom, integrations=integrations)
+
+    logger.info('Thresholding images at {0} sigma.'.format(threshold))
+    images_thresh = threshold_images(images, threshold, integrations)
+
+    return images_thresh
+
+
+def image(data, uvw, npixx, npixy, uvres, wisdom=None, integrations=None):
+    """ Grid and image data.
+    Optionally image integrations in list i.
+    """
 
     if not integrations:
         integrations = range(len(data))
@@ -120,17 +131,16 @@ def image_thresh(data, uvw, npixx, npixy, uvres, threshold, wisdom=None, integra
 
     grids = grid_visibilities(data.take(integrations, axis=0), uvw, npixx, npixy, uvres)
     images = image_fftw(grids, wisdom=wisdom)
-    images_thresh = threshold_images(images, threshold, integrations)
 
-    return images_thresh
+    return images
 
 
 #@jit(nogil=True, nopython=True)
-def grid_visibilities(visdata, uvw, npixx, npixy, uvres):
+def grid_visibilities(data, uvw, npixx, npixy, uvres):
     """ Grid visibilities into rounded uv coordinates """
 
     us, vs, ws = uvw
-    nint, nbl, nchan, npol = visdata.shape
+    nint, nbl, nchan, npol = data.shape
 
     ubl = np.round(us/uvres, 0).astype(np.int32)
     vbl = np.round(vs/uvres, 0).astype(np.int32)
@@ -144,32 +154,9 @@ def grid_visibilities(visdata, uvw, npixx, npixy, uvres):
                 v = int64(np.mod(vbl[j,k], npixy))
                 for i in range(nint):
                     for l in xrange(npol):
-                        grids[i, u, v] = grids[i, u, v] + visdata[i, j, k, l]
+                        grids[i, u, v] = grids[i, u, v] + data[i, j, k, l]
 
     return grids
-
-
-def set_wisdom(npixx, npixy):
-    """ Run single 2d ifft like image to prep fftw wisdom in worker cache """
-
-    arr = pyfftw.empty_aligned((npixx, npixy), dtype='complex64', n=16)
-    arr[:] = np.random.randn(*arr.shape) + 1j*np.random.randn(*arr.shape)
-    fft_arr = pyfftw.interfaces.numpy_fft.ifft2(arr, auto_align_input=True, auto_contiguous=True,  planner_effort='FFTW_MEASURE')
-    return pyfftw.export_wisdom()
-
-
-#@jit    # no point?
-def image_fftw(grids, wisdom=None):
-    """ Plan pyfftw ifft2 and run it on uv grids (time, npixx, npixy)
-    Returns time images.
-    """
-
-    if wisdom:
-        logger.debug('Importing wisdom...')
-        pyfftw.import_wisdom(wisdom)
-    images = pyfftw.interfaces.numpy_fft.ifft2(grids, auto_align_input=True, auto_contiguous=True,  planner_effort='FFTW_MEASURE')
-
-    return images.real
 
 
 #@jit(nopython=True)  # not working. lowering error?
@@ -181,7 +168,7 @@ def threshold_images(images, threshold, integrations):
     ints = []
     for i in range(len(images)):
         im = images[i]
-        snr = im.max()/im.std()
+        snr = im.max()/util.madtostd(im)
         if snr > threshold:
             ims.append(im)
             snrs.append(snr)
@@ -190,18 +177,78 @@ def threshold_images(images, threshold, integrations):
     return (ims, snrs, ints)
 
 
+def image_fftw(grids, wisdom=None):
+    """ Plan pyfftw ifft2 and run it on uv grids (time, npixx, npixy)
+    Returns time images.
+    """
+
+    if wisdom:
+        logger.debug('Importing wisdom...')
+        pyfftw.import_wisdom(wisdom)
+    images = pyfftw.interfaces.numpy_fft.ifft2(grids, auto_align_input=True, auto_contiguous=True,  planner_effort='FFTW_MEASURE')
+
+    npixx, npixy = images[0].shape
+
+    return recenter(images.real, (npixx//2, npixy//2))
+
+
+def recenter(array, center):
+    """ Recenters images in array to location center (x, y)
+    Array can be either 2d (x, y) or 3d array (time, x, y).
+    """
+
+    assert len(center) == 2
+
+    if len(array.shape) == 2:
+        return np.roll(np.roll(array, center[0], axis=0), center[1], axis=1)
+    elif len(array.shape) == 3:
+        return np.roll(np.roll(array, center[0], axis=1), center[1], axis=2)
+
+#    s = a[1:].shape
+#    c = (c[0] % s[0], c[1] % s[1])
+#    a1 = np.concatenate([a[:, c[0]:], a[:, :c[0]]], axis=1)
+#    a2 = np.concatenate([a1[:, :,c[1]:], a1[:, :,:c[1]]], axis=2)
+#    return a2
+
+
 def image_arm():
     """ Takes visibilities and images arms of VLA """
 
     pass
 
 
+def set_wisdom(npixx, npixy):
+    """ Run single 2d ifft like image to prep fftw wisdom in worker cache """
+
+    arr = pyfftw.empty_aligned((npixx, npixy), dtype='complex64', n=16)
+    arr[:] = np.random.randn(*arr.shape) + 1j*np.random.randn(*arr.shape)
+    fft_arr = pyfftw.interfaces.numpy_fft.ifft2(arr, auto_align_input=True, auto_contiguous=True,  planner_effort='FFTW_MEASURE')
+    return pyfftw.export_wisdom()
+
+
 ##
 ## candidates and features
 ##
 
+@jit(nogil=True, nopython=True)
+def phase_shift(data, uvw, dl, dm):
+    """ Applies a phase shift to data for a given (dl, dm).
+    """
+
+    sh = data.shape
+    u, v, w = uvw
+
+    if (dl != 0.) or (dm != 0.):
+        for j in xrange(sh[1]):
+            for k in xrange(sh[2]):
+                for i in xrange(sh[0]):    # iterate over pols
+                    for l in xrange(sh[3]):
+                        frot = np.exp(-2j*np.pi*(dl*u[j,k] + dm*v[j,k]))  # phasor unwraps phase at (dl, dm) per (bl, chan)
+                        data[i,j,k,l] = data[i,j,k,l] * frot
+
+
 def calc_features(st, imgall, search_coords):
-    """ Calculates the candidate featuers for a given search of a segment of data.
+    """ Calculates the candidate features for a given search of a segment of data.
     imgall is a tuple returned from the search function.
     search_coords is a dictionary of dimension name (e.g., dtind) and the value searched.
     returns dictionary of candidate with keys as defined in st.search_dimensions
