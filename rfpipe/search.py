@@ -102,40 +102,46 @@ def _resample(data, dt):
 
 
 ##
-## fft and imaging
+## searching, imaging, thresholding
 ##
 
-def image_thresh(st, segment, data, wisdom=None, integrations=None, window=30):
-    """ Grid, image, and threshold data. More abstracted (uses state object)
-    Optionally image integrations in list i.
-    Returns tuple for input to feature calculating function:
-    (integration, image, dataph-chunk) per candidate over threshold.
+def search_thresh(st, data, segment, dmind, dtind, beamnum=0, type='image1',
+                  wisdom=None):
+    """ High-level wrapper for search algorithms.
+    Expects dedispersed, resampled data as input and data state.
+    Returns list of CandData objects that define candidates with
+    candloc, image, and phased visibility data.
+
     ** only supports threshold > image max (no min)
     """
 
     logger.info('Imaging {0}x{1} pix with uvres of {2}.'
                 .format(st.npixx, st.npixy, st.uvres))
-    uvw = st.get_uvw_segment(segment)
-    images = image(data, uvw, st.npixx, st.npixy,
-                   st.uvres, wisdom=wisdom, integrations=integrations)
 
-    logger.info('Thresholding images at {0} sigma.'
-                .format(st.prefs.sigma_image1))
-# this used to return (ims, snrs, ints)
-#    images_thresh = threshold_images(images, data, threshold, integrations)
-    ints = []
-    images_thresh = []
-    dataph = []
-    for i in range(len(images)):
-        if (images[i].max()/util.madtostd(images[i]) > st.prefs.sigma_image1):
-            ints.append(integrations[i])
-            images_thresh.append(images[i])
-            l, m = st.pixtolm(np.where(images[i] == images[i].max()))
-            phase_shift(data, uvw, l, m)
-            dataph = [data[i-window//2:i+window//2]].mean(axis=1)
-            phase_shift(data, uvw, -l, -m)
+    if type == 'image1':
+        uvw = st.get_uvw_segment(segment)
+        images = image(data, uvw, st.npixx, st.npixy,
+                       st.uvres, wisdom=wisdom)
 
-    return (ints, images_thresh, dataph)
+        logger.info('Thresholding images at {0} sigma.'
+                    .format(st.prefs.sigma_image1))
+
+        canddatalist = []
+        for i in range(len(images)):
+            if (images[i].max()/util.madtostd(images[i]) > st.prefs.sigma_image1):
+                candloc = (segment, i, dmind, dtind, beamnum)
+                candim = images[i]
+                l, m = st.pixtolm(np.where(candim == candim.max()))
+                phase_shift(data, uvw, l, m)
+                dataph = data[i-st.prefs.timewindow//2:i+st.prefs.timewindow//2].mean(axis=1)
+                phase_shift(data, uvw, -l, -m)
+                canddatalist.append(CandData(state=st, loc=candloc, image=candim, data=dataph))
+    else:
+        raise NotImplemented("only type=image1 implemented")
+
+    # tuple(list(int), list(ndarray), list(ndarray))
+#    return (ints, images_thresh, dataph)
+    return canddatalist
 
 
 def image(data, uvw, npixx, npixy, uvres, wisdom=None, integrations=None):
@@ -226,13 +232,11 @@ def set_wisdom(npixx, npixy):
 
     arr = pyfftw.empty_aligned((npixx, npixy), dtype='complex64', n=16)
     arr[:] = np.random.randn(*arr.shape) + 1j*np.random.randn(*arr.shape)
-    fft_arr = pyfftw.interfaces.numpy_fft.ifft2(arr, auto_align_input=True, auto_contiguous=True,  planner_effort='FFTW_MEASURE')
+    fft_arr = pyfftw.interfaces.numpy_fft.ifft2(arr, auto_align_input=True,
+                                                auto_contiguous=True,
+                                                planner_effort='FFTW_MEASURE')
     return pyfftw.export_wisdom()
 
-
-##
-## candidates and features
-##
 
 @jit(nogil=True, nopython=True)
 def phase_shift(data, uvw, dl, dm):
@@ -247,52 +251,85 @@ def phase_shift(data, uvw, dl, dm):
             for k in xrange(sh[2]):
                 for i in xrange(sh[0]):    # iterate over pols
                     for l in xrange(sh[3]):
-                        frot = np.exp(-2j*np.pi*(dl*u[j,k] + dm*v[j,k]))  # phasor unwraps phase at (dl, dm) per (bl, chan)
-                        data[i,j,k,l] = data[i,j,k,l] * frot
+                        # phasor unwraps phase at (dl, dm) per (bl, chan)
+                        frot = np.exp(-2j*np.pi*(dl*u[j, k] + dm*v[j, k]))
+                        data[i, j, k, l] = data[i, j, k, l] * frot
 
+##
+## candidates and features
+##
 
-def calc_features(st, images_thresh, search_coords):
-    """ Calculates the candidate features for a given search of a segment of data.
-    images_thresh is a tuple returned from the threshold function.
-    search_coords is a dictionary of dimension name (e.g., dtind) and the value
-    searched. returns dictionary of candidate with keys as defined in
-    st.search_dimensions
+class CandData(object):
+    """ Object that bundles data from search stage to candidate visualization.
     """
 
+    def __init__(self, state, loc, image, data):
+        """ Instantiate with pipeline state, candidate location tuple,
+        image, and resampled data phased to candidate.
+        """
+
+        self.state = state
+        self.loc = tuple(loc)
+        self.image = image
+        self.data = data
+
+        assert len(loc) == len(state.search_dimensions), ("candidate location "
+                                                          "should set each of "
+                                                          "the st.search_dimensions")
+
+
+def calc_features(canddatalist):
+    """ Calculates the candidate features for CandData instance(s).
+    Returns dictionary of candidate features with keys as defined in
+    st.search_dimensions.
+    """
+
+    if not isinstance(canddatalist, list):
+        logger.debug('Wrapping solo CandData object')
+        canddatalist = [canddatalist]
+
     logger.info('Calculating features for {0} candidates.'
-                .format(len(images_thresh[0])))
-
-    candints, images, dataph = images_thresh
-
-    # ** need some thinking about how to use st.search_dimensions here
-    segment = search_coords['segment']
-    dmind = search_coords['dmind']
-    dtind = search_coords['dtind']
-    beamnum = search_coords['beamnum']
-    dt = st.dtarr[search_coords['dtind']]
+                .format(len(canddatalist)))
 
     candidates = {}
-    for i in xrange(len(candints)):
-        candid = (segment, candints[i]*dt, dmind, dtind, beamnum)
+    for i in xrange(len(canddatalist)):
+        canddata = canddatalist[i]
+        st = canddata.state
+        candloc = canddata.loc
+        image = canddata.image
+        dataph = canddata.data
 
         # assemble feature in requested order
         ff = []
         for feat in st.features:
             if feat == 'snr1':
-                snr = images[i].max()/util.madtostd(images[i])
+                imstd = util.madtostd(image)
+                snrmax = image.max()/imstd
+                snrmin = image.min()/imstd
+                snr = snrmax if snrmax >= snrmin else snrmin
                 ff.append(snr)
             elif feat == 'immax1':
-                if snr[i] > 0:
-                    ff.append(images[i].max())
+                if snr > 0:
+                    ff.append(image.max())
                 else:
-                    ff.append(images[i].min())
+                    ff.append(image.min())
+            elif feat == 'l1':
+                l1, m1 = st.pixtolm(np.where(image == image.max()))
+                ff.append(float(l1))
+            elif feat == 'm1':
+                l1, m1 = st.pixtolm(np.where(image == image.max()))
+                ff.append(float(m1))
+            else:
+                print(feat)
+                raise NotImplementedError("Feature {0} calculation not ready"
+                                          .format(feat))
 
-        candidates[candid] = list(ff)
+        candidates[candloc] = list(ff)
 
     return candidates
 
 
-def save_cands(st, candidates, search_coords):
+def save_cands(st, candidates):
     """ Save candidates in reproducible form.
     Saves as DataFrame with metadata and preferences attached.
     Writes to location defined by state using a file lock to allow multiple
@@ -316,41 +353,48 @@ def save_cands(st, candidates, search_coords):
                 with open(st.candsfile, 'ab+') as pkl:
                     pickle.dump(cdf, pkl)
         except fileLock.FileLock.FileLockException:
-            suffix = ''.join([str(key)+str(search_coords[key])
-                              for key in search_coords])
-            newcandsfile = st.candsfile+suffix
-            logger.warn('Candidate file writing timeout. \
-                         Spilling to new file {0}.'.format(newcandsfile))
+            scan = st.metadata.scan
+            loc, prop = candidates.popitem()
+            segment = loc[0]
+            newcandsfile = ('{0}_sc{0}_seg{1}.pkl'
+                            .format(st.candsfile.rstrip('.pkl'),
+                                    scan, segment))
+            logger.warn('Candidate file writing timeout. '
+                        'Spilling to new file {0}.'.format(newcandsfile))
             with open(newcandsfile, 'ab+') as pkl:
                 pickle.dump(cdf, pkl)
     else:
         logger.info('Not saving candidates.')
 
 
-def candplot(st, imgall, loclabel, snrs=[], outname=''):
-    """ Takes results of imaging threshold operation and data to make
-    candidate plots. Expects phased, dedispersed data (cut out in time,
-    dual-pol), image, and metadata.
+def candplot(canddatalist, snrs=[], outname=''):
+    """ Takes output of search_thresh (CandData objects) to make
+    candidate plots.
+    Expects pipeline state, candidate location, image, and
+    phased, dedispersed data (cut out in time, dual-pol).
 
-    loclabel is used to label the plot with (scan, segment, candint, dmind,
-    dtind, beamnum).
     snrs is array for an (optional) SNR histogram plot.
     Written by Bridget Andersen and modified by Casey for rfpipe.
     """
 
-    # given d, im, data, make plot
-    logger.info('Making {0} candidate plots.'.format(len(imgall[0])))
-    candints, ims, data = imgall
+    if not isinstance(canddatalist, list):
+        logger.debug('Wrapping solo CandData object')
+        canddatalist = [canddatalist]
 
-    for i in range(len(ims)):
-        im = ims[i]
+    logger.info('Making {0} candidate plots.'.format(len(canddatalist)))
+
+    for i in xrange(len(canddatalist)):
+        canddata = canddatalist[i]
+        st = canddata.state
+        candloc = canddata.loc
+        im = canddata.image
+        data = canddata.data
+
         logger.debug('(image, data) shape: (%s, %s)' % (str(im.shape),
                                                         str(data.shape)))
 
-        assert len(loclabel) == 6, 'loclabel should have \
-                                    (scan, segment, candint, dmind, dtind, \
-                                    beamnum)'
-        scan, segment, candint, dmind, dtind, beamnum = loclabel
+        scan = st.metadata.scan
+        segment, candint, dmind, dtind, beamnum = candloc
 
         # calc source location
         snrmin = im.min()/im.std()
@@ -366,8 +410,8 @@ def candplot(st, imgall, loclabel, snrs=[], outname=''):
         logger.info('Peak (RA, Dec): %s, %s' % (src_ra, src_dec))
 
         # convert l1 and m1 from radians to arcminutes
-        l1arcm = l1*180.*60./np.pi
-        m1arcm = m1*180.*60./np.pi
+        l1arcm = np.degrees(l1)*60
+        m1arcm = np.degrees(m1)*60
 
         # build overall plot
         fig = plt.Figure(figsize=(12.75, 8))
@@ -417,7 +461,7 @@ def candplot(st, imgall, loclabel, snrs=[], outname=''):
                 fontname='sans-serif', transform=ax.transAxes,
                 fontsize='small')
         ax.text(left, start-8*space, 'dt = '
-                + str(np.round(st.metadata.inttime*st.dtarr[dtind], 3)*1e3)
+                + str(np.round(st.inttime*st.dtarr[dtind], 3)*1e3)
                 + ' ms' + ' (index ' + str(dtind) + ')',
                 fontname='sans-serif', transform=ax.transAxes,
                 fontsize='small')
@@ -660,7 +704,7 @@ def candplot(st, imgall, loclabel, snrs=[], outname=''):
         ax.set_frame_on(False)
 
         # add a zoomed cutout image of the candidate (set width at 5*beam)
-        sbeam = np.mean(st.beamsize_deg*60)
+        sbeam = np.mean(st.beamsize_deg)*60
         # figure out the location to center the zoomed image on
         xratio = len(im[0])/fov  # pix/arcmin
         yratio = len(im)/fov  # pix/arcmin
@@ -673,6 +717,8 @@ def candplot(st, imgall, loclabel, snrs=[], outname=''):
         bottom, height = 0.465, 0.15
         rect_imcrop = [left, bottom, width, height]
         ax_imcrop = fig.add_axes(rect_imcrop)
+        print(xmin, xmax, ymin, ymax)
+        print(l1arcm, m1arcm, sbeam, mult, xratio, yratio)
         logger.debug('{0}'.format(im.transpose()[xmin:xmax, ymin:ymax].shape))
         logger.debug('{0} {1} {2} {3}'.format(xmin, xmax, ymin, ymax))
         _ = ax_imcrop.imshow(im.transpose()[xmin:xmax,ymin:ymax], aspect=1,
@@ -743,9 +789,6 @@ def candplot(st, imgall, loclabel, snrs=[], outname=''):
             ax_snr.set_yscale('log')
             # draw vertical line where the candidate SNR is
             ax_snr.axvline(x=np.abs(snrobs), linewidth=1, color='y', alpha=0.7)
-
-    else:
-        logger.warn('make_cand_plot version not recognized.')
 
     if not outname:
         outname = os.path.join(st.metadata.workdir,

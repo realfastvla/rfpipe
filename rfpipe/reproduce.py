@@ -57,8 +57,8 @@ def oldcands_readone(candsfile, scan):
 
     st.rtpipe_version = float(d['rtpipe_version'])
     if st.rtpipe_version <= 1.54:
-        logger.info('Candidates detected with rtpipe version {0}. All versions \
-                    <=1.54 used an incorrect DM scaling prefactor.'
+        logger.info('Candidates detected with rtpipe version {0}. All versions '
+                    '<=1.54 used an incorrect DM scaling prefactor.'
                     .format(st.rtpipe_version))
 
     colnames = d['featureind']
@@ -98,7 +98,7 @@ def pipeline_datacorrect(st, candloc, data_prep=None):
     dt = st.dtarr[dtind]
     dm = st.dmarr[dmind]
     scale = 4.2e-3 if st.rtpipe_version <= 1.54 else None
-    delay = util.calc_delay(st.freq, st.freq.max(), dm, st.metadata.inttime,
+    delay = util.calc_delay(st.freq, st.freq.max(), dm, st.inttime,
                             scale=scale)
 
     data_dm = search.dedisperse(data_prep, delay)
@@ -123,42 +123,33 @@ def pipeline_imdata(st, candloc, data_dmdt=None):
     if data_dmdt is None:
         data_dmdt = pipeline_datacorrect(st, candloc)
 
+    i = candint//dt
     image = search.image(data_dmdt, uvw, st.npixx, st.npixy, st.uvres,
-                         wisdom, integrations=[candint/dt])[0]
+                         wisdom, integrations=[i])[0]
     dl, dm = st.pixtolm(np.where(image == image.max()))
     search.phase_shift(data_dmdt, uvw, dl, dm)
+    dataph = data_dmdt[i-st.prefs.timewindow//2:i+st.prefs.timewindow//2].mean(axis=1)
+    search.phase_shift(data_dmdt, uvw, -dl, -dm)
 
-    # ** better to use new search.image_threshold function?
-    # ** either way, need to rectify formats...rectify
-    # ** new threshold returns (ints, images, dataph),
-    # ** where dataph is windowed in time
+    canddata = search.CandData(state=st, loc=tuple(candloc), image=image,
+                               data=dataph)
 
-    return image, data_dmdt
+    # output is as from search.image_thresh
+    return canddata
 
 
-def pipeline_candidate(st, candloc, image=None, data_dmdt=None):
+def pipeline_candidate(st, candloc, canddata=None):
     """ End-to-end pipeline to reproduce candidate plot and calculate features.
     Can optionally pass in image and corrected data, if available.
     """
 
     segment, candint, dmind, dtind, beamnum = candloc.astype(int)
-    dt = st.dtarr[dtind]
-    search_coords = OrderedDict(zip(['segment', 'dmind', 'dtind', 'beamnum'],
-                                    [segment, dmind, dtind, 0]))
 
-    if image is None or data_dmdt is None:
-        image, data_dmdt = pipeline_imdata(st, candloc)
-    snr = image.max()/util.madtostd(image)
+    if canddata is None:
+        canddata = pipeline_imdata(st, candloc)
 
-    # ** better to use new search.image_threshold function?
-    # ** either way, need to rectify formats...rectify
-    # ** new threshold returns (ints, images, dataph),
-    # ** where dataph is windowed in time
+    candidate = search.calc_features(canddata)
 
-    imgall = ([candint/dt], image, data_dmdt)
-    candidate = search.calc_features(st, imgall, search_coords)
-
-    loclabel = [st.metadata.scan, segment, candint, dmind, dtind, beamnum]
-    search.candplot(st, imgall, data_dmdt, loclabel, snrs=[snr])
+    search.candplot(canddata)
 
     return candidate

@@ -113,6 +113,8 @@ def read_vys_seg(st, seg, cfile=None, timeout=default_timeout):
     Uses vysmaw application timefilter to receive multicast messages and pull spectra on the CBE.
     """
 
+    # TODO: support for time downsampling
+
     try:
         import vysmaw_reader
     except ImportError:

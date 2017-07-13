@@ -21,8 +21,9 @@ logger.info('Using pwkit casa')
 
 class State(object):
     """ Defines initial pipeline preferences and methods for calculating state.
-    Uses attributes for immutable inputs and properties for derived quantities
-    that depend on metadata.
+    Uses attributes for preferences and metadata.
+    State properties used for derived quantities that depend on
+    metadata+preferences.
 
     Scheme:
     1) initial, minimal state defines either parameters for later use or fixes
@@ -45,11 +46,12 @@ class State(object):
         name can select preference set from within yaml file.
         preferences are overloaded with inprefs.
 
-        Metadata source can be:
-        1) Config object is (expected to be) like EVLA_config object prototyped for pulsar work by Paul.
-        2) sdmfile and sdmscan are as in rtpipe.
+        Metadata source can be either:
+        1) Config object is a scan_config object (see evla_mcast library) or
+        2) sdmfile and sdmscan.
 
-        inmeta is a dict with key-value pairs to overload metadata (e.g., to mock metadata from a simulation)
+        inmeta is a dict with key-value pairs to overload metadata (e.g., to
+        mock metadata from a simulation)
         """
 
         self.config = config
@@ -57,18 +59,19 @@ class State(object):
         self.sdmscan = sdmscan
 
         if isinstance(inprefs, dict):
-            # get pipeline preferences
-            prefs = preferences.parsepreffile(preffile)  # returns empty dict for paramfile=None
+            # get pipeline preferences as dict
+            prefs = preferences.parsepreffile(preffile)
 
             # optionally overload preferences
             for key in inprefs:
                 prefs[key] = inprefs[key]
-                
+
             self.prefs = preferences.Preferences(**prefs)
         elif isinstance(inprefs, preferences.Preferences):
             self.prefs = inprefs
         else:
-            logger.warn('inprefs should be either a dictionary or preferences.Preferences object')
+            logger.warn('inprefs should be either a dictionary or \
+                         preferences.Preferences object')
 
         logger.parent.setLevel(getattr(logging, self.prefs.loglevel))
 
@@ -89,59 +92,90 @@ class State(object):
         elif isinstance(inmeta, metadata.Metadata):
             self.metadata = inmeta
         else:
-            logger.warn('inmeta should be either a dictionary or metadata.Metadata object')
+            logger.warn('inmeta should be either a dictionary or '
+                         'metadata.Metadata object')
 
         if showsummary:
             self.summarize()
 
-
     def summarize(self):
-        """ Print overall state, if metadata set """
+        """ Print summary of pipeline state """
 
         if self.metadata.atdefaults():
             logger.info('Metadata not set. Cannot calculate properties')
         else:
             logger.info('Metadata summary:')
-            logger.info('\t Working directory and fileroot: {0}, {1}'.format(self.metadata.workdir, self.fileroot))
-            logger.info('\t Using scan {0}, source {1}'.format(int(self.metadata.scan), self.metadata.source))
+            logger.info('\t Working directory and fileroot: {0}, {1}'
+                        .format(self.metadata.workdir, self.fileroot))
+            logger.info('\t Using scan {0}, source {1}'
+                        .format(int(self.metadata.scan), self.metadata.source))
             logger.info('\t nants, nbl: {0}, {1}'.format(self.nants, self.nbl))
-            logger.info('\t nchan, nspw: {0}, {1}'.format(self.nchan, self.nspw))
-            logger.info('\t Freq range: {0:.3f} -- {1:.3f}'.format(self.freq.min(), self.freq.max()))
-            logger.info('\t Scan has {0} ints ({0:.1f} s) and inttime {1:.3f} s'.format(self.nints, self.nints*self.metadata.inttime, self.metadata.inttime))
-            logger.info('\t {0} polarizations: {1}'.format(self.metadata.npol_orig, self.metadata.pols_orig))
-            logger.info('\t Ideal uvgrid npix=({0}, {1}) and res={2} (oversample {3:.1f})'.format(self.npixx_full, self.npixy_full, self.uvres_full, self.prefs.uvoversample))
+            logger.info('\t nchan, nspw: {0}, {1}'
+                        .format(self.nchan, self.nspw))
+            logger.info('\t Freq range: {0:.3f} -- {1:.3f}'
+                        .format(self.freq.min(), self.freq.max()))
+            logger.info('\t Scan has {0} ints ({0:.1f} s) and inttime {1:.3f} s'
+                        .format(self.nints, self.nints*self.metadata.inttime,
+                                self.metadata.inttime))
+            logger.info('\t {0} polarizations: {1}'
+                        .format(self.metadata.npol_orig,
+                                self.metadata.pols_orig))
+            logger.info('\t Ideal uvgrid npix=({0}, {1}) and res={2} (oversample {3:.1f})'
+                        .format(self.npixx_full, self.npixy_full,
+                                self.uvres_full, self.prefs.uvoversample))
 
             logger.info('Pipeline summary:')
             if os.path.exists(self.gainfile):
                 logger.info('Autodetected telcal file {0}'.format(self.gainfile))
             else:
                 logger.warn('telcal file not found at {0}'.format(self.gainfile))
-            logger.info('\t Products saved with {0}. telcal calibration with {1}.'.format(self.fileroot, os.path.basename(self.gainfile)))
+            logger.info('\t Products saved with {0}. telcal calibration with {1}.'
+                        .format(self.fileroot,
+                                os.path.basename(self.gainfile)))
 
-            logger.info('\t Using {0} segment{1} of {2} ints ({3:.1f} s) with overlap of {4:.1f} s'.format(self.nsegment, "s"[not self.nsegment-1:], self.readints, self.t_segment, self.t_overlap))
-            if self.t_overlap > self.t_segment/3. and self.t_overlap < self.t_segment:
-                logger.info('\t\t Lots of segments needed, since Max DM sweep ({0:.1f} s) close to segment size ({1:.1f} s)'.format(self.t_overlap, self.t_segment))
+            logger.info('\t Using {0} segment{1} of {2} ints ({3:.1f} s) with '
+                        'overlap of {4:.1f} s'
+                        .format(self.nsegment, "s"[not self.nsegment-1:],
+                                self.readints, self.t_segment, self.t_overlap))
+            if ((self.t_overlap > self.t_segment/3.)
+               and (self.t_overlap < self.t_segment)):
+                logger.info('\t\t Lots of segments needed, since Max DM sweep '
+                            '({0:.1f} s) close to segment size ({1:.1f} s)'
+                            .format(self.t_overlap, self.t_segment))
             elif self.t_overlap >= self.t_segment:
-                logger.warn('\t\t Max DM sweep ({0:.1f} s) is larger than segment size ({1:.1f} s). Pipeline will fail!'.format(self.t_overlap, self.t_segment))
+                logger.warn('\t\t Max DM sweep ({0:.1f} s) is larger than '
+                            'segment size ({1:.1f} s). Pipeline will fail!'
+                            .format(self.t_overlap, self.t_segment))
 
-            if self.metadata.inttime > self.fringetime:
-                logger.warn('\t\t Integration time larger than fringe timescale ({0} > {1}). Mean visibility subtraction will not work well.'.format(self.metadata.inttime, self.fringetime))
+            if self.inttime > self.fringetime:
+                logger.warn('\t\t Integration time larger than fringe '
+                            'timescale ({0} > {1}). Mean visibility '
+                            'subtraction will not work well.'
+                            .format(self.inttime, self.fringetime))
 
-            logger.info('\t Downsampling in time/freq by {0}/{1}.'.format(self.prefs.read_tdownsample, self.prefs.read_fdownsample))
+            logger.info('\t Downsampling in time/freq by {0}/{1}.'
+                        .format(self.prefs.read_tdownsample,
+                                self.prefs.read_fdownsample))
             logger.info('\t Excluding ants {0}'.format(self.prefs.excludeants))
             logger.info('\t Using pols {0}'.format(self.pols))
             logger.info('')
-            
-            logger.info('\t Search with {0} and threshold {1}.'.format(self.prefs.searchtype, self.prefs.sigma_image1))
-            logger.info('\t Using {0} DMs from {1} to {2} and dts {3}.'.format(len(self.dmarr), min(self.dmarr), max(self.dmarr), self.dtarr))
-            logger.info('\t Using uvgrid npix=({0}, {1}) and res={2}.'.format(self.npixx, self.npixy, self.uvres))
-            logger.info('\t Expect {0} thermal false positives per segment.'.format(self.nfalse))
-            
+
+            logger.info('\t Search with {0} and threshold {1}.'
+                        .format(self.prefs.searchtype,
+                                self.prefs.sigma_image1))
+            logger.info('\t Using {0} DMs from {1} to {2} and dts {3}.'
+                        .format(len(self.dmarr), min(self.dmarr),
+                                max(self.dmarr), self.dtarr))
+            logger.info('\t Using uvgrid npix=({0}, {1}) and res={2}.'
+                        .format(self.npixx, self.npixy, self.uvres))
+            logger.info('\t Expect {0} thermal false positives per segment.'
+                        .format(self.nfalse))
+
             logger.info('')
-            logger.info('\t Visibility memory usage is {0} GB/segment'.format(self.vismem))
+            logger.info('\t Visibility memory usage is {0} GB/segment'
+                        .format(self.vismem))
 #            logger.info('\t Imaging in {0} chunk{1} using max of {2} GB/segment'.format(self.nchunk, "s"[not self.nsegment-1:], immem))
 #            logger.info('\t Grand total memory usage: {0} GB/segment'.format(vismem + immem))
-
 
     def clearcache(self):
         cached = ['_dmarr', '_t_overlap', '_dmshifts', '_npol', '_blarr',
@@ -152,14 +186,12 @@ class State(object):
             except AttributeError:
                 pass
 
-
     @property
     def version(self):
         if self.prefs.rfpipe_version:
             return self.prefs.rfpipe_version
         else:
             return version.__version__
-
 
     @property
     def fileroot(self):
@@ -169,7 +201,6 @@ class State(object):
             return self.prefs.fileroot
         else:
             return os.path.basename(self.metadata.filename)
-
 
     @property
     def dmarr(self):
@@ -181,14 +212,12 @@ class State(object):
 
         return self._dmarr
 
-
     @property
     def dtarr(self):
         if self.prefs.dtarr:
             return self.prefs.dtarr
         else:
             return [1]
-
 
     @property
     def freq(self):
@@ -198,39 +227,51 @@ class State(object):
 
         return self.metadata.freq_orig[self.chans]
 
-
     @property
     def chans(self):
-        """ List of channel indices to use. Drawn from preferences, with backup to take all defined in metadata. """
+        """ List of channel indices to use. Drawn from preferences,
+        with backup to take all defined in metadata.
+        """
+
+        # TODO: support for frequency downsampling
+
         if self.prefs.chans:
             return self.prefs.chans
         else:
             return range(sum(self.metadata.spw_nchan))
 
+    @property
+    def inttime(self):
+        """ Integration time
+        """
+
+        # TODO: suppot for time downsampling
+
+        return self.metadata.inttime
 
     @property
     def nchan(self):
         return len(self.chans)
 
-
     @property
     def dmshifts(self):
-        """ Calculate max DM delay in units of integrations for each dm trial. Gets cached.
+        """ Calculate max DM delay in units of integrations for each dm trial.
+        Gets cached.
         """
 
         if not hasattr(self, '_dmshifts'):
-            self._dmshifts = [util.calc_delay(self.freq, self.freq.max(), dm, self.metadata.inttime).max() for dm in self.dmarr]
+            self._dmshifts = [util.calc_delay(self.freq, self.freq.max(), dm,
+                              self.inttime).max()
+                              for dm in self.dmarr]
         return self._dmshifts
-        
 
     @property
     def t_overlap(self):
         """ Max DM delay in seconds. Gets cached. """
 
         if not hasattr(self, '_t_overlap'):
-            self._t_overlap = max(self.dmshifts)*self.metadata.inttime
+            self._t_overlap = max(self.dmshifts)*self.inttime
         return self._t_overlap
-
 
     @property
     def spw(self):
@@ -239,17 +280,14 @@ class State(object):
         else:
             return self.metadata.spw_orig
 
-
     @property
     def nspw(self):
         return len(self.spw)
-
 
 #    @property
 #    def spw_nchan_select(self):
 #        return [len([ch for ch in range(self.metadata.spw_chanr[i][0], self.metadata.spw_chanr[i][1]) if ch in self.chans])
 #                for i in range(len(self.metadata.spw_chanr))]
-
 
 #    @property
 #    def spw_chanr_select(self):
@@ -261,14 +299,12 @@ class State(object):
 #
 #        return chanr_select
 
-
     @property
     def uvres(self):
         if self.prefs.uvres:
             return self.prefs.uvres
         else:
             return self.uvres_full
-
 
     @property
     def npol(self):
@@ -370,62 +406,69 @@ class State(object):
         ** TODO: check for accuracy
         """
 
-        return (np.degrees(self.npixx*self.uvres/2),
-                np.degrees(self.npixy*self.uvres/2))
+        return (np.degrees(1/(self.npixx*self.uvres/2)),
+                np.degrees(1/(self.npixy*self.uvres/2)))
 
     @property
     def fringetime(self):
         """ Estimate largest time span of a "segment".
-        A segment is the maximal time span that can be have a single bg fringe subtracted and uv grid definition.
-        Max fringe window estimated for 5% amp loss at first null averaged over all baselines. Assumes dec=+90, which is conservative.
+        A segment is the maximal time span that can be have a single bg fringe
+        subtracted and uv grid definition.  Max fringe window estimated for
+        5% amp loss at first null averaged over all baselines. Assumes dec=+90,
+        which is conservative. Also can be optimized for memory/compute limits.
         Returns time in seconds that defines good window.
         """
 
-        maxbl = self.uvres*max(self.npixx, self.npixy)/2    # fringe time for image grid extent
-        fringetime = 0.5*(24*3600)/(2*np.pi*maxbl/25.)   # max fringe window in seconds
-        return fringetime
+        # max baseline for imaging parameters
+        maxbl = self.uvres*max(self.npixx, self.npixy)/2
 
+        # max fringe window in seconds
+        fringetime = 0.5*(24*3600)/(2*np.pi*maxbl/25.)
+
+        return fringetime
 
     @property
     def ants(self):
-        return sorted([ant for ant in self.metadata.antids if ant not in self.prefs.excludeants])
-
+        return sorted([ant for ant in self.metadata.antids
+                       if ant not in self.prefs.excludeants])
 
     @property
     def nants(self):
         return len(self.ants)
 
-
     @property
     def nbl(self):
         return int(self.nants*(self.nants-1)/2)
 
-
     @property
     def gainfile(self):
-        """ Calibration file (telcal) from preferences or found from ".GN" suffix """
-        
+        """ Calibration file (telcal) from preferences or found from ".GN"
+        suffix
+        """
+
         if not self.prefs.gainfile:
             # look for gainfile in workdir
-            gainfile = os.path.join(self.metadata.workdir, self.metadata.filename+'.GN')
+            gainfile = os.path.join(self.metadata.workdir,
+                                    self.metadata.filename+'.GN')
         else:
             gainfile = self.prefs.gainfile
-                
+
         return gainfile
 
-    
     @property
     def blarr(self):
         if not hasattr(self, '_blarr'):
-            self._blarr = np.array([ [int(self.ants[i].lstrip('ea')), int(self.ants[j].lstrip('ea'))] for j in range(self.nants) for i in range(0,j)])
+            self._blarr = np.array([[int(self.ants[i].lstrip('ea')),
+                                     int(self.ants[j].lstrip('ea'))]
+                                    for j in range(self.nants)
+                                    for i in range(0, j)])
 
         return self._blarr
 
-
     @property
     def blarr_names(self):
-        return np.array([ [self.ants[i], self.ants[j]] for j in range(self.nants) for i in range(0,j)])
-
+        return np.array([[self.ants[i], self.ants[j]]
+                         for j in range(self.nants) for i in range(0, j)])
 
     @property
     def nsegment(self):
@@ -433,7 +476,6 @@ class State(object):
             return self.prefs.nsegment
         else:
             return len(self.segmenttimes)
-
 
     @property
     def segmenttimes(self):
@@ -452,7 +494,6 @@ class State(object):
 
         return self._segmenttimes
 
-
     def pixtolm(self, pix):
         """ Helper function to calculate (l,m) coords of given pixel.
         Example: st.pixtolm(np.where(im == im.max()))
@@ -461,7 +502,8 @@ class State(object):
         assert len(pix) == 2
 
         peakx, peaky = pix
-        if isinstance(peaky, np.ndarray) and len(peaky) == 1: # np.where output
+        # if np.where output
+        if isinstance(peaky, np.ndarray) and len(peaky) == 1:
             peaky = peaky[0]
             peakx = peakx[0]
 
@@ -470,11 +512,9 @@ class State(object):
 
         return l1, m1
 
-
     def get_segmenttime_string(self, segment):
         mid_mjd = self.segmenttimes[segment].mean()
         return qa.time(qa.quantity(mid_mjd, 'd'), form='ymd', prec=8)[0]
-
 
     def get_uvw_segment(self, segment):
         """ Returns uvw in units of baselines for a given segment.
@@ -482,7 +522,9 @@ class State(object):
         """
 
         mjdstr = self.get_segmenttime_string(segment)
-        (u, v, w) = util.calc_uvw(datetime=mjdstr, radec=self.metadata.radec, antpos=self.metadata.antpos, telescope=self.metadata.telescope)
+        (u, v, w) = util.calc_uvw(datetime=mjdstr, radec=self.metadata.radec,
+                                  antpos=self.metadata.antpos,
+                                  telescope=self.metadata.telescope)
 #        u = u * self.metadata.freq_orig[0] * (1e9/3e8) * (-1)
 #        v = v * self.metadata.freq_orig[0] * (1e9/3e8) * (-1)
 #        w = w * self.metadata.freq_orig[0] * (1e9/3e8) * (-1)
@@ -492,89 +534,94 @@ class State(object):
 
         return u.astype('float32'), v.astype('float32'), w.astype('float32')
 
-
     @property
     def nints(self):
         if self.metadata.nints:
-            return self.metadata.nints  # if nints known (e.g., from sdm) or set (e.g., forced during vys reading)
-        elif self.prefs.nsegment:  # if overloading segment time calculation
-            return int(round((self.nsegment*self.fringetime - self.t_overlap*(self.nsegment-1))/self.metadata.inttime))  # else this is open ended
+            # if nints known (e.g., from sdm) or set (e.g., forced during vys reading)
+            return self.metadata.nints  
+            # if overloading segment time calculation
+        elif self.prefs.nsegment:  
+            return int(round((self.nsegment*self.fringetime - self.t_overlap*(self.nsegment-1))/self.inttime))  
         else:
-            raise ValueError, "Number of integrations in scan is not known or cannot be inferred. Set metadata.nints of prefs.nsegment."
-
+            raise(ValueError, "Number of integrations in scan is not known or "
+                              "cannot be inferred. Set metadata.nints of "
+                              "prefs.nsegment.")
 
     @property
     def t_segment(self):
         """ Time read per segment in seconds """
 
         if self.metadata.nints:
-            totaltimeread = 24*3600*(self.segmenttimes[:, 1] - self.segmenttimes[:, 0]).sum()            # not guaranteed to be the same for each segment
+            # ** not guaranteed to be the same for each segment, but assume so
+            totaltimeread = 24*3600*(self.segmenttimes[:, 1] - self.segmenttimes[:, 0]).sum()
             return totaltimeread/self.nsegment
         elif self.prefs.nsegment:
-            return self.nints*self.metadata.inttime/self.nsegment
+            return self.nints*self.inttime/self.nsegment
         else:
-            raise ValueError, "Number of integrations in scan is not known or cannot be inferred. Set metadata.nints of prefs.nsegment."
-
+            raise(ValueError, "Number of integrations in scan is not known "
+                              "or cannot be inferred. Set metadata.nints of "
+                              "prefs.nsegment.")
 
     @property
     def readints(self):
-        """ Number of integrations read per segment. 
+        """ Number of integrations read per segment.
         Defines shape of numpy array for visibilities.
         """
 
-        return int(round(self.t_segment / self.metadata.inttime))
-
+        return int(round(self.t_segment / self.inttime))
 
     @property
     def datashape(self):
-        return (self.readints/self.prefs.read_tdownsample, self.nbl, self.nchan/self.prefs.read_fdownsample, self.npol)
-
+        return (self.readints/self.prefs.read_tdownsample, self.nbl,
+                self.nchan/self.prefs.read_fdownsample, self.npol)
 
     @property
     def datasize(self):
-        return long(self.readints*self.nbl*self.nchan*self.npol/(self.prefs.read_tdownsample*self.prefs.read_fdownsample))
-
+        return long(self.readints*self.nbl*self.nchan*self.npol /
+                    (self.prefs.read_tdownsample*self.prefs.read_fdownsample))
 
     @property
     def nfalse(self):
         """ Calculate the number of thermal-noise false positives per segment.
         """
 
-        dtfactor = np.sum([1./i for i in self.dtarr])    # assumes dedisperse-all algorithm
+        # assumes dedisperse-all algorithm
+        dtfactor = np.sum([1./i for i in self.dtarr])
         ntrials = self.readints * dtfactor * len(self.dmarr) * self.npixx * self.npixy
         qfrac = 1 - (erf(self.prefs.sigma_image1/np.sqrt(2)) + 1)/2.
         nfalse = int(qfrac*ntrials)
         return nfalse
 
-
     @property
     def search_dimensions(self):
-        """ Define dimensions searched for a given piece of data. 
+        """ Define dimensions searched for a given piece of data.
         Actual algorithm defined in pipeline iteration.
         """
 
         return ('segment', 'integration', 'dmind', 'dtind', 'beamnum')
 
-
     @property
     def features(self):
-        """ Given searchtype, return features to be extracted in initial analysis """
+        """ Given searchtype, return features to be extracted in initial
+        analysis
+        """
 
         if self.prefs.searchtype == 'image1':
             return ('snr1', 'immax1', 'l1', 'm1')
         elif self.prefs.searchtype == 'image1stats':
-            return ('snr1', 'immax1', 'l1', 'm1', 'specstd', 'specskew', 'speckurtosis', 'imskew', 'imkurtosis')  # note: spec statistics are all or nothing.
-
+            # note: spec statistics are all or nothing.
+            return ('snr1', 'immax1', 'l1', 'm1', 'specstd', 'specskew',
+                    'speckurtosis', 'imskew', 'imkurtosis')
 
     @property
     def candsfile(self):
-        """ File name to write candidates to """
+        """ File name to write candidates into """
 
         if self.prefs.candsfile:
             return self.prefs.candsfile
         else:
-            return os.path.join(self.metadata.workdir, 'cands_' + self.fileroot + '.pkl')
-
+            return os.path.join(self.metadata.workdir,
+                                'cands_' + self.fileroot + '.pkl')
 
     @property
     def vismem(self):
@@ -585,16 +632,18 @@ class State(object):
 
         return self.datasize * toGB
 
-
     @property
     def vismem_limit(self):
         """ Memory required to store read data (in GB)
-        Limit defined for time range equal to the overlap time between segments.
+        Limit defined for time range equal to the overlap time between
+        segments.
         """
 
         toGB = 8/1024.**3   # number of complex64s to GB
-        return toGB*long(self.t_overlap/self.metadata.inttime*self.nbl*self.nchan*self.npol/(self.prefs.read_tdownsample*self.prefs.read_fdownsample))
-
+        return toGB*long(self.t_overlap /
+                         self.inttime*self.nbl*self.nchan*self.npol /
+                         (self.prefs.read_tdownsample *
+                          self.prefs.read_fdownsample))
 
     @property
     def immem(self):
@@ -606,7 +655,6 @@ class State(object):
 
         return immem
 
-
     @property
     def immem_limit(self):
         """ Memory required to create all images in a chunk of read integrations
@@ -615,7 +663,7 @@ class State(object):
 
         toGB = 8/1024.**3   # number of complex64s to GB
         nchunk_scale = max(self.dtarr)/min(self.dtarr)
-        immem = self.prefs.nthread * ((self.t_overlap/self.metadata.inttime)/(self.prefs.nthread*nchunk_scale) * self.npixx * self.npixy) * toGB
+        immem = self.prefs.nthread * ((self.t_overlap/self.inttime)/(self.prefs.nthread*nchunk_scale) * self.npixx * self.npixy) * toGB
 
         return immem
 
@@ -658,7 +706,6 @@ class State(object):
 #            print('Cannot make hash without minimal set defined in reproducekeys property.')
 #            return None
 
-
     @property
     def defined(self):
         return [key for key in self.__dict__.keys() if key[0] != '_']
@@ -666,7 +713,8 @@ class State(object):
 
 def calc_dmarr(state):
     """ Function to calculate the DM values for a given maximum sensitivity loss.
-    dm_maxloss is sensitivity loss tolerated by dm bin width. dm_pulsewidth is assumed pulse width in microsec.
+    dm_maxloss is sensitivity loss tolerated by dm bin width. dm_pulsewidth is
+    assumed pulse width in microsec.
     """
 
     dm_maxloss = state.prefs.dm_maxloss
@@ -675,7 +723,7 @@ def calc_dmarr(state):
     maxdm = state.prefs.maxdm
 
     # parameters
-    tsamp = state.metadata.inttime*1e6  # in microsec
+    tsamp = state.inttime*1e6  # in microsec
     k = 8.3
     freq = state.freq.mean()  # central (mean) frequency in GHz
     bw = 1e3*(state.freq.max() - state.freq.min())  # in MHz
@@ -711,11 +759,11 @@ def calc_segment_times(state, nsegment=0):
     nsegment = nsegment if nsegment else state.nsegment
 
     # this casts to int (flooring) to avoid 0.5 int rounding issue. 
-    stopdts = np.linspace(state.t_overlap/state.metadata.inttime, state.nints, nsegment+1)[1:]   # nseg+1 assures that at least one seg made
-    startdts = np.concatenate( ([0], stopdts[:-1]-state.t_overlap/state.metadata.inttime) )
+    stopdts = np.linspace(state.t_overlap/state.inttime, state.nints, nsegment+1)[1:]   # nseg+1 assures that at least one seg made
+    startdts = np.concatenate( ([0], stopdts[:-1]-state.t_overlap/state.inttime) )
             
     segmenttimes = []
-    for (startdt, stopdt) in zip(state.metadata.inttime*startdts, state.metadata.inttime*stopdts):
+    for (startdt, stopdt) in zip(state.inttime*startdts, state.inttime*stopdts):
         starttime = qa.getvalue(qa.convert(qa.time(qa.quantity(state.metadata.starttime_mjd+startdt/(24*3600), 'd'), 
                                                    form=['ymd'], prec=9)[0], 's'))[0]/(24*3600)
         stoptime = qa.getvalue(qa.convert(qa.time(qa.quantity(state.metadata.starttime_mjd+stopdt/(24*3600), 'd'),
@@ -737,7 +785,7 @@ def find_segment_times(state):
 
     # initialize at fringe time limit. nsegment must be between 1 and state.nints
     scale_nsegment = 1.
-    nsegment = max(1, min(state.metadata.nints, int(round(scale_nsegment*state.metadata.inttime*state.metadata.nints/(state.fringetime-state.t_overlap)))))  # at least 1, at most nints
+    nsegment = max(1, min(state.metadata.nints, int(round(scale_nsegment*state.inttime*state.metadata.nints/(state.fringetime-state.t_overlap)))))  # at least 1, at most nints
     state._segmenttimes = calc_segment_times(state, nsegment)
 
     # calculate memory limit to stop iteration
@@ -750,7 +798,7 @@ def find_segment_times(state):
             logger.debug('Using {0} segments with {1} chunks ({2}/{3} GB for visibilities/imaging). Searching for better solution...'.format(state.prefs.nchunk, state.vismem, state.immem, state.prefs.memory_limit))
 
             scale_nsegment *= (state.vismem+state.immem)/float(state.prefs.memory_limit)
-            nsegment = max(1, min(state.metadata.nints, int(round(scale_nsegment*state.metadata.inttime*state.metadata.nints/(state.fringetime-state.t_overlap)))))  # at least 1, at most nints
+            nsegment = max(1, min(state.metadata.nints, int(round(scale_nsegment*state.inttime*state.metadata.nints/(state.fringetime-state.t_overlap)))))  # at least 1, at most nints
             state._segmenttimes = calc_segment_times(state, nsegment=nsegment)
 
             while state.vismem+state.immem > state.prefs.memory_limit:
