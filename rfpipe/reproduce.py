@@ -86,11 +86,13 @@ def pipeline_dataprep(st, candloc):
     return data_prep
 
 
-def pipeline_datacorrect(st, candloc):
+def pipeline_datacorrect(st, candloc, data_prep=None):
     """ Prepare and correct for dm and dt sampling of a given candloc
+    Can optionally pass in prepared (flagged, calibrated) data, if available.
     """
 
-    data_prep = pipeline_dataprep(st, candloc)
+    if data_prep is None:
+        data_prep = pipeline_dataprep(st, candloc)
 
     segment, candint, dmind, dtind, beamnum = candloc.astype(int)
     dt = st.dtarr[dtind]
@@ -105,9 +107,10 @@ def pipeline_datacorrect(st, candloc):
     return data_dmdt
 
 
-def pipeline_imdata(st, candloc):
+def pipeline_imdata(st, candloc, data_dmdt=None):
     """ Generate image and phased visibility data for candloc.
     Phases to peak pixel in image of candidate.
+    Can optionally pass in corrected data, if available.
     """
 
     segment, candint, dmind, dtind, beamnum = candloc.astype(int)
@@ -117,18 +120,25 @@ def pipeline_imdata(st, candloc):
     uvw = st.get_uvw_segment(segment)
     wisdom = search.set_wisdom(st.npixx, st.npixy)
 
-    data_dmdt = pipeline_datacorrect(st, candloc)
+    if data_dmdt is None:
+        data_dmdt = pipeline_datacorrect(st, candloc)
 
     image = search.image(data_dmdt, uvw, st.npixx, st.npixy, st.uvres,
                          wisdom, integrations=[candint/dt])[0]
     dl, dm = st.pixtolm(np.where(image == image.max()))
     search.phase_shift(data_dmdt, uvw, dl, dm)
 
+    # ** better to use new search.image_threshold function?
+    # ** either way, need to rectify formats...rectify
+    # ** new threshold returns (ints, images, dataph),
+    # ** where dataph is windowed in time
+
     return image, data_dmdt
 
 
-def pipeline_candidate(st, candloc):
+def pipeline_candidate(st, candloc, image=None, data_dmdt=None):
     """ End-to-end pipeline to reproduce candidate plot and calculate features.
+    Can optionally pass in image and corrected data, if available.
     """
 
     segment, candint, dmind, dtind, beamnum = candloc.astype(int)
@@ -136,10 +146,16 @@ def pipeline_candidate(st, candloc):
     search_coords = OrderedDict(zip(['segment', 'dmind', 'dtind', 'beamnum'],
                                     [segment, dmind, dtind, 0]))
 
-    image, data_dmdt = pipeline_imdata(st, candloc)
+    if image is None or data_dmdt is None:
+        image, data_dmdt = pipeline_imdata(st, candloc)
     snr = image.max()/util.madtostd(image)
 
-    imgall = ([image], [snr], [candint/dt])
+    # ** better to use new search.image_threshold function?
+    # ** either way, need to rectify formats...rectify
+    # ** new threshold returns (ints, images, dataph),
+    # ** where dataph is windowed in time
+
+    imgall = ([candint/dt], image, data_dmdt)
     candidate = search.calc_features(st, imgall, search_coords)
 
     loclabel = [st.metadata.scan, segment, candint, dmind, dtind, beamnum]
