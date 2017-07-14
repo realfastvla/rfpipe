@@ -141,6 +141,8 @@ def search_thresh(st, data, segment, dmind, dtind, beamnum=0, type='image1',
 
     # tuple(list(int), list(ndarray), list(ndarray))
 #    return (ints, images_thresh, dataph)
+    logger.info("Returning data for {0} candidates".format(len(canddatalist)))
+    
     return canddatalist
 
 
@@ -717,8 +719,6 @@ def candplot(canddatalist, snrs=[], outname=''):
         bottom, height = 0.465, 0.15
         rect_imcrop = [left, bottom, width, height]
         ax_imcrop = fig.add_axes(rect_imcrop)
-        print(xmin, xmax, ymin, ymax)
-        print(l1arcm, m1arcm, sbeam, mult, xratio, yratio)
         logger.debug('{0}'.format(im.transpose()[xmin:xmax, ymin:ymax].shape))
         logger.debug('{0} {1} {2} {3}'.format(xmin, xmax, ymin, ymax))
         _ = ax_imcrop.imshow(im.transpose()[xmin:xmax,ymin:ymax], aspect=1,

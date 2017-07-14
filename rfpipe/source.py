@@ -8,7 +8,7 @@ import numpy as np
 import sdmpy
 from astropy import time
 import pwkit.environments.casa.util as casautil
-from rfpipe import util, calibration
+from rfpipe import util, calibration, search
 
 import logging
 logger = logging.getLogger(__name__)
@@ -17,12 +17,24 @@ qa = casautil.tools.quanta()
 default_timeout = 10
 
 
-def data_prep(st, data):
+def data_prep(st, data, uvw=None):
     """ Applies calibration, flags, and subtracts time mean for data.
     """
 
     # ** need to make this portable or at least reimplement in rfpipe
     calibration.apply_telcal(st, data)
+
+    if st.prefs.simulated_transient is not None:
+        assert uvw is not None, "Must provide uvw to add transient"
+
+        for params in st.prefs.simulated_transient:
+            (amp, i0, dm, dt, l, m) = params
+            logger.info("Adding transient with Amp {0} at int {1}, DM {2}, "
+                        "dt {3} and l,m={4},{5}".format(amp, i0, dm, dt, l, m))
+            model = generate_transient(st, amp, i0, dm, dt)
+            search.phase_shift(data, uvw, -l, -m)
+            data += model.transpose()[:,None,:,None]
+            search.phase_shift(data, uvw, l, m)
 
     # ** dataflag points to rtpipe for now
     util.dataflag(st, data)
@@ -222,3 +234,46 @@ def getsdm(*args, **kwargs):
         sdm = sdmpy.SDM(*args, **kwargs)
 
     return sdm
+
+
+def generate_transient(st, amp, i0, dm, dt):
+    """ Create a dynamic spectrum for given parameters
+    amp is in system units (post calibration)
+    i0 is a float for integration relative to start of segment.
+    dm/dt are in units of pc/cm3 and seconds, respectively
+    """
+
+    model = np.zeros((st.nchan, st.readints), dtype='float')
+    chans = np.arange(st.nchan)
+
+    i = i0 + (4.1488e-3 * dm * (1/st.freq**2 - 1/st.freq.max()**2))/st.inttime
+    i_f = np.floor(i).astype(int)
+    imax = np.ceil(i + dt/st.inttime).astype(int)
+    imin = i_f
+    i_r = imax - imin
+#    print(i_r)
+    if np.any(i_r == 1):
+        ir1 = np.where(i_r == 1)
+#        print(ir1)
+        model[chans[ir1], i_f[ir1]] += amp
+
+    if np.any(i_r == 2):
+        ir2 = np.where(i_r == 2)
+        i_c = np.ceil(i).astype(int)
+        f1 = (dt/st.inttime - (i_c - i))/(dt/st.inttime)
+        f0 = 1 - f1
+#        print(np.vstack((ir2, f0[ir2], f1[ir2])).transpose())
+        model[chans[ir2], i_f[ir2]] += f0[ir2]*amp
+        model[chans[ir2], i_f[ir2]+1] += f1[ir2]*amp
+
+    if np.any(i_r == 3):
+        ir3 = np.where(i_r == 3)
+        f2 = (i + dt/st.inttime - (imax - 1))/(dt/st.inttime)
+        f0 = ((i_f + 1) - i)/(dt/st.inttime)
+        f1 = 1 - f2 - f0
+#        print(np.vstack((ir3, f0[ir3], f1[ir3], f2[ir3])).transpose())
+        model[chans[ir3], i_f[ir3]] += f0[ir3]*amp
+        model[chans[ir3], i_f[ir3]+1] += f1[ir3]*amp
+        model[chans[ir3], i_f[ir3]+2] += f2[ir3]*amp
+
+    return model

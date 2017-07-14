@@ -3,23 +3,25 @@ from builtins import bytes, dict, object, range, map, input#, str # not casa com
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
+import attr
+import yaml
+from rfpipe.version import __version__
+
 import logging
 logger = logging.getLogger(__name__)
 
-import attr, yaml
-from rfpipe.version import __version__
-
 
 @attr.s
-class Preferences(object): 
-    """ Preferences *should* be immutable and express half of info needed to define state.
-    Using preferences with metadata produces a unique state and pipeline outcome.
+class Preferences(object):
+    """ Preferences *should* be immutable and express half of info needed to
+    define state. Using preferences with metadata produces a unique state and
+    pipeline outcome.
 
     TODO: can we freeze attributes while still having cached values?
     """
 
     rfpipe_version = attr.ib(default=__version__)
-    
+
     # data selection
     chans = attr.ib(default=None)
     spw = attr.ib(default=None)
@@ -33,12 +35,14 @@ class Preferences(object):
     l0 = attr.ib(default=0.)  # in radians
     m0 = attr.ib(default=0.)  # in radians
     timesub = attr.ib(default=None)
-    flaglist = attr.ib(default=[('badchtslide', 4., 0.) , ('badap', 3., 0.2), ('blstd', 3.0, 0.05)])
+    flaglist = attr.ib(default=[('badchtslide', 4., 0.), ('badap', 3., 0.2),
+                                ('blstd', 3.0, 0.05)])
     flagantsol = attr.ib(default=True)
     badspwpol = attr.ib(default=2.)  # 0 means no flagging done
     applyonlineflags = attr.ib(default=True)
     gainfile = attr.ib(default=None)
-    mock = attr.ib(default=0)
+    # simulate transients from list of tuples with (amp, i0, dm, dt, dl, dm)
+    simulated_transient = attr.ib(default=None)  
 
     # processing
     nthread = attr.ib(default=1)
@@ -50,9 +54,9 @@ class Preferences(object):
     # search
     dmarr = attr.ib(default=None)
     dtarr = attr.ib(default=None)
-    dm_maxloss = attr.ib(default=0.05) # fractional sensitivity loss
+    dm_maxloss = attr.ib(default=0.05)  # fractional sensitivity loss
     mindm = attr.ib(default=0)
-    maxdm = attr.ib(default=0) # in pc/cm3
+    maxdm = attr.ib(default=0)  # in pc/cm3
     dm_pulsewidth = attr.ib(default=3000)   # in microsec
     searchtype = attr.ib(default='image1')  # supported: image1, image1stat
     sigma_image1 = attr.ib(default=7.)
@@ -75,7 +79,8 @@ class Preferences(object):
 def parsepreffile(preffile=None, name=None):
     """ Read preference file and set parameter values.
     File should have python-like syntax. Full file name needed.
-    name can be used to select a parameter set if multiple are defined in the yaml file.
+    name can be used to select a parameter set if multiple are defined in the
+    yaml file.
     """
 
     if preffile:
@@ -99,7 +104,8 @@ def _parsepref_old(preffile):
     pars = {}
     with open(preffile, 'r') as f:
         for line in f.readlines():
-            line_clean = line.rstrip('\n').split('#')[0]   # trim out comments and trailing cr
+            # trim out comments and trailing cr
+            line_clean = line.rstrip('\n').split('#')[0]
             if line_clean and '=' in line:   # use valid lines only
                 attribute, value = line_clean.split('=')
                 try:
@@ -107,7 +113,7 @@ def _parsepref_old(preffile):
                 except NameError:
                     value_eval = value.strip()
                 finally:
-                    pars[attribute.strip()] =  value_eval
+                    pars[attribute.strip()] = value_eval
 
     return pars
 
