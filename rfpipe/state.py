@@ -568,12 +568,12 @@ class State(object):
         Defines shape of numpy array for visibilities.
         """
 
-        return int(round(self.t_segment / self.inttime))
+        return int(round(self.t_segment//self.inttime))
 
     @property
     def datashape(self):
-        return (self.readints/self.prefs.read_tdownsample, self.nbl,
-                self.nchan/self.prefs.read_fdownsample, self.npol)
+        return (self.readints//self.prefs.read_tdownsample, self.nbl,
+                self.nchan//self.prefs.read_fdownsample, self.npol)
 
     @property
     def datasize(self):

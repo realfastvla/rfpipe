@@ -56,6 +56,8 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
         data_read = read_bdf_segment(st, segment)
     elif st.metadata.datasource == 'vys':
         data_read = read_vys_segment(st, segment, cfile=cfile, timeout=timeout)
+    elif st.metadata.datasource == 'sim':
+        data_read = simulate_segment(st)
     else:
         logger.error('Datasource {0} not recognized.'
                      .format(st.metadata.datasource))
@@ -180,6 +182,17 @@ def read_bdf_segment(st, segment):
     data = read_bdf(st, nskip=nskip).astype('complex64')
 
     return data
+
+
+def simulate_segment(st, loc=0., scale=1.):
+    """ Simulates visibilities for a segment.
+    """
+
+    data_read = np.zeros(shape=st.datashape, dtype='complex64')
+    data_read.real = np.random.normal(loc=loc, scale=scale, size=st.datashape)
+    data_read.imag = np.random.normal(loc=loc, scale=scale, size=st.datashape)
+
+    return data_read
 
 
 def read_bdf(st, nskip=0):
