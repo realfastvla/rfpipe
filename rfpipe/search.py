@@ -399,8 +399,11 @@ def candplot(canddatalist, snrs=[], outname=''):
         segment, candint, dmind, dtind, beamnum = candloc
 
         # calc source location
-        snrmin = im.min()/im.std()
-        snrmax = im.max()/im.std()
+        imstd = util.madtostd(image)
+        snrmax = image.max()/imstd
+        snrmin = image.min()/imstd
+        snrmin = im.min()/imstd
+        snrmax = im.max()/imstd
         if snrmax > -1*snrmin:
             l1, m1 = st.pixtolm(np.where(im == im.max()))
             snrobs = snrmax
