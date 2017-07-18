@@ -14,20 +14,20 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def oldcands_read(candsfile, sdmscan=None, sdmfile=None):
+def oldcands_read(candsfile, sdmscan=None):
     """ Read old-style candfile and create new-style DataFrame
-    Metadata best defined by sdmfile/sdmscan, but can get most from old
-    candsfile.
-    If no file or scan argument specified, it will return a list of (st, df)
-    tuples.
+    Returns a list of tuples (state, dataframe) per scan.
     """
 
     with open(candsfile, 'rb') as pkl:
         d = pickle.load(pkl)
         loc, prop = pickle.load(pkl)
 
-    scanind = d['featureind'].index('scan')
-    scans = np.unique(loc[:, scanind])
+    if not sdmscan:
+        scanind = d['featureind'].index('scan')
+        scans = np.unique(loc[:, scanind])
+    else:
+        scans = [sdmscan]
 
     ll = []
     for scan in scans:
