@@ -66,6 +66,9 @@ class State(object):
             for key in inprefs:
                 prefs[key] = inprefs[key]
 
+            for key in prefs:
+                logger.debug(key, prefs[key], type(prefs[key]))
+
             self.prefs = preferences.Preferences(**prefs)
         elif isinstance(inprefs, preferences.Preferences):
             self.prefs = inprefs
@@ -87,6 +90,9 @@ class State(object):
             # optionally overload metadata
             for key in inmeta:
                 meta[key] = inmeta[key]
+
+            for key in meta:
+                logger.debug(key, meta[key], type(meta[key]))
 
             self.metadata = metadata.Metadata(**meta)
         elif isinstance(inmeta, metadata.Metadata):
@@ -331,8 +337,8 @@ class State(object):
 
     @property
     def uvres_full(self):
-        return np.round(self.metadata.dishdiameter / (3e-1
-                        / self.freq.min()) / 2).astype('int')
+        return int(round(self.metadata.dishdiameter / (3e-1
+                     / self.freq.min()) / 2))
 
     @property
     def npixx_full(self):
@@ -344,7 +350,7 @@ class State(object):
                                     / self.metadata.freq_orig.min())
             powers = np.fromfunction(lambda i, j: 2**i*3**j, (14, 10),
                                      dtype='int')
-            rangex = np.round(self.prefs.uvoversample*urange).astype('int')
+            rangex = int(round(self.prefs.uvoversample*urange))
             largerx = np.where(powers - rangex / self.uvres_full > 0,
                                powers, powers[-1, -1])
             p2x, p3x = np.where(largerx == largerx.min())
@@ -362,7 +368,7 @@ class State(object):
                                     / self.metadata.freq_orig.min())
             powers = np.fromfunction(lambda i, j: 2**i*3**j, (14, 10),
                                      dtype='int')
-            rangey = np.round(self.prefs.uvoversample*vrange).astype('int')
+            rangey = int(round(self.prefs.uvoversample*vrange))
             largery = np.where(powers - rangey / self.uvres_full > 0,
                                powers, powers[-1, -1])
             p2y, p3y = np.where(largery == largery.min())
@@ -485,7 +491,8 @@ class State(object):
         """
 
         if not hasattr(self, '_segmenttimes'):
-            if len(self.prefs.segmenttimes):
+            if self.prefs.segmenttimes is not None:
+                assert isinstance(self.prefs.segmenttimes, list)
                 self._segmenttimes = self.prefs.segmenttimes
             elif self.prefs.nsegment:
                 self._segmenttimes = calc_segment_times(self)
@@ -537,11 +544,13 @@ class State(object):
     @property
     def nints(self):
         if self.metadata.nints:
-            # if nints known (e.g., from sdm) or set (e.g., forced during vys reading)
-            return self.metadata.nints  
+            # if nints known (e.g., from sdm)
+            # or set (e.g., forced during vys reading)
+            return self.metadata.nints
             # if overloading segment time calculation
-        elif self.prefs.nsegment:  
-            return int(round((self.nsegment*self.fringetime - self.t_overlap*(self.nsegment-1))/self.inttime))  
+        elif self.prefs.nsegment:
+            return int(round((self.nsegment*self.fringetime -
+                              self.t_overlap*(self.nsegment-1))/self.inttime))
         else:
             raise(ValueError, "Number of integrations in scan is not known or "
                               "cannot be inferred. Set metadata.nints of "
@@ -568,7 +577,7 @@ class State(object):
         Defines shape of numpy array for visibilities.
         """
 
-        return int(round(self.t_segment//self.inttime))
+        return int(round(self.t_segment/self.inttime))
 
     @property
     def datashape(self):
@@ -586,9 +595,9 @@ class State(object):
         """
 
         # assumes dedisperse-all algorithm
-        dtfactor = np.sum([1./i for i in self.dtarr])
+        dtfactor = np.sum([1/i for i in self.dtarr])
         ntrials = self.readints * dtfactor * len(self.dmarr) * self.npixx * self.npixy
-        qfrac = 1 - (erf(self.prefs.sigma_image1/np.sqrt(2)) + 1)/2.
+        qfrac = 1 - (erf(self.prefs.sigma_image1/np.sqrt(2)) + 1)/2
         nfalse = int(qfrac*ntrials)
         return nfalse
 
@@ -628,7 +637,7 @@ class State(object):
         """ Memory required to store read data (in GB)
         """
 
-        toGB = 8/1024.**3   # number of complex64s to GB
+        toGB = 8/1024**3   # number of complex64s to GB
 
         return self.datasize * toGB
 
@@ -639,7 +648,7 @@ class State(object):
         segments.
         """
 
-        toGB = 8/1024.**3   # number of complex64s to GB
+        toGB = 8/1024**3   # number of complex64s to GB
         return toGB*long(self.t_overlap /
                          self.inttime*self.nbl*self.nchan*self.npol /
                          (self.prefs.read_tdownsample *
@@ -650,8 +659,8 @@ class State(object):
         """ Memory required to create all images in a chunk of read integrations
         """
 
-        toGB = 8/1024.**3   # number of complex64s to GB
-        immem = self.prefs.nthread * (self.readints/self.prefs.nthread * self.npixx * self.npixy) * toGB
+        toGB = 8/1024**3   # number of complex64s to GB
+        immem = self.prefs.nthread * (self.readints//self.prefs.nthread * self.npixx * self.npixy) * toGB
 
         return immem
 
@@ -661,8 +670,8 @@ class State(object):
         Limit defined for 
         """
 
-        toGB = 8/1024.**3   # number of complex64s to GB
-        nchunk_scale = max(self.dtarr)/min(self.dtarr)
+        toGB = 8/1024**3   # number of complex64s to GB
+        nchunk_scale = max(self.dtarr)//min(self.dtarr)
         immem = self.prefs.nthread * ((self.t_overlap/self.inttime)/(self.prefs.nthread*nchunk_scale) * self.npixx * self.npixy) * toGB
 
         return immem
@@ -751,20 +760,24 @@ def calc_dmarr(state):
 
 
 def calc_segment_times(state, nsegment=0):
-    """ Helper function for set_pipeline to define segmenttimes list, given nsegment definition
+    """ Helper function for set_pipeline to define segmenttimes list, given
+    nsegment definition.
     Can optionally overload state.nsegment to calculate new times
     ** TODO: why is this slightly off from rtpipe calculation?
     """
 
-    nsegment = nsegment if nsegment else state.nsegment
+    if not nsegment:
+        nsegment = state.nsegment
 
-    # this casts to int (flooring) to avoid 0.5 int rounding issue. 
-    stopdts = np.linspace(state.t_overlap/state.inttime, state.nints, nsegment+1)[1:]   # nseg+1 assures that at least one seg made
-    startdts = np.concatenate( ([0], stopdts[:-1]-state.t_overlap/state.inttime) )
-            
+    # this casts to int (flooring) to avoid 0.5 int rounding issue.
+    stopdts = np.linspace(state.t_overlap/state.inttime, state.nints,
+                          nsegment+1)[1:]  # nseg+1 keeps at least one seg
+    startdts = np.concatenate(([0],
+                              stopdts[:-1]-state.t_overlap/state.inttime))
+
     segmenttimes = []
     for (startdt, stopdt) in zip(state.inttime*startdts, state.inttime*stopdts):
-        starttime = qa.getvalue(qa.convert(qa.time(qa.quantity(state.metadata.starttime_mjd+startdt/(24*3600), 'd'), 
+        starttime = qa.getvalue(qa.convert(qa.time(qa.quantity(state.metadata.starttime_mjd+startdt/(24*3600), 'd'),
                                                    form=['ymd'], prec=9)[0], 's'))[0]/(24*3600)
         stoptime = qa.getvalue(qa.convert(qa.time(qa.quantity(state.metadata.starttime_mjd+stopdt/(24*3600), 'd'),
                                                   form=['ymd'], prec=9)[0], 's'))[0]/(24*3600)
@@ -778,15 +791,19 @@ def find_segment_times(state):
     Segment sizes bounded by fringe time and memory limit,
     Solution found by iterating from fringe time to memory size that fits.
 
-    **TODO: this is still pretty awkward. Setting nsegment and nints may produce different outcomes.
+    **TODO: this is still pretty awkward. Setting nsegment and nints may
+    produce different outcomes.
+
+    ** Not converging for evla_mcast test data and long scan length
     """
 
     assert state.metadata.nints or state.prefs.nsegment, "Can only find segment times if nints or nsegments defined"
 
     # initialize at fringe time limit. nsegment must be between 1 and state.nints
     scale_nsegment = 1.
-    nsegment = max(1, min(state.metadata.nints, int(round(scale_nsegment*state.inttime*state.metadata.nints/(state.fringetime-state.t_overlap)))))  # at least 1, at most nints
-    state._segmenttimes = calc_segment_times(state, nsegment)
+    nsegment = max(1, min(state.metadata.nints,
+                         int(round(scale_nsegment*state.inttime*state.metadata.nints/(state.fringetime-state.t_overlap)))))  # at least 1, at most nints
+    state._segmenttimes = calc_segment_times(state, nsegment=nsegment)
 
     # calculate memory limit to stop iteration
     assert state.immem_limit+state.vismem_limit < state.prefs.memory_limit, 'memory_limit of {0} is smaller than best solution of {1}. Try forcing nsegment/nchunk larger than {2}/{3} or reducing maxdm/npix'.format(state.prefs.memory_limit, state.immem_limit+state.vismem_limit, state.nsegment, max(state.dtarr)/min(state.dtarr))

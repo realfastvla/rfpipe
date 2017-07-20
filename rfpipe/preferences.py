@@ -42,13 +42,13 @@ class Preferences(object):
     applyonlineflags = attr.ib(default=True)
     gainfile = attr.ib(default=None)
     # simulate transients from list of tuples with (amp, i0, dm, dt, dl, dm)
-    simulated_transient = attr.ib(default=None)  
+    simulated_transient = attr.ib(default=None)
 
     # processing
     nthread = attr.ib(default=1)
     nchunk = attr.ib(default=0)
     nsegment = attr.ib(default=0)
-    segmenttimes = attr.ib(default=[[]])
+    segmenttimes = attr.ib(default=None)
     memory_limit = attr.ib(default=20)
 
     # search

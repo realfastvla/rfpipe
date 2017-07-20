@@ -3,15 +3,15 @@ from builtins import bytes, dict, object, range, map, input#, str # not casa com
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
-import logging
-logger = logging.getLogger(__name__)
-
-import os.path, attr
+import os.path
+import attr
 
 import numpy as np
 from rfpipe import source, util
-
 import pwkit.environments.casa.util as casautil
+import logging
+logger = logging.getLogger(__name__)
+
 qa = casautil.tools.quanta()
 me = casautil.tools.measures()
 
@@ -38,7 +38,7 @@ class Metadata(object):
     source = attr.ib(default=None)
     radec = attr.ib(default=None)
     inttime = attr.ib(default=None)
-    nints_ = attr.ib(default=None) 
+    nints_ = attr.ib(default=None)
     telescope = attr.ib(default=None)
 
     # array/antenna info
@@ -48,20 +48,18 @@ class Metadata(object):
     intent = attr.ib(default=None)
     antids = attr.ib(default=None)
 #    stationids = attr.ib(default=None) # needed?
-    xyz = attr.ib(default=None) # in m, geocentric
+    xyz = attr.ib(default=None)  # in m, geocentric
 
     # spectral info
-    spw_orig = attr.ib(default=None) # indexes for spw
-    spw_nchan = attr.ib(default=None) # channesl per spw
-    spw_reffreq = attr.ib(default=None) # reference frequency in Hz
-    spw_chansize = attr.ib(default=None) # channel size in Hz
+    spw_orig = attr.ib(default=None)  # indexes for spw
+    spw_nchan = attr.ib(default=None)  # channesl per spw
+    spw_reffreq = attr.ib(default=None)  # reference frequency in Hz
+    spw_chansize = attr.ib(default=None)  # channel size in Hz
     pols_orig = attr.ib(default=None)
-
 
     def atdefaults(self):
         """ Is metadata still set at default values? """
         return not any([self.__dict__[ab] for ab in self.__dict__])
-
 
     @property
     def workdir(self):
@@ -85,70 +83,73 @@ class Metadata(object):
                                      (self.spw_nchan[ii]-1) * self.spw_chansize[ii], self.spw_nchan[ii])
                         for ii in range(len((self.spw_reffreq)))], dtype='float32').flatten()/1e9
 
-
     @property
     def nchan_orig(self):
         return len(self.freq_orig)
 
-
     @property
     def nants_orig(self):
-#        return len(self.ants_orig)
         return len(self.antids)
-
 
     @property
     def nbl_orig(self):
         return int(self.nants_orig*(self.nants_orig-1)/2)
-
 
     @property
     def antpos(self):
         x = self.xyz[:, 0].tolist()
         y = self.xyz[:, 1].tolist()
         z = self.xyz[:, 2].tolist()
-        return me.position('itrf', qa.quantity(x, 'm'), qa.quantity(y, 'm'), qa.quantity(z, 'm'))
-
+        return me.position('itrf', qa.quantity(x, 'm'),
+                           qa.quantity(y, 'm'), qa.quantity(z, 'm'))
 
     @property
     def starttime_string(self):
-        return qa.time(qa.quantity(self.starttime_mjd, 'd'), form='ymd', prec=8)[0]
-
+        return qa.time(qa.quantity(self.starttime_mjd, 'd'),
+                       form='ymd', prec=8)[0]
 
     @property
     def endtime_mjd(self):
         """ If nints_ is defined (e.g., for SDM data), then endtime_mjd is calculated.
-        Otherwise (e.g., for scan_config/vys data), it looks for endtime_mjd_0 attribute
-        """
-
-        if self.nints_:
-            return self.starttime_mjd + (self.nints_*self.inttime)/(24*3600)
-        else:
-            return self.endtime_mjd_
-
-
-    @property
-    def nints(self):
-        """ If endtime_mjd_ is defined (e.g., for scan_config/vys data), then endtime_mjd is calculated.
-        Otherwise (e.g., for SDM data), it looks for nints_ attribute
+        Otherwise (e.g., for scan_config/vys data), it looks for endtime_mjd_ 
+        attribute
         """
 
         if self.endtime_mjd_:
-            return (self.endtime_mjd_ - self.starttime_mjd)*(24*3600)/self.inttime
+            return self.endtime_mjd_
+        elif self.nints_:
+            return self.starttime_mjd + (self.nints_*self.inttime)/(24*3600)
         else:
-            return self.nints_
+            raise AttributeError("Either endtime_mjd_ or nints_ need to be "
+                                 "defined.")
 
+    @property
+    def nints(self):
+        """ If endtime_mjd_ is defined (e.g., for scan_config/vys
+        data), then endtime_mjd is calculated.
+        Otherwise (e.g., for SDM data), it looks for nints_ attribute
+        """
+
+        if self.nints_:
+            return self.nints_
+        elif self.endtime_mjd_:
+            return np.round((self.endtime_mjd_ - self.starttime_mjd)*(24*3600)/self.inttime).astype(int)
+        else:
+            raise AttributeError("Either endtime_mjd_ or nints_ need to be "
+                                 "defined.")
 
     @property
     def uvrange_orig(self):
         if not hasattr(self, '_uvrange_orig'):
-            (u, v, w) = util.calc_uvw(datetime=self.starttime_string, radec=self.radec, antpos=self.antpos, telescope=self.telescope)
+            (u, v, w) = util.calc_uvw(datetime=self.starttime_string,
+                                      radec=self.radec,
+                                      antpos=self.antpos,
+                                      telescope=self.telescope)
             u = u * self.freq_orig.min() * (1e9/3e8) * (-1)
             v = v * self.freq_orig.min() * (1e9/3e8) * (-1)
             self._uvrange_orig = (u.max() - u.min(), v.max() - v.min())
 
         return self._uvrange_orig
-
 
     @property
     def npol_orig(self):
@@ -157,8 +158,9 @@ class Metadata(object):
 
 def config_metadata(config, datasource='vys'):
     """ Wraps Metadata call to provide immutable, attribute-filled class instance.
-    Parallel structure to sdm_metadata, so this inherits some of its nomenclature.
-    datasource defines expected data source (vys expected when using scan config)
+    Parallel structure to sdm_metadata, so this inherits some of its
+    nomenclature. datasource defines expected data source (vys expected when
+    using scan config)
     """
 
     logger.info('Reading metadata from config object')
@@ -170,8 +172,7 @@ def config_metadata(config, datasource='vys'):
 #    meta['configid'] = config.Id
 
     meta['starttime_mjd'] = config.startTime
-# **TODO: need to think about which of these two is more fundamental. make other a derived property
-    meta['endtime_mjd_'] =  config.stopTime
+    meta['endtime_mjd_'] = config.stopTime
     meta['source'] = str(config.source)
     meta['intent'] = str(config.scan_intent)
     meta['telescope'] = str(config.telescope)
@@ -185,7 +186,7 @@ def config_metadata(config, datasource='vys'):
 
     subbands = config.get_subbands()
     subband0 = subbands[0]  # **parsing single subband for now
-    meta['inttime'] = subband0.hw_time_res  # assumes that vys stream comes after hw integration
+    meta['inttime'] = subband0.hw_time_res  # assumes vys stream post-hw-integ
     meta['pols_orig'] = subband0.pp
     meta['spw_nchan'] = [sb.spectralChannels for sb in subbands]
     meta['spw_chansize'] = [sb.bw/subband0.spectralChannels for sb in subbands]
@@ -230,29 +231,34 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     meta['xyz'] = np.array(scanobj.positions)
 
     sources = source.sdm_sources(sdmfile)
-    meta['radec'] = [(prop['ra'], prop['dec']) for (sr, prop) in sources.iteritems() if str(prop['source']) == str(scanobj.source)][0]
+    meta['radec'] = [(prop['ra'], prop['dec'])
+                     for (sr, prop) in sources.iteritems()
+                     if str(prop['source']) == str(scanobj.source)][0]
     meta['dishdiameter'] = float(str(sdm['Antenna'][0].dishDiameter).strip())
-    meta['spw_orig'] = [int(str(row.spectralWindowId).split('_')[1]) for row in sdm['SpectralWindow']]
+    meta['spw_orig'] = [int(str(row.spectralWindowId).split('_')[1])
+                        for row in sdm['SpectralWindow']]
     meta['spw_nchan'] = [int(row.numChan) for row in sdm['SpectralWindow']]
-    meta['spw_reffreq'] = [float(row.chanFreqStart) for row in sdm['SpectralWindow']]
-    meta['spw_chansize'] = [float(row.chanFreqStep) for row in sdm['SpectralWindow']]
+    meta['spw_reffreq'] = [float(row.chanFreqStart)
+                           for row in sdm['SpectralWindow']]
+    meta['spw_chansize'] = [float(row.chanFreqStep)
+                            for row in sdm['SpectralWindow']]
 
     meta['pols_orig'] = [pol for pol in (str(sdm['Polarization'][0]
-                                               .corrType).strip()
-                                           .split(' '))
-                           if pol in ['XX', 'YY', 'XY', 'YX',
-                                      'RR', 'LL', 'RL', 'LR',
-                                      'A*A', 'B*B', 'A*B', 'B*A']]
+                                             .corrType).strip()
+                                         .split(' '))
+                         if pol in ['XX', 'YY', 'XY', 'YX',
+                                    'RR', 'LL', 'RL', 'LR',
+                                    'A*A', 'B*B', 'A*B', 'B*A']]
 
     return meta
 
 
-def mock_metadata(t0, t1, nants, nspw, nchan, npol, inttime_micros, datasource='vys', **kwargs):
+def mock_metadata(t0, t1, nants, nspw, nchan, npol, inttime_micros,
+                  datasource='vys', **kwargs):
     """ Wraps Metadata call to provide immutable, attribute-filled class instance.
-    Parallel structure to sdm_metadata, so this inherits some of its nomenclature.
-    t0, t1 are times in mjd.
-    Supports up to nant=27, npol=4, and nspw=8.
-    datasource is expected source of data (typically vys when mocking)
+    Parallel structure to sdm_metadata, so this inherits some of its
+    nomenclature. t0, t1 are times in mjd. Supports up to nant=27, npol=4, and
+    nspw=8. datasource is expected source of data (typically vys when mocking)
     """
 
     logger.info('Generating mock metadata')
@@ -266,15 +272,15 @@ def mock_metadata(t0, t1, nants, nspw, nchan, npol, inttime_micros, datasource='
 #    meta['bdfstr'] = ''
 
     meta['starttime_mjd'] = t0
-    meta['endtime_mjd_'] =  t1
+    meta['endtime_mjd_'] = t1
     meta['inttime'] = inttime_micros/1e6
     meta['source'] = 'testsource'
     meta['intent'] = 'OBSERVE_TARGET'
     meta['telescope'] = 'VLA'
     meta['antids'] = range(nants)
 #    meta['stationids'] = range(nants)
-    meta['xyz'] = np.array([[-1604008.7444 , -5042135.8251 ,  3553403.7108 ],
-        [-1601315.9005 , -5041985.30747,  3554808.311  ],
+    meta['xyz'] = np.array([[-1604008.7444, -5042135.8251,  3553403.7108],
+                            [-1601315.9005, -5041985.30747,  3554808.311],
         [-1604865.6575 , -5042190.032  ,  3552962.3635 ],
         [-1601068.806  , -5042051.9327 ,  3554824.8388 ],
         [-1596127.7308 , -5045193.7421 ,  3552652.4197 ],
@@ -304,7 +310,8 @@ def mock_metadata(t0, t1, nants, nspw, nchan, npol, inttime_micros, datasource='
     meta['dishdiameter'] = 25
     meta['spw_orig'] = range(nspw)
     meta['spw_nchan'] = [nchan for _ in range(nspw)]
-    meta['spw_reffreq'] = [2.488E9, 2.616E9, 2.744E9, 2.872E9, 3.0E9, 3.128E9, 3.256E9, 3.384E9][:nspw]
+    meta['spw_reffreq'] = [2.488E9, 2.616E9, 2.744E9, 2.872E9, 3.0E9, 3.128E9,
+                           3.256E9, 3.384E9][:nspw]
     meta['spw_chansize'] = [4000000]*8
     meta['pols_orig'] = ['RR', 'LL', 'RL', 'LR'][:npol]
 
@@ -313,12 +320,15 @@ def mock_metadata(t0, t1, nants, nspw, nchan, npol, inttime_micros, datasource='
 
 def oldstate_metadata(d, scan=None, bdfdir=None):
     """ Parses old state function ("d", a dictionary) into new metadata instance
-    Note: d from merged candidate file will have some parameters defined by last scan.
+    Note: d from merged candidate file will have some parameters defined by
+    last scan.
     """
-    
-    if not scan: scan = d['scan']
 
-    logger.info('Reading metadata from old state dictionary for scan {0}'.format(scan))
+    if not scan:
+        scan = d['scan']
+
+    logger.info('Reading metadata from old state dictionary for scan {0}'
+                .format(scan))
 
     meta = {}
     meta['datasource'] = 'sdm'
