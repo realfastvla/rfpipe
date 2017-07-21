@@ -17,7 +17,7 @@ qa = casautil.tools.quanta()
 default_timeout = 10
 
 
-def data_prep(st, data, uvw=None):
+def data_prep(st, data):
     """ Applies calibration, flags, and subtracts time mean for data.
     """
 
@@ -121,9 +121,9 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
             logger.info("Adding transient with Amp {0} at int {1}, DM {2}, "
                         "dt {3} and l,m={4},{5}".format(amp, i0, dm, dt, l, m))
             model = generate_transient(st, amp, i0, dm, dt)
-            search.phase_shift(data_read, st.get_uvw_segment(segment), -l, -m)
-            data_read += model.transpose()[:, None, :, None]
             search.phase_shift(data_read, st.get_uvw_segment(segment), l, m)
+            data_read += model.transpose()[:, None, :, None]
+            search.phase_shift(data_read, st.get_uvw_segment(segment), -l, -m)
 
 #    takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
 #    logger.debug('Selecting pols {0}'.format(st.pols))
