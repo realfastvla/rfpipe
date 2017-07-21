@@ -36,6 +36,8 @@ def data_prep(st, data):
     logger.info('Subtracting mean visibility in time.')
     util.meantsub(data)
 
+    return data
+
 
 def read_segment(st, segment, cfile=None, timeout=default_timeout):
     """ Read a segment of data and do low-level data preparation.

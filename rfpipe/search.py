@@ -19,29 +19,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-@vectorize(nopython=True)
-def get_mask(x):
-    """ Returns equal sized array of 0/1 """
-
-    return x != 0j
-
-
-def runcuda(func, arr, threadsperblock, *args, **kwargs):
-    """ Function to run cuda kernels while defining threads/blocks """
-
-    blockspergrid = []
-    for tpb, sh in threadsperblock, arr.shape:
-        blockspergrid.append = int32(math.ceil(sh / tpb))
-    func[tuple(blockspergrid), threadsperblock](arr, *args, **kwargs)
-
-
 def dedisperse(data, delay):
-    """ Shift data in time (axis=0) by channel-dependent value given in delay. 
-    Returns new array with time length shortened by max delay in integrations.
-    wraps _dedisperse to add logging.
+    """ Shift data in time (axis=0) by channel-dependent value given in
+    delay. Returns new array with time length shortened by max delay in
+    integrations. wraps _dedisperse to add logging.
     """
 
-    logger.info('Dedispersing up to delay shift of {0} integrations'.format(delay.max()))
+    logger.info('Dedispersing up to delay shift of {0} integrations'
+                .format(delay.max()))
     return _dedisperse(data, delay)
 
 
@@ -58,7 +43,7 @@ def _dedisperse(data, delay):
                 iprime = i + delay[k]
                 for l in range(sh[3]):
                     for j in range(sh[1]):
-                        result[i,j,k,l] = data[iprime,j,k,l]
+                        result[i, j, k, l] = data[iprime, j, k, l]
         return result
     else:
         return data
@@ -69,7 +54,8 @@ def resample(data, dt):
     wraps _resample to add logging.
     """
 
-    logger.info('Resampling data of length {0} by a factor of {1}'.format(len(data), dt))
+    logger.info('Resampling data of length {0} by a factor of {1}'
+                .format(len(data), dt))
     return _resample(data, dt)
 
 
@@ -88,37 +74,34 @@ def _resample(data, dt):
                     for i in range(newsh[0]):
                         iprime = int64(i*dt)
                         for r in range(dt):
-                            result[i,j,k,l] = result[i,j,k,l] + data[iprime+r,j,k,l]
-                        result[i,j,k,l] = result[i,j,k,l]/dt
+                            result[i, j, k, l] = result[i, j, k, l] + \
+                                                 data[iprime+r, j, k, l]
+                        result[i, j, k, l] = result[i, j, k, l]/dt
 
         return result
     else:
         return data
 
 
-##
-## CUDA 
-##
+#
+# searching, imaging, thresholding
+#
 
 
-##
-## searching, imaging, thresholding
-##
-
-def search_thresh(st, data, segment, dmind, dtind, beamnum=0, type='image1',
-                  wisdom=None):
+def search_thresh(st, data, segment, dmind, dtind, beamnum=0, wisdom=None):
     """ High-level wrapper for search algorithms.
     Expects dedispersed, resampled data as input and data state.
     Returns list of CandData objects that define candidates with
     candloc, image, and phased visibility data.
 
     ** only supports threshold > image max (no min)
+    ** dmind, dtind, beamnum assumed to represent current state of data
     """
 
     logger.info('Imaging {0}x{1} pix with uvres of {2}.'
                 .format(st.npixx, st.npixy, st.uvres))
 
-    if type == 'image1':
+    if 'image1' in st.prefs.searchtype:
         uvw = st.get_uvw_segment(segment)
         images = image(data, uvw, st.npixx, st.npixy,
                        st.uvres, wisdom=wisdom)
@@ -128,21 +111,23 @@ def search_thresh(st, data, segment, dmind, dtind, beamnum=0, type='image1',
 
         canddatalist = []
         for i in range(len(images)):
-            if (images[i].max()/util.madtostd(images[i]) > st.prefs.sigma_image1):
+            if (images[i].max()/util.madtostd(images[i]) >
+               st.prefs.sigma_image1):
                 candloc = (segment, i, dmind, dtind, beamnum)
                 candim = images[i]
                 l, m = st.pixtolm(np.where(candim == candim.max()))
                 phase_shift(data, uvw, l, m)
                 dataph = data[i-st.prefs.timewindow//2:i+st.prefs.timewindow//2].mean(axis=1)
                 phase_shift(data, uvw, -l, -m)
-                canddatalist.append(CandData(state=st, loc=candloc, image=candim, data=dataph))
+                canddatalist.append(CandData(state=st, loc=candloc,
+                                             image=candim, data=dataph))
     else:
-        raise NotImplemented("only type=image1 implemented")
+        raise NotImplemented("only searchtype=image1 implemented")
 
     # tuple(list(int), list(ndarray), list(ndarray))
 #    return (ints, images_thresh, dataph)
     logger.info("Returning data for {0} candidates".format(len(canddatalist)))
-    
+
     return canddatalist
 
 
@@ -155,9 +140,12 @@ def image(data, uvw, npixx, npixy, uvres, wisdom=None, integrations=None):
         integrations = range(len(data))
     else:
         assert isinstance(integrations, list)
-        logger.info('Imaging int{0} {1}'.format('s'[not len(integrations)-1:], ','.join([str(i) for i in integrations])))
+        logger.info('Imaging int{0} {1}'
+                    .format('s'[not len(integrations)-1:],
+                            ','.join([str(i) for i in integrations])))
 
-    grids = grid_visibilities(data.take(integrations, axis=0), uvw, npixx, npixy, uvres)
+    grids = grid_visibilities(data.take(integrations, axis=0), uvw, npixx,
+                              npixy, uvres)
     images = image_fftw(grids, wisdom=wisdom)
 
     return images
@@ -177,9 +165,10 @@ def grid_visibilities(data, uvw, npixx, npixy, uvres):
 
     for j in range(nbl):
         for k in range(nchan):
-            if (np.abs(ubl[j,k]) < npixx//2) and (np.abs(vbl[j,k]) < npixy//2):
-                u = int64(np.mod(ubl[j,k], npixx))
-                v = int64(np.mod(vbl[j,k], npixy))
+            if (np.abs(ubl[j, k]) < npixx//2) and \
+               (np.abs(vbl[j, k]) < npixy//2):
+                u = int64(np.mod(ubl[j, k], npixx))
+                v = int64(np.mod(vbl[j, k], npixy))
                 for i in range(nint):
                     for l in xrange(npol):
                         grids[i, u, v] = grids[i, u, v] + data[i, j, k, l]
@@ -257,9 +246,32 @@ def phase_shift(data, uvw, dl, dm):
                         frot = np.exp(-2j*np.pi*(dl*u[j, k] + dm*v[j, k]))
                         data[i, j, k, l] = data[i, j, k, l] * frot
 
-##
-## candidates and features
-##
+
+#
+# CUDA
+#
+
+
+@vectorize(nopython=True)
+def get_mask(x):
+    """ Returns equal sized array of 0/1 """
+
+    return x != 0j
+
+
+def runcuda(func, arr, threadsperblock, *args, **kwargs):
+    """ Function to run cuda kernels while defining threads/blocks """
+
+    blockspergrid = []
+    for tpb, sh in threadsperblock, arr.shape:
+        blockspergrid.append = int32(math.ceil(sh / tpb))
+    func[tuple(blockspergrid), threadsperblock](arr, *args, **kwargs)
+
+
+#
+# candidates and features
+#
+
 
 class CandData(object):
     """ Object that bundles data from search stage to candidate visualization.

@@ -73,10 +73,9 @@ def pipeline_seg(st, segment, cl=None, cfile=None,
         for dtind in range(len(st.dtarr)):
             data_dmdt = delayed(search.resample, pure=True)(data_dm,
                                                             st.dtarr[dtind])
-            canddatalist = delayed(search.search_thresh, pure=True)(st, data_dmdt,
-                                                                    segment, dmind,
-                                                                    dtind,
-                                                                    wisdom=wisdom)
+            canddatalist = delayed(search.search_thresh,
+                                   pure=True)(st, data_dmdt, segment, dmind,
+                                              dtind, wisdom=wisdom)
 
             candidates = delayed(search.calc_features, pure=True)(canddatalist)
 #            candplot = delayed(search.candplot, pure=True)(canddatalist)
