@@ -78,7 +78,7 @@ def pipeline_seg(st, segment, cl=None, cfile=None,
                                               dtind, wisdom=wisdom)
 
             candidates = delayed(search.calc_features, pure=True)(canddatalist)
-#            candplot = delayed(search.candplot, pure=True)(canddatalist)
+            saved.append(delayed(search.candplot, pure=True)(canddatalist))
             saved.append(delayed(search.save_cands, pure=True)(st, candidates))
 
     if cl:
