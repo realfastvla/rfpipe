@@ -57,8 +57,8 @@ def oldcands_readone(candsfile, scan):
 
     st.rtpipe_version = float(d['rtpipe_version'])
     if st.rtpipe_version <= 1.54:
-        logger.info('Candidates detected with rtpipe version {0}. All versions '
-                    '<=1.54 used an incorrect DM scaling prefactor.'
+        logger.info('Candidates detected with rtpipe version {0}. All '
+                    'versions <=1.54 used an incorrect DM scaling prefactor.'
                     .format(st.rtpipe_version))
 
     colnames = d['featureind']

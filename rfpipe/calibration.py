@@ -3,24 +3,27 @@ from builtins import bytes, dict, object, range, map, input#, str # not casa com
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
+import numpy as np
+import os.path
+
 import logging
 logger = logging.getLogger(__name__)
 
-import numpy as np
-import os.path
 
 def apply_telcal(st, data, calname=None):
     """ Wrap all telcal functions to parse telcal file and apply it to data
     """
 
     sols = telcal_sol(st.gainfile)
-    sols.set_selection(st.segmenttimes.mean(), st.freq*1e9, st.blarr, calname=calname)
+    sols.set_selection(st.segmenttimes.mean(), st.freq*1e9, st.blarr,
+                       calname=calname)
     sols.apply(data)
 
 
 class telcal_sol():
     """ Instantiated with on telcalfile.
-    Parses .GN file and provides tools for applying to data of shape (nints, nbl, nch, npol)
+    Parses .GN file and provides tools for applying to data of shape (nints,
+    nbl, nch, npol)
     """
 
     def __init__(self, telcalfile, flagants=True):

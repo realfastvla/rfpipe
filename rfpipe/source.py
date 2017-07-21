@@ -22,27 +22,19 @@ def data_prep(st, data, uvw=None):
     """
 
     # ** need to make this portable or at least reimplement in rfpipe
-    calibration.apply_telcal(st, data)
-
-    if st.prefs.simulated_transient is not None:
-        assert uvw is not None, "Must provide uvw to add transient"
-
-        for params in st.prefs.simulated_transient:
-            (amp, i0, dm, dt, l, m) = params
-            logger.info("Adding transient with Amp {0} at int {1}, DM {2}, "
-                        "dt {3} and l,m={4},{5}".format(amp, i0, dm, dt, l, m))
-            model = generate_transient(st, amp, i0, dm, dt)
-            search.phase_shift(data, uvw, -l, -m)
-            data += model.transpose()[:,None,:,None]
-            search.phase_shift(data, uvw, l, m)
+    if st.metadata.datasource != 'sim':
+        if os.path.exists(st.gainfile):
+            calibration.apply_telcal(st, data)
+        else:
+            logger.warn('Telcal file not found. No calibration being applied.')
+    else:
+        logger.info('Not applying telcal solutions for simulated data')
 
     # ** dataflag points to rtpipe for now
     util.dataflag(st, data)
 
     logger.info('Subtracting mean visibility in time.')
     util.meantsub(data)
-
-    return data
 
 
 def read_segment(st, segment, cfile=None, timeout=default_timeout):
@@ -63,7 +55,7 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
                      .format(st.metadata.datasource))
 
     # read Flag.xml and apply flags for given ant/time range
-    if st.prefs.applyonlineflags:
+    if st.prefs.applyonlineflags and st.metadata.datasource == 'sdm':
 
         sdm = getsdm(st.metadata.filename, bdfdir=st.metadata.bdfdir)
         scan = sdm.scan(st.metadata.scan)
@@ -121,6 +113,17 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
                 data_read2[:, :, i, :] = data_read[
                     :, :, i * st.prefs.read_fdownsample:(i+1)*st.prefs.read_fdownsample].mean(axis=2)
         data_read = data_read2
+
+    # optionally add transients
+    if st.prefs.simulated_transient is not None:
+        for params in st.prefs.simulated_transient:
+            (amp, i0, dm, dt, l, m) = params
+            logger.info("Adding transient with Amp {0} at int {1}, DM {2}, "
+                        "dt {3} and l,m={4},{5}".format(amp, i0, dm, dt, l, m))
+            model = generate_transient(st, amp, i0, dm, dt)
+            search.phase_shift(data_read, st.get_uvw_segment(segment), -l, -m)
+            data_read += model.transpose()[:, None, :, None]
+            search.phase_shift(data_read, st.get_uvw_segment(segment), l, m)
 
 #    takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
 #    logger.debug('Selecting pols {0}'.format(st.pols))

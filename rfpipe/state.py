@@ -120,7 +120,7 @@ class State(object):
                         .format(self.nchan, self.nspw))
             logger.info('\t Freq range: {0:.3f} -- {1:.3f}'
                         .format(self.freq.min(), self.freq.max()))
-            logger.info('\t Scan has {0} ints ({0:.1f} s) and inttime {1:.3f} s'
+            logger.info('\t Scan has {0} ints ({1:.1f} s) and inttime {2:.3f} s'
                         .format(self.nints, self.nints*self.metadata.inttime,
                                 self.metadata.inttime))
             logger.info('\t {0} polarizations: {1}'
@@ -492,7 +492,6 @@ class State(object):
 
         if not hasattr(self, '_segmenttimes'):
             if self.prefs.segmenttimes is not None:
-                assert isinstance(self.prefs.segmenttimes, list)
                 self._segmenttimes = self.prefs.segmenttimes
             elif self.prefs.nsegment:
                 self._segmenttimes = calc_segment_times(self)
