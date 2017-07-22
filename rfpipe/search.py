@@ -13,7 +13,7 @@ import pandas as pd
 import pyfftw
 # import pycuda?
 import matplotlib.pyplot as plt
-from rfpipe import fileLock, util
+from rfpipe import fileLock, util, version
 
 import logging
 logger = logging.getLogger(__name__)
@@ -870,4 +870,5 @@ class CandidateDF(object):
         self.df = df
         self.prefs = prefs
         self.metadata = metadata
+        self.rfpipe_version = version.__version__
 
