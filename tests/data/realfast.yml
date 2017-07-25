@@ -1,0 +1,32 @@
+rfpipe:
+  default:
+    nthread: 16
+    dtarr: [1]   # integer to integrate in time for independent searches
+    maxdm: 3000
+    flagantsol: False
+    timesub: 'mean'
+    searchtype: 'image1stats'    # search algorithm: 'image1' is single image snr threshold
+    sigma_image1: 6.4
+    sigma_plot: 7.2
+    npix_max: 2048
+    badspwpol: 2.
+    uvoversample: 1.5
+    savenoise: True
+    savecands: True
+    memory_limit: 9 # in GB
+    selectpol: 'auto'
+
+queue_monitor:
+  production: True 
+  triggered: True
+  a: True
+  threshold: 7.2
+  bdfdir: /lustre/evla/wcbe/data/no_archive
+  v: True
+
+mcaf_monitor:
+  production: True
+  project: 17A-396
+  intent: TARGET
+  rtparams: /lustre/evla/test/realfast/rtpipe_cbe.conf
+  v: True

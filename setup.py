@@ -14,6 +14,7 @@ setup(
     install_requires=['numpy', 'scipy', 'pwkit', 'sdmpy>=1.35', 'pyfftw',
                       'click', 'dask', 'distributed>=1.13', 'attrs', 'future',
                       'astropy', 'pyyaml', 'lxml', 'numba', 'rtpipe'],
+    package_data={"rfpipe": ["tests/data/*xml", "tests/data/realfast.yml"]},
     zip_safe=False,
     classifiers=[
         'Programming Language :: Python :: 2.7'

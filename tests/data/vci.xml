@@ -1,0 +1,235 @@
+<ns2:subArray configId="L_realfast.57897.87981900463.2" activationId="L_realfast.57897.87981900463.2" msgId="1031507926" subarrayId="158_2.1" scanId="33808238" name="158_2.1" action="create" mappingOrder="5" timeStamp="2017-05-24T04:10:27.092Z" xsi:schemaLocation="http://www.nrc.ca/namespaces/widar  http://www.aoc.nrao.edu/asg/widar/schemata/vci/3.20.1/vciResponse.xsd" xmlns:ns2="http://www.nrc.ca/namespaces/widar" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <ns2:listOfStations>
+        <ns2:station sid="14" name="ea14"/>
+        <ns2:station sid="13" name="ea13"/>
+        <ns2:station sid="12" name="ea12"/>
+        <ns2:station sid="11" name="ea11"/>
+        <ns2:station sid="10" name="ea10"/>
+        <ns2:station sid="27" name="ea27"/>
+        <ns2:station sid="26" name="ea26"/>
+        <ns2:station sid="25" name="ea25"/>
+        <ns2:station sid="24" name="ea24"/>
+        <ns2:station sid="23" name="ea23"/>
+        <ns2:station sid="22" name="ea22"/>
+        <ns2:station sid="21" name="ea21"/>
+        <ns2:station sid="20" name="ea20"/>
+        <ns2:station sid="9" name="ea09"/>
+        <ns2:station sid="8" name="ea08"/>
+        <ns2:station sid="7" name="ea07"/>
+        <ns2:station sid="6" name="ea06"/>
+        <ns2:station sid="4" name="ea04"/>
+        <ns2:station sid="2" name="ea02"/>
+        <ns2:station sid="1" name="ea01"/>
+        <ns2:station sid="19" name="ea19"/>
+        <ns2:station sid="18" name="ea18"/>
+        <ns2:station sid="17" name="ea17"/>
+        <ns2:station sid="16" name="ea16"/>
+        <ns2:station sid="15" name="ea15"/>
+    </ns2:listOfStations>
+    <ns2:stationInputOutput sid="all">
+        <ns2:bbParams bbid="0" sourceType="FORM" sourceId="0" polarization="R" sideband="upper"/>
+        <ns2:bbParams bbid="1" sourceType="FORM" sourceId="0" polarization="R" sideband="upper"/>
+        <ns2:bbParams bbid="2" sourceType="FORM" sourceId="0" polarization="L" sideband="upper"/>
+        <ns2:bbParams bbid="3" sourceType="FORM" sourceId="0" polarization="L" sideband="upper"/>
+        <ns2:bbParams bbid="4" sourceType="FORM" sourceId="0" polarization="R" sideband="upper"/>
+        <ns2:bbParams bbid="5" sourceType="FORM" sourceId="0" polarization="R" sideband="upper"/>
+        <ns2:bbParams bbid="6" sourceType="FORM" sourceId="0" polarization="L" sideband="upper"/>
+        <ns2:bbParams bbid="7" sourceType="FORM" sourceId="0" polarization="L" sideband="upper"/>
+        <ns2:baseBand bbA="0" bbB="2" swbbName="AC_8BIT" name="A0/C0" bw="1024000000" inQuant="8" singlePhaseCenter="yes">
+            <ns2:subBand sbid="7" swIndex="8" bw="64000000" centralFreq="736000000.00000000000000000000000000000000000000000" rqNumBits="4" useMixer="no" mixerPhaseErrorCorr="yes" signalToNoise="0" pulsarGatingPhase="0">
+                <ns2:polProducts>
+                    <ns2:pp id="1" correlation="A*A" spectralChannels="64"/>
+                    <ns2:pp id="2" correlation="A*B" spectralChannels="64"/>
+                    <ns2:pp id="3" correlation="B*A" spectralChannels="64"/>
+                    <ns2:pp id="4" correlation="B*B" spectralChannels="64"/>
+                    <ns2:blbProdIntegration recirculation="1" minIntegTime="200.0" ccIntegFactor="2" ltaIntegFactor="2500" cbeIntegFactor="5"/>
+                    <ns2:blbPair quadrant="1" firstBlbPair="15" numBlbPairs="1"/>
+                    <ns2:stationPacking algorithm="maxPack"/>
+                    <ns2:productPacking algorithm="maxPack"/>
+                </ns2:polProducts>
+            </ns2:subBand>
+            <ns2:subBand sbid="6" swIndex="7" bw="64000000" centralFreq="672000000.00000000000000000000000000000000000000000" rqNumBits="4" useMixer="no" mixerPhaseErrorCorr="yes" signalToNoise="0" pulsarGatingPhase="0">
+                <ns2:polProducts>
+                    <ns2:pp id="1" correlation="A*A" spectralChannels="64"/>
+                    <ns2:pp id="2" correlation="A*B" spectralChannels="64"/>
+                    <ns2:pp id="3" correlation="B*A" spectralChannels="64"/>
+                    <ns2:pp id="4" correlation="B*B" spectralChannels="64"/>
+                    <ns2:blbProdIntegration recirculation="1" minIntegTime="200.0" ccIntegFactor="2" ltaIntegFactor="2500" cbeIntegFactor="5"/>
+                    <ns2:blbPair quadrant="1" firstBlbPair="13" numBlbPairs="1"/>
+                    <ns2:stationPacking algorithm="maxPack"/>
+                    <ns2:productPacking algorithm="maxPack"/>
+                </ns2:polProducts>
+            </ns2:subBand>
+            <ns2:subBand sbid="5" swIndex="6" bw="64000000" centralFreq="608000000.00000000000000000000000000000000000000000" rqNumBits="4" useMixer="no" mixerPhaseErrorCorr="yes" signalToNoise="0" pulsarGatingPhase="0">
+                <ns2:polProducts>
+                    <ns2:pp id="1" correlation="A*A" spectralChannels="64"/>
+                    <ns2:pp id="2" correlation="A*B" spectralChannels="64"/>
+                    <ns2:pp id="3" correlation="B*A" spectralChannels="64"/>
+                    <ns2:pp id="4" correlation="B*B" spectralChannels="64"/>
+                    <ns2:blbProdIntegration recirculation="1" minIntegTime="200.0" ccIntegFactor="2" ltaIntegFactor="2500" cbeIntegFactor="5"/>
+                    <ns2:blbPair quadrant="1" firstBlbPair="11" numBlbPairs="1"/>
+                    <ns2:stationPacking algorithm="maxPack"/>
+                    <ns2:productPacking algorithm="maxPack"/>
+                </ns2:polProducts>
+            </ns2:subBand>
+            <ns2:subBand sbid="4" swIndex="5" bw="64000000" centralFreq="544000000.00000000000000000000000000000000000000000" rqNumBits="4" useMixer="no" mixerPhaseErrorCorr="yes" signalToNoise="0" pulsarGatingPhase="0">
+                <ns2:polProducts>
+                    <ns2:pp id="1" correlation="A*A" spectralChannels="64"/>
+                    <ns2:pp id="2" correlation="A*B" spectralChannels="64"/>
+                    <ns2:pp id="3" correlation="B*A" spectralChannels="64"/>
+                    <ns2:pp id="4" correlation="B*B" spectralChannels="64"/>
+                    <ns2:blbProdIntegration recirculation="1" minIntegTime="200.0" ccIntegFactor="2" ltaIntegFactor="2500" cbeIntegFactor="5"/>
+                    <ns2:blbPair quadrant="1" firstBlbPair="9" numBlbPairs="1"/>
+                    <ns2:stationPacking algorithm="maxPack"/>
+                    <ns2:productPacking algorithm="maxPack"/>
+                </ns2:polProducts>
+            </ns2:subBand>
+            <ns2:subBand sbid="3" swIndex="4" bw="64000000" centralFreq="480000000.00000000000000000000000000000000000000000" rqNumBits="4" useMixer="no" mixerPhaseErrorCorr="yes" signalToNoise="0" pulsarGatingPhase="0">
+                <ns2:polProducts>
+                    <ns2:pp id="1" correlation="A*A" spectralChannels="64"/>
+                    <ns2:pp id="2" correlation="A*B" spectralChannels="64"/>
+                    <ns2:pp id="3" correlation="B*A" spectralChannels="64"/>
+                    <ns2:pp id="4" correlation="B*B" spectralChannels="64"/>
+                    <ns2:blbProdIntegration recirculation="1" minIntegTime="200.0" ccIntegFactor="2" ltaIntegFactor="2500" cbeIntegFactor="5"/>
+                    <ns2:blbPair quadrant="1" firstBlbPair="7" numBlbPairs="1"/>
+                    <ns2:stationPacking algorithm="maxPack"/>
+                    <ns2:productPacking algorithm="maxPack"/>
+                </ns2:polProducts>
+            </ns2:subBand>
+            <ns2:subBand sbid="2" swIndex="3" bw="64000000" centralFreq="416000000.00000000000000000000000000000000000000000" rqNumBits="4" useMixer="no" mixerPhaseErrorCorr="yes" signalToNoise="0" pulsarGatingPhase="0">
+                <ns2:polProducts>
+                    <ns2:pp id="1" correlation="A*A" spectralChannels="64"/>
+                    <ns2:pp id="2" correlation="A*B" spectralChannels="64"/>
+                    <ns2:pp id="3" correlation="B*A" spectralChannels="64"/>
+                    <ns2:pp id="4" correlation="B*B" spectralChannels="64"/>
+                    <ns2:blbProdIntegration recirculation="1" minIntegTime="200.0" ccIntegFactor="2" ltaIntegFactor="2500" cbeIntegFactor="5"/>
+                    <ns2:blbPair quadrant="1" firstBlbPair="5" numBlbPairs="1"/>
+                    <ns2:stationPacking algorithm="maxPack"/>
+                    <ns2:productPacking algorithm="maxPack"/>
+                </ns2:polProducts>
+            </ns2:subBand>
+            <ns2:subBand sbid="1" swIndex="2" bw="64000000" centralFreq="352000000.00000000000000000000000000000000000000000" rqNumBits="4" useMixer="no" mixerPhaseErrorCorr="yes" signalToNoise="0" pulsarGatingPhase="0">
+                <ns2:polProducts>
+                    <ns2:pp id="1" correlation="A*A" spectralChannels="64"/>
+                    <ns2:pp id="2" correlation="A*B" spectralChannels="64"/>
+                    <ns2:pp id="3" correlation="B*A" spectralChannels="64"/>
+                    <ns2:pp id="4" correlation="B*B" spectralChannels="64"/>
+                    <ns2:blbProdIntegration recirculation="1" minIntegTime="200.0" ccIntegFactor="2" ltaIntegFactor="2500" cbeIntegFactor="5"/>
+                    <ns2:blbPair quadrant="1" firstBlbPair="3" numBlbPairs="1"/>
+                    <ns2:stationPacking algorithm="maxPack"/>
+                    <ns2:productPacking algorithm="maxPack"/>
+                </ns2:polProducts>
+            </ns2:subBand>
+            <ns2:subBand sbid="0" swIndex="1" bw="64000000" centralFreq="288000000.00000000000000000000000000000000000000000" rqNumBits="4" useMixer="no" mixerPhaseErrorCorr="yes" signalToNoise="0" pulsarGatingPhase="0">
+                <ns2:polProducts>
+                    <ns2:pp id="1" correlation="A*A" spectralChannels="64"/>
+                    <ns2:pp id="2" correlation="A*B" spectralChannels="64"/>
+                    <ns2:pp id="3" correlation="B*A" spectralChannels="64"/>
+                    <ns2:pp id="4" correlation="B*B" spectralChannels="64"/>
+                    <ns2:blbProdIntegration recirculation="1" minIntegTime="200.0" ccIntegFactor="2" ltaIntegFactor="2500" cbeIntegFactor="5"/>
+                    <ns2:blbPair quadrant="1" firstBlbPair="1" numBlbPairs="1"/>
+                    <ns2:stationPacking algorithm="maxPack"/>
+                    <ns2:productPacking algorithm="maxPack"/>
+                </ns2:polProducts>
+            </ns2:subBand>
+        </ns2:baseBand>
+        <ns2:baseBand bbA="4" bbB="6" swbbName="BD_8BIT" name="B0/D0" bw="1024000000" inQuant="8" singlePhaseCenter="yes">
+            <ns2:subBand sbid="7" swIndex="8" bw="64000000" centralFreq="736000000.00000000000000000000000000000000000000000" rqNumBits="4" useMixer="no" mixerPhaseErrorCorr="yes" signalToNoise="0" pulsarGatingPhase="0">
+                <ns2:polProducts>
+                    <ns2:pp id="1" correlation="A*A" spectralChannels="64"/>
+                    <ns2:pp id="2" correlation="A*B" spectralChannels="64"/>
+                    <ns2:pp id="3" correlation="B*A" spectralChannels="64"/>
+                    <ns2:pp id="4" correlation="B*B" spectralChannels="64"/>
+                    <ns2:blbProdIntegration recirculation="1" minIntegTime="200.0" ccIntegFactor="2" ltaIntegFactor="2500" cbeIntegFactor="5"/>
+                    <ns2:blbPair quadrant="3" firstBlbPair="14" numBlbPairs="1"/>
+                    <ns2:stationPacking algorithm="maxPack"/>
+                    <ns2:productPacking algorithm="maxPack"/>
+                </ns2:polProducts>
+            </ns2:subBand>
+            <ns2:subBand sbid="6" swIndex="7" bw="64000000" centralFreq="672000000.00000000000000000000000000000000000000000" rqNumBits="4" useMixer="no" mixerPhaseErrorCorr="yes" signalToNoise="0" pulsarGatingPhase="0">
+                <ns2:polProducts>
+                    <ns2:pp id="1" correlation="A*A" spectralChannels="64"/>
+                    <ns2:pp id="2" correlation="A*B" spectralChannels="64"/>
+                    <ns2:pp id="3" correlation="B*A" spectralChannels="64"/>
+                    <ns2:pp id="4" correlation="B*B" spectralChannels="64"/>
+                    <ns2:blbProdIntegration recirculation="1" minIntegTime="200.0" ccIntegFactor="2" ltaIntegFactor="2500" cbeIntegFactor="5"/>
+                    <ns2:blbPair quadrant="3" firstBlbPair="12" numBlbPairs="1"/>
+                    <ns2:stationPacking algorithm="maxPack"/>
+                    <ns2:productPacking algorithm="maxPack"/>
+                </ns2:polProducts>
+            </ns2:subBand>
+            <ns2:subBand sbid="5" swIndex="6" bw="64000000" centralFreq="608000000.00000000000000000000000000000000000000000" rqNumBits="4" useMixer="no" mixerPhaseErrorCorr="yes" signalToNoise="0" pulsarGatingPhase="0">
+                <ns2:polProducts>
+                    <ns2:pp id="1" correlation="A*A" spectralChannels="64"/>
+                    <ns2:pp id="2" correlation="A*B" spectralChannels="64"/>
+                    <ns2:pp id="3" correlation="B*A" spectralChannels="64"/>
+                    <ns2:pp id="4" correlation="B*B" spectralChannels="64"/>
+                    <ns2:blbProdIntegration recirculation="1" minIntegTime="200.0" ccIntegFactor="2" ltaIntegFactor="2500" cbeIntegFactor="5"/>
+                    <ns2:blbPair quadrant="3" firstBlbPair="10" numBlbPairs="1"/>
+                    <ns2:stationPacking algorithm="maxPack"/>
+                    <ns2:productPacking algorithm="maxPack"/>
+                </ns2:polProducts>
+            </ns2:subBand>
+            <ns2:subBand sbid="4" swIndex="5" bw="64000000" centralFreq="544000000.00000000000000000000000000000000000000000" rqNumBits="4" useMixer="no" mixerPhaseErrorCorr="yes" signalToNoise="0" pulsarGatingPhase="0">
+                <ns2:polProducts>
+                    <ns2:pp id="1" correlation="A*A" spectralChannels="64"/>
+                    <ns2:pp id="2" correlation="A*B" spectralChannels="64"/>
+                    <ns2:pp id="3" correlation="B*A" spectralChannels="64"/>
+                    <ns2:pp id="4" correlation="B*B" spectralChannels="64"/>
+                    <ns2:blbProdIntegration recirculation="1" minIntegTime="200.0" ccIntegFactor="2" ltaIntegFactor="2500" cbeIntegFactor="5"/>
+                    <ns2:blbPair quadrant="3" firstBlbPair="8" numBlbPairs="1"/>
+                    <ns2:stationPacking algorithm="maxPack"/>
+                    <ns2:productPacking algorithm="maxPack"/>
+                </ns2:polProducts>
+            </ns2:subBand>
+            <ns2:subBand sbid="3" swIndex="4" bw="64000000" centralFreq="480000000.00000000000000000000000000000000000000000" rqNumBits="4" useMixer="no" mixerPhaseErrorCorr="yes" signalToNoise="0" pulsarGatingPhase="0">
+                <ns2:polProducts>
+                    <ns2:pp id="1" correlation="A*A" spectralChannels="64"/>
+                    <ns2:pp id="2" correlation="A*B" spectralChannels="64"/>
+                    <ns2:pp id="3" correlation="B*A" spectralChannels="64"/>
+                    <ns2:pp id="4" correlation="B*B" spectralChannels="64"/>
+                    <ns2:blbProdIntegration recirculation="1" minIntegTime="200.0" ccIntegFactor="2" ltaIntegFactor="2500" cbeIntegFactor="5"/>
+                    <ns2:blbPair quadrant="3" firstBlbPair="6" numBlbPairs="1"/>
+                    <ns2:stationPacking algorithm="maxPack"/>
+                    <ns2:productPacking algorithm="maxPack"/>
+                </ns2:polProducts>
+            </ns2:subBand>
+            <ns2:subBand sbid="2" swIndex="3" bw="64000000" centralFreq="416000000.00000000000000000000000000000000000000000" rqNumBits="4" useMixer="no" mixerPhaseErrorCorr="yes" signalToNoise="0" pulsarGatingPhase="0">
+                <ns2:polProducts>
+                    <ns2:pp id="1" correlation="A*A" spectralChannels="64"/>
+                    <ns2:pp id="2" correlation="A*B" spectralChannels="64"/>
+                    <ns2:pp id="3" correlation="B*A" spectralChannels="64"/>
+                    <ns2:pp id="4" correlation="B*B" spectralChannels="64"/>
+                    <ns2:blbProdIntegration recirculation="1" minIntegTime="200.0" ccIntegFactor="2" ltaIntegFactor="2500" cbeIntegFactor="5"/>
+                    <ns2:blbPair quadrant="3" firstBlbPair="4" numBlbPairs="1"/>
+                    <ns2:stationPacking algorithm="maxPack"/>
+                    <ns2:productPacking algorithm="maxPack"/>
+                </ns2:polProducts>
+            </ns2:subBand>
+            <ns2:subBand sbid="1" swIndex="2" bw="64000000" centralFreq="352000000.00000000000000000000000000000000000000000" rqNumBits="4" useMixer="no" mixerPhaseErrorCorr="yes" signalToNoise="0" pulsarGatingPhase="0">
+                <ns2:polProducts>
+                    <ns2:pp id="1" correlation="A*A" spectralChannels="64"/>
+                    <ns2:pp id="2" correlation="A*B" spectralChannels="64"/>
+                    <ns2:pp id="3" correlation="B*A" spectralChannels="64"/>
+                    <ns2:pp id="4" correlation="B*B" spectralChannels="64"/>
+                    <ns2:blbProdIntegration recirculation="1" minIntegTime="200.0" ccIntegFactor="2" ltaIntegFactor="2500" cbeIntegFactor="5"/>
+                    <ns2:blbPair quadrant="3" firstBlbPair="2" numBlbPairs="1"/>
+                    <ns2:stationPacking algorithm="maxPack"/>
+                    <ns2:productPacking algorithm="maxPack"/>
+                </ns2:polProducts>
+            </ns2:subBand>
+            <ns2:subBand sbid="0" swIndex="1" bw="64000000" centralFreq="288000000.00000000000000000000000000000000000000000" rqNumBits="4" useMixer="no" mixerPhaseErrorCorr="yes" signalToNoise="0" pulsarGatingPhase="0">
+                <ns2:polProducts>
+                    <ns2:pp id="1" correlation="A*A" spectralChannels="64"/>
+                    <ns2:pp id="2" correlation="A*B" spectralChannels="64"/>
+                    <ns2:pp id="3" correlation="B*A" spectralChannels="64"/>
+                    <ns2:pp id="4" correlation="B*B" spectralChannels="64"/>
+                    <ns2:blbProdIntegration recirculation="1" minIntegTime="200.0" ccIntegFactor="2" ltaIntegFactor="2500" cbeIntegFactor="5"/>
+                    <ns2:blbPair quadrant="3" firstBlbPair="0" numBlbPairs="1"/>
+                    <ns2:stationPacking algorithm="maxPack"/>
+                    <ns2:productPacking algorithm="maxPack"/>
+                </ns2:polProducts>
+            </ns2:subBand>
+        </ns2:baseBand>
+    </ns2:stationInputOutput>
+</ns2:subArray>

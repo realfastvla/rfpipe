@@ -19,6 +19,7 @@ install:
   # install with conda and pip
   - conda install -q python=2.7 numpy scipy jupyter bokeh cython matplotlib numba pytest setuptools pip coverage pyfftw
   - conda install -q python=2.7 pwkit casa-tools casa-python casa-data
+  - pip install git+git://https://github.com/realfastvla/evla_mcast.git
   - pip install codecov
   - python setup.py install
 
