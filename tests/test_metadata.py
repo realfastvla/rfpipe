@@ -29,7 +29,7 @@ def test_configstate(config, inprefs):
     assert st.nints
     assert st.metadata.nints
     assert st.metadata.endtime_mjd
-    assert st.segmenttimes
+    assert len(st.segmenttimes)
 
 
 def test_metastate(config, inprefs):
@@ -40,7 +40,7 @@ def test_metastate(config, inprefs):
     assert st.nints
     assert st.metadata.nints
     assert st.metadata.endtime_mjd
-    assert st.segmenttimes
+    assert len(st.segmenttimes)
 
 
 def test_sim(config, inprefs):
