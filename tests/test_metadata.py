@@ -27,7 +27,8 @@ def test_configstate(config, inprefs):
     st = rfpipe.state.State(config=config, inprefs=inprefs, preffile=None)
 
     assert st.nints
-    assert st.endtime_mjd
+    assert st.metadata.nints
+    assert st.metadata.endtime_mjd
     assert st.segmenttimes
 
 
@@ -37,7 +38,8 @@ def test_metastate(config, inprefs):
     st = rfpipe.state.State(inmeta=meta, inprefs=inprefs, preffile=None)
 
     assert st.nints
-    assert st.endtime_mjd
+    assert st.metadata.nints
+    assert st.metadata.endtime_mjd
     assert st.segmenttimes
 
 
