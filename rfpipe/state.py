@@ -120,7 +120,7 @@ class State(object):
                         .format(self.nchan, self.nspw))
 
             spworder = np.argsort(self.metadata.spw_reffreq)
-            if np.all(spworder == np.sort(spworder)):
+            if np.any(spworder != np.sort(spworder)):
                 logger.warn('Sorting spw frequencies to increasing order from order {0}'
                             .format(spworder))
 
@@ -556,18 +556,7 @@ class State(object):
 
     @property
     def nints(self):
-        if self.metadata.nints:
-            # if nints known (e.g., from sdm)
-            # or set (e.g., forced during vys reading)
-            return self.metadata.nints
-            # if overloading segment time calculation
-        elif self.prefs.nsegment:
-            return int(round((self.nsegment*self.fringetime -
-                              self.t_overlap*(self.nsegment-1))/self.inttime))
-        else:
-            raise(ValueError, "Number of integrations in scan is not known or "
-                              "cannot be inferred. Set metadata.nints of "
-                              "prefs.nsegment.")
+        return self.metadata.nints
 
     @property
     def t_segment(self):
