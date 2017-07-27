@@ -182,6 +182,7 @@ def simulate_segment(st, loc=0., scale=1.):
 def read_bdf(st, nskip=0):
     """ Uses sdmpy to read a given range of integrations from sdm of given scan.
     readints=0 will read all of bdf (skipping nskip).
+    Returns data in increasing frequency order.
     """
 
     assert os.path.exists(st.metadata.filename), ('sdmfile {0} does not exist'
@@ -192,10 +193,17 @@ def read_bdf(st, nskip=0):
     logger.info('Reading %d ints starting at int %d' % (st.readints, nskip))
     sdm = getsdm(st.metadata.filename, bdfdir=st.metadata.bdfdir)
     scan = sdm.scan(st.metadata.scan)
-
     data = np.empty((st.readints, st.metadata.nbl_orig, st.metadata.nchan_orig,
                      st.metadata.npol_orig), dtype='complex64', order='C')
-    data[:] = scan.bdf.get_data(trange=[nskip, nskip+st.readints]).reshape(data.shape)
+
+    sortind = np.argsort(st.metadata.spw_reffreq)
+    for i in range(nskip, nskip+st.readints):
+        read = scan.bdf.get_integration(i).get_data(spwidx='all', type='cross')
+        data[i] = read.take(sortind).reshape(st.metadata.nbl_orig,
+                                             st.metadata.nchan_orig,
+                                             st.metadata.npol_orig)
+
+#    data[:] = scan.bdf.get_data(trange=[nskip, nskip+st.readints]).reshape(data.shape)
 
     return data
 

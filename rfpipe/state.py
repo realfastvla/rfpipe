@@ -573,16 +573,9 @@ class State(object):
     def t_segment(self):
         """ Time read per segment in seconds """
 
-        if self.metadata.nints:
-            # ** not guaranteed to be the same for each segment, but assume so
-            totaltimeread = 24*3600*(self.segmenttimes[:, 1] - self.segmenttimes[:, 0]).sum()
-            return totaltimeread/self.nsegment
-        elif self.prefs.nsegment:
-            return self.nints*self.inttime/self.nsegment
-        else:
-            raise(ValueError, "Number of integrations in scan is not known "
-                              "or cannot be inferred. Set metadata.nints of "
-                              "prefs.nsegment.")
+        # ** not guaranteed to be the same for each segment, but assume so
+        totaltimeread = 24*3600*(self.segmenttimes[:, 1] - self.segmenttimes[:, 0]).sum()
+        return totaltimeread/self.nsegment
 
     @property
     def readints(self):
@@ -772,21 +765,22 @@ def calc_dmarr(state):
     return dmgrid_final
 
 
-def calc_segment_times(state, nsegment=0):
+def calc_segment_times(state, nsegment):
     """ Helper function for set_pipeline to define segmenttimes list, given
     nsegment definition.
     Can optionally overload state.nsegment to calculate new times
     ** TODO: why is this slightly off from rtpipe calculation?
     """
 
-    if not nsegment:
-        nsegment = state.nsegment
-
     # this casts to int (flooring) to avoid 0.5 int rounding issue.
-    stopdts = np.linspace(state.t_overlap/state.inttime, state.nints,
-                          nsegment+1)[1:]  # nseg+1 keeps at least one seg
+#    stopdts = np.linspace(state.t_overlap/state.inttime, state.nints,
+#                          nsegment+1)[1:]  # nseg+1 keeps at least one seg
+#    startdts = np.concatenate(([0],
+#                              stopdts[:-1]-state.t_overlap/state.inttime))
+    stopdts = np.arange(state.t_overlap//state.inttime, state.nints,
+                        nsegment+1)[1:]  # nseg+1 keeps at least one seg
     startdts = np.concatenate(([0],
-                              stopdts[:-1]-state.t_overlap/state.inttime))
+                              stopdts[:-1]-state.t_overlap//state.inttime))
 
     segmenttimes = []
     for (startdt, stopdt) in zip(state.inttime*startdts, state.inttime*stopdts):
@@ -816,7 +810,7 @@ def find_segment_times(state):
     scale_nsegment = 1.
     nsegment = max(1, min(state.metadata.nints,
                          int(round(scale_nsegment*state.inttime*state.metadata.nints/(state.fringetime-state.t_overlap)))))  # at least 1, at most nints
-    state._segmenttimes = calc_segment_times(state, nsegment=nsegment)
+    state._segmenttimes = calc_segment_times(state, nsegment)
 
     # calculate memory limit to stop iteration
     assert state.immem_limit+state.vismem_limit < state.prefs.memory_limit, 'memory_limit of {0} is smaller than best solution of {1}. Try forcing nsegment/nchunk larger than {2}/{3} or reducing maxdm/npix'.format(state.prefs.memory_limit, state.immem_limit+state.vismem_limit, state.nsegment, max(state.dtarr)/min(state.dtarr))
@@ -829,7 +823,7 @@ def find_segment_times(state):
 
             scale_nsegment *= (state.vismem+state.immem)/float(state.prefs.memory_limit)
             nsegment = max(1, min(state.metadata.nints, int(round(scale_nsegment*state.inttime*state.metadata.nints/(state.fringetime-state.t_overlap)))))  # at least 1, at most nints
-            state._segmenttimes = calc_segment_times(state, nsegment=nsegment)
+            state._segmenttimes = calc_segment_times(state, nsegment)
 
             while state.vismem+state.immem > state.prefs.memory_limit:
                 logger.debug('Doubling nchunk from %d to fit in %d GB memory limit.' % (state.prefs.nchunk, state.prefs.memory_limit))
@@ -839,7 +833,7 @@ def find_segment_times(state):
                     break
 
     # final set up of memory
-    state._segmenttimes = calc_segment_times(state)
+    state._segmenttimes = calc_segment_times(state, nsegment)
 
 
 def state_vystest(wait, nsegment=0, scantime=0, preffile=None, **kwargs):
