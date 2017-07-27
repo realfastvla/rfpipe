@@ -14,15 +14,17 @@ logger = logging.getLogger(__name__)
 vys_timeout_default = 10
 
 
-def pipeline_scan_distributed(st, host='cbe-node-01', cfile=None,
-                              vys_timeout=vys_timeout_default):
+def pipeline_scan_distributed(st, segments=None, host='cbe-node-01',
+                              cfile=None, vys_timeout=vys_timeout_default):
     """ Given rfpipe state and dask distributed client, run search pipline """
 
     saved = []
+    if not isinstance(segments, list):
+        segments = range(st.nsegments)
 
     cl = distributed.Client('{0}:{1}'.format(host, '8786'))
 
-    for segment in range(st.nsegment):
+    for segment in segments:
         saved.append(pipeline_seg(st, segment, cl=cl, cfile=cfile,
                      vys_timeout=vys_timeout))
 
