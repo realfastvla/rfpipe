@@ -4,7 +4,6 @@ from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
 import distributed
-from collections import OrderedDict
 from dask import delayed, compute
 
 from rfpipe import state, source, search, util
