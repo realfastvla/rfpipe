@@ -81,8 +81,8 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
     # optionally integrate (downsample)
     if ((st.prefs.read_tdownsample > 1) or (st.prefs.read_fdownsample > 1)):
         sh = data_read.shape
-        tsize = sh[0]/st.prefs.read_tdownsample
-        fsize = sh[2]/st.prefs.read_fdownsample
+        tsize = sh[0]//st.prefs.read_tdownsample
+        fsize = sh[2]//st.prefs.read_fdownsample
         data_read2 = np.zeros((tsize, sh[1], fsize, sh[3]), dtype='complex64')
         if st.prefs.read_tdownsample > 1:
             logger.info('Downsampling in time by {0}'
