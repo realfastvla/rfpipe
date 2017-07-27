@@ -159,7 +159,7 @@ class State(object):
                             'segment size ({1:.1f} s). Pipeline will fail!'
                             .format(self.t_overlap, self.t_segment))
 
-            if self.inttime > self.fringetime:
+            if self.inttime > self.fringetime_orig:
                 logger.warn('\t\t Integration time larger than fringe '
                             'timescale ({0} > {1}). Mean visibility '
                             'subtraction will not work well.'
@@ -283,7 +283,8 @@ class State(object):
 
     @property
     def t_overlap(self):
-        """ Max DM delay in seconds. Gets cached. """
+        """ Max DM delay in seconds that is fixed to int mult of integration time.
+        Gets cached. """
 
         if not hasattr(self, '_t_overlap'):
             self._t_overlap = max(self.dmshifts)*self.inttime
@@ -430,7 +431,7 @@ class State(object):
                 np.degrees(1/(self.npixy*self.uvres/2)))
 
     @property
-    def fringetime(self):
+    def fringetime_orig(self):
         """ Estimate largest time span of a "segment".
         A segment is the maximal time span that can be have a single bg fringe
         subtracted and uv grid definition.  Max fringe window estimated for
@@ -446,6 +447,14 @@ class State(object):
         fringetime = 0.5*(24*3600)/(2*np.pi*maxbl/25.)
 
         return fringetime
+
+    @property
+    def fringetime(self):
+        """ Same as fringetime_orig, but rounded to integer multiple of
+        integration time.
+        """
+
+        return self.fringetime - np.mod(self.fringetime, self.inttime)
 
     @property
     def ants(self):
@@ -560,7 +569,9 @@ class State(object):
 
     @property
     def t_segment(self):
-        """ Time read per segment in seconds """
+        """ Time read per segment in seconds
+        Assumes first segment is same size as all others.
+        """
 
 #        totaltimeread = 24*3600*(self.segmenttimes[:, 1] - self.segmenttimes[:, 0]).sum()
 #        return totaltimeread/self.nsegment
