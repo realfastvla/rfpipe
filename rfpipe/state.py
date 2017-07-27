@@ -121,7 +121,7 @@ class State(object):
 
             spworder = np.argsort(self.metadata.spw_reffreq)
             if np.all(spworder == np.sort(spworder)):
-                logger.info('Rolling spw frequencies from {0} to increasing order'
+                logger.info('Rolling spw frequencies to increasing order from order {0}'
                             .format(spworder))
 
             logger.info('\t Freq range: {0:.3f} -- {1:.3f}'

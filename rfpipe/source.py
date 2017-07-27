@@ -78,24 +78,6 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
     else:
         logger.info('Not applying online flags.')
 
-    # If spw are rolled, roll them to increasing frequency order
-    dfreq = np.array([st.metadata.spw_reffreq[i+1] - st.metadata.spw_reffreq[i]
-                      for i in range(len(st.metadata.spw_reffreq)-1)])
-    # not a perfect test of permutability!
-    dfreqneg = [df for df in dfreq if df < 0]
-
-    if len(dfreqneg) <= 1:
-        if len(dfreqneg) == 1:
-            logger.info('Rolling spw frequencies to increasing order: %s'
-                        % str(st.metadata.spw_reffreq))
-            rollch = np.sum([st.metadata.spw_nchan[ss]
-                             for ss in range(np.where(dfreq < 0)[0][0]+1)])
-            data_read = np.roll(data_read, rollch, axis=2)
-    else:
-        raise StandardError('SPW out of order and can\'t be permuted '
-                            'to increasing order: %s'
-                            % str(st.metadata.spw_reffreq))
-
     # optionally integrate (downsample)
     if ((st.prefs.read_tdownsample > 1) or (st.prefs.read_fdownsample > 1)):
         sh = data_read.shape
