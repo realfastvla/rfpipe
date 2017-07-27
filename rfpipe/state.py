@@ -120,8 +120,8 @@ class State(object):
                         .format(self.nchan, self.nspw))
 
             spworder = np.argsort(self.metadata.spw_reffreq)
-            if np.all(spworder == np.sort(spworder)):
-                logger.info('Rolling spw frequencies to increasing order from order {0}'
+            if np.any(spworder != np.sort(spworder)):
+                logger.warn('Sorting spw frequencies to increasing order from order {0}'
                             .format(spworder))
 
             logger.info('\t Freq range: {0:.3f} -- {1:.3f}'
@@ -212,7 +212,7 @@ class State(object):
         if self.prefs.fileroot:
             return self.prefs.fileroot
         else:
-            return os.path.basename(self.metadata.filename)
+            return os.path.basename(self.metadata.filename).rstrip('/')
 
     @property
     def dmarr(self):
@@ -469,7 +469,7 @@ class State(object):
         if not self.prefs.gainfile:
             # look for gainfile in workdir
             gainfile = os.path.join(self.metadata.workdir,
-                                    self.metadata.filename+'.GN')
+                                    self.metadata.filename.rstrip('/')+'.GN')
         else:
             gainfile = self.prefs.gainfile
 
@@ -508,7 +508,7 @@ class State(object):
             if self.prefs.segmenttimes is not None:
                 self._segmenttimes = self.prefs.segmenttimes
             elif self.prefs.nsegment:
-                self._segmenttimes = calc_segment_times(self)
+                self._segmenttimes = calc_segment_times(self, self.prefs.nsegment)
             else:
                 find_segment_times(self)
 
@@ -556,26 +556,16 @@ class State(object):
 
     @property
     def nints(self):
-        if self.metadata.nints:
-            # if nints known (e.g., from sdm)
-            # or set (e.g., forced during vys reading)
-            return self.metadata.nints
-            # if overloading segment time calculation
-        elif self.prefs.nsegment:
-            return int(round((self.nsegment*self.fringetime -
-                              self.t_overlap*(self.nsegment-1))/self.inttime))
-        else:
-            raise(ValueError, "Number of integrations in scan is not known or "
-                              "cannot be inferred. Set metadata.nints of "
-                              "prefs.nsegment.")
+        return self.metadata.nints
 
     @property
     def t_segment(self):
         """ Time read per segment in seconds """
 
+#        totaltimeread = 24*3600*(self.segmenttimes[:, 1] - self.segmenttimes[:, 0]).sum()
+#        return totaltimeread/self.nsegment
         # ** not guaranteed to be the same for each segment, but assume so
-        totaltimeread = 24*3600*(self.segmenttimes[:, 1] - self.segmenttimes[:, 0]).sum()
-        return totaltimeread/self.nsegment
+        return 24*3600*(self.segmenttimes[0, 1] - self.segmenttimes[0, 0])
 
     @property
     def readints(self):
@@ -773,14 +763,15 @@ def calc_segment_times(state, nsegment):
     """
 
     # this casts to int (flooring) to avoid 0.5 int rounding issue.
-#    stopdts = np.linspace(state.t_overlap/state.inttime, state.nints,
-#                          nsegment+1)[1:]  # nseg+1 keeps at least one seg
-#    startdts = np.concatenate(([0],
-#                              stopdts[:-1]-state.t_overlap/state.inttime))
-    stopdts = np.arange(state.t_overlap//state.inttime, state.nints,
-                        nsegment+1)[1:]  # nseg+1 keeps at least one seg
+    stopdts = np.linspace(state.t_overlap/state.inttime, state.nints,
+                          nsegment+1)[1:]  # nseg+1 keeps at least one seg
     startdts = np.concatenate(([0],
-                              stopdts[:-1]-state.t_overlap//state.inttime))
+                              stopdts[:-1]-state.t_overlap/state.inttime))
+    # or force on integer boundaries?
+#    stopdts = np.arange(state.t_overlap//state.inttime, state.nints,
+#                        nsegment+1)[1:]  # nseg+1 keeps at least one seg
+#    startdts = np.concatenate(([0],
+#                              stopdts[:-1]-state.t_overlap//state.inttime))
 
     segmenttimes = []
     for (startdt, stopdt) in zip(state.inttime*startdts, state.inttime*stopdts):
