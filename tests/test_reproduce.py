@@ -1,10 +1,10 @@
 import rfpipe
 import pytest
 from astropy import time
-
+from numpy import array
 # simulate no flag, transient/no flag, transient/flag
 inprefs = [{'flaglist': [], 'npix_max': 512}]
-candlocs = [(0, 10, 0, 0, 0)]
+candlocs = [array(0, 10, 0, 0, 0)]
 
 @pytest.fixture(scope="module", params=inprefs)
 def mockstate(request):
