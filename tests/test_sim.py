@@ -53,3 +53,7 @@ def test_search(mockstate, mockdm, wisdom):
     if mockstate.prefs.simulated_transient:
         print(mockstate.prefs.simulated_transient, mockstate.prefs.flaglist)
         assert len(features)
+
+def test_pipeline(mockstate):
+	rfpipe.pipeline.pipeline_seg(mockstate, 0)
+	
