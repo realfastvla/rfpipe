@@ -118,6 +118,12 @@ class State(object):
             logger.info('\t nants, nbl: {0}, {1}'.format(self.nants, self.nbl))
             logger.info('\t nchan, nspw: {0}, {1}'
                         .format(self.nchan, self.nspw))
+
+            spworder = np.argsort(self.metadata.spw_reffreq)
+            if np.all(spworder == np.sort(spworder)):
+                logger.info('Rolling spw frequencies to increasing order from order {0}'
+                            .format(spworder))
+
             logger.info('\t Freq range: {0:.3f} -- {1:.3f}'
                         .format(self.freq.min(), self.freq.max()))
             logger.info('\t Scan has {0} ints ({1:.1f} s) and inttime {2:.3f} s'
@@ -227,11 +233,15 @@ class State(object):
 
     @property
     def freq(self):
+        """ Frequencies for each channel in increasing order.
+        Metadata may be out of order, but state/data reading order is sorted.
+        """
+
         # TODO: need to support spw selection and downsampling, e.g.:
         #    if spectralwindow[ii] in d['spw']:
         #    np.array([np.mean(spwch[i:i+d['read_fdownsample']]) for i in range(0, len(spwch), d['read_fdownsample'])], dtype='float32') / 1e9
 
-        return self.metadata.freq_orig[self.chans]
+        return np.sort(self.metadata.freq_orig)[self.chans]
 
     @property
     def chans(self):
@@ -281,6 +291,10 @@ class State(object):
 
     @property
     def spw(self):
+        """ Spectral windows used.
+        ** TODO: update for proper naming "basband"+"swindex"
+        """
+
         if self.prefs.spw:
             return self.prefs.spw
         else:

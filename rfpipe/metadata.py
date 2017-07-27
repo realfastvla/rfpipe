@@ -65,7 +65,6 @@ class Metadata(object):
     def workdir(self):
         return os.path.dirname(os.path.abspath(self.filename))
 
-
 #    @property
 #    def spw_chanr(self):
 #        chanr = []
@@ -77,7 +76,8 @@ class Metadata(object):
 
     @property
     def freq_orig(self):
-        """Spacing of channel centers in GHz"""
+        """Spacing of channel centers in GHz.
+        Out of order metadata order is sorted in state/data reading"""
 
         return np.array([np.linspace(self.spw_reffreq[ii], self.spw_reffreq[ii] +
                                      (self.spw_nchan[ii]-1) * self.spw_chansize[ii], self.spw_nchan[ii])

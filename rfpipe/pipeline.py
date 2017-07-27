@@ -38,7 +38,7 @@ def pipeline_vystest(wait, nsegment=1, host='cbe-node-01', preffile=None,
     st = state.state_vystest(wait, nsegment=nsegment, preffile=preffile,
                              **kwargs)
 
-    saved = pipeline_scan(st, host=host, cfile=cfile)
+    saved = pipeline_scan_distributed(st, host=host, cfile=cfile)
 
     return saved
 
@@ -49,7 +49,8 @@ def pipeline_seg(st, segment, cl=None, cfile=None,
         scheduler
     """
 
-    # ** how to use distributed arguments? (workers=workers, allow_other_workers=allow_other_workers)
+    # ** how to use distributed arguments?
+    # (workers=workers, allow_other_workers=allow_other_workers)
 
     logger.info('Building dask for observation {0}.'.format(st.fileroot))
 

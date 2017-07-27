@@ -97,7 +97,10 @@ def pipeline_datacorrect(st, candloc, data_prep=None):
     segment, candint, dmind, dtind, beamnum = candloc.astype(int)
     dt = st.dtarr[dtind]
     dm = st.dmarr[dmind]
-    scale = 4.2e-3 if st.rtpipe_version <= 1.54 else None
+
+    scale = None
+    if hasattr(st, "rtpipe_version"):
+        scale = 4.2e-3 if st.rtpipe_version <= 1.54 else None
     delay = util.calc_delay(st.freq, st.freq.max(), dm, st.inttime,
                             scale=scale)
 

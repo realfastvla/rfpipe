@@ -377,8 +377,11 @@ def save_cands(st, candidates):
                         'Spilling to new file {0}.'.format(newcandsfile))
             with open(newcandsfile, 'ab+') as pkl:
                 pickle.dump(cdf, pkl)
+        return st.candsfile
+
     else:
         logger.info('Not saving candidates.')
+        return None
 
 
 def candplot(canddatalist, snrs=[], outname=''):
@@ -815,6 +818,8 @@ def candplot(canddatalist, snrs=[], outname=''):
         canvas.print_figure(outname)
     except ValueError:
         logger.warn('Could not write figure to %s' % outname)
+
+    return outname
 
 
 def source_location(pt_ra, pt_dec, l1, m1):

@@ -4,16 +4,17 @@ from astropy import time
 
 # simulate no flag, transient/no flag, transient/flag
 inprefs = [{'flaglist': [], 'npix_max': 512},
+           {'read_tdownsample': 2, 'read_fdownsample': 2, 'npix_max': 512},
            {'simulated_transient': [(1., 10, 10, 5e-3, 0.001, 0.001)],
-            'maxdm': 100, 'dtarr': [1,2], 'npix_max': 512}]
+            'maxdm': 100, 'dtarr': [1, 2], 'npix_max': 512}]
 
 
 @pytest.fixture(scope="module", params=inprefs)
 def mockstate(request):
-        t0 = time.Time.now().mjd
-        meta = rfpipe.metadata.mock_metadata(t0, t0+0.3/(24*3600), 27, 4, 2,
-                                             5e3, datasource='sim')
-        return rfpipe.state.State(inmeta=meta, inprefs=request.param)
+    t0 = time.Time.now().mjd
+    meta = rfpipe.metadata.mock_metadata(t0, t0+0.3/(24*3600), 27, 4, 2, 5e3,
+                                         datasource='sim')
+    return rfpipe.state.State(inmeta=meta, inprefs=request.param)
 
 
 # simulate two DMs
@@ -53,3 +54,7 @@ def test_search(mockstate, mockdm, wisdom):
     if mockstate.prefs.simulated_transient:
         print(mockstate.prefs.simulated_transient, mockstate.prefs.flaglist)
         assert len(features)
+
+#def test_pipeline(mockstate):
+#	rfpipe.pipeline.pipeline_seg(mockstate, 0)
+	
