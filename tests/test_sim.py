@@ -4,7 +4,7 @@ from astropy import time
 
 # simulate no flag, transient/no flag, transient/flag
 inprefs = [{'flaglist': [], 'npix_max': 512},
-           {'read_tdownsample': 2, 'read_fdownsample': 2, 'npix_max': 512},
+#           {'read_tdownsample': 2, 'read_fdownsample': 2, 'npix_max': 512},
            {'simulated_transient': [(1., 10, 10, 5e-3, 0.001, 0.001)],
             'maxdm': 100, 'dtarr': [1, 2], 'npix_max': 512}]
 
