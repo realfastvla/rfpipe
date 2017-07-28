@@ -55,8 +55,10 @@ class State(object):
         """
 
         self.config = config
-        self.sdmfile = sdmfile.rstrip('/')
         self.sdmscan = sdmscan
+        if sdmfile:
+            sdmfile = sdmfile.rstrip('/')
+        self.sdmfile = sdmfile
 
         if isinstance(inprefs, dict):
             # get pipeline preferences as dict
@@ -478,7 +480,7 @@ class State(object):
         if not self.prefs.gainfile:
             # look for gainfile in workdir
             gainfile = os.path.join(self.metadata.workdir,
-                                    self.metadata.filename.rstrip('/')+'.GN')
+                                    self.metadata.filename+'.GN')
         else:
             gainfile = self.prefs.gainfile
 
