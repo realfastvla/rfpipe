@@ -10,7 +10,6 @@ from rfpipe import state, source, search, util
 
 import logging
 logger = logging.getLogger(__name__)
-
 vys_timeout_default = 10
 
 
@@ -20,7 +19,7 @@ def pipeline_scan_distributed(st, segments=None, host='cbe-node-01',
 
     saved = []
     if not isinstance(segments, list):
-        segments = range(st.nsegments)
+        segments = range(st.nsegment)
 
     cl = distributed.Client('{0}:{1}'.format(host, '8786'))
 
@@ -31,13 +30,13 @@ def pipeline_scan_distributed(st, segments=None, host='cbe-node-01',
     return saved
 
 
-def pipeline_vystest(wait, nsegment=1, host='cbe-node-01', preffile=None,
+def pipeline_vystest(wait, host='cbe-node-01', preffile=None,
                      cfile=None, **kwargs):
     """ Start one segment vysmaw jobs reading a segment each after time wait
     Uses example realfast scan configuration from files.
     """
 
-    st = state.state_vystest(wait, nsegment=nsegment, preffile=preffile,
+    st = state.state_vystest(wait, preffile=preffile,
                              **kwargs)
 
     saved = pipeline_scan_distributed(st, host=host, cfile=cfile)

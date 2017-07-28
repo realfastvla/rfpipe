@@ -55,7 +55,7 @@ class State(object):
         """
 
         self.config = config
-        self.sdmfile = sdmfile
+        self.sdmfile = sdmfile.rstrip('/')
         self.sdmscan = sdmscan
 
         if isinstance(inprefs, dict):
@@ -454,7 +454,7 @@ class State(object):
         integration time.
         """
 
-        return self.fringetime - np.mod(self.fringetime, self.inttime)
+        return self.fringetime_orig - np.mod(self.fringetime_orig, self.inttime)
 
     @property
     def ants(self):
@@ -501,10 +501,10 @@ class State(object):
 
     @property
     def nsegment(self):
-        if self.prefs.nsegment:
-            return self.prefs.nsegment
-        else:
-            return len(self.segmenttimes)
+        #       if self.prefs.nsegment:
+        #           return self.prefs.nsegment
+        #       else:
+        return len(self.segmenttimes)
 
     @property
     def segmenttimes(self):
@@ -516,8 +516,8 @@ class State(object):
         if not hasattr(self, '_segmenttimes'):
             if self.prefs.segmenttimes is not None:
                 self._segmenttimes = self.prefs.segmenttimes
-            elif self.prefs.nsegment:
-                self._segmenttimes = calc_segment_times(self, self.prefs.nsegment)
+#            elif self.prefs.nsegment:
+#                self._segmenttimes = calc_segment_times(self, self.prefs.nsegment)
             else:
                 find_segment_times(self)
 
@@ -766,23 +766,25 @@ def calc_dmarr(state):
     return dmgrid_final
 
 
-def calc_segment_times(state, nsegment):
+def calc_segment_times(state, scale_nsegment=1.):
     """ Helper function for set_pipeline to define segmenttimes list, given
     nsegment definition.
     Can optionally overload state.nsegment to calculate new times
     ** TODO: why is this slightly off from rtpipe calculation?
     """
 
-    # this casts to int (flooring) to avoid 0.5 int rounding issue.
-    stopdts = np.linspace(state.t_overlap/state.inttime, state.nints,
-                          nsegment+1)[1:]  # nseg+1 keeps at least one seg
-    startdts = np.concatenate(([0],
-                              stopdts[:-1]-state.t_overlap/state.inttime))
-    # or force on integer boundaries?
-#    stopdts = np.arange(state.t_overlap//state.inttime, state.nints,
-#                        nsegment+1)[1:]  # nseg+1 keeps at least one seg
+#    stopdts = np.linspace(int(round(state.t_overlap/state.inttime)), state.nints,
+#                          nsegment+1)[1:]  # nseg+1 keeps at least one seg
 #    startdts = np.concatenate(([0],
-#                              stopdts[:-1]-state.t_overlap//state.inttime))
+#                              stopdts[:-1]-int(round(state.t_overlap/state.inttime))))
+    # or force on integer boundaries?
+    stopdts = np.arange(int(round(state.t_overlap/state.inttime)), state.nints+1,
+                        min(max(1,
+                            int(round(state.fringetime/state.inttime/scale_nsegment))),
+                        state.nints),
+                        dtype=int)[1:]
+    startdts = np.concatenate(([0],
+                              stopdts[:-1]-int(round(state.t_overlap/state.inttime))))
 
     segmenttimes = []
     for (startdt, stopdt) in zip(state.inttime*startdts, state.inttime*stopdts):
@@ -806,13 +808,9 @@ def find_segment_times(state):
     ** Not converging for evla_mcast test data and long scan length
     """
 
-    assert state.metadata.nints or state.prefs.nsegment, "Can only find segment times if nints or nsegments defined"
-
     # initialize at fringe time limit. nsegment must be between 1 and state.nints
     scale_nsegment = 1.
-    nsegment = max(1, min(state.metadata.nints,
-                         int(round(scale_nsegment*state.inttime*state.metadata.nints/(state.fringetime-state.t_overlap)))))  # at least 1, at most nints
-    state._segmenttimes = calc_segment_times(state, nsegment)
+    state._segmenttimes = calc_segment_times(state, scale_nsegment)
 
     # calculate memory limit to stop iteration
     assert state.immem_limit+state.vismem_limit < state.prefs.memory_limit, 'memory_limit of {0} is smaller than best solution of {1}. Try forcing nsegment/nchunk larger than {2}/{3} or reducing maxdm/npix'.format(state.prefs.memory_limit, state.immem_limit+state.vismem_limit, state.nsegment, max(state.dtarr)/min(state.dtarr))
@@ -825,7 +823,7 @@ def find_segment_times(state):
 
             scale_nsegment *= (state.vismem+state.immem)/float(state.prefs.memory_limit)
             nsegment = max(1, min(state.metadata.nints, int(round(scale_nsegment*state.inttime*state.metadata.nints/(state.fringetime-state.t_overlap)))))  # at least 1, at most nints
-            state._segmenttimes = calc_segment_times(state, nsegment)
+            state._segmenttimes = calc_segment_times(state, scale_nsegment)
 
             while state.vismem+state.immem > state.prefs.memory_limit:
                 logger.debug('Doubling nchunk from %d to fit in %d GB memory limit.' % (state.prefs.nchunk, state.prefs.memory_limit))
@@ -835,10 +833,10 @@ def find_segment_times(state):
                     break
 
     # final set up of memory
-    state._segmenttimes = calc_segment_times(state, nsegment)
+    state._segmenttimes = calc_segment_times(state, scale_nsegment)
 
 
-def state_vystest(wait, nsegment=0, scantime=0, preffile=None, **kwargs):
+def state_vystest(wait, catch, scantime=0, preffile=None, **kwargs):
     """ Create state to read vys data after wait seconds with nsegment segments.
     kwargs passed in as preferences via inpref argument to State.
     """
@@ -848,31 +846,25 @@ def state_vystest(wait, nsegment=0, scantime=0, preffile=None, **kwargs):
     except ImportError:
         logger.error('ImportError for evla_mcast. Need this library to consume multicast messages from CBE.')
 
+    _install_dir = os.path.abspath(os.path.dirname(__file__))
+
     meta = {}
     prefs = {}
 
     # set start time (and fix antids)
     dt = time.TimeDelta(wait, format='sec')
+    onesec = time.TimeDelta(1, format='sec')
     t0 = (time.Time.now()+dt).mjd
     meta['starttime_mjd'] = t0
+    meta['stopime_mjd'] = t0+onesec*catch
     meta['antids'] = ['ea{0}'.format(i) for i in range(1,26)]  # fixed for scan_config test docs
 
     # read example scan configuration
-    config = scan_config.ScanConfig(vci='/home/cbe-master/realfast/soft/evla_mcast/test/data/test_vci.xml',
-                                    obs='/home/cbe-master/realfast/soft/evla_mcast/test/data/test_obs.xml',
-                                    ant='/home/cbe-master/realfast/soft/evla_mcast/test/data/test_antprop.xml')
-
-    # define amount of time to catch either by nsegment or by setting total time
-    if nsegment and not scantime:
-        for key in kwargs:
-            prefs[key] = kwargs[key]
-        prefs['nsegment'] = nsegment
-    elif scantime and not nsegment:
-        subband0 = config.get_subbands()[0]
-        inttime = subband0.hw_time_res  # assumes that vys stream comes after hw integration
-        nints = int(scantime/inttime)
-        logger.info('Pipeline will be set to catch {0} s of data ({1} integrations)'.format(scantime, nints))
-        meta['nints'] = nints
+    config = scan_config.ScanConfig(vci=os.path.join(_install_dir, 'data/vci.xml'),
+                                    obs=os.path.join(_install_dir, 'data/obs.xml'),
+                                    ant=os.path.join(_install_dir, 'data/antprop.xml'),
+                                    requires=['ant', 'vci', 'obs'])
+    config.stopTime = config.startTime+1/(24*3600.)
 
     st = State(config=config, preffile=preffile, inmeta=meta, inprefs=prefs)
 

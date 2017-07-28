@@ -47,7 +47,7 @@ class Preferences(object):
     # processing
     nthread = attr.ib(default=1)
     nchunk = attr.ib(default=0)
-    nsegment = attr.ib(default=0)
+#    nsegment = attr.ib(default=0)
     segmenttimes = attr.ib(default=None)
     memory_limit = attr.ib(default=20)
 
