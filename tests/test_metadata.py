@@ -17,7 +17,7 @@ def config():
     return config
 
 
-@pytest.fixture(scope="module", params=[{'npix_max': 128}, {'nsegment': 2},
+@pytest.fixture(scope="module", params=[{'npix_max': 128}, {'memory_limit': 0.1}
                                         {'maxdm': 100}])
 def inprefs(request):
     return request.param
