@@ -2,6 +2,9 @@ import rfpipe
 import pytest
 from astropy import time
 from numpy import array
+import os.path
+
+_install_dir = os.path.abspath(os.path.dirname(__file__))
 
 # simulate no flag, transient/no flag, transient/flag
 inprefs = [{'flaglist': [], 'npix_max': 512}]
@@ -25,3 +28,13 @@ def test_candidate(mockstate, candloc):
     candidate = rfpipe.reproduce.pipeline_candidate(mockstate, candloc)
 
     assert isinstance(candidate, dict)
+
+
+def test_parse():
+    candsfile = os.path.join(_install_dir,
+                             'data/cands_17A-396_TEST_30m_001.57849.887411006945_merge.pkl')
+    canddflist = rfpipe.reproduce.oldcands_read(candsfile)
+    assert len(canddflist) == 43
+    st, df = canddflist[0]
+    assert isinstance(st, rfpipe.state.State)
+    assert len(df) == 18

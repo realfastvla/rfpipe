@@ -8,7 +8,7 @@ import os.path
 from collections import OrderedDict
 import numpy as np
 import pandas as pd
-from rfpipe import preferences, state, util, search, source
+from rfpipe import preferences, state, util, search, source, metadata
 
 import logging
 logger = logging.getLogger(__name__)
@@ -53,7 +53,13 @@ def oldcands_readone(candsfile, scan):
     inprefs = preferences.oldstate_preferences(d, scan=scan)
     inprefs.pop('gainfile')
     sdmfile = os.path.basename(d['filename'])
-    st = state.State(sdmfile=sdmfile, sdmscan=scan, inprefs=inprefs)
+    if os.path.exists(sdmfile):
+        logger.info('Parsing metadata from sdmfile {0}'.format(sdmfile))
+        st = state.State(sdmfile=sdmfile, sdmscan=scan, inprefs=inprefs)
+    else:
+        logger.info('Parsing metadata from cands file')
+        meta = metadata.oldstate_metadata(d, scan=scan)
+        st = state.State(inmeta=meta, inprefs=inprefs, showsummary=False)
 
     st.rtpipe_version = float(d['rtpipe_version'])
     if st.rtpipe_version <= 1.54:
