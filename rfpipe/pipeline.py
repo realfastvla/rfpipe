@@ -87,4 +87,4 @@ def pipeline_seg(st, segment, cl=None, cfile=None,
         return cl.persist(saved)
     else:
         # otherwise return the delayed objects
-        return compute(*saved)
+        return compute(*saved, num_workers=st.prefs.nthread)

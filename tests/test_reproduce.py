@@ -23,3 +23,5 @@ def candloc(request):
 
 def test_candidate(mockstate, candloc):
     candidate = rfpipe.reproduce.pipeline_candidate(mockstate, candloc)
+
+    assert isinstance(candidate, dict)

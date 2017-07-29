@@ -33,11 +33,10 @@ def dedisperse(data, delay):
 @jit(nogil=True, nopython=True)
 def _dedisperse(data, delay):
 
-    sh = data.shape
-    newsh = (sh[0]-delay.max(), sh[1], sh[2], sh[3])
-    result = np.zeros(shape=newsh, dtype=data.dtype)
-
     if delay.max() > 0:
+        sh = data.shape
+        newsh = (sh[0]-delay.max(), sh[1], sh[2], sh[3])
+        result = np.zeros(shape=newsh, dtype=data.dtype)
         for k in range(sh[2]):
             for i in range(newsh[0]):
                 iprime = i + delay[k]
@@ -62,10 +61,9 @@ def resample(data, dt):
 @jit(nogil=True, nopython=True)
 def _resample(data, dt):
 
-    sh = data.shape
-    newsh = (int64(sh[0]/dt), sh[1], sh[2], sh[3])
-
     if dt > 1:
+        sh = data.shape
+        newsh = (int64(sh[0]/dt), sh[1], sh[2], sh[3])
         result = np.zeros(shape=newsh, dtype=data.dtype)
 
         for j in range(sh[1]):
@@ -117,7 +115,8 @@ def search_thresh(st, data, segment, dmind, dtind, beamnum=0, wisdom=None):
                 candim = images[i]
                 l, m = st.pixtolm(np.where(candim == candim.max()))
                 phase_shift(data, uvw, l, m)
-                dataph = data[i-st.prefs.timewindow//2:i+st.prefs.timewindow//2].mean(axis=1)
+                dataph = data[max(0, i-st.prefs.timewindow//2):
+                              min(i+st.prefs.timewindow//2, len(data))].mean(axis=1)
                 phase_shift(data, uvw, -l, -m)
                 canddatalist.append(CandData(state=st, loc=candloc,
                                              image=candim, data=dataph))
@@ -407,8 +406,8 @@ def candplot(canddatalist, snrs=[], outname=''):
         im = canddata.image
         data = canddata.data
 
-        logger.debug('(image, data) shape: (%s, %s)' % (str(im.shape),
-                                                        str(data.shape)))
+        logger.info('Plotting for (image, data) shapes: ({0}, {1})'
+                    .format(str(im.shape), str(data.shape)))
 
         scan = st.metadata.scan
         segment, candint, dmind, dtind, beamnum = candloc
@@ -806,20 +805,18 @@ def candplot(canddatalist, snrs=[], outname=''):
             # draw vertical line where the candidate SNR is
             ax_snr.axvline(x=np.abs(snrobs), linewidth=1, color='y', alpha=0.7)
 
-    if not outname:
-        outname = os.path.join(st.metadata.workdir,
-                               'cands_{}_sc{}-seg{}-i{}-dm{}-dt{}.png'
-                               .format(st.fileroot, scan, segment, candint,
-                                       dmind, dtind))
+        if not outname:
+            outname = os.path.join(st.metadata.workdir,
+                                   'cands_{}_sc{}-seg{}-i{}-dm{}-dt{}.png'
+                                   .format(st.fileroot, scan, segment, candint,
+                                           dmind, dtind))
 
-    try:
-        from matplotlib.backends.backend_agg import FigureCanvasAgg
-        canvas = FigureCanvasAgg(fig)
-        canvas.print_figure(outname)
-    except ValueError:
-        logger.warn('Could not write figure to %s' % outname)
-
-    return outname
+        try:
+            from matplotlib.backends.backend_agg import FigureCanvasAgg
+            canvas = FigureCanvasAgg(fig)
+            canvas.print_figure(outname)
+        except ValueError:
+            logger.warn('Could not write figure to %s' % outname)
 
 
 def source_location(pt_ra, pt_dec, l1, m1):

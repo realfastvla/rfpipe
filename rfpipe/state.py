@@ -669,19 +669,21 @@ class State(object):
         """
 
         toGB = 8/1024**3   # number of complex64s to GB
-        immem = self.prefs.nthread * (self.readints//self.prefs.nthread * self.npixx * self.npixy) * toGB
+        immem = self.prefs.nthread * (self.readints * self.npixx *
+                                      self.npixy) * toGB
 
         return immem
 
     @property
     def immem_limit(self):
         """ Memory required to create all images in a chunk of read integrations
-        Limit defined for 
+        Limit defined for all threads.
         """
 
         toGB = 8/1024**3   # number of complex64s to GB
-        nchunk_scale = max(self.dtarr)//min(self.dtarr)
-        immem = self.prefs.nthread * ((self.t_overlap/self.inttime)/(self.prefs.nthread*nchunk_scale) * self.npixx * self.npixy) * toGB
+#        nchunk_scale = max(self.dtarr)//min(self.dtarr)
+        immem = self.prefs.nthread * ((self.t_overlap/self.inttime) *
+                                      self.npixx * self.npixy) * toGB
 
         return immem
 
@@ -769,10 +771,9 @@ def calc_dmarr(state):
 
 
 def calc_segment_times(state, scale_nsegment=1.):
-    """ Helper function for set_pipeline to define segmenttimes list, given
-    nsegment definition.
-    Can optionally overload state.nsegment to calculate new times
-    ** TODO: why is this slightly off from rtpipe calculation?
+    """ Helper function for set_pipeline to define segmenttimes list.
+    Forces segment time windows to be fixed relative to integration boundaries.
+    Can optionally push nsegment scaling up.
     """
 
 #    stopdts = np.linspace(int(round(state.t_overlap/state.inttime)), state.nints,
@@ -780,13 +781,19 @@ def calc_segment_times(state, scale_nsegment=1.):
 #    startdts = np.concatenate(([0],
 #                              stopdts[:-1]-int(round(state.t_overlap/state.inttime))))
     # or force on integer boundaries?
+
     stopdts = np.arange(int(round(state.t_overlap/state.inttime)), state.nints+1,
                         min(max(1,
                             int(round(state.fringetime/state.inttime/scale_nsegment))),
-                        state.nints),
+                        state.nints-int(round(state.t_overlap/state.inttime))),
                         dtype=int)[1:]
     startdts = np.concatenate(([0],
                               stopdts[:-1]-int(round(state.t_overlap/state.inttime))))
+
+    assert all([len(stopdts), len(startdts)]), ('Could not set segment times.'
+                                                't_overlap may be longer than '
+                                                'nints or fringetime shorter '
+                                                'than inttime.')
 
     segmenttimes = []
     for (startdt, stopdt) in zip(state.inttime*startdts, state.inttime*stopdts):

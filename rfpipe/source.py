@@ -171,6 +171,7 @@ def read_bdf_segment(st, segment):
 def simulate_segment(st, loc=0., scale=1.):
     """ Simulates visibilities for a segment.
     """
+    logger.info('Simulating data with shape {0}'.format(st.datashape))
 
     data_read = np.zeros(shape=st.datashape, dtype='complex64')
     data_read.real = np.random.normal(loc=loc, scale=scale, size=st.datashape)

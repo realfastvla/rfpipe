@@ -138,7 +138,7 @@ def pipeline_imdata(st, candloc, data_dmdt=None):
                                data=dataph)
 
     # output is as from search.image_thresh
-    return canddata
+    return [canddata]
 
 
 def pipeline_candidate(st, candloc, canddata=None):
@@ -149,10 +149,10 @@ def pipeline_candidate(st, candloc, canddata=None):
     segment, candint, dmind, dtind, beamnum = candloc.astype(int)
 
     if canddata is None:
-        canddata = pipeline_imdata(st, candloc)
+        canddatalist = pipeline_imdata(st, candloc)
 
-    candidate = search.calc_features(canddata)
+    candidate = search.calc_features(canddatalist)
 
-    search.candplot(canddata)
+#    search.candplot(canddatalist)
 
     return candidate
