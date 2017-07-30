@@ -159,7 +159,7 @@ def oldstate_preferences(d, scan=None):
         if key in allowed:
             prefs[key] = d[key]
 
-    prefs['nsegment'] = d['nsegments']
+#    prefs['nsegment'] = d['nsegments']
     prefs['selectpol'] = 'auto'
 
     if not scan:
