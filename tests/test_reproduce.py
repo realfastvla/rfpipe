@@ -1,14 +1,14 @@
 import rfpipe
 import pytest
 from astropy import time
-from numpy import array
+import numpy as np
 import os.path
 
 _install_dir = os.path.abspath(os.path.dirname(__file__))
 
 # simulate no flag, transient/no flag, transient/flag
 inprefs = [{'flaglist': [], 'npix_max': 512}]
-candlocs = [array([0, 10, 0, 0, 0])]
+candlocs = [np.array([0, 10, 0, 0, 0])]
 
 
 @pytest.fixture(scope="module", params=inprefs)
@@ -27,7 +27,7 @@ def candloc(request):
 def test_candidate(mockstate, candloc):
     candidate = rfpipe.reproduce.pipeline_candidate(mockstate, candloc)
     assert isinstance(candidate, dict)
-    assert candidate.keys()[0] == candloc
+    assert np.all(candidate.keys()[0] == candloc)
 
 
 def test_parse():

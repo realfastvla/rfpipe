@@ -811,10 +811,7 @@ def find_segment_times(state):
     Segment sizes bounded by fringe time and memory limit,
     Solution found by iterating from fringe time to memory size that fits.
 
-    **TODO: this is still pretty awkward. Setting nsegment and nints may
-    produce different outcomes.
-
-    ** Not converging for evla_mcast test data and long scan length
+    ** Not converging for evla_mcast test data and long scan length?
     """
 
     # initialize at fringe time limit. nsegment must be between 1 and state.nints
