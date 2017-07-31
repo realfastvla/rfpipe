@@ -58,3 +58,5 @@ def test_search(mockstate, mockdm, wisdom):
 
 def test_pipeline(mockstate):
     res = rfpipe.pipeline.pipeline_seg(mockstate, 0)
+
+    assert isinstance(res, str)

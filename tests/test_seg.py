@@ -3,49 +3,51 @@ import pytest
 from astropy import time
 
 # simulate no flag, transient/no flag, transient/flag
-inprefs = [{'flaglist': [], 'npix_max': 32, 'sigma_image1': 0},
-           {'flaglist': [], 'npix_max': 32, 'sigma_image1': 0, 'maxdm': 100}
+inprefs = [{'flaglist': [], 'npix_max': 32, 'sigma_image1': 0, 'spw': [0,1]},
+           {'flaglist': [], 'npix_max': 32, 'sigma_image1': 0, 'spw': [2,3],
+           'maxdm': 100, 'dtarr': [1,2]}
            ]
 
 
 @pytest.fixture(scope="module", params=inprefs)
 def mockstate(request):
     t0 = time.Time.now().mjd
-    meta = rfpipe.metadata.mock_metadata(t0, t0+0.5/(24*3600), 27, 4, 2, 5e3,
+    meta = rfpipe.metadata.mock_metadata(t0, t0+0.5/(24*3600), 27, 2, 2, 5e3,
                                          datasource='sim')
     return rfpipe.state.State(inmeta=meta, inprefs=request.param)
 
 
-@pytest.fixture(scope="module")
-def mockdata(mockstate):
-    segment = 0
+def mockdata(mockstate, segment):
     data = rfpipe.source.read_segment(mockstate, segment)
     return rfpipe.source.data_prep(mockstate, data)
 
 
-def test_dataprep(mockstate, mockdata):
-    assert mockdata.shape == mockstate.datashape
+def test_dataprep(mockstate):
+    data_prep = mockdata(mockstate, 0)
+    assert data_prep.shape == mockstate.datashape
 
 
 def test_search(mockstate):
-    segment = 0
+
     wisdom = rfpipe.search.set_wisdom(mockstate.npixx, mockstate.npixy)
-    for dmind in range(len(st.dmarr)):
-        delay = rfpipe.util.calc_delay(mockstate.freq, mockstate.freq.max(),
-                                       st.dmarr[dmind], mockstate.inttime)
-        data_dm = rfpipe.search.dedisperse(mockdata, delay)
 
-        for dtind in range(len(st.dtarr)):
-            data_dmdt = rfpipe.search.resample(data_dm, st.dtarr[dtind])
+    features = []
+    for segment in range(mockstate.nsegment):
+        data_prep = mockdata(mockstate, segment)
 
-            canddatalist = rfpipe.search.search_thresh(mockstate, data_dmdt,
-                                                       segment, dmind, dtind,
-                                                       wisdom=wisdom)
+        for dmind in range(len(mockstate.dmarr)):
+            delay = rfpipe.util.calc_delay(mockstate.freq, mockstate.freq.max(),
+                                           mockstate.dmarr[dmind],
+                                           mockstate.inttime)
+            data_dm = rfpipe.search.dedisperse(data_prep, delay)
 
-            assert len(canddatalist) == st.readints
+            for dtind in range(len(mockstate.dtarr)):
+                data_dmdt = rfpipe.search.resample(data_dm, mockstate.dtarr[dtind])
 
-            features = rfpipe.search.calc_features(canddatalist)
+                canddatalist = rfpipe.search.search_thresh(mockstate, data_dmdt,
+                                                           segment, dmind, dtind,
+                                                           wisdom=wisdom)
 
+                assert len(canddatalist) == mockstate.readints
 
-def test_pipeline(mockstate):
-    res = rfpipe.pipeline.pipeline_seg(mockstate, 0)
+                features.append(rfpipe.search.calc_features(canddatalist))

@@ -26,8 +26,8 @@ def candloc(request):
 
 def test_candidate(mockstate, candloc):
     candidate = rfpipe.reproduce.pipeline_candidate(mockstate, candloc)
-
     assert isinstance(candidate, dict)
+    assert candidate.keys()[0] == candloc
 
 
 def test_parse():

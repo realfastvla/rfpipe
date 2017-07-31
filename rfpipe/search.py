@@ -342,7 +342,7 @@ def calc_features(canddatalist):
     return candidates
 
 
-def save_cands(st, candidates):
+def save_cands(st, candidates, canddatalist):
     """ Save candidates in reproducible form.
     Saves as DataFrame with metadata and preferences attached.
     Writes to location defined by state using a file lock to allow multiple
@@ -376,6 +376,10 @@ def save_cands(st, candidates):
                         'Spilling to new file {0}.'.format(newcandsfile))
             with open(newcandsfile, 'ab+') as pkl:
                 pickle.dump(cdf, pkl)
+
+        snrs = cdf['sigma_image1'].values
+        candplot(canddatalist, snrs=snrs)
+
         return st.candsfile
 
     else:
