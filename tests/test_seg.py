@@ -32,7 +32,7 @@ def test_search(mockstate):
 
     wisdom = rfpipe.search.set_wisdom(mockstate.npixx, mockstate.npixy)
 
-    features = []
+    featurelist = []
     for segment in range(mockstate.nsegment):
         data_prep = mockdata(mockstate, segment)
 
@@ -53,12 +53,13 @@ def test_search(mockstate):
                                                            dtind,
                                                            wisdom=wisdom)
 
-                assert len(canddatalist) == mockstate.readints//mockstate.dtarr[dtind]
+                features = rfpipe.search.calc_features(canddatalist)
+                featurelist.append(features)
+                print(features.keys())
+                assert len(canddatalist) == (mockstate.readints-mockstate.dmdelay[dmind])//mockstate.dtarr[dtind]
 
-                features.append(rfpipe.search.calc_features(canddatalist))
-
-    alltimes = np.linspace(mockstate.meta.starttime_mjd,
-                           mockstate.meta.stoptime_mjd, mockstate.nints)
+    alltimes = np.linspace(mockstate.metadata.starttime_mjd,
+                           mockstate.metadata.stoptime_mjd, mockstate.nints)
     integs0 = []
     integs1 = []
     for feature in features:
