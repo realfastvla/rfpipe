@@ -13,7 +13,7 @@ inprefs = [{'flaglist': [], 'npix_max': 32, 'sigma_image1': 0, 'spw': [0, 1]},
 @pytest.fixture(scope="module", params=inprefs)
 def mockstate(request):
     t0 = time.Time.now().mjd
-    meta = rfpipe.metadata.mock_metadata(t0, t0+0.3/(24*3600), 27, 4, 2, 10e3,
+    meta = rfpipe.metadata.mock_metadata(t0, t0+1./(24*3600), 27, 4, 2, 10e3,
                                          datasource='sim')
     return rfpipe.state.State(inmeta=meta, inprefs=request.param)
 
@@ -58,16 +58,20 @@ def test_search(mockstate):
                 print(features.keys())
                 assert len(canddatalist) == (mockstate.readints-mockstate.dmshifts[dmind])//mockstate.dtarr[dtind]
 
-    alltimes = np.linspace(mockstate.metadata.starttime_mjd,
-                           mockstate.metadata.stoptime_mjd, mockstate.nints)
-    integs0 = []
-    integs1 = []
-    for feature in features:
-        for (seg, integ, dmind, dtind, beamnum) in feature:
-            if dtind == 0:
-                integs0.append(integ)
-            elif dtind == 1:
-                integs1.append(integ)
+    integs0_0 = []
+    integs1_0 = []
+    integs0_1 = []
+    for features in featurelist:
+        for (seg, integ, dmind, dtind, beamnum) in features.keys():
+            if dtind == 0 and dmind == 0:
+                integs0_0.append(integ)
+            elif dtind == 1 and dmind == 0:
+                integs1_0.append(integ)
+            elif dtind == 0 and dmind == 1:
+                integs0_1.append(integ)
 
-    assert len(alltimes) == len(integs0)
-    assert len(alltimes)//2 == len(integs1)
+    assert mockstate.nints == len(integs0_0)
+    if 1 in mockstate.dtarr:
+        assert mockstate.nints//2 == len(integs1_0)
+    if 1 in mockstate.dmarr:
+        assert mockstate.nints-mockstate.dmshifts[1] == len(integs0_1)
