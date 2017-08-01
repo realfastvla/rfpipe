@@ -1,13 +1,11 @@
 import rfpipe
 import pytest
 from astropy import time
-import numpy as np
 
 # simulate no flag, transient/no flag, transient/flag
-inprefs = [{'flaglist': [], 'npix_max': 32, 'sigma_image1': 0, 'spw': [0, 1]},
+inprefs = [{'flaglist': [], 'npix_max': 32, 'sigma_image1': 0, 'spw': [0, 1], 'uvres': 50000},
            {'flaglist': [], 'npix_max': 32, 'sigma_image1': 0, 'spw': [2, 3],
-           'maxdm': 100, 'dtarr': [1, 2]}
-           ]
+           'dmarr': [0, 100], 'dtarr': [1, 2]}, 'uvres': 50000]
 
 
 @pytest.fixture(scope="module", params=inprefs)
@@ -70,8 +68,9 @@ def test_search(mockstate):
             elif dtind == 0 and dmind == 1:
                 integs0_1.append(integ)
 
+    print(integs0_0, integs1_0, integs0_1)
     assert mockstate.nints == len(integs0_0)
-    if 1 in mockstate.dtarr:
+    if 2 in mockstate.dtarr:
         assert mockstate.nints//2 == len(integs1_0)
-    if 1 in mockstate.dmarr:
+    if 100 in mockstate.dmarr:
         assert mockstate.nints-mockstate.dmshifts[1] == len(integs0_1)
