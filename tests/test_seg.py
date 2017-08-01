@@ -56,7 +56,7 @@ def test_search(mockstate):
                 features = rfpipe.search.calc_features(canddatalist)
                 featurelist.append(features)
                 print(features.keys())
-                assert len(canddatalist) == (mockstate.readints-mockstate.dmdelay[dmind])//mockstate.dtarr[dtind]
+                assert len(canddatalist) == (mockstate.readints-mockstate.dmshifts[dmind])//mockstate.dtarr[dtind]
 
     alltimes = np.linspace(mockstate.metadata.starttime_mjd,
                            mockstate.metadata.stoptime_mjd, mockstate.nints)
