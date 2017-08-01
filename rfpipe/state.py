@@ -589,6 +589,13 @@ class State(object):
         return int(round(self.t_segment/self.inttime))
 
     @property
+    def searchints(self):
+        """ Number of integrations searched
+        """
+
+        return self.readints*self.nsegment
+
+    @property
     def datashape(self):
         return (self.readints//self.prefs.read_tdownsample, self.nbl,
                 self.nchan//self.prefs.read_fdownsample, self.npol)

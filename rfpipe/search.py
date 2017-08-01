@@ -274,11 +274,13 @@ def runcuda(func, arr, threadsperblock, *args, **kwargs):
 
 class CandData(object):
     """ Object that bundles data from search stage to candidate visualization.
+    Provides some properties for the state of the phased data and candidate.
     """
 
     def __init__(self, state, loc, image, data):
         """ Instantiate with pipeline state, candidate location tuple,
         image, and resampled data phased to candidate.
+        TODO: Need to use search_dimensions to infer candloc meaning
         """
 
         self.state = state
@@ -289,6 +291,38 @@ class CandData(object):
         assert len(loc) == len(state.search_dimensions), ("candidate location "
                                                           "should set each of "
                                                           "the st.search_dimensions")
+
+    @property
+    def peak_lm(self):
+        """
+        """
+
+        return self.state.pixtolm(self.peak_xy)
+
+    @property
+    def peak_xy(self):
+        """ Peak pixel in image
+        Only supports positive peaks for now.
+        """
+
+        return np.where(self.image == self.image.max())
+
+    @property
+    def time_top(self):
+        """ Time in mjd where burst is at top of band
+        """
+
+        return (self.state.metadata.starttime_mjd +
+                (self.loc[1]*self.state.inttime)/(24*3600))
+
+    @property
+    def time_infinite(self):
+        """ Time in mjd where burst is at infinite frequency
+        """
+
+        delay = util.calc_delay(1e5, self.time_top, self.dmarr[self.loc[2]],
+                                self.state.inttime)
+        return self.time_top - delay
 
 
 def calc_features(canddatalist):

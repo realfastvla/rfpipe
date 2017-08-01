@@ -1,11 +1,13 @@
 import rfpipe
 import pytest
 from astropy import time
+import numpy as np
 
 # simulate no flag, transient/no flag, transient/flag
-inprefs = [{'flaglist': [], 'npix_max': 32, 'sigma_image1': 0, 'spw': [0, 1], 'uvres': 50000},
-           {'flaglist': [], 'npix_max': 32, 'sigma_image1': 0, 'spw': [2, 3],
-           'dmarr': [0, 100], 'dtarr': [1, 2]}, 'uvres': 50000]
+inprefs = [{'flaglist': [], 'npix_max': 32, 'sigma_image1': -999,
+            'spw': [0, 1], 'uvres': 50000},
+           {'flaglist': [], 'npix_max': 32, 'sigma_image1': -999,
+            'spw': [2, 3], 'dmarr': [0, 100], 'dtarr': [1, 2], 'uvres': 50000}]
 
 
 @pytest.fixture(scope="module", params=inprefs)
@@ -31,6 +33,7 @@ def test_search(mockstate):
     wisdom = rfpipe.search.set_wisdom(mockstate.npixx, mockstate.npixy)
 
     featurelist = []
+    times = []
     for segment in range(mockstate.nsegment):
         data_prep = mockdata(mockstate, segment)
 
@@ -54,13 +57,19 @@ def test_search(mockstate):
                 features = rfpipe.search.calc_features(canddatalist)
                 featurelist.append(features)
                 print(features.keys())
+                times += [canddata.time_top for canddata in canddatalist]
                 assert len(canddatalist) == (mockstate.readints-mockstate.dmshifts[dmind])//mockstate.dtarr[dtind]
+
+    times = np.sort(times)
+    deltat = np.array([times[i+1] - times[i] for i in range(len(times)-1)])
+    assert all(deltat < mockstate.inttime)
 
     integs0_0 = []
     integs1_0 = []
     integs0_1 = []
     for features in featurelist:
         for (seg, integ, dmind, dtind, beamnum) in features.keys():
+
             if dtind == 0 and dmind == 0:
                 integs0_0.append(integ)
             elif dtind == 1 and dmind == 0:
@@ -68,9 +77,7 @@ def test_search(mockstate):
             elif dtind == 0 and dmind == 1:
                 integs0_1.append(integ)
 
-    print(integs0_0, integs1_0, integs0_1)
-    assert mockstate.nints == len(integs0_0)
+    assert mockstate.searchints == len(integs0_0)
     if 2 in mockstate.dtarr:
-        assert mockstate.nints//2 == len(integs1_0)
-    if 100 in mockstate.dmarr:
-        assert mockstate.nints-mockstate.dmshifts[1] == len(integs0_1)
+        assert mockstate.nsegment*(mockstate.readints//2) == len(integs1_0)
+        assert mockstate.nsegment*(mockstate.readints-mockstate.dmshifts[1]) == len(integs0_1)
