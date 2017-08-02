@@ -411,7 +411,7 @@ def save_cands(st, candidates, canddatalist):
             with open(newcandsfile, 'ab+') as pkl:
                 pickle.dump(cdf, pkl)
 
-        snrs = cdf['snr1'].values
+        snrs = cdf.df['snr1'].values
         candplot(canddatalist, snrs=snrs)
 
         return st.candsfile
