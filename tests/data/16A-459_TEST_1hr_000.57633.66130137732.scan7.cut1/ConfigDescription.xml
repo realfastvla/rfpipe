@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<ConfigDescriptionTable>
+  <Entity entityId="uid://evla/sdm/X1472831537182" entityIdEncrypted="na" entityTypeName="ConfigDescriptionTable" schemaVersion="3" documentVersion="1"/>
+  <ContainerEntity entityId="uid://evla/sdm/X1472831537176" entityIdEncrypted="na" entityTypeName="ASDM" schemaVersion="3" documentVersion="1"/>
+  <row>
+    <numAntenna>27</numAntenna>
+    <numDataDescription>8</numDataDescription>
+    <numFeed>1</numFeed>
+    <correlationMode>CROSS_AND_AUTO</correlationMode>
+    <configDescriptionId>ConfigDescription_0</configDescriptionId>
+    <numAtmPhaseCorrection>1</numAtmPhaseCorrection>
+    <atmPhaseCorrection>1 1 AP_UNCORRECTED</atmPhaseCorrection>
+    <processorType>CORRELATOR</processorType>
+    <spectralType>FULL_RESOLUTION</spectralType>
+    <antennaId>1 27 Antenna_0 Antenna_1 Antenna_2 Antenna_3 Antenna_4 Antenna_5 Antenna_6 Antenna_7 Antenna_8 Antenna_9 Antenna_10 Antenna_11 Antenna_12 Antenna_13 Antenna_14 Antenna_15 Antenna_16 Antenna_17 Antenna_18 Antenna_19 Antenna_20 Antenna_21 Antenna_22 Antenna_23 Antenna_24 Antenna_25 Antenna_26</antennaId>
+    <dataDescriptionId>1 8 DataDescription_0 DataDescription_1 DataDescription_2 DataDescription_3 DataDescription_4 DataDescription_5 DataDescription_6 DataDescription_7</dataDescriptionId>
+    <feedId>1 27 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</feedId>
+    <processorId>Processor_0</processorId>
+    <switchCycleId>1 8 SwitchCycle_0 SwitchCycle_0 SwitchCycle_0 SwitchCycle_0 SwitchCycle_0 SwitchCycle_0 SwitchCycle_0 SwitchCycle_0</switchCycleId>
+  </row>
+</ConfigDescriptionTable>

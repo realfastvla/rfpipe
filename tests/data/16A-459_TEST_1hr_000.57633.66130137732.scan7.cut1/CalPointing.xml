@@ -1,0 +1,5 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<CalPointingTable>
+  <Entity entityId="uid://evla/sdm/X1472831537180" entityIdEncrypted="na" entityTypeName="CalPointingTable" schemaVersion="3" documentVersion="1"/>
+  <ContainerEntity entityId="uid://evla/sdm/X1472831537176" entityIdEncrypted="na" entityTypeName="ASDM" schemaVersion="3" documentVersion="1"/>
+</CalPointingTable>

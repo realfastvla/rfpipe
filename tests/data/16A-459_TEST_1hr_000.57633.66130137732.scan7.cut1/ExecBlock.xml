@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<ExecBlockTable>
+  <Entity entityId="uid://evla/sdm/X1472831537190" entityIdEncrypted="na" entityTypeName="ExecBlockTable" schemaVersion="3" documentVersion="1"/>
+  <ContainerEntity entityId="uid://evla/sdm/X1472831537176" entityIdEncrypted="na" entityTypeName="ASDM" schemaVersion="3" documentVersion="1"/>
+  <row>
+    <execBlockId>ExecBlock_0</execBlockId>
+    <startTime>4979548337649999872</startTime>
+    <endTime>4979551568049999872</endTime>
+    <execBlockNum>1</execBlockNum>
+    <execBlockUID>
+      <EntityRef entityId="uid://evla/sdm/X1" partId="X00000000" entityTypeName="ExecBlock" documentVersion="1"/>
+    </execBlockUID>
+    <projectUID>
+      <EntityRef entityId="uid://evla/sdm/X2" partId="X00000000" entityTypeName="ObsProject" documentVersion="1"/>
+    </projectUID>
+    <configName>B</configName>
+    <telescopeName>EVLA</telescopeName>
+    <observerName/>
+    <numObservingLog>0</numObservingLog>
+    <observingLog>1 0</observingLog>
+    <sessionReference>
+      <EntityRef entityId="uid://evla/srdb/4979548337649999872" partId="X00000000" entityTypeName="SessionReference" documentVersion="1"/>
+    </sessionReference>
+    <baseRangeMin>0.0</baseRangeMin>
+    <baseRangeMax>0.0</baseRangeMax>
+    <baseRmsMinor>0.0</baseRmsMinor>
+    <baseRmsMajor>0.0</baseRmsMajor>
+    <basePa>0.0</basePa>
+    <aborted>false</aborted>
+    <numAntenna>27</numAntenna>
+    <schedulerMode>UNKNOWN</schedulerMode>
+    <siteAltitude>2115.0</siteAltitude>
+    <siteLongitude>-107.6180555555556</siteLongitude>
+    <siteLatitude>34.07861111111111</siteLatitude>
+    <antennaId>1 27 Antenna_0 Antenna_1 Antenna_2 Antenna_3 Antenna_4 Antenna_5 Antenna_6 Antenna_7 Antenna_8 Antenna_9 Antenna_10 Antenna_11 Antenna_12 Antenna_13 Antenna_14 Antenna_15 Antenna_16 Antenna_17 Antenna_18 Antenna_19 Antenna_20 Antenna_21 Antenna_22 Antenna_23 Antenna_24 Antenna_25 Antenna_26</antennaId>
+    <sBSummaryId>SBSummary_0</sBSummaryId>
+  </row>
+</ExecBlockTable>

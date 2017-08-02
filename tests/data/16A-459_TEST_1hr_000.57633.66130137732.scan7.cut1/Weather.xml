@@ -1,0 +1,599 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<WeatherTable>
+  <Entity entityId="uid://evla/sdm/X1472831537210" entityIdEncrypted="na" entityTypeName="WeatherTable" schemaVersion="3" documentVersion="1"/>
+  <ContainerEntity entityId="uid://evla/sdm/X1472831537176" entityIdEncrypted="na" entityTypeName="ASDM" schemaVersion="3" documentVersion="1"/>
+  <row>
+    <timeInterval>4979548337715359744 95040512</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>65.599998</relHumidity>
+    <temperature>291.75</temperature>
+    <windDirection>3.9793506945470716</windDirection>
+    <windSpeed>3.2</windSpeed>
+    <windMax>4.3</windMax>
+    <dewPoint>285.15</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979548373048639488 50440320000</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>64.5499995</relHumidity>
+    <temperature>291.75</temperature>
+    <windDirection>3.91826417072727</windDirection>
+    <windSpeed>2.5</windSpeed>
+    <windMax>4.3</windMax>
+    <dewPoint>285.0</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979548433714400256 50794559488</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>64.1499975</relHumidity>
+    <temperature>291.9</temperature>
+    <windDirection>3.9793506945470716</windDirection>
+    <windSpeed>2.25</windSpeed>
+    <windMax>3.3</windMax>
+    <dewPoint>284.95</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979548494440640512 50751360000</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>62.0</relHumidity>
+    <temperature>292.15</temperature>
+    <windDirection>4.180063558526419</windDirection>
+    <windSpeed>3.75</windSpeed>
+    <windMax>7.1</windMax>
+    <dewPoint>284.7</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979548555339679744 50950079488</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>62.349998</relHumidity>
+    <temperature>291.80000049999995</temperature>
+    <windDirection>4.049163864626845</windDirection>
+    <windSpeed>4.300000000000001</windSpeed>
+    <windMax>5.5</windMax>
+    <dewPoint>284.5</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979548616368320512 50889600000</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>63.25</relHumidity>
+    <temperature>291.75</temperature>
+    <windDirection>3.91826417072727</windDirection>
+    <windSpeed>2.95</windSpeed>
+    <windMax>4.2</windMax>
+    <dewPoint>284.65</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979548676982239232 50310720512</timeInterval>
+    <pressure>79264.9994</pressure>
+    <relHumidity>63.299999</relHumidity>
+    <temperature>291.9</temperature>
+    <windDirection>3.8484510006474966</windDirection>
+    <windSpeed>2.1500000000000004</windSpeed>
+    <windMax>3.95</windMax>
+    <dewPoint>284.75</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979548737246240768 50397119488</timeInterval>
+    <pressure>79264.9994</pressure>
+    <relHumidity>61.8999995</relHumidity>
+    <temperature>291.85000099999996</temperature>
+    <windDirection>3.7524578917878086</windDirection>
+    <windSpeed>3.3</windSpeed>
+    <windMax>4.7</windMax>
+    <dewPoint>284.4</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979548797449760768 50189759488</timeInterval>
+    <pressure>79259.9976</pressure>
+    <relHumidity>62.599998</relHumidity>
+    <temperature>291.85000099999996</temperature>
+    <windDirection>4.014257279586958</windDirection>
+    <windSpeed>3.8499999999999996</windSpeed>
+    <windMax>5.4</windMax>
+    <dewPoint>284.54999999999995</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979548857605760000 50302078976</timeInterval>
+    <pressure>79259.9976</pressure>
+    <relHumidity>62.900002</relHumidity>
+    <temperature>292.04999999999995</temperature>
+    <windDirection>3.9793506945470716</windDirection>
+    <windSpeed>3.6500000000000004</windSpeed>
+    <windMax>4.8</windMax>
+    <dewPoint>284.75</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979548917809278976 50302080000</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>62.6499995</relHumidity>
+    <temperature>292.15</temperature>
+    <windDirection>4.014257279586958</windDirection>
+    <windSpeed>3.4</windSpeed>
+    <windMax>4.6</windMax>
+    <dewPoint>284.9</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979548978099200000 50284800000</timeInterval>
+    <pressure>79259.9976</pressure>
+    <relHumidity>61.6000005</relHumidity>
+    <temperature>292.54999999999995</temperature>
+    <windDirection>4.293509959906051</windDirection>
+    <windSpeed>2.55</windSpeed>
+    <windMax>3.5999999999999996</windMax>
+    <dewPoint>284.95</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979549038203360256 50103359488</timeInterval>
+    <pressure>79259.9976</pressure>
+    <relHumidity>60.3999995</relHumidity>
+    <temperature>292.54999999999995</temperature>
+    <windDirection>3.944444109507185</windDirection>
+    <windSpeed>2.95</windSpeed>
+    <windMax>3.8</windMax>
+    <dewPoint>284.7</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979549098454400000 50405758976</timeInterval>
+    <pressure>79259.9976</pressure>
+    <relHumidity>60.5</relHumidity>
+    <temperature>292.75</temperature>
+    <windDirection>3.9968039870670147</windDirection>
+    <windSpeed>2.6</windSpeed>
+    <windMax>3.75</windMax>
+    <dewPoint>284.84999999999997</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979549158705439744 50276159488</timeInterval>
+    <pressure>79259.9976</pressure>
+    <relHumidity>60.549999</relHumidity>
+    <temperature>292.449999</temperature>
+    <windDirection>3.988077340807043</windDirection>
+    <windSpeed>4.05</windSpeed>
+    <windMax>5.4</windMax>
+    <dewPoint>284.65</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979549218904639488 50302080000</timeInterval>
+    <pressure>79259.9976</pressure>
+    <relHumidity>61.6499995</relHumidity>
+    <temperature>292.35000099999996</temperature>
+    <windDirection>3.8920842319473548</windDirection>
+    <windSpeed>2.95</windSpeed>
+    <windMax>3.8</windMax>
+    <dewPoint>284.84999999999997</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979549279190240256 50293440512</timeInterval>
+    <pressure>79259.9976</pressure>
+    <relHumidity>61.1499995</relHumidity>
+    <temperature>292.65</temperature>
+    <windDirection>3.857177646907468</windDirection>
+    <windSpeed>2.7</windSpeed>
+    <windMax>3.6</windMax>
+    <dewPoint>284.95</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979549339445600256 50397119488</timeInterval>
+    <pressure>79259.9976</pressure>
+    <relHumidity>60.1499995</relHumidity>
+    <temperature>292.59999999999997</temperature>
+    <windDirection>4.459316238845512</windDirection>
+    <windSpeed>4.050000000000001</windSpeed>
+    <windMax>6.6</windMax>
+    <dewPoint>284.7</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979549399752800256 50207040512</timeInterval>
+    <pressure>79259.9976</pressure>
+    <relHumidity>60.0</relHumidity>
+    <temperature>292.35000099999996</temperature>
+    <windDirection>4.084070449666731</windDirection>
+    <windSpeed>5.550000000000001</windSpeed>
+    <windMax>6.75</windMax>
+    <dewPoint>284.4</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979549459934720000 50232961024</timeInterval>
+    <pressure>79259.9976</pressure>
+    <relHumidity>59.799999</relHumidity>
+    <temperature>292.54999999999995</temperature>
+    <windDirection>3.839724354387525</windDirection>
+    <windSpeed>4.1</windSpeed>
+    <windMax>5.6</windMax>
+    <dewPoint>284.45</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979549520190080000 50457600000</timeInterval>
+    <pressure>79259.9976</pressure>
+    <relHumidity>58.049999</relHumidity>
+    <temperature>292.9</temperature>
+    <windDirection>4.057890510886816</windDirection>
+    <windSpeed>3.9</windSpeed>
+    <windMax>5.3</windMax>
+    <dewPoint>284.5</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979549580523200512 50388478976</timeInterval>
+    <pressure>79259.9976</pressure>
+    <relHumidity>58.1499995</relHumidity>
+    <temperature>292.7</temperature>
+    <windDirection>3.796091123087667</windDirection>
+    <windSpeed>3.6</windSpeed>
+    <windMax>5.0</windMax>
+    <dewPoint>284.29999999999995</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979549640886559744 50518079488</timeInterval>
+    <pressure>79259.9976</pressure>
+    <relHumidity>58.5</relHumidity>
+    <temperature>292.80000049999995</temperature>
+    <windDirection>3.9968039870670147</windDirection>
+    <windSpeed>3.7</windSpeed>
+    <windMax>4.9</windMax>
+    <dewPoint>284.45</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979549701405440000 50509440000</timeInterval>
+    <pressure>79259.9976</pressure>
+    <relHumidity>56.9499985</relHumidity>
+    <temperature>292.80000049999995</temperature>
+    <windDirection>3.8746309394274117</windDirection>
+    <windSpeed>4.6</windSpeed>
+    <windMax>6.2</windMax>
+    <dewPoint>284.0</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979549756865599488 40487040000</timeInterval>
+    <pressure>79259.9976</pressure>
+    <relHumidity>58.5</relHumidity>
+    <temperature>292.449999</temperature>
+    <windDirection>3.961897402027128</windDirection>
+    <windSpeed>4.5</windSpeed>
+    <windMax>5.6</windMax>
+    <dewPoint>284.15</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979549812368959488 50509440000</timeInterval>
+    <pressure>79264.9994</pressure>
+    <relHumidity>58.6999985</relHumidity>
+    <temperature>292.4</temperature>
+    <windDirection>4.110250388446646</windDirection>
+    <windSpeed>4.9</windSpeed>
+    <windMax>6.4</windMax>
+    <dewPoint>284.15</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979549872784160768 50448960512</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>59.950001</relHumidity>
+    <temperature>292.4999995</temperature>
+    <windDirection>4.2062434973063345</windDirection>
+    <windSpeed>3.55</windSpeed>
+    <windMax>5.45</windMax>
+    <dewPoint>284.65</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979549933069760512 50319361024</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>60.0500015</relHumidity>
+    <temperature>292.59999999999997</temperature>
+    <windDirection>4.319689898685966</windDirection>
+    <windSpeed>4.45</windSpeed>
+    <windMax>5.7</windMax>
+    <dewPoint>284.65</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979549993398560768 50483520512</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>61.0</relHumidity>
+    <temperature>292.54999999999995</temperature>
+    <windDirection>4.380776422505767</windDirection>
+    <windSpeed>3.15</windSpeed>
+    <windMax>4.5</windMax>
+    <dewPoint>284.9</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979550053757599744 50362560512</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>59.6000005</relHumidity>
+    <temperature>292.7</temperature>
+    <windDirection>3.857177646907468</windDirection>
+    <windSpeed>2.9</windSpeed>
+    <windMax>4.2</windMax>
+    <dewPoint>284.59999999999997</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979550114025920512 50232960000</timeInterval>
+    <pressure>79259.9976</pressure>
+    <relHumidity>57.450001</relHumidity>
+    <temperature>292.80000049999995</temperature>
+    <windDirection>3.9706240482870996</windDirection>
+    <windSpeed>3.8499999999999996</windSpeed>
+    <windMax>5.95</windMax>
+    <dewPoint>284.2</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979550174151680000 50198400000</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>55.900002</relHumidity>
+    <temperature>292.75</temperature>
+    <windDirection>3.9269908169872414</windDirection>
+    <windSpeed>5.4</windSpeed>
+    <windMax>6.4</windMax>
+    <dewPoint>283.65</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979550234320640000 50215680000</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>54.349998</relHumidity>
+    <temperature>293.04999999999995</temperature>
+    <windDirection>3.8746309394274117</windDirection>
+    <windSpeed>4.55</windSpeed>
+    <windMax>5.9</windMax>
+    <dewPoint>283.5</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979550294493920256 50276159488</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>53.799999</relHumidity>
+    <temperature>292.9</temperature>
+    <windDirection>3.7524578917878086</windDirection>
+    <windSpeed>4.6</windSpeed>
+    <windMax>6.1</windMax>
+    <dewPoint>283.34999999999997</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979550354632640512 50198400000</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>54.6499995</relHumidity>
+    <temperature>292.75</temperature>
+    <windDirection>3.6041049053682905</windDirection>
+    <windSpeed>4.65</windSpeed>
+    <windMax>6.1</windMax>
+    <dewPoint>283.34999999999997</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979550414836160512 50405760000</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>56.5</relHumidity>
+    <temperature>292.75</temperature>
+    <windDirection>3.5866516128483474</windDirection>
+    <windSpeed>4.65</windSpeed>
+    <windMax>5.8</windMax>
+    <dewPoint>283.79999999999995</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979550475126079488 50371200000</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>57.099998</relHumidity>
+    <temperature>292.65</temperature>
+    <windDirection>3.6215581978882336</windDirection>
+    <windSpeed>3.4</windSpeed>
+    <windMax>4.300000000000001</windMax>
+    <dewPoint>283.9</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979550535485120512 50492161024</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>54.5</relHumidity>
+    <temperature>292.75</temperature>
+    <windDirection>4.145156973486532</windDirection>
+    <windSpeed>3.55</windSpeed>
+    <windMax>4.85</windMax>
+    <dewPoint>283.34999999999997</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979550595839840256 50397119488</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>54.049999</relHumidity>
+    <temperature>292.85000099999996</temperature>
+    <windDirection>4.389503068765738</windDirection>
+    <windSpeed>4.2</windSpeed>
+    <windMax>5.9</windMax>
+    <dewPoint>283.34999999999997</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979550656194560000 50492160000</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>53.549999</relHumidity>
+    <temperature>293.04999999999995</temperature>
+    <windDirection>4.4505895925855405</windDirection>
+    <windSpeed>4.85</windSpeed>
+    <windMax>6.8</windMax>
+    <dewPoint>283.34999999999997</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979550716540639232 50397119488</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>54.1000005</relHumidity>
+    <temperature>293.15</temperature>
+    <windDirection>4.529129408925285</windDirection>
+    <windSpeed>3.3</windSpeed>
+    <windMax>4.2</windMax>
+    <dewPoint>283.59999999999997</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979550776847840256 50397120512</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>53.799999</relHumidity>
+    <temperature>293.449999</temperature>
+    <windDirection>4.310963252425994</windDirection>
+    <windSpeed>3.2</windSpeed>
+    <windMax>4.6</windMax>
+    <dewPoint>283.84999999999997</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979550837202560000 50492160000</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>54.3500005</relHumidity>
+    <temperature>293.25</temperature>
+    <windDirection>4.267330021126136</windDirection>
+    <windSpeed>2.8</windSpeed>
+    <windMax>4.1</windMax>
+    <dewPoint>283.75</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979550897747359744 50587199488</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>53.75</relHumidity>
+    <temperature>293.2</temperature>
+    <windDirection>4.040437218366873</windDirection>
+    <windSpeed>4.45</windSpeed>
+    <windMax>6.7</windMax>
+    <dewPoint>283.5</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979550958348319744 50414399488</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>54.4499985</relHumidity>
+    <temperature>292.9</temperature>
+    <windDirection>4.049163864626845</windDirection>
+    <windSpeed>5.55</windSpeed>
+    <windMax>6.7</windMax>
+    <dewPoint>283.45</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979551018551839744 50189760512</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>54.6499995</relHumidity>
+    <temperature>292.85000099999996</temperature>
+    <windDirection>4.241150082346221</windDirection>
+    <windSpeed>3.55</windSpeed>
+    <windMax>4.550000000000001</windMax>
+    <dewPoint>283.5</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979551078746720256 50397120512</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>54.75</relHumidity>
+    <temperature>293.25</temperature>
+    <windDirection>4.040437218366873</windDirection>
+    <windSpeed>3.8</windSpeed>
+    <windMax>6.300000000000001</windMax>
+    <dewPoint>283.75</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979551138993440768 50310720512</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>54.1000005</relHumidity>
+    <temperature>293.04999999999995</temperature>
+    <windDirection>4.162610266006476</windDirection>
+    <windSpeed>4.8</windSpeed>
+    <windMax>6.3</windMax>
+    <dewPoint>283.5</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979551199196959744 50310719488</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>56.0</relHumidity>
+    <temperature>293.04999999999995</temperature>
+    <windDirection>4.564035993965172</windDirection>
+    <windSpeed>4.65</windSpeed>
+    <windMax>6.0</windMax>
+    <dewPoint>284.04999999999995</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979551259448000512 50388478976</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>56.200001</relHumidity>
+    <temperature>293.04999999999995</temperature>
+    <windDirection>4.564035993965172</windDirection>
+    <windSpeed>4.0</windSpeed>
+    <windMax>5.5</windMax>
+    <dewPoint>284.15</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979551319750880256 50397120512</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>55.799999</relHumidity>
+    <temperature>293.4</temperature>
+    <windDirection>4.50294947014537</windDirection>
+    <windSpeed>3.25</windSpeed>
+    <windMax>5.2</windMax>
+    <dewPoint>284.2</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979551380101279744 50500799488</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>54.1499995</relHumidity>
+    <temperature>293.4999995</temperature>
+    <windDirection>4.310963252425994</windDirection>
+    <windSpeed>2.8499999999999996</windSpeed>
+    <windMax>3.7</windMax>
+    <dewPoint>283.84999999999997</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979551440455999488 50405760000</timeInterval>
+    <pressure>79270.0012</pressure>
+    <relHumidity>54.6499995</relHumidity>
+    <temperature>293.25</temperature>
+    <windDirection>4.2062434973063345</windDirection>
+    <windSpeed>2.55</windSpeed>
+    <windMax>3.6500000000000004</windMax>
+    <dewPoint>283.84999999999997</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+  <row>
+    <timeInterval>4979551500884160512 50647680000</timeInterval>
+    <pressure>79259.9976</pressure>
+    <relHumidity>54.549999</relHumidity>
+    <temperature>293.449999</temperature>
+    <windDirection>4.50294947014537</windDirection>
+    <windSpeed>2.85</windSpeed>
+    <windMax>4.8</windMax>
+    <dewPoint>284.04999999999995</dewPoint>
+    <stationId>Station_0</stationId>
+  </row>
+</WeatherTable>

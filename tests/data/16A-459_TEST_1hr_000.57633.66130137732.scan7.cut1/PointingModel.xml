@@ -1,0 +1,302 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<PointingModelTable>
+  <Entity entityId="uid://evla/sdm/X1472831537196" entityIdEncrypted="na" entityTypeName="PointingModelTable" schemaVersion="3" documentVersion="1"/>
+  <ContainerEntity entityId="uid://evla/sdm/X1472831537176" entityIdEncrypted="na" entityTypeName="ASDM" schemaVersion="3" documentVersion="1"/>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_0</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_1</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_2</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_3</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_4</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_5</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_6</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_7</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_8</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_9</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_10</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_11</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_12</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_13</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_14</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_15</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_16</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_17</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_18</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_19</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_20</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_21</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_22</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_23</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_24</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_25</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+  <row>
+    <pointingModelId>0</pointingModelId>
+    <numCoeff>0</numCoeff>
+    <coeffName>1 0</coeffName>
+    <coeffVal>1 0</coeffVal>
+    <polarizationType>R</polarizationType>
+    <receiverBand>UNSPECIFIED</receiverBand>
+    <assocNature>NA</assocNature>
+    <antennaId>Antenna_26</antennaId>
+    <assocPointingModelId>99</assocPointingModelId>
+  </row>
+</PointingModelTable>

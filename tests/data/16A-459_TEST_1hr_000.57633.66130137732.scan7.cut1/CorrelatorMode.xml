@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<CorrelatorModeTable>
+  <Entity entityId="uid://evla/sdm/X1472831537183" entityIdEncrypted="na" entityTypeName="CorrelatorModeTable" schemaVersion="3" documentVersion="1"/>
+  <ContainerEntity entityId="uid://evla/sdm/X1472831537176" entityIdEncrypted="na" entityTypeName="ASDM" schemaVersion="3" documentVersion="1"/>
+  <row>
+    <correlatorModeId>CorrelatorMode_0</correlatorModeId>
+    <numBaseband>2</numBaseband>
+    <basebandNames>1 2 BB_4 BB_8</basebandNames>
+    <basebandConfig>1 2 1 1</basebandConfig>
+    <accumMode>NORMAL</accumMode>
+    <binMode>0</binMode>
+    <numAxes>6</numAxes>
+    <axesOrderArray>1 6 BAL BAB SPW BIN SPP STO</axesOrderArray>
+    <filterMode>1 2 UNDEFINED UNDEFINED</filterMode>
+    <correlatorName>NRAO_WIDAR</correlatorName>
+  </row>
+</CorrelatorModeTable>

@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<DelayModelFixedParametersTable>
+  <Entity entityId="uid://evla/sdm/X1472831537186" entityIdEncrypted="na" entityTypeName="DelayModelFixedParametersTable" schemaVersion="3" documentVersion="1"/>
+  <ContainerEntity entityId="uid://evla/sdm/X1472831537176" entityIdEncrypted="na" entityTypeName="ASDM" schemaVersion="3" documentVersion="1"/>
+  <row>
+    <delayModelFixedParametersId>DelayModelFixedParameters_0</delayModelFixedParametersId>
+    <delayModelVersion>CALC v9</delayModelVersion>
+    <gaussConstant>1.990983675E-7</gaussConstant>
+    <newtonianConstant>6.672E-11</newtonianConstant>
+    <gravity>9.78031846</gravity>
+    <earthFlattening>0.00335281</earthFlattening>
+    <earthRadius>6378137</earthRadius>
+    <moonEarthMassRatio>0.01230002</moonEarthMassRatio>
+    <ephemerisEpoch>J2000</ephemerisEpoch>
+    <earthTideLag>0.0</earthTideLag>
+    <earthGM>3.986005E+14</earthGM>
+    <moonGM>4.9027975E+12</moonGM>
+    <sunGM>1.32712438E+20</sunGM>
+    <loveNumberH>0.60967</loveNumberH>
+    <loveNumberL>0.0852</loveNumberL>
+    <precessionConstant>0.00000159362455</precessionConstant>
+    <lightTime1AU>499.004782</lightTime1AU>
+    <speedOfLight>299792458</speedOfLight>
+    <delayModelFlags/>
+    <execBlockId>ExecBlock_0</execBlockId>
+  </row>
+</DelayModelFixedParametersTable>

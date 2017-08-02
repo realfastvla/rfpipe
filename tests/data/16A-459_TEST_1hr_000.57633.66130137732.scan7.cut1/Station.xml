@@ -1,0 +1,173 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<StationTable>
+  <Entity entityId="uid://evla/sdm/X1472831537205" entityIdEncrypted="na" entityTypeName="StationTable" schemaVersion="3" documentVersion="1"/>
+  <ContainerEntity entityId="uid://evla/sdm/X1472831537176" entityIdEncrypted="na" entityTypeName="ASDM" schemaVersion="3" documentVersion="1"/>
+  <row>
+    <stationId>Station_0</stationId>
+    <name>WX</name>
+    <position>1 3 0.0 0.0 0.0</position>
+    <type>WEATHER_STATION</type>
+  </row>
+  <row>
+    <stationId>Station_1</stationId>
+    <name>W24</name>
+    <position>1 3 -1604008.7444 -5042135.8251 3553403.7108</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_2</stationId>
+    <name>W04</name>
+    <position>1 3 -1601315.9005 -5041985.30747 3554808.3109999998</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_3</stationId>
+    <name>W28</name>
+    <position>1 3 -1604865.6575 -5042190.032 3552962.3635</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_4</stationId>
+    <name>E04</name>
+    <position>1 3 -1601068.8059999999 -5042051.9327 3554824.8388</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_5</stationId>
+    <name>E36</name>
+    <position>1 3 -1596127.7308 -5045193.7421 3552652.4197</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_6</stationId>
+    <name>N12</name>
+    <position>1 3 -1601110.0219999999 -5041488.0826 3555597.4446</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_7</stationId>
+    <name>N16</name>
+    <position>1 3 -1601061.9544 -5041175.8753 3556058.0267</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_8</stationId>
+    <name>W12</name>
+    <position>1 3 -1602044.9123 -5042025.8014 3554427.8356999997</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_9</stationId>
+    <name>N28</name>
+    <position>1 3 -1600863.6922 -5039885.3167 3557965.3178</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_10</stationId>
+    <name>E20</name>
+    <position>1 3 -1599340.8000999999 -5043150.963 3554065.2314999998</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_11</stationId>
+    <name>N20</name>
+    <position>1 3 -1601004.6988 -5040802.801 3556610.1492999997</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_12</stationId>
+    <name>E28</name>
+    <position>1 3 -1597899.8959 -5044068.6847 3553432.4502</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_13</stationId>
+    <name>E08</name>
+    <position>1 3 -1600801.9314 -5042219.3826 3554706.4294</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_14</stationId>
+    <name>N24</name>
+    <position>1 3 -1600930.0836 -5040316.3864 3557330.39</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_15</stationId>
+    <name>W20</name>
+    <position>1 3 -1603249.6720999999 -5042091.4281 3553797.7842</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_16</stationId>
+    <name>N04</name>
+    <position>1 3 -1601173.9647 -5041902.6458 3554987.5342</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_17</stationId>
+    <name>W36</name>
+    <position>1 3 -1606841.961 -5042279.6752 3551913.0214</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_18</stationId>
+    <name>W16</name>
+    <position>1 3 -1602592.8535 -5042054.9924 3554140.7028</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_19</stationId>
+    <name>E16</name>
+    <position>1 3 -1599926.1040999999 -5042772.9772 3554319.8011</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_20</stationId>
+    <name>E24</name>
+    <position>1 3 -1598663.082 -5043581.3912 3553767.0141</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_21</stationId>
+    <name>W32</name>
+    <position>1 3 -1605808.6341 -5042230.084 3552459.1977999997</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_22</stationId>
+    <name>E12</name>
+    <position>1 3 -1600416.518 -5042462.4305 3554536.0417</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_23</stationId>
+    <name>W08</name>
+    <position>1 3 -1601614.0832 -5042001.6569 3554652.5058999998</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_24</stationId>
+    <name>N08</name>
+    <position>1 3 -1601147.9425 -5041733.8336 3555235.9469999997</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_25</stationId>
+    <name>E32</name>
+    <position>1 3 -1597053.1243999999 -5044604.675 3553058.9927</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_26</stationId>
+    <name>N36</name>
+    <position>1 3 -1600690.6124999998 -5038758.7161 3559632.0571</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+  <row>
+    <stationId>Station_27</stationId>
+    <name>N32</name>
+    <position>1 3 -1600781.0606999998 -5039347.4391 3558761.5271</position>
+    <type>ANTENNA_PAD</type>
+  </row>
+</StationTable>

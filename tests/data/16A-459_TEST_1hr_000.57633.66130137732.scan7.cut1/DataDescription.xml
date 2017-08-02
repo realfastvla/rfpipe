@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<DataDescriptionTable>
+  <Entity entityId="uid://evla/sdm/X1472831537184" entityIdEncrypted="na" entityTypeName="DataDescriptionTable" schemaVersion="3" documentVersion="1"/>
+  <ContainerEntity entityId="uid://evla/sdm/X1472831537176" entityIdEncrypted="na" entityTypeName="ASDM" schemaVersion="3" documentVersion="1"/>
+  <row>
+    <dataDescriptionId>DataDescription_0</dataDescriptionId>
+    <polOrHoloId>Polarization_0</polOrHoloId>
+    <spectralWindowId>SpectralWindow_0</spectralWindowId>
+  </row>
+  <row>
+    <dataDescriptionId>DataDescription_1</dataDescriptionId>
+    <polOrHoloId>Polarization_0</polOrHoloId>
+    <spectralWindowId>SpectralWindow_1</spectralWindowId>
+  </row>
+  <row>
+    <dataDescriptionId>DataDescription_2</dataDescriptionId>
+    <polOrHoloId>Polarization_0</polOrHoloId>
+    <spectralWindowId>SpectralWindow_2</spectralWindowId>
+  </row>
+  <row>
+    <dataDescriptionId>DataDescription_3</dataDescriptionId>
+    <polOrHoloId>Polarization_0</polOrHoloId>
+    <spectralWindowId>SpectralWindow_3</spectralWindowId>
+  </row>
+  <row>
+    <dataDescriptionId>DataDescription_4</dataDescriptionId>
+    <polOrHoloId>Polarization_0</polOrHoloId>
+    <spectralWindowId>SpectralWindow_4</spectralWindowId>
+  </row>
+  <row>
+    <dataDescriptionId>DataDescription_5</dataDescriptionId>
+    <polOrHoloId>Polarization_0</polOrHoloId>
+    <spectralWindowId>SpectralWindow_5</spectralWindowId>
+  </row>
+  <row>
+    <dataDescriptionId>DataDescription_6</dataDescriptionId>
+    <polOrHoloId>Polarization_0</polOrHoloId>
+    <spectralWindowId>SpectralWindow_6</spectralWindowId>
+  </row>
+  <row>
+    <dataDescriptionId>DataDescription_7</dataDescriptionId>
+    <polOrHoloId>Polarization_0</polOrHoloId>
+    <spectralWindowId>SpectralWindow_7</spectralWindowId>
+  </row>
+</DataDescriptionTable>

@@ -1,0 +1,65 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<DelayModelVariableParametersTable>
+  <Entity entityId="uid://evla/sdm/X1472831537187" entityIdEncrypted="na" entityTypeName="DelayModelVariableParametersTable" schemaVersion="3" documentVersion="1"/>
+  <ContainerEntity entityId="uid://evla/sdm/X1472831537176" entityIdEncrypted="na" entityTypeName="ASDM" schemaVersion="3" documentVersion="1"/>
+  <row>
+    <delayModelVariableParametersId>DelayModelVariableParameters_0</delayModelVariableParametersId>
+    <time>4979318400000000000</time>
+    <ut1_utc>-0.245754</ut1_utc>
+    <iat_utc>36.0</iat_utc>
+    <timeType>PREDICTED</timeType>
+    <gstAtUt0>0.0</gstAtUt0>
+    <earthRotationRate>0.0</earthRotationRate>
+    <polarOffsets>1 2 0.236 0.39114</polarOffsets>
+    <polarOffsetsType>PREDICTED</polarOffsetsType>
+    <delayModelFixedParametersId>DelayModelFixedParameters_0</delayModelFixedParametersId>
+  </row>
+  <row>
+    <delayModelVariableParametersId>DelayModelVariableParameters_1</delayModelVariableParametersId>
+    <time>4979404800000000000</time>
+    <ut1_utc>-0.246562</ut1_utc>
+    <iat_utc>36.0</iat_utc>
+    <timeType>PREDICTED</timeType>
+    <gstAtUt0>0.0</gstAtUt0>
+    <earthRotationRate>0.0</earthRotationRate>
+    <polarOffsets>1 2 0.23648 0.3893</polarOffsets>
+    <polarOffsetsType>PREDICTED</polarOffsetsType>
+    <delayModelFixedParametersId>DelayModelFixedParameters_0</delayModelFixedParametersId>
+  </row>
+  <row>
+    <delayModelVariableParametersId>DelayModelVariableParameters_2</delayModelVariableParametersId>
+    <time>4979491200000000000</time>
+    <ut1_utc>-0.247425</ut1_utc>
+    <iat_utc>36.0</iat_utc>
+    <timeType>PREDICTED</timeType>
+    <gstAtUt0>0.0</gstAtUt0>
+    <earthRotationRate>0.0</earthRotationRate>
+    <polarOffsets>1 2 0.2368 0.38752</polarOffsets>
+    <polarOffsetsType>PREDICTED</polarOffsetsType>
+    <delayModelFixedParametersId>DelayModelFixedParameters_0</delayModelFixedParametersId>
+  </row>
+  <row>
+    <delayModelVariableParametersId>DelayModelVariableParameters_3</delayModelVariableParametersId>
+    <time>4979577600000000000</time>
+    <ut1_utc>-0.248308</ut1_utc>
+    <iat_utc>36.0</iat_utc>
+    <timeType>PREDICTED</timeType>
+    <gstAtUt0>0.0</gstAtUt0>
+    <earthRotationRate>0.0</earthRotationRate>
+    <polarOffsets>1 2 0.23713 0.38583</polarOffsets>
+    <polarOffsetsType>PREDICTED</polarOffsetsType>
+    <delayModelFixedParametersId>DelayModelFixedParameters_0</delayModelFixedParametersId>
+  </row>
+  <row>
+    <delayModelVariableParametersId>DelayModelVariableParameters_4</delayModelVariableParametersId>
+    <time>4979664000000000000</time>
+    <ut1_utc>-0.249219</ut1_utc>
+    <iat_utc>36.0</iat_utc>
+    <timeType>PREDICTED</timeType>
+    <gstAtUt0>0.0</gstAtUt0>
+    <earthRotationRate>0.0</earthRotationRate>
+    <polarOffsets>1 2 0.2374 0.38409</polarOffsets>
+    <polarOffsetsType>PREDICTED</polarOffsetsType>
+    <delayModelFixedParametersId>DelayModelFixedParameters_0</delayModelFixedParametersId>
+  </row>
+</DelayModelVariableParametersTable>

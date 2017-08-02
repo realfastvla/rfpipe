@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<ProcessorTable>
+  <Entity entityId="uid://evla/sdm/X1472831537198" entityIdEncrypted="na" entityTypeName="ProcessorTable" schemaVersion="3" documentVersion="1"/>
+  <ContainerEntity entityId="uid://evla/sdm/X1472831537176" entityIdEncrypted="na" entityTypeName="ASDM" schemaVersion="3" documentVersion="1"/>
+  <row>
+    <processorId>Processor_0</processorId>
+    <modeId>CorrelatorMode_0</modeId>
+    <processorType>CORRELATOR</processorType>
+    <processorSubType>ALMA_CORRELATOR_MODE</processorSubType>
+  </row>
+</ProcessorTable>

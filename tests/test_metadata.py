@@ -54,3 +54,16 @@ def test_sim(config, inprefs):
     segment = 0
     data = rfpipe.source.read_segment(st, segment)
     assert data.shape == st.datashape
+
+
+def test_sdmmeta():
+    sdmfile = os.path.join(_install_dir, 'data/16A-459_TEST_1hr_000.57633.66130137732.scan7.cut1')
+    meta = rfpipe.metadata.sdm_metadata(sdmfile, 7)
+    assert isinstance(meta, dict)
+
+
+def test_sdm():
+    sdmfile = os.path.join(_install_dir, 'data/16A-459_TEST_1hr_000.57633.66130137732.scan7.cut1')
+    inprefs = {'gainfile': '16A-459_TEST_1hr_000.57633.66130137732.scan7.cut1.GN'}
+    state = rfpipe.state.State(sdmfile=sdmfile, sdmscan=7, inprefs=inprefs)
+    res = rfpipe.pipeline.pipeline_seg(state, 0)

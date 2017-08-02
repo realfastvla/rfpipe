@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<SwitchCycleTable>
+  <Entity entityId="uid://evla/sdm/X1472831537207" entityIdEncrypted="na" entityTypeName="SwitchCycleTable" schemaVersion="3" documentVersion="1"/>
+  <ContainerEntity entityId="uid://evla/sdm/X1472831537176" entityIdEncrypted="na" entityTypeName="ASDM" schemaVersion="3" documentVersion="1"/>
+  <row>
+    <switchCycleId>SwitchCycle_0</switchCycleId>
+    <numStep>1</numStep>
+    <weightArray>1 1 1.0</weightArray>
+    <dirOffsetArray>2 1 2 1.0 1.0</dirOffsetArray>
+    <freqOffsetArray>1 1 1.0</freqOffsetArray>
+    <stepDurationArray>1 1 0</stepDurationArray>
+  </row>
+</SwitchCycleTable>

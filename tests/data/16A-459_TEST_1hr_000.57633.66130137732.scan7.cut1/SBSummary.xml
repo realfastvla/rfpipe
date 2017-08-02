@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<SBSummaryTable>
+  <Entity entityId="uid://evla/sdm/X1472831537200" entityIdEncrypted="na" entityTypeName="SBSummaryTable" schemaVersion="3" documentVersion="1"/>
+  <ContainerEntity entityId="uid://evla/sdm/X1472831537176" entityIdEncrypted="na" entityTypeName="ASDM" schemaVersion="3" documentVersion="1"/>
+  <row>
+    <sBSummaryId>SBSummary_0</sBSummaryId>
+    <sbSummaryUID>
+      <EntityRef entityId="uid://evla/sdm/X1" partId="X00000000" entityTypeName="SBSummary" documentVersion="1"/>
+    </sbSummaryUID>
+    <projectUID>
+      <EntityRef entityId="uid://evla/sdm/X1" partId="X00000000" entityTypeName="ObsProject" documentVersion="1"/>
+    </projectUID>
+    <obsUnitSetUID>
+      <EntityRef entityId="uid://evla/sdm/X1" partId="X00000000" entityTypeName="ObsUnitSetId" documentVersion="1"/>
+    </obsUnitSetUID>
+    <frequency>0.0</frequency>
+    <frequencyBand>UNSPECIFIED</frequencyBand>
+    <sbType>OBSERVATORY</sbType>
+    <sbDuration>0</sbDuration>
+    <numObservingMode>0</numObservingMode>
+    <observingMode>1 0</observingMode>
+    <numberRepeats>0</numberRepeats>
+    <numScienceGoal>0</numScienceGoal>
+    <scienceGoal>1 0</scienceGoal>
+    <numWeatherConstraint>0</numWeatherConstraint>
+    <weatherConstraint>1 0</weatherConstraint>
+    <centerDirection>1 2 0.0 0.0</centerDirection>
+  </row>
+</SBSummaryTable>

@@ -1,0 +1,93 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<ReceiverTable>
+  <Entity entityId="uid://evla/sdm/X1472831537199" entityIdEncrypted="na" entityTypeName="ReceiverTable" schemaVersion="3" documentVersion="1"/>
+  <ContainerEntity entityId="uid://evla/sdm/X1472831537176" entityIdEncrypted="na" entityTypeName="ASDM" schemaVersion="3" documentVersion="1"/>
+  <row>
+    <receiverId>0</receiverId>
+    <timeInterval>4979850737649999872 604800000000000</timeInterval>
+    <name>3GHz</name>
+    <numLO>1</numLO>
+    <frequencyBand>EVLA_S</frequencyBand>
+    <freqLO>1 1 2.232E9</freqLO>
+    <receiverSideband>SSB</receiverSideband>
+    <sidebandLO>1 1 USB</sidebandLO>
+    <spectralWindowId>SpectralWindow_0</spectralWindowId>
+  </row>
+  <row>
+    <receiverId>0</receiverId>
+    <timeInterval>4979850737649999872 604800000000000</timeInterval>
+    <name>3GHz</name>
+    <numLO>1</numLO>
+    <frequencyBand>EVLA_S</frequencyBand>
+    <freqLO>1 1 2.232E9</freqLO>
+    <receiverSideband>SSB</receiverSideband>
+    <sidebandLO>1 1 USB</sidebandLO>
+    <spectralWindowId>SpectralWindow_1</spectralWindowId>
+  </row>
+  <row>
+    <receiverId>0</receiverId>
+    <timeInterval>4979850737649999872 604800000000000</timeInterval>
+    <name>3GHz</name>
+    <numLO>1</numLO>
+    <frequencyBand>EVLA_S</frequencyBand>
+    <freqLO>1 1 2.232E9</freqLO>
+    <receiverSideband>SSB</receiverSideband>
+    <sidebandLO>1 1 USB</sidebandLO>
+    <spectralWindowId>SpectralWindow_2</spectralWindowId>
+  </row>
+  <row>
+    <receiverId>0</receiverId>
+    <timeInterval>4979850737649999872 604800000000000</timeInterval>
+    <name>3GHz</name>
+    <numLO>1</numLO>
+    <frequencyBand>EVLA_S</frequencyBand>
+    <freqLO>1 1 2.232E9</freqLO>
+    <receiverSideband>SSB</receiverSideband>
+    <sidebandLO>1 1 USB</sidebandLO>
+    <spectralWindowId>SpectralWindow_3</spectralWindowId>
+  </row>
+  <row>
+    <receiverId>0</receiverId>
+    <timeInterval>4979850737649999872 604800000000000</timeInterval>
+    <name>3GHz</name>
+    <numLO>1</numLO>
+    <frequencyBand>EVLA_S</frequencyBand>
+    <freqLO>1 1 2.744E9</freqLO>
+    <receiverSideband>SSB</receiverSideband>
+    <sidebandLO>1 1 USB</sidebandLO>
+    <spectralWindowId>SpectralWindow_4</spectralWindowId>
+  </row>
+  <row>
+    <receiverId>0</receiverId>
+    <timeInterval>4979850737649999872 604800000000000</timeInterval>
+    <name>3GHz</name>
+    <numLO>1</numLO>
+    <frequencyBand>EVLA_S</frequencyBand>
+    <freqLO>1 1 2.744E9</freqLO>
+    <receiverSideband>SSB</receiverSideband>
+    <sidebandLO>1 1 USB</sidebandLO>
+    <spectralWindowId>SpectralWindow_5</spectralWindowId>
+  </row>
+  <row>
+    <receiverId>0</receiverId>
+    <timeInterval>4979850737649999872 604800000000000</timeInterval>
+    <name>3GHz</name>
+    <numLO>1</numLO>
+    <frequencyBand>EVLA_S</frequencyBand>
+    <freqLO>1 1 2.744E9</freqLO>
+    <receiverSideband>SSB</receiverSideband>
+    <sidebandLO>1 1 USB</sidebandLO>
+    <spectralWindowId>SpectralWindow_6</spectralWindowId>
+  </row>
+  <row>
+    <receiverId>0</receiverId>
+    <timeInterval>4979850737649999872 604800000000000</timeInterval>
+    <name>3GHz</name>
+    <numLO>1</numLO>
+    <frequencyBand>EVLA_S</frequencyBand>
+    <freqLO>1 1 2.744E9</freqLO>
+    <receiverSideband>SSB</receiverSideband>
+    <sidebandLO>1 1 USB</sidebandLO>
+    <spectralWindowId>SpectralWindow_7</spectralWindowId>
+  </row>
+</ReceiverTable>

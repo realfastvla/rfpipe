@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<FieldTable>
+  <Entity entityId="uid://evla/sdm/X1472831537192" entityIdEncrypted="na" entityTypeName="FieldTable" schemaVersion="3" documentVersion="1"/>
+  <ContainerEntity entityId="uid://evla/sdm/X1472831537176" entityIdEncrypted="na" entityTypeName="ASDM" schemaVersion="3" documentVersion="1"/>
+  <row>
+    <fieldId>Field_0</fieldId>
+    <fieldName>J0555+3948</fieldName>
+    <numPoly>1</numPoly>
+    <delayDir>2 1 2 1.5512199582 0.6948794009</delayDir>
+    <phaseDir>2 1 2 1.5512199582 0.6948794009</phaseDir>
+    <referenceDir>2 1 2 1.5512199582 0.6948794009</referenceDir>
+    <time>0</time>
+    <code>NONE</code>
+    <sourceId>0</sourceId>
+  </row>
+  <row>
+    <fieldId>Field_1</fieldId>
+    <fieldName>FRB121102-off</fieldName>
+    <numPoly>1</numPoly>
+    <delayDir>2 1 2 1.4489868894 0.5779997188</delayDir>
+    <phaseDir>2 1 2 1.4489868894 0.5779997188</phaseDir>
+    <referenceDir>2 1 2 1.4489868894 0.5779997188</referenceDir>
+    <time>0</time>
+    <code>NONE</code>
+    <sourceId>1</sourceId>
+  </row>
+</FieldTable>

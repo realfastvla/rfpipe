@@ -1,0 +1,302 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<AntennaTable>
+  <Entity entityId="uid://evla/sdm/X1472831537177" entityIdEncrypted="na" entityTypeName="AntennaTable" schemaVersion="3" documentVersion="1"/>
+  <ContainerEntity entityId="uid://evla/sdm/X1472831537176" entityIdEncrypted="na" entityTypeName="ASDM" schemaVersion="3" documentVersion="1"/>
+  <row>
+    <antennaId>Antenna_0</antennaId>
+    <name>ea01</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 0.00035975094959999997 0.0</offset>
+    <time>0</time>
+    <stationId>Station_1</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_1</antennaId>
+    <name>ea02</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 0.0 0.0</offset>
+    <time>0</time>
+    <stationId>Station_2</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_2</antennaId>
+    <name>ea03</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 -0.0014390037983999999 0.0</offset>
+    <time>0</time>
+    <stationId>Station_3</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_3</antennaId>
+    <name>ea04</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 0.0088738567568 0.0</offset>
+    <time>0</time>
+    <stationId>Station_4</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_4</antennaId>
+    <name>ea05</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 0.0005696056702 0.0</offset>
+    <time>0</time>
+    <stationId>Station_5</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_5</antennaId>
+    <name>ea06</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 0.0007195018991999999 0.0</offset>
+    <time>0</time>
+    <stationId>Station_6</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_6</antennaId>
+    <name>ea07</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 -0.0026381736303999997 0.0</offset>
+    <time>0</time>
+    <stationId>Station_7</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_7</antennaId>
+    <name>ea08</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 0.0086340227904 0.0</offset>
+    <time>0</time>
+    <stationId>Station_8</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_8</antennaId>
+    <name>ea09</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 -0.019126758820400002 0.0</offset>
+    <time>0</time>
+    <stationId>Station_9</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_9</antennaId>
+    <name>ea10</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 -0.0007794603907999999 0.0</offset>
+    <time>0</time>
+    <stationId>Station_10</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_10</antennaId>
+    <name>ea12</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 -0.0010192943572 0.0</offset>
+    <time>0</time>
+    <stationId>Station_11</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_11</antennaId>
+    <name>ea13</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 0.0018886924854000001 0.0</offset>
+    <time>0</time>
+    <stationId>Station_12</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_12</antennaId>
+    <name>ea14</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 -0.0005696056702 0.0</offset>
+    <time>0</time>
+    <stationId>Station_13</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_13</antennaId>
+    <name>ea15</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 0.0012291490778 0.0</offset>
+    <time>0</time>
+    <stationId>Station_14</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_14</antennaId>
+    <name>ea16</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 -0.004826658573800001 0.0</offset>
+    <time>0</time>
+    <stationId>Station_15</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_15</antennaId>
+    <name>ea17</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 -0.0019186717312000001 0.0</offset>
+    <time>0</time>
+    <stationId>Station_16</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_16</antennaId>
+    <name>ea18</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 -0.0018587132396000001 0.0</offset>
+    <time>0</time>
+    <stationId>Station_17</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_17</antennaId>
+    <name>ea19</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 -0.002248443435 0.0</offset>
+    <time>0</time>
+    <stationId>Station_18</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_18</antennaId>
+    <name>ea20</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 0.0041071566746 0.0</offset>
+    <time>0</time>
+    <stationId>Station_19</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_19</antennaId>
+    <name>ea21</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 0.0006295641617999999 0.0</offset>
+    <time>0</time>
+    <stationId>Station_20</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_20</antennaId>
+    <name>ea22</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 0.0021285264518 0.0</offset>
+    <time>0</time>
+    <stationId>Station_21</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_21</antennaId>
+    <name>ea23</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 -0.0007494811449999999 0.0</offset>
+    <time>0</time>
+    <stationId>Station_22</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_22</antennaId>
+    <name>ea24</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 0.0014989622899999999 0.0</offset>
+    <time>0</time>
+    <stationId>Station_23</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_23</antennaId>
+    <name>ea25</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 -0.0035675302502000002 0.0</offset>
+    <time>0</time>
+    <stationId>Station_24</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_24</antennaId>
+    <name>ea26</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 -0.0015289415357999999 0.0</offset>
+    <time>0</time>
+    <stationId>Station_25</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_25</antennaId>
+    <name>ea27</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 -0.000059958491600000004 0.0</offset>
+    <time>0</time>
+    <stationId>Station_26</stationId>
+  </row>
+  <row>
+    <antennaId>Antenna_26</antennaId>
+    <name>ea28</name>
+    <antennaMake>UNDEFINED</antennaMake>
+    <antennaType>GROUND_BASED</antennaType>
+    <dishDiameter>25.0</dishDiameter>
+    <position>1 3 0.0 0.0 0.0</position>
+    <offset>1 3 0.0 -0.002098547206 0.0</offset>
+    <time>0</time>
+    <stationId>Station_27</stationId>
+  </row>
+</AntennaTable>

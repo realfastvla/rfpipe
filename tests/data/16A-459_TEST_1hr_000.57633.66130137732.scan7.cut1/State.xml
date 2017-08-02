@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<StateTable>
+  <Entity entityId="uid://evla/sdm/X1472831537204" entityIdEncrypted="na" entityTypeName="StateTable" schemaVersion="3" documentVersion="1"/>
+  <ContainerEntity entityId="uid://evla/sdm/X1472831537176" entityIdEncrypted="na" entityTypeName="ASDM" schemaVersion="3" documentVersion="1"/>
+  <row>
+    <stateId>State_0</stateId>
+    <calDeviceName>NONE</calDeviceName>
+    <sig>true</sig>
+    <ref>false</ref>
+    <onSky>true</onSky>
+  </row>
+</StateTable>

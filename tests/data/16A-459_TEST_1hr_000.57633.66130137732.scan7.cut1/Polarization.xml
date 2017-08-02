@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<PolarizationTable>
+  <Entity entityId="uid://evla/sdm/X1472831537197" entityIdEncrypted="na" entityTypeName="PolarizationTable" schemaVersion="3" documentVersion="1"/>
+  <ContainerEntity entityId="uid://evla/sdm/X1472831537176" entityIdEncrypted="na" entityTypeName="ASDM" schemaVersion="3" documentVersion="1"/>
+  <row>
+    <polarizationId>Polarization_0</polarizationId>
+    <numCorr>2</numCorr>
+    <corrType>1 2 RR LL</corrType>
+    <corrProduct>2 2 2 R R L L</corrProduct>
+  </row>
+</PolarizationTable>
