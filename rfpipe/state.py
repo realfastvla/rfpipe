@@ -4,6 +4,7 @@ from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
 import os
+from datetime import date
 import numpy as np
 from scipy.special import erf
 from astropy import time
@@ -478,9 +479,12 @@ class State(object):
         """
 
         if not self.prefs.gainfile:
-            # look for gainfile in workdir
-            gainfile = os.path.join(self.metadata.workdir,
-                                    self.metadata.filename+'.GN')
+            today = date.today()
+            # look for gainfile in mchammer
+            gainfile = os.path.join('/home/mchammer/evladata/telcal/'
+                                    '{0}/{1:02}/{2}.GN'
+                                    .format(today.year, today.month,
+                                            self.metadata.filename))
         else:
             gainfile = self.prefs.gainfile
 

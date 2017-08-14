@@ -220,6 +220,7 @@ def image_arm():
 def set_wisdom(npixx, npixy):
     """ Run single 2d ifft like image to prep fftw wisdom in worker cache """
 
+    logger.info('Calculating FFT wisdom...')
     arr = pyfftw.empty_aligned((npixx, npixy), dtype='complex64', n=16)
     arr[:] = np.random.randn(*arr.shape) + 1j*np.random.randn(*arr.shape)
     fft_arr = pyfftw.interfaces.numpy_fft.ifft2(arr, auto_align_input=True,
@@ -383,7 +384,7 @@ def save_cands(st, candidates, canddatalist):
     writers.
     """
 
-    if st.prefs.savecands:
+    if st.prefs.savecands and len(candidates):
         logger.info('Saving {0} candidates to {1}.'.format(len(candidates),
                                                            st.candsfile))
 
@@ -411,12 +412,15 @@ def save_cands(st, candidates, canddatalist):
             with open(newcandsfile, 'ab+') as pkl:
                 pickle.dump(cdf, pkl)
 
-        snrs = cdf.df['snr1'].values
-        candplot(canddatalist, snrs=snrs)
+        if len(cdf.df):
+            snrs = cdf.df['snr1'].values
+            candplot(canddatalist, snrs=snrs)
 
         return st.candsfile
-
-    else:
+    elif st.prefs.savecands and not len(candidates):
+        logger.info('No candidates to save to {0}.'.format(st.candsfile))
+        return None
+    elif not st.prefs.savecands:
         logger.info('Not saving candidates.')
         return None
 
