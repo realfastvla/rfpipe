@@ -25,6 +25,9 @@ def dedisperse(data, delay):
     integrations. wraps _dedisperse to add logging.
     """
 
+    if not np.any(data):
+        return np.array([])
+
     logger.info('Dedispersing up to delay shift of {0} integrations'
                 .format(delay.max()))
     return _dedisperse(data, delay)
@@ -52,6 +55,9 @@ def resample(data, dt):
     """ Resample (integrate) by factor dt and return new data structure
     wraps _resample to add logging.
     """
+
+    if not np.any(data):
+        return np.array([])
 
     logger.info('Resampling data of length {0} by a factor of {1}'
                 .format(len(data), dt))
@@ -95,6 +101,9 @@ def search_thresh(st, data, segment, dmind, dtind, beamnum=0, wisdom=None):
     ** only supports threshold > image max (no min)
     ** dmind, dtind, beamnum assumed to represent current state of data
     """
+
+    if not np.any(data):
+        return []
 
     logger.info('Imaging {0}x{1} pix with uvres of {2}.'
                 .format(st.npixx, st.npixy, st.uvres))
@@ -331,6 +340,9 @@ def calc_features(canddatalist):
     Returns dictionary of candidate features with keys as defined in
     st.search_dimensions.
     """
+
+    if not len(canddatalist):
+        return {}
 
     if not isinstance(canddatalist, list):
         logger.debug('Wrapping solo CandData object')

@@ -22,21 +22,24 @@ def data_prep(st, data):
     """
 
     # ** need to make this portable or at least reimplement in rfpipe
-    if st.metadata.datasource != 'sim':
-        if os.path.exists(st.gainfile):
-            calibration.apply_telcal(st, data)
+    if np.any(data):
+        if st.metadata.datasource != 'sim':
+            if os.path.exists(st.gainfile):
+                calibration.apply_telcal(st, data)
+            else:
+                logger.warn('Telcal file not found. No calibration being applied.')
         else:
-            logger.warn('Telcal file not found. No calibration being applied.')
+            logger.info('Not applying telcal solutions for simulated data')
+
+        # ** dataflag points to rtpipe for now
+        util.dataflag(st, data)
+
+        logger.info('Subtracting mean visibility in time.')
+        util.meantsub(data)
+
+        return data
     else:
-        logger.info('Not applying telcal solutions for simulated data')
-
-    # ** dataflag points to rtpipe for now
-    util.dataflag(st, data)
-
-    logger.info('Subtracting mean visibility in time.')
-    util.meantsub(data)
-
-    return data
+        return []
 
 
 def read_segment(st, segment, cfile=None, timeout=default_timeout):
