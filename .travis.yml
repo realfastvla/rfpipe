@@ -29,12 +29,12 @@ before_script:
   - git config --global user.name "Travis-CI"
 
 script: 
-  - py.test --cov=./
+  - py.test --cov=rfpipe tests/
 
-#after_success:
+after_success:
 #  - coverage run --source rfpipe -m py.test
 #  - coverage xml
-#  - codecov
+  - codecov
 
 notifications:
   email: false
