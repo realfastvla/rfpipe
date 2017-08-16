@@ -21,7 +21,7 @@ install:
   - conda install -q python=2.7 pwkit casa-tools casa-python casa-data
   - pip install git+git://github.com/realfastvla/evla_mcast.git
   - pip install git+git://github.com/realfastvla/sdmpy.git
-  - pip install codecov
+  - pip install codecov pytest-cov
   - python setup.py install
 
 before_script:
@@ -29,12 +29,12 @@ before_script:
   - git config --global user.name "Travis-CI"
 
 script: 
-  - py.test
+  - py.test --cov=./
 
-after_success:
-  - coverage run --source rfpipe -m py.test
-  - coverage xml
-  - codecov
+#after_success:
+#  - coverage run --source rfpipe -m py.test
+#  - coverage xml
+#  - codecov
 
 notifications:
   email: false
