@@ -22,8 +22,8 @@ def pipeline_scan_distributed(st, segments=None, host='cbe-node-01',
         segments = range(st.nsegment)
 
     for segment in segments:
-        saved.append(pipeline_seg(st, segment, cl=cl, cfile=cfile,
-                     vys_timeout=vys_timeout))
+        saved += pipeline_seg(st, segment, cl=cl, cfile=cfile,
+                              vys_timeout=vys_timeout)
 
     return saved
 
