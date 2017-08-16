@@ -29,11 +29,9 @@ before_script:
   - git config --global user.name "Travis-CI"
 
 script: 
-  - py.test --cov=rfpipe tests/
+  - pytest --cov --cov-report xml
 
 after_success:
-#  - coverage run --source rfpipe -m py.test
-  - coverage xml
   - codecov
 
 notifications:
