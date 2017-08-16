@@ -4,8 +4,6 @@ from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
 import distributed
-from dask import delayed, compute
-
 from rfpipe import source, search, util
 
 import logging
@@ -32,45 +30,45 @@ def pipeline_scan_distributed(st, segments=None, host='cbe-node-01',
 
 def pipeline_seg(st, segment, cl=None, cfile=None,
                  vys_timeout=vys_timeout_default):
-    """ Build DAG from delayed objects and execute at end with preferred
-        scheduler. Can use distributed client or compute locally.
-    """
+    """ Submit pipeline processing of a single segment to scheduler.
+    Can use distributed client or compute locally.
 
-    # ** how to use distributed arguments?
-    # (workers=workers, allow_other_workers=allow_other_workers)
+    Uses distributed resources parameter to control scheduling.
+    dask-worker must have "MEMORY" resource defined.
+    """
 
     logger.info('Building dask for observation {0}.'.format(st.fileroot))
 
+    if not cl:
+        cl = distributed.Client(n_workers=1, threads_per_worker=1)
+
     # plan fft
-    wisdom = delayed(search.set_wisdom, pure=True)(st.npixx, st.npixy)
+    wisdom = cl.submit(search.set_wisdom, st.npixx, st.npixy, pure=True)
 
-    data = delayed(source.read_segment, pure=True)(st, segment,
-                                                   timeout=vys_timeout,
-                                                   cfile=cfile)
-    data_prep = delayed(source.data_prep, pure=True)(st, data)
+    data = cl.submit(source.read_segment, st, segment, timeout=vys_timeout,
+                     cfile=cfile, pure=True, resources={'MEMORY': st.vismem})
+    data_prep = cl.submit(source.data_prep, st, data, pure=True,
+                          resources={'MEMORY': st.vismem})
 
-    # **TODO: need to add condition on data_prep being nonzero
     saved = []
     for dmind in range(len(st.dmarr)):
-        delay = delayed(util.calc_delay, pure=True)(st.freq, st.freq.max(),
-                                                    st.dmarr[dmind],
-                                                    st.inttime)
-        data_dm = delayed(search.dedisperse, pure=True)(data_prep, delay)
+        delay = cl.submit(util.calc_delay, st.freq, st.freq.max(),
+                          st.dmarr[dmind], st.inttime, pure=True)
+        data_dm = cl.submit(search.dedisperse, data_prep, delay, pure=True,
+                            resources={'MEMORY': st.vismem})
 
         for dtind in range(len(st.dtarr)):
-            data_dmdt = delayed(search.resample, pure=True)(data_dm,
-                                                            st.dtarr[dtind])
-            canddatalist = delayed(search.search_thresh,
-                                   pure=True)(st, data_dmdt, segment, dmind,
-                                              dtind, wisdom=wisdom)
+            data_dmdt = cl.submit(search.resample, data_dm, st.dtarr[dtind],
+                                  pure=True,
+                                  resources={'MEMORY':
+                                             st.vismem/st.dtarr[dtind]})
+            canddatalist = cl.submit(search.search_thresh, st, data_dmdt,
+                                     segment, dmind, dtind, wisdom=wisdom,
+                                     pure=True, resources={'MEMORY': st.immem})
 
-            candidates = delayed(search.calc_features, pure=True)(canddatalist)
-            saved.append(delayed(search.save_cands, pure=True)(st, candidates,
-                                                               canddatalist))
+            candidates = cl.submit(search.calc_features, canddatalist,
+                                   pure=True)
+            saved.append(cl.submit(search.save_cands, st, candidates,
+                                   canddatalist, pure=True))
 
-    if cl:
-        # if using distributed client, return collection with futures
-        return cl.persist(saved)
-    else:
-        # otherwise return the delayed objects
-        return compute(*saved, num_workers=st.prefs.nthread)
+    return saved
