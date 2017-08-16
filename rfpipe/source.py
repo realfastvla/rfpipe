@@ -35,7 +35,8 @@ def data_prep(st, data):
         util.dataflag(st, data)
 
         logger.info('Subtracting mean visibility in time.')
-        util.meantsub(data)
+        if st.prefs.timesub == 'mean':
+            util.meantsub(data)
 
         return data
     else:
