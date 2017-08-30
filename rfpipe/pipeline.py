@@ -46,25 +46,27 @@ def pipeline_seg(st, segment, cl=None, cfile=None,
     wisdom = cl.submit(search.set_wisdom, st.npixx, st.npixy, pure=True)
 
     data = cl.submit(source.read_segment, st, segment, timeout=vys_timeout,
-                     cfile=cfile, pure=True, resources={'MEMORY': st.vismem})
+                     cfile=cfile, pure=True,
+                     resources={'MEMORY': 1.1*st.vismem})
     data_prep = cl.submit(source.data_prep, st, data, pure=True,
-                          resources={'MEMORY': st.vismem})
+                          resources={'MEMORY': 1.1*st.vismem})
 
     saved = []
     for dmind in range(len(st.dmarr)):
         delay = cl.submit(util.calc_delay, st.freq, st.freq.max(),
                           st.dmarr[dmind], st.inttime, pure=True)
         data_dm = cl.submit(search.dedisperse, data_prep, delay, pure=True,
-                            resources={'MEMORY': st.vismem})
+                            resources={'MEMORY': 1.1*st.vismem})
 
         for dtind in range(len(st.dtarr)):
             data_dmdt = cl.submit(search.resample, data_dm, st.dtarr[dtind],
                                   pure=True,
                                   resources={'MEMORY':
-                                             st.vismem/st.dtarr[dtind]})
+                                             1.1*st.vismem/st.dtarr[dtind]})
             canddatalist = cl.submit(search.search_thresh, st, data_dmdt,
                                      segment, dmind, dtind, wisdom=wisdom,
-                                     pure=True, resources={'MEMORY': st.immem})
+                                     pure=True,
+                                     resources={'MEMORY': 1.1*st.immem})
 
             candidates = cl.submit(search.calc_features, canddatalist,
                                    pure=True)
@@ -72,3 +74,28 @@ def pipeline_seg(st, segment, cl=None, cfile=None,
                                    canddatalist, pure=True))
 
     return saved
+
+
+def pipeline_seg2(st, segment, cfile=None, vys_timeout=vys_timeout_default):
+    """ Submit pipeline processing of a single segment to scheduler.
+    No multi-threading or scheduling.
+    """
+
+    # plan fft
+    wisdom = search.set_wisdom(st.npixx, st.npixy)
+
+    data = source.read_segment(st, segment, timeout=vys_timeout, cfile=cfile)
+    data_prep = source.data_prep(st, data)
+
+    for dmind in range(len(st.dmarr)):
+        delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
+                                st.inttime)
+        data_dm = search.dedisperse(data_prep, delay)
+
+        for dtind in range(len(st.dtarr)):
+            data_dmdt = search.resample(data_dm, st.dtarr[dtind])
+            canddatalist = search.search_thresh(st, data_dmdt, segment, dmind,
+                                                dtind, wisdom=wisdom)
+
+            candidates = search.calc_features(canddatalist)
+            search.save_cands(st, candidates, canddatalist)
