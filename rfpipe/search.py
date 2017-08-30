@@ -37,14 +37,14 @@ def dedisperse(data, delay):
 def _dedisperse(data, delay):
 
     if delay.max() > 0:
-        sh = data.shape
-        newsh = (sh[0]-delay.max(), sh[1], sh[2], sh[3])
+        nint, nbl, nchan, npol = data.shape
+        newsh = (nint-delay.max(), nbl, nchan, npol)
         result = np.zeros(shape=newsh, dtype=data.dtype)
-        for k in range(sh[2]):
-            for i in range(newsh[0]):
+        for k in range(nchan):
+            for i in range(nint-delay.max()):
                 iprime = i + delay[k]
-                for l in range(sh[3]):
-                    for j in range(sh[1]):
+                for l in range(npol):
+                    for j in range(nbl):
                         result[i, j, k, l] = data[iprime, j, k, l]
         return result
     else:
@@ -68,14 +68,14 @@ def resample(data, dt):
 def _resample(data, dt):
 
     if dt > 1:
-        sh = data.shape
-        newsh = (int64(sh[0]/dt), sh[1], sh[2], sh[3])
+        nint, nbl, nchan, npol = data.shape
+        newsh = (int64(nint/dt), nbl, nchan, npol)
         result = np.zeros(shape=newsh, dtype=data.dtype)
 
-        for j in range(sh[1]):
-            for k in range(sh[2]):
-                for l in range(sh[3]):
-                    for i in range(newsh[0]):
+        for j in range(nbl):
+            for k in range(nchan):
+                for l in range(npol):
+                    for i in range(int64(nint/dt)):
                         iprime = int64(i*dt)
                         for r in range(dt):
                             result[i, j, k, l] = result[i, j, k, l] + \
