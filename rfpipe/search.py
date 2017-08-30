@@ -30,7 +30,7 @@ def dedisperse(data, delay):
 
     logger.info('Dedispersing up to delay shift of {0} integrations'
                 .format(delay.max()))
-    return _dedisperse(data, delay)
+    return _dedisperse(np.require(data, requirements='W'), delay)
 
 
 @jit(nogil=True, nopython=True)
@@ -61,7 +61,7 @@ def resample(data, dt):
 
     logger.info('Resampling data of length {0} by a factor of {1}'
                 .format(len(data), dt))
-    return _resample(data, dt)
+    return _resample(np.require(data, requirements='W'), dt)
 
 
 @jit(nogil=True, nopython=True)
