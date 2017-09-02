@@ -19,11 +19,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def dedisperse(data, delay, mode='gu'):
+def dedisperse(data, delay, mode='multi'):
     """ Shift data in time (axis=0) by channel-dependent value given in
     delay. Returns new array with time length shortened by max delay in
     integrations. wraps _dedisperse to add logging.
-    Can use "gu" or "jit" modes of dedispersion.
+    Can set mode to "single" or "multi" to use different functions.
     """
 
     if not np.any(data):
@@ -31,9 +31,9 @@ def dedisperse(data, delay, mode='gu'):
 
     logger.info('Dedispersing up to delay shift of {0} integrations'
                 .format(delay.max()))
-    if mode == 'jit':
+    if mode == 'single':
         return _dedisperse_jit(np.require(data, requirements='W'), delay)
-    elif mode == 'gu':
+    elif mode == 'multi':
         _ = _dedisperse_gu(np.require(np.swapaxes(data, 0, 1), requirements='W'), delay)
         return data[:-delay.max()]
     else:
@@ -57,6 +57,7 @@ def _dedisperse_jit(data, delay):
     else:
         return data
 
+
 @guvectorize(["void(complex64[:,:,:], int64[:])"], '(n,m,l),(m)', target='parallel', nopython=True)
 def _dedisperse_gu(data, delay):
     """ Multicore dedispersion via numpy broadcasting.
@@ -71,41 +72,67 @@ def _dedisperse_gu(data, delay):
                 data[i, j, k] = data[iprime, j, k]
 
 
-def resample(data, dt):
+def resample(data, dt, mode='multi'):
     """ Resample (integrate) by factor dt and return new data structure
     wraps _resample to add logging.
+    Can set mode to "single" or "multi" to use different functions.
     """
 
     if not np.any(data):
         return np.array([])
 
+    len0 = data.shape[0]
     logger.info('Resampling data of length {0} by a factor of {1}'
-                .format(len(data), dt))
-    return _resample(np.require(data, requirements='W'), dt)
+                .format(len0, dt))
+
+    if mode == 'single':
+        return _resample_jit(np.require(data, requirements='W'), dt)
+    elif mode == 'multi':
+        _ = _resample_gu(np.require(np.swapaxes(data, 0, 3), requirements='W'), dt)
+        return data[:len0//dt]
+    else:
+        logger.error('No such resample mode.')
 
 
 @jit(nogil=True, nopython=True)
-def _resample(data, dt):
+def _resample_jit(data, dt):
 
     if dt > 1:
         nint, nbl, nchan, npol = data.shape
-        newsh = (int64(nint/dt), nbl, nchan, npol)
+        newsh = (int64(nint//dt), nbl, nchan, npol)
         result = np.zeros(shape=newsh, dtype=data.dtype)
 
         for j in range(nbl):
             for k in range(nchan):
                 for l in range(npol):
-                    for i in range(int64(nint/dt)):
+                    for i in range(int64(nint//dt)):
                         iprime = int64(i*dt)
-                        for r in range(dt):
-                            result[i, j, k, l] = result[i, j, k, l] + \
-                                                 data[iprime+r, j, k, l]
+                        result[i, j, k, l] = data[iprime, j, k, l]
+                        for r in range(1, dt):
+                            result[i, j, k, l] += data[iprime+r, j, k, l]
                         result[i, j, k, l] = result[i, j, k, l]/dt
 
         return result
     else:
         return data
 
+
+@guvectorize(["void(complex64[:], int64)"], '(n),()', target='parallel', nopython=True)
+def _resample_gu(data, dt):
+    """ Multicore resampling via numpy broadcasting.
+    Requires that data be in nint axisto be last, so input
+    visibility array must have view from "np.swapaxis(data, 0, 3)".
+    *modifies original memory space* (unlike _resample_jit)
+    """
+
+    if dt > 1:
+        for i in range(data.shape[0]//dt):
+            iprime = int64(i*dt)
+            data[i] = data[iprime]
+            for r in range(1,dt):
+#                print(i0, i, iprime, r)
+                data[i] += data[iprime+r]
+            data[i] = data[i]/dt
 
 #
 # searching, imaging, thresholding
