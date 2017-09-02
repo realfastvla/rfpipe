@@ -7,7 +7,7 @@ import os
 import math
 import pickle
 import numpy as np
-from numba import jit, vectorize, int32, int64
+from numba import jit, guvectorize, vectorize, int32, int64
 from collections import OrderedDict
 import pandas as pd
 import pyfftw
@@ -19,10 +19,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def dedisperse(data, delay):
+def dedisperse(data, delay, mode='gu'):
     """ Shift data in time (axis=0) by channel-dependent value given in
     delay. Returns new array with time length shortened by max delay in
     integrations. wraps _dedisperse to add logging.
+    Can use "gu" or "jit" modes of dedispersion.
     """
 
     if not np.any(data):
@@ -30,11 +31,17 @@ def dedisperse(data, delay):
 
     logger.info('Dedispersing up to delay shift of {0} integrations'
                 .format(delay.max()))
-    return _dedisperse(np.require(data, requirements='W'), delay)
+    if mode == 'jit':
+        return _dedisperse_jit(np.require(data, requirements='W'), delay)
+    elif mode == 'gu':
+        _ = _dedisperse_gu(np.require(np.swapaxes(data, 0, 1), requirements='W'), delay)
+        return data[:-delay.max()]
+    else:
+        logger.error('No such dedispersion mode.')
 
 
 @jit(nogil=True, nopython=True)
-def _dedisperse(data, delay):
+def _dedisperse_jit(data, delay):
 
     if delay.max() > 0:
         nint, nbl, nchan, npol = data.shape
@@ -49,6 +56,19 @@ def _dedisperse(data, delay):
         return result
     else:
         return data
+
+@guvectorize(["void(complex64[:,:,:], int64[:])"], '(n,m,l),(m)', target='parallel', nopython=True)
+def _dedisperse_gu(data, delay):
+    """ Multicore dedispersion via numpy broadcasting.
+    Requires that data be in axis order (nbl, nint, nchan, npol), so typical
+    input visibility array must have view from "np.swapaxis(data, 0, 1)".
+    """
+
+    for i in range(data.shape[0]-delay.max()):
+        for j in range(data.shape[1]):
+            iprime = i + delay[j]
+            for k in range(data.shape[2]):
+                data[i, j, k] = data[iprime, j, k]
 
 
 def resample(data, dt):
