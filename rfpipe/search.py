@@ -206,15 +206,37 @@ def image(data, uvw, npixx, npixy, uvres, wisdom=None, integrations=None):
     return images
 
 
-#@jit(nogil=True, nopython=True)
-def grid_visibilities(data, uvw, npixx, npixy, uvres):
+def grid_visibilities(data, uvw, npixx, npixy, uvres, mode='multi'):
     """ Grid visibilities into rounded uv coordinates """
+
+    logger.info('Gridding visibilities for grid of ({0}, {1}) pix and {2} resolution'
+                .format(npixx, npixy, uvres))
+
+    if mode == 'single':
+        return _grid_visibilities_jit(np.require(data, requirements='W'), uvw, npixx, npixy, uvres)
+    elif mode == 'multi':
+        grid = np.zeros(shape=(data.shape[0], npixx, npixy), dtype=np.complex64)
+        u, v, w = uvw
+        _ = _grid_visibilities_gu(np.require(data, requirements='W'), u, v, w, npixx, npixy, uvres, grid)
+        return grid
+    else:
+        logger.error('No such resample mode.')
+
+
+@jit(nogil=True, nopython=True)
+def _grid_visibilities_jit(data, uvw, npixx, npixy, uvres):
+    """ Grid visibilities into rounded uv coordinates using jit on single core.
+    Rounding not working here, so minor differences with original and guvectorized versions. 
+    """
 
     us, vs, ws = uvw
     nint, nbl, nchan, npol = data.shape
 
-    ubl = np.round(us/uvres, 0).astype(np.int32)
-    vbl = np.round(vs/uvres, 0).astype(np.int32)
+# rounding not available in numba
+#    ubl = np.round(us/uvres, 0).astype(np.int32)
+#    vbl = np.round(vs/uvres, 0).astype(np.int32)
+    ubl = (us/uvres).astype(np.int32)
+    vbl = (vs/uvres).astype(np.int32)
 
     grids = np.zeros(shape=(nint, npixx, npixy), dtype=np.complex64)
 
@@ -229,6 +251,26 @@ def grid_visibilities(data, uvw, npixx, npixy, uvres):
                         grids[i, u, v] = grids[i, u, v] + data[i, j, k, l]
 
     return grids
+
+
+@guvectorize(["void(complex64[:,:,:], float32[:,:], float32[:,:], float32[:,:], int64, int64, int64, complex64[:,:])"],
+             '(n,m,l),(n,m),(n,m),(n,m),(),(),(),(o,p)', target='parallel', nopython=True)
+def _grid_visibilities_gu(data, us, vs, ws, npixx, npixy, uvres, grid):
+    """ Grid visibilities into rounded uv coordinates for multiple cores"""
+
+    ubl = np.zeros(us.shape, dtype=int64)
+    vbl = np.zeros(vs.shape, dtype=int64)
+
+    for j in range(data.shape[0]):
+        for k in range(data.shape[1]):
+            ubl[j,k] = int64(np.round(us[j,k]/uvres, 0))
+            vbl[j,k] = int64(np.round(vs[j,k]/uvres, 0))
+            if (np.abs(ubl[j, k]) < npixx//2) and \
+               (np.abs(vbl[j, k]) < npixy//2):
+                u = np.mod(ubl[j, k], npixx)
+                v = np.mod(vbl[j, k], npixy)
+                for l in range(data.shape[2]):
+                    grid[u, v] += data[j, k, l]
 
 
 def image_fftw(grids, wisdom=None):
