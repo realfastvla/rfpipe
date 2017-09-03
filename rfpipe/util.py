@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 import numpy as np
-from numba import cuda
+from numba import cuda, guvectorize
 from numba import jit, complex64, int64
 
 import pwkit.environments.casa.util as casautil
@@ -52,8 +52,23 @@ def dataflag(st, data):
                 data[:,:,chans,pol] = 0j
 
 
+def meantsub(data, mode='multi'):
+    """ Subtract mean visibility in time.
+    Option to use single or multi threaded version of algorithm.
+    """
+
+    if mode == 'single':
+        _meantsub_jit(np.require(data, requirements='W'))
+        return data
+    elif mode == 'multi':
+        _ = _meantsub_gu(np.require(np.swapaxes(data, 0, 3), requirements='W'))
+        return data
+    else:
+        logger.error('No such dedispersion mode.')
+
+
 @jit(nogil=True, nopython=True)
-def meantsub(data):
+def _meantsub_jit(data):
     """ Calculate mean in time (ignoring zeros) and subtract in place
 
     Could ultimately parallelize by computing only on subset of data.
@@ -82,22 +97,22 @@ def meantsub(data):
 #    return data
 
 
-#@guvectorize([(complex64[:,:,:], complex64[:,:,:])], '(m,n,o)->(m,n,o)', nopython=True, target='parallel')
-#def meantsub_gu(data, res):
-#    """ Vectorizes over time axis *at end*. Use np.moveaxis(0, 3) for input visbility array """ 
-#
-#    for i in range(data.shape[0]):
-#        for j in range(data.shape[1]):
-#            ss = complex64(0)
-#            weight = int32(0)
-#            for k in range(data.shape[2]):
-#                ss += data[i,j,k]
-#                if data[i,j,k] != 0j:
-#                    weight = weight + 1
-#                mean = ss/weight
-#            for k in range(data.shape[0]):
-#                res[i,j,k] = data[i,j,k] - mean
-    
+@guvectorize(["void(complex64[:])"], '(m)', target='parallel', nopython=True)
+def _meantsub_gu(data):
+    """ Subtract time mean while ignoring zeros.
+    Vectorizes over time axis.
+    Assumes time axis is last so use np.swapaxis(0,3) when passing visibility array in """
+
+    ss = complex64(0)
+    weight = int64(0)
+    for i in range(data.shape[0]):
+        ss += data[i]
+        if data[i] != 0j:
+            weight += 1
+    mean = ss/weight
+    for i in range(data.shape[0]):
+        data[i] -= mean
+   
 
 @cuda.jit
 def meantsub_cuda(data):
