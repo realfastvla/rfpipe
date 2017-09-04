@@ -273,6 +273,25 @@ def _grid_visibilities_gu(data, us, vs, ws, npixx, npixy, uvres, grid):
                     grid[u, v] += data[j, k, l]
 
 
+def grid_visibilities_image(st, data, segment):
+    """ Grid and image using multiple cores"""
+
+    if st.prefs.nthread == 1:
+        mode = 'single'
+    else:
+        mode = 'multi'
+
+    grid = grid_visibilities(data, st.get_uvw_segment(segment), st.npixx, st.npixy, st.uvres, mode=mode)
+
+    _ = pyfftw.interfaces.numpy_fft.ifft2(grid, overwrite_input=True, 
+                                          auto_align_input=True,
+                                          auto_contiguous=True,
+                                          planner_effort='FFTW_MEASURE',
+                                          threads=st.prefs.nthread)
+
+    return recenter(grid.real, (st.npixx//2, st.npixy//2))
+
+
 def image_fftw(grids, wisdom=None):
     """ Plan pyfftw ifft2 and run it on uv grids (time, npixx, npixy)
     Returns time images.
