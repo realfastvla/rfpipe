@@ -3,7 +3,6 @@ from builtins import bytes, dict, object, range, map, input#, str # not casa com
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 
 import os.path
-from lxml.etree import XMLSyntaxError
 import numpy as np
 import sdmpy
 from astropy import time
@@ -239,7 +238,7 @@ def getsdm(*args, **kwargs):
 
     try:
         sdm = sdmpy.SDM(*args, **kwargs)
-    except XMLSyntaxError:
+    except:
         kwargs['use_xsd'] = False
         sdm = sdmpy.SDM(*args, **kwargs)
 
