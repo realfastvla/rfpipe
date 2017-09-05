@@ -821,36 +821,30 @@ def find_segment_times(state):
     """ Iterates to optimal segment time list, given memory and fringe time limits.
     Segment sizes bounded by fringe time and memory limit,
     Solution found by iterating from fringe time to memory size that fits.
-
-    ** Not converging for evla_mcast test data and long scan length?
     """
 
-    # initialize at fringe time limit. nsegment must be between 1 and state.nints
     scale_nsegment = 1.
     state._segmenttimes = calc_segment_times(state, scale_nsegment)
 
     # calculate memory limit to stop iteration
-    assert state.immem_limit+state.vismem_limit < state.prefs.memory_limit, 'memory_limit of {0} is smaller than best solution of {1}. Try forcing nsegment/nchunk larger than {2}/{3} or reducing maxdm/npix'.format(state.prefs.memory_limit, state.immem_limit+state.vismem_limit, state.nsegment, max(state.dtarr)/min(state.dtarr))
+    assert state.immem_limit+state.vismem_limit < state.prefs.memory_limit, 'memory_limit of {0} is smaller than best solution of {1}. Try setting maxdm/npix_max lower.'.format(state.prefs.memory_limit, state.immem_limit+state.vismem_limit)
 
     if state.vismem+state.immem > state.prefs.memory_limit:
-        logger.info('Over memory limit of {4} when reading {0} segments with {1} chunks ({2}/{3} GB for visibilities/imaging). Searching for solution down to {5}/{6} GB...'.format(state.nsegment, state.prefs.nchunk, state.vismem, state.immem, state.prefs.memory_limit, state.vismem_limit, state.immem_limit))
+        logger.info('Over memory limit of {0} when reading {1} segments '
+                    '({2}/{3} GB for visibilities/imaging). Searching for '
+                    'solution down to {5}/{6} GB...'
+                    .format(state.prefs.memory_limit, state.nsegment,
+                            state.vismem, state.immem, state.vismem_limit,
+                            state.immem_limit))
 
         while state.vismem+state.immem > state.prefs.memory_limit:
-            logger.debug('Using {0} segments with {1} chunks ({2}/{3} GB for visibilities/imaging). Searching for better solution...'.format(state.prefs.nchunk, state.vismem, state.immem, state.prefs.memory_limit))
+            logger.debug('Using {0} segments requires {1}/{2} GB for '
+                         'visibilities/images. Searching for better solution.'
+                         .format(state.prefs.nchunk, state.vismem, state.immem,
+                                 state.prefs.memory_limit))
 
             scale_nsegment *= (state.vismem+state.immem)/float(state.prefs.memory_limit)
-            nsegment = max(1, min(state.metadata.nints, int(round(scale_nsegment*state.inttime*state.metadata.nints/(state.fringetime-state.t_overlap)))))  # at least 1, at most nints
             state._segmenttimes = calc_segment_times(state, scale_nsegment)
-
-            while state.vismem+state.immem > state.prefs.memory_limit:
-                logger.debug('Doubling nchunk from %d to fit in %d GB memory limit.' % (state.prefs.nchunk, state.prefs.memory_limit))
-                state.prefs.nchunk = 2*state.prefs.nchunk
-                if state.prefs.nchunk >= max(state.dtarr)/min(state.dtarr)*state.prefs.nthread: # limit nchunk/nthread to at most the range in dt
-                    state.prefs.nchunk = state.prefs.nthread
-                    break
-
-    # final set up of memory
-    state._segmenttimes = calc_segment_times(state, scale_nsegment)
 
 
 def state_vystest(wait, catch, scantime=0, preffile=None, **kwargs):
