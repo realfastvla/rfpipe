@@ -206,6 +206,32 @@ def image(data, uvw, npixx, npixy, uvres, wisdom=None, integrations=None):
     return images
 
 
+def image_cuda(grids):
+    """ Run 2d FFT to image each plane of grid array
+    """
+
+    from pyfft.cuda import Plan
+    from pycuda.tools import make_default_context
+    import pycuda.gpuarray as gpuarray
+    import pycuda.driver as cuda
+
+    nints, npixx, npixy = grids.shape
+
+    cuda.init()
+    context = make_default_context()
+    stream = cuda.Stream()
+
+    plan = Plan((npixx, npixy), stream=stream)
+
+    for i in range(nints):
+        grid_gpu = gpuarray.to_gpu(grids[i])
+        plan.execute(grid_gpu, inverse=True)
+        grids[i] = grid_gpu.get()
+
+    context.pop()
+    return recenter(grids.real, (npixx//2, npixy//2))
+
+
 def grid_visibilities(data, uvw, npixx, npixy, uvres, mode='multi'):
     """ Grid visibilities into rounded uv coordinates """
 
