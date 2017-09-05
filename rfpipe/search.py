@@ -11,7 +11,6 @@ from numba import jit, guvectorize, vectorize, int32, int64
 from collections import OrderedDict
 import pandas as pd
 import pyfftw
-# import pycuda?
 import matplotlib.pyplot as plt
 from rfpipe import fileLock, util, version
 
@@ -223,10 +222,10 @@ def image_cuda(grids):
 
     plan = Plan((npixx, npixy), stream=stream)
 
-    for i in range(nints):
-        grid_gpu = gpuarray.to_gpu(grids[i])
-        plan.execute(grid_gpu, inverse=True)
-        grids[i] = grid_gpu.get()
+    grid_gpu = gpuarray.to_gpu(grids)
+    for i in range(0, nints):
+        plan.execute(grid_gpu[i], inverse=True)
+    grids = grid_gpu.get()
 
     context.pop()
     return recenter(grids.real, (npixx//2, npixy//2))
