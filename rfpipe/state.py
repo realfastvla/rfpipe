@@ -12,8 +12,6 @@ from rfpipe import util, preferences, metadata, version
 import pwkit.environments.casa.util as casautil
 
 import logging
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logging.captureWarnings(True)
 logger = logging.getLogger(__name__)
 
 qa = casautil.tools.quanta()
