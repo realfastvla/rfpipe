@@ -32,8 +32,13 @@ here = os.path.abspath(os.path.dirname(__file__))
 
 # Import the README and use it as the long-description.
 # Note: this will only work if 'README.rst' is present in your MANIFEST.in file!
-with io.open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
-    long_description = '\n' + f.read()
+#with io.open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
+#    long_description = '\n' + f.read()
+long_description = """The realfast project will perform real-time commensal
+fast radio transient searches at the Very Large Array. rfpipe is a Python
+implementation of the transient search pipeline that operations on the 
+realfast cluster. More project info at http://realfast.io.
+"""
 
 # Load the package's __version__.py module as a dictionary.
 about = {}
