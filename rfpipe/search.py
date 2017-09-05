@@ -185,9 +185,10 @@ def search_thresh(st, data, segment, dmind, dtind, beamnum=0, wisdom=None):
     return canddatalist
 
 
-def image(data, uvw, npixx, npixy, uvres, wisdom=None, integrations=None):
+def image(data, uvw, npixx, npixy, uvres, wisdom=None, integrations=None, mode='cuda'):
     """ Grid and image data.
     Optionally image integrations in list i.
+    mode can be fftw or cuda.
     """
 
     if not integrations:
@@ -200,7 +201,14 @@ def image(data, uvw, npixx, npixy, uvres, wisdom=None, integrations=None):
 
     grids = grid_visibilities(data.take(integrations, axis=0), uvw, npixx,
                               npixy, uvres)
-    images = image_fftw(grids, wisdom=wisdom)
+    if mode == 'fftw':
+        logger.info("Imaging with fftw.")
+        images = image_fftw(grids, wisdom=wisdom)
+    elif mode == 'cuda':
+        logger.info("Imaging with cuda.")
+        images = image_cuda(grids)
+    else:
+        logger.warn("Imaging mode {0} not supported.".format(mode))
 
     return images
 
@@ -234,15 +242,18 @@ def image_cuda(grids):
 def grid_visibilities(data, uvw, npixx, npixy, uvres, mode='multi'):
     """ Grid visibilities into rounded uv coordinates """
 
-    logger.info('Gridding visibilities for grid of ({0}, {1}) pix and {2} resolution'
-                .format(npixx, npixy, uvres))
+    logger.info('Gridding visibilities for grid of ({0}, {1}) pix and {2} '
+                'resolution.'.format(npixx, npixy, uvres))
 
     if mode == 'single':
-        return _grid_visibilities_jit(np.require(data, requirements='W'), uvw, npixx, npixy, uvres)
+        return _grid_visibilities_jit(np.require(data, requirements='W'), uvw,
+                                      npixx, npixy, uvres)
     elif mode == 'multi':
-        grid = np.zeros(shape=(data.shape[0], npixx, npixy), dtype=np.complex64)
+        grid = np.zeros(shape=(data.shape[0], npixx, npixy),
+                        dtype=np.complex64)
         u, v, w = uvw
-        _ = _grid_visibilities_gu(np.require(data, requirements='W'), u, v, w, npixx, npixy, uvres, grid)
+        _ = _grid_visibilities_gu(np.require(data, requirements='W'), u, v, w,
+                                  npixx, npixy, uvres, grid)
         return grid
     else:
         logger.error('No such resample mode.')
@@ -251,7 +262,8 @@ def grid_visibilities(data, uvw, npixx, npixy, uvres, mode='multi'):
 @jit(nogil=True, nopython=True)
 def _grid_visibilities_jit(data, uvw, npixx, npixy, uvres):
     """ Grid visibilities into rounded uv coordinates using jit on single core.
-    Rounding not working here, so minor differences with original and guvectorized versions. 
+    Rounding not working here, so minor differences with original and
+    guvectorized versions. 
     """
 
     us, vs, ws = uvw
