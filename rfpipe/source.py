@@ -59,6 +59,10 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
         logger.error('Datasource {0} not recognized.'
                      .format(st.metadata.datasource))
 
+    if not np.any(data_read):
+        logger.info('No data read.')
+        return np.array([])
+
     # read Flag.xml and apply flags for given ant/time range
     if st.prefs.applyonlineflags and st.metadata.datasource == 'sdm':
 

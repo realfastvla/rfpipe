@@ -575,7 +575,7 @@ def save_cands(st, candidates, canddatalist):
 
         return st.candsfile
     elif st.prefs.savecands and not len(candidates):
-        logger.info('No candidates to save to {0}.'.format(st.candsfile))
+        logger.debug('No candidates to save to {0}.'.format(st.candsfile))
         return None
     elif not st.prefs.savecands:
         logger.info('Not saving candidates.')
