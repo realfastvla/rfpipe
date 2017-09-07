@@ -690,7 +690,6 @@ class State(object):
         """
 
         toGB = 8/1024**3   # number of complex64s to GB
-#        nchunk_scale = max(self.dtarr)//min(self.dtarr)
         immem = self.prefs.nthread * ((self.t_overlap/self.inttime) *
                                       self.npixx * self.npixy) * toGB
 
@@ -838,8 +837,7 @@ def find_segment_times(state):
         while state.vismem+state.immem > state.prefs.memory_limit:
             logger.debug('Using {0} segments requires {1}/{2} GB for '
                          'visibilities/images. Searching for better solution.'
-                         .format(state.prefs.nchunk, state.vismem, state.immem,
-                                 state.prefs.memory_limit))
+                         .format(len(state.segmenttimes), state.vismem, state.immem))
 
             scale_nsegment *= (state.vismem+state.immem)/float(state.prefs.memory_limit)
             state._segmenttimes = calc_segment_times(state, scale_nsegment)

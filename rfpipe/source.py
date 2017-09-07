@@ -37,9 +37,7 @@ def data_prep(st, data):
         if st.prefs.timesub == 'mean':
             util.meantsub(data)
 
-        return data
-    else:
-        return []
+    return data
 
 
 def read_segment(st, segment, cfile=None, timeout=default_timeout):
@@ -136,12 +134,14 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout):
 
     t0 = time.Time(st.segmenttimes[seg][0], format='mjd', precision=9).unix
     t1 = time.Time(st.segmenttimes[seg][1], format='mjd', precision=9).unix
-    logger.info('Reading {0} ints of size {1} s from {2} - {3} unix seconds'
-                .format(st.readints, st.metadata.inttime, t0, t1))
 
     data = np.empty((st.readints, st.metadata.nbl_orig,
                      st.metadata.nchan_orig, st.metadata.npol_orig),
                     dtype='complex64', order='C')
+
+    logger.info('Reading {0} s ints into shape {1} from {2} - {3} unix seconds'
+                .format(st.metadata.inttime, st.datashape, t0, t1))
+
     with vysmaw_reader.Reader(t0, t1, cfile=cfile) as reader:
         data[:] = reader.readwindow(nant=st.nants, nspw=st.nspw,
                                     nchan=st.metadata.spw_nchan[0],
