@@ -66,7 +66,8 @@ def pipeline_seg(st, segment, cl=None, cfile=None,
             canddatalist = cl.submit(search.search_thresh, st, data_dmdt,
                                      segment, dmind, dtind, wisdom=wisdom,
                                      pure=True,
-                                     resources={'MEMORY': 1.1*st.immem})
+                                     resources={'GPU': 1,
+                                                'MEMORY': 1.1*st.immem})
 
             candidates = cl.submit(search.calc_features, canddatalist,
                                    pure=True)

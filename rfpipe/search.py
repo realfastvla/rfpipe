@@ -34,7 +34,7 @@ def dedisperse(data, delay, mode='multi'):
         return _dedisperse_jit(np.require(data, requirements='W'), delay)
     elif mode == 'multi':
         _ = _dedisperse_gu(np.require(np.swapaxes(data, 0, 1), requirements='W'), delay)
-        return data[:-delay.max()]
+        return data[0:len(data)-delay.max()]
     else:
         logger.error('No such dedispersion mode.')
 

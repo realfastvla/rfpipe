@@ -829,7 +829,7 @@ def find_segment_times(state):
     if state.vismem+state.immem > state.prefs.memory_limit:
         logger.info('Over memory limit of {0} when reading {1} segments '
                     '({2}/{3} GB for visibilities/imaging). Searching for '
-                    'solution down to {5}/{6} GB...'
+                    'solution down to {4}/{5} GB...'
                     .format(state.prefs.memory_limit, state.nsegment,
                             state.vismem, state.immem, state.vismem_limit,
                             state.immem_limit))
@@ -837,7 +837,7 @@ def find_segment_times(state):
         while state.vismem+state.immem > state.prefs.memory_limit:
             logger.debug('Using {0} segments requires {1}/{2} GB for '
                          'visibilities/images. Searching for better solution.'
-                         .format(len(state.segmenttimes), state.vismem, state.immem))
+                         .format(state.nsegment, state.vismem, state.immem))
 
             scale_nsegment *= (state.vismem+state.immem)/float(state.prefs.memory_limit)
             state._segmenttimes = calc_segment_times(state, scale_nsegment)
