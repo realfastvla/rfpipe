@@ -160,8 +160,8 @@ def search_thresh(st, data, segment, dmind, dtind, beamnum=0, wisdom=None,
         images = image(data, uvw, st.npixx, st.npixy,
                        st.uvres, wisdom=wisdom, mode=mode)
 
-        logger.info('Thresholding images at {0} sigma.'
-                    .format(st.prefs.sigma_image1))
+        logger.info('Thresholding at {0} sigma to return {1} candidates.'
+                    .format(st.prefs.sigma_image1, len(images)))
 
         canddatalist = []
         for i in range(len(images)):
@@ -170,7 +170,11 @@ def search_thresh(st, data, segment, dmind, dtind, beamnum=0, wisdom=None,
                 candloc = (segment, i, dmind, dtind, beamnum)
                 candim = images[i]
                 l, m = st.pixtolm(np.where(candim == candim.max()))
+                logger.debug("image peak at l, m: {0}, {1}".format(l, m))
                 phase_shift(data, uvw, l, m)
+                logger.debug("phasing data from: {0}, {1}"
+                            .format(max(0, i-st.prefs.timewindow//2),
+                                    min(i+st.prefs.timewindow//2, len(data))))
                 dataph = data[max(0, i-st.prefs.timewindow//2):
                               min(i+st.prefs.timewindow//2, len(data))].mean(axis=1)
                 phase_shift(data, uvw, -l, -m)
@@ -572,7 +576,8 @@ def save_cands(st, candidates, canddatalist):
 
         if len(cdf.df):
             snrs = cdf.df['snr1'].values
-            candplot(canddatalist, snrs=snrs)
+            maxindex = cdf.df[cdf.df.snr1 == cdf.df.snr1.max()].index[0]
+            candplot(canddatalist[maxindex], snrs=snrs)
 
         return st.candsfile
     elif st.prefs.savecands and not len(candidates):
@@ -634,7 +639,7 @@ def candplot(canddatalist, snrs=[], outname=''):
         fig = plt.Figure(figsize=(12.75, 8))
 
         # add metadata in subfigure
-        ax = fig.add_subplot(2, 3, 1, axisbg='white')
+        ax = fig.add_subplot(2, 3, 1, facecolor='white')
 
         # calculate the overall dispersion delay: dd
         f1 = st.metadata.freq_orig[0]
@@ -964,7 +969,6 @@ def candplot(canddatalist, snrs=[], outname=''):
             bottom, height = 0.6, 0.3
             rect_snr = [left, bottom, width, height]
             ax_snr = fig.add_axes(rect_snr)
-            print(snrs, type(snrs))
             pos_snrs = snrs[snrs >= 0]
             neg_snrs = snrs[snrs < 0]
             if not len(neg_snrs):  # if working with subset and only pos snrs

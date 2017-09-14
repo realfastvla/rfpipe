@@ -29,20 +29,20 @@ class Metadata(object):
     # basics
     datasource = attr.ib(default=None)
     filename = attr.ib(default=None)
-    scan = attr.ib(default=None)
+    scan = attr.ib(default=None)  # int
     bdfdir = attr.ib(default=None)
     bdfstr = attr.ib(default=None)
 #    configid = attr.ib(default=None)
 
     # data structure and source properties
     source = attr.ib(default=None)
-    radec = attr.ib(default=None)
-    inttime = attr.ib(default=None)
+    radec = attr.ib(default=None)  # (radians, radians)
+    inttime = attr.ib(default=None)  # seconds
     nints_ = attr.ib(default=None)
     telescope = attr.ib(default=None)
 
     # array/antenna info
-    starttime_mjd = attr.ib(default=None)
+    starttime_mjd = attr.ib(default=None)  # float
     endtime_mjd_ = attr.ib(default=None)
     dishdiameter = attr.ib(default=None)
     intent = attr.ib(default=None)
@@ -67,7 +67,7 @@ class Metadata(object):
             return os.path.dirname(os.path.abspath(self.filename))
         elif self.datasource == 'vys':
             return os.getcwd()
-            
+
 #    @property
 #    def spw_chanr(self):
 #        chanr = []
@@ -184,7 +184,7 @@ def config_metadata(config, datasource='vys'):
 #    meta['stationids'] = config.listOfStations
     meta['xyz'] = np.array([ant.xyz for ant in antennas])
 
-    meta['radec'] = (config.ra_deg, config.dec_deg)
+    meta['radec'] = (np.radians(config.ra_deg), np.radians(config.dec_deg))
     meta['dishdiameter'] = 25.  # ?
 
     subbands = config.get_subbands()
