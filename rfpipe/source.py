@@ -135,8 +135,8 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout):
     t0 = time.Time(st.segmenttimes[seg][0], format='mjd', precision=9).unix
     t1 = time.Time(st.segmenttimes[seg][1], format='mjd', precision=9).unix
 
-    data = np.empty((st.readints, st.metadata.nbl_orig,
-                     st.metadata.nchan_orig, st.metadata.npol_orig),
+    data = np.empty((st.readints, st.metadata.nbl,
+                     st.metadata.nchan_orig, st.metadata.npol),
                     dtype='complex64', order='C')
 
     logger.info('Reading {0} s ints into shape {1} from {2} - {3} unix seconds'
