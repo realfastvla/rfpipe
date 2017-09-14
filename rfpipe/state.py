@@ -185,8 +185,8 @@ class State(object):
                         .format(self.nfalse))
 
             logger.info('')
-            logger.info('\t Visibility memory usage is {0} GB/segment'
-                        .format(self.vismem))
+            logger.info('\t Visibility/image memory usage is {0}/{1} GB/segment'
+                        .format(self.vismem, self.immem))
 #            logger.info('\t Imaging in {0} chunk{1} using max of {2} GB/segment'.format(self.nchunk, "s"[not self.nsegment-1:], immem))
 #            logger.info('\t Grand total memory usage: {0} GB/segment'.format(vismem + immem))
 
