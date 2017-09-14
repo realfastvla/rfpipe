@@ -138,7 +138,8 @@ def _resample_gu(data, dt):
 #
 
 
-def search_thresh(st, data, segment, dmind, dtind, beamnum=0, wisdom=None):
+def search_thresh(st, data, segment, dmind, dtind, beamnum=0, wisdom=None,
+                  mode='cuda'):
     """ High-level wrapper for search algorithms.
     Expects dedispersed, resampled data as input and data state.
     Returns list of CandData objects that define candidates with
@@ -157,7 +158,7 @@ def search_thresh(st, data, segment, dmind, dtind, beamnum=0, wisdom=None):
     if 'image1' in st.prefs.searchtype:
         uvw = st.get_uvw_segment(segment)
         images = image(data, uvw, st.npixx, st.npixy,
-                       st.uvres, wisdom=wisdom)
+                       st.uvres, wisdom=wisdom, mode=mode)
 
         logger.info('Thresholding images at {0} sigma.'
                     .format(st.prefs.sigma_image1))

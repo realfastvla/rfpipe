@@ -63,8 +63,11 @@ class Metadata(object):
 
     @property
     def workdir(self):
-        return os.path.dirname(os.path.abspath(self.filename))
-
+        if self.datasource == 'sdm':
+            return os.path.dirname(os.path.abspath(self.filename))
+        elif self.datasource == 'vys':
+            return os.getcwd()
+            
 #    @property
 #    def spw_chanr(self):
 #        chanr = []

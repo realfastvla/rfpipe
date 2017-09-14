@@ -139,9 +139,10 @@ class State(object):
 
             logger.info('Pipeline summary:')
             if os.path.exists(self.gainfile):
-                logger.info('Autodetected telcal file {0}'.format(self.gainfile))
+                logger.info('Found telcal file {0}'.format(self.gainfile))
             else:
-                logger.warn('telcal file not found at {0}'.format(self.gainfile))
+                logger.warn('No telcal file found at {0}'
+                            .format(self.gainfile))
             logger.info('\t Products saved with {0}. telcal calibration with {1}.'
                         .format(self.fileroot,
                                 os.path.basename(self.gainfile)))
@@ -484,7 +485,10 @@ class State(object):
                                     .format(today.year, today.month,
                                             self.metadata.filename))
         else:
-            gainfile = self.prefs.gainfile
+            if os.path.dirname(self.prefs.gainfile):  # use full path if given
+                gainfile = self.prefs.gainfile
+            else:  # else assume workdir
+                gainfile = os.path.join(self.metadata.workdir, self.prefs.gainfile)
 
         return gainfile
 

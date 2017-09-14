@@ -207,7 +207,7 @@ def read_bdf(st, nskip=0):
     sortind = np.argsort(st.metadata.spw_reffreq)
     for i in range(nskip, nskip+st.readints):
         read = scan.bdf.get_integration(i).get_data(spwidx='all', type='cross')
-        data[i] = read.take(sortind, axis=1).reshape(st.metadata.nbl_orig,
+        data[i-nskip] = read.take(sortind, axis=1).reshape(st.metadata.nbl_orig,
                                                      st.metadata.nchan_orig,
                                                      st.metadata.npol_orig)
 
