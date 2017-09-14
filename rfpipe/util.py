@@ -51,6 +51,8 @@ def dataflag(st, data):
                 chans = np.arange(st.metadata.spw_nchan[spw]*spw, st.metadata.spw_nchan[spw]*(1+spw))
                 data[:,:,chans,pol] = 0j
 
+    return data
+
 
 def meantsub(data, mode='multi'):
     """ Subtract mean visibility in time.

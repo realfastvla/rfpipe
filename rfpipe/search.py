@@ -160,8 +160,9 @@ def search_thresh(st, data, segment, dmind, dtind, beamnum=0, wisdom=None,
         images = image(data, uvw, st.npixx, st.npixy,
                        st.uvres, wisdom=wisdom, mode=mode)
 
-        logger.info('Thresholding at {0} sigma to return {1} candidates.'
-                    .format(st.prefs.sigma_image1, len(images)))
+        logger.info('Thresholding images for dm={0}, dt={1} at {1} sigma.'
+                    .format(st.dmarr[dmind], st.dtarr[dtind],
+                            st.prefs.sigma_image1))
 
         canddatalist = []
         for i in range(len(images)):
@@ -173,8 +174,8 @@ def search_thresh(st, data, segment, dmind, dtind, beamnum=0, wisdom=None,
                 logger.debug("image peak at l, m: {0}, {1}".format(l, m))
                 phase_shift(data, uvw, l, m)
                 logger.debug("phasing data from: {0}, {1}"
-                            .format(max(0, i-st.prefs.timewindow//2),
-                                    min(i+st.prefs.timewindow//2, len(data))))
+                             .format(max(0, i-st.prefs.timewindow//2),
+                                     min(i+st.prefs.timewindow//2, len(data))))
                 dataph = data[max(0, i-st.prefs.timewindow//2):
                               min(i+st.prefs.timewindow//2, len(data))].mean(axis=1)
                 phase_shift(data, uvw, -l, -m)
@@ -1010,7 +1011,7 @@ def candplot(canddatalist, snrs=[], outname=''):
             ax_snr.axvline(x=np.abs(snrobs), linewidth=1, color='y', alpha=0.7)
 
         if not outname:
-            outname = os.path.join(st.metadata.workdir,
+            outname = os.path.join(st.prefs.workdir,
                                    'cands_{}_sc{}-seg{}-i{}-dm{}-dt{}.png'
                                    .format(st.fileroot, scan, segment, candint,
                                            dmind, dtind))

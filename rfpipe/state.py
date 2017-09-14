@@ -113,7 +113,7 @@ class State(object):
         else:
             logger.info('Metadata summary:')
             logger.info('\t Working directory and fileroot: {0}, {1}'
-                        .format(self.metadata.workdir, self.fileroot))
+                        .format(self.prefs.workdir, self.fileroot))
             logger.info('\t Using scan {0}, source {1}'
                         .format(int(self.metadata.scan), self.metadata.source))
             logger.info('\t nants, nbl: {0}, {1}'.format(self.nants, self.nbl))
@@ -488,7 +488,7 @@ class State(object):
             if os.path.dirname(self.prefs.gainfile):  # use full path if given
                 gainfile = self.prefs.gainfile
             else:  # else assume workdir
-                gainfile = os.path.join(self.metadata.workdir, self.prefs.gainfile)
+                gainfile = os.path.join(self.prefs.workdir, self.prefs.gainfile)
 
         return gainfile
 
@@ -651,7 +651,7 @@ class State(object):
         if self.prefs.candsfile:
             return self.prefs.candsfile
         else:
-            return os.path.join(self.metadata.workdir,
+            return os.path.join(self.prefs.workdir,
                                 'cands_' + self.fileroot + '.pkl')
 
     @property

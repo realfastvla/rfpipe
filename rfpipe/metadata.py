@@ -61,13 +61,6 @@ class Metadata(object):
         """ Is metadata still set at default values? """
         return not any([self.__dict__[ab] for ab in self.__dict__])
 
-    @property
-    def workdir(self):
-        if self.datasource == 'sdm':
-            return os.path.dirname(os.path.abspath(self.filename))
-        elif self.datasource == 'vys':
-            return os.getcwd()
-
 #    @property
 #    def spw_chanr(self):
 #        chanr = []

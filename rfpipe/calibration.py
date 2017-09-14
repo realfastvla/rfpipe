@@ -19,6 +19,8 @@ def apply_telcal(st, data, calname=None):
                        calname=calname)
     sols.apply(data)
 
+    return data
+
 
 class telcal_sol():
     """ Instantiated with on telcalfile.

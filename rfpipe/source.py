@@ -24,18 +24,18 @@ def data_prep(st, data):
     if np.any(data):
         if st.metadata.datasource != 'sim':
             if os.path.exists(st.gainfile):
-                calibration.apply_telcal(st, data)
+                data = calibration.apply_telcal(st, data)
             else:
                 logger.warn('Telcal file not found. No calibration being applied.')
         else:
             logger.info('Not applying telcal solutions for simulated data')
 
         # ** dataflag points to rtpipe for now
-        util.dataflag(st, data)
+        data = util.dataflag(st, data)
 
         logger.info('Subtracting mean visibility in time.')
         if st.prefs.timesub == 'mean':
-            util.meantsub(data)
+            data = util.meantsub(data)
 
     return data
 
@@ -102,14 +102,15 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
 
     # optionally add transients
     if st.prefs.simulated_transient is not None:
+        uvw = st.get_uvw_segment(segment)
         for params in st.prefs.simulated_transient:
             (amp, i0, dm, dt, l, m) = params
             logger.info("Adding transient with Amp {0} at int {1}, DM {2}, "
                         "dt {3} and l,m={4},{5}".format(amp, i0, dm, dt, l, m))
             model = generate_transient(st, amp, i0, dm, dt)
-            search.phase_shift(data_read, st.get_uvw_segment(segment), l, m)
+            search.phase_shift(data_read, uvw, l, m)
             data_read += model.transpose()[:, None, :, None]
-            search.phase_shift(data_read, st.get_uvw_segment(segment), -l, -m)
+            search.phase_shift(data_read, uvw, -l, -m)
 
 #    takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
 #    logger.debug('Selecting pols {0}'.format(st.pols))
@@ -135,8 +136,8 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout):
     t0 = time.Time(st.segmenttimes[seg][0], format='mjd', precision=9).unix
     t1 = time.Time(st.segmenttimes[seg][1], format='mjd', precision=9).unix
 
-    data = np.empty((st.readints, st.metadata.nbl,
-                     st.metadata.nchan_orig, st.metadata.npol),
+    data = np.empty((st.readints, st.nbl,
+                     st.metadata.nchan_orig, st.npol),
                     dtype='complex64', order='C')
 
     logger.info('Reading {0} s ints into shape {1} from {2} - {3} unix seconds'

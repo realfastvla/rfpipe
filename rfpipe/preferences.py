@@ -5,6 +5,7 @@ from io import open
 
 import attr
 import yaml
+from os import getcwd
 from rfpipe.version import __version__
 
 import logging
@@ -71,6 +72,7 @@ class Preferences(object):
     savenoise = attr.ib(default=False)
     savecands = attr.ib(default=False)
     candsfile = attr.ib(default=None)
+    workdir = attr.ib(default=getcwd())
     timewindow = attr.ib(default=30)
 #    logfile = attr.ib(default=True)
     loglevel = attr.ib(default='INFO')
