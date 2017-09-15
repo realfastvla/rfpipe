@@ -28,12 +28,13 @@ def dedisperse(data, delay, mode='multi'):
     if not np.any(data):
         return np.array([])
 
+    data = np.require(data, requirements='W')
     logger.info('Dedispersing up to delay shift of {0} integrations'
                 .format(delay.max()))
     if mode == 'single':
-        return _dedisperse_jit(np.require(data, requirements='W'), delay)
+        return _dedisperse_jit(data, delay)
     elif mode == 'multi':
-        _ = _dedisperse_gu(np.require(np.swapaxes(data, 0, 1), requirements='W'), delay)
+        _ = _dedisperse_gu(np.swapaxes(data, 0, 1), delay)
         return data[0:len(data)-delay.max()]
     else:
         logger.error('No such dedispersion mode.')
@@ -79,15 +80,16 @@ def resample(data, dt, mode='multi'):
 
     if not np.any(data):
         return np.array([])
+    data = np.require(data, requirements='W')
 
     len0 = data.shape[0]
     logger.info('Resampling data of length {0} by a factor of {1}'
                 .format(len0, dt))
 
     if mode == 'single':
-        return _resample_jit(np.require(data, requirements='W'), dt)
+        return _resample_jit(data, dt)
     elif mode == 'multi':
-        _ = _resample_gu(np.require(np.swapaxes(data, 0, 3), requirements='W'), dt)
+        _ = _resample_gu(np.swapaxes(data, 0, 3), dt)
         return data[:len0//dt]
     else:
         logger.error('No such resample mode.')
@@ -152,6 +154,8 @@ def search_thresh(st, data, segment, dmind, dtind, beamnum=0, wisdom=None,
     if not np.any(data):
         return []
 
+    data = np.require(data, requirements='W')
+
     logger.info('Imaging {0}x{1} pix with uvres of {2}.'
                 .format(st.npixx, st.npixy, st.uvres))
 
@@ -160,7 +164,7 @@ def search_thresh(st, data, segment, dmind, dtind, beamnum=0, wisdom=None,
         images = image(data, uvw, st.npixx, st.npixy,
                        st.uvres, wisdom=wisdom, mode=mode)
 
-        logger.info('Thresholding images for dm={0}, dt={1} at {1} sigma.'
+        logger.info('Thresholding images for DM={0}, dt={1} at {2} sigma.'
                     .format(st.dmarr[dmind], st.dtarr[dtind],
                             st.prefs.sigma_image1))
 
@@ -248,18 +252,17 @@ def image_cuda(grids):
 def grid_visibilities(data, uvw, npixx, npixy, uvres, mode='multi'):
     """ Grid visibilities into rounded uv coordinates """
 
+    data = np.require(data, requirements='W')
     logger.info('Gridding visibilities for grid of ({0}, {1}) pix and {2} '
                 'resolution.'.format(npixx, npixy, uvres))
 
     if mode == 'single':
-        return _grid_visibilities_jit(np.require(data, requirements='W'), uvw,
-                                      npixx, npixy, uvres)
+        return _grid_visibilities_jit(data, uvw, npixx, npixy, uvres)
     elif mode == 'multi':
         grid = np.zeros(shape=(data.shape[0], npixx, npixy),
                         dtype=np.complex64)
         u, v, w = uvw
-        _ = _grid_visibilities_gu(np.require(data, requirements='W'), u, v, w,
-                                  npixx, npixy, uvres, grid)
+        _ = _grid_visibilities_gu(data, u, v, w, npixx, npixy, uvres, grid)
         return grid
     else:
         logger.error('No such resample mode.')

@@ -76,6 +76,8 @@ def pipeline_seg(st, segment, cl=None, cfile=None,
             saved.append(cl.submit(search.save_cands, st, candidates,
                                    canddatalist, pure=True))
 
+    # ** or aggregate over dt or dm trials? **
+
     return saved
 
 
