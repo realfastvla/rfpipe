@@ -58,7 +58,8 @@ def _dedisperse_jit(data, delay):
         return data
 
 
-@guvectorize(["void(complex64[:,:,:], int64[:])"], '(n,m,l),(m)', target='parallel', nopython=True)
+@guvectorize(["void(complex64[:,:,:], int64[:])"], '(n,m,l),(m)',
+             target='parallel', nopython=True)
 def _dedisperse_gu(data, delay):
     """ Multicore dedispersion via numpy broadcasting.
     Requires that data be in axis order (nbl, nint, nchan, npol), so typical
@@ -140,8 +141,7 @@ def _resample_gu(data, dt):
 #
 
 
-def search_thresh(st, data, segment, dmind, dtind, beamnum=0, wisdom=None,
-                  mode='cuda'):
+def search_thresh(st, data, segment, dmind, dtind, beamnum=0, wisdom=None):
     """ High-level wrapper for search algorithms.
     Expects dedispersed, resampled data as input and data state.
     Returns list of CandData objects that define candidates with
@@ -155,14 +155,15 @@ def search_thresh(st, data, segment, dmind, dtind, beamnum=0, wisdom=None,
         return []
 
     data = np.require(data, requirements='W')
+    uvw = st.get_uvw_segment(segment)
 
     logger.info('Imaging {0}x{1} pix with uvres of {2}.'
                 .format(st.npixx, st.npixy, st.uvres))
 
     if 'image1' in st.prefs.searchtype:
-        uvw = st.get_uvw_segment(segment)
-        images = image(data, uvw, st.npixx, st.npixy,
-                       st.uvres, wisdom=wisdom, mode=mode)
+
+        images = image(data, uvw, st.npixx, st.npixy, st.uvres, st.fftmode,
+                       st.prefs.nthread, wisdom=wisdom)
 
         logger.info('Thresholding images for DM={0}, dt={1} at {2} sigma.'
                     .format(st.dmarr[dmind], st.dtarr[dtind],
@@ -195,11 +196,15 @@ def search_thresh(st, data, segment, dmind, dtind, beamnum=0, wisdom=None,
     return canddatalist
 
 
-def image(data, uvw, npixx, npixy, uvres, wisdom=None, integrations=None, mode='cuda'):
+def image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,
+          integrations=None):
     """ Grid and image data.
     Optionally image integrations in list i.
-    mode can be fftw or cuda.
+    fftmode can be fftw or cuda.
+    nthread is number of threads to use
     """
+
+    mode = 'single' if nthread == 1 else 'multi'
 
     if not integrations:
         integrations = range(len(data))
@@ -210,15 +215,16 @@ def image(data, uvw, npixx, npixy, uvres, wisdom=None, integrations=None, mode='
                             ','.join([str(i) for i in integrations])))
 
     grids = grid_visibilities(data.take(integrations, axis=0), uvw, npixx,
-                              npixy, uvres)
-    if mode == 'fftw':
+                              npixy, uvres, mode=mode)
+
+    if fftmode == 'fftw':
         logger.info("Imaging with fftw.")
-        images = image_fftw(grids, wisdom=wisdom)
-    elif mode == 'cuda':
+        images = image_fftw(grids, nthread=nthread, wisdom=wisdom)
+    elif fftmode == 'cuda':
         logger.info("Imaging with cuda.")
         images = image_cuda(grids)
     else:
-        logger.warn("Imaging mode {0} not supported.".format(mode))
+        logger.warn("Imaging fftmode {0} not supported.".format(fftmode))
 
     return images
 
@@ -249,6 +255,25 @@ def image_cuda(grids):
     return recenter(grids.real, (npixx//2, npixy//2))
 
 
+def image_fftw(grids, nthread=1, wisdom=None):
+    """ Plan pyfftw ifft2 and run it on uv grids (time, npixx, npixy)
+    Returns time images.
+    """
+
+    if wisdom:
+        logger.debug('Importing wisdom...')
+        pyfftw.import_wisdom(wisdom)
+
+    images = pyfftw.interfaces.numpy_fft.ifft2(grids, auto_align_input=True,
+                                               auto_contiguous=True,
+                                               planner_effort='FFTW_MEASURE',
+                                               threads=nthread)
+
+    npixx, npixy = images[0].shape
+
+    return recenter(images.real, (npixx//2, npixy//2))
+
+
 def grid_visibilities(data, uvw, npixx, npixy, uvres, mode='multi'):
     """ Grid visibilities into rounded uv coordinates """
 
@@ -272,7 +297,7 @@ def grid_visibilities(data, uvw, npixx, npixy, uvres, mode='multi'):
 def _grid_visibilities_jit(data, uvw, npixx, npixy, uvres):
     """ Grid visibilities into rounded uv coordinates using jit on single core.
     Rounding not working here, so minor differences with original and
-    guvectorized versions. 
+    guvectorized versions.
     """
 
     us, vs, ws = uvw
@@ -300,7 +325,8 @@ def _grid_visibilities_jit(data, uvw, npixx, npixy, uvres):
 
 
 @guvectorize(["void(complex64[:,:,:], float32[:,:], float32[:,:], float32[:,:], int64, int64, int64, complex64[:,:])"],
-             '(n,m,l),(n,m),(n,m),(n,m),(),(),(),(o,p)', target='parallel', nopython=True)
+             '(n,m,l),(n,m),(n,m),(n,m),(),(),(),(o,p)', target='parallel',
+             nopython=True)
 def _grid_visibilities_gu(data, us, vs, ws, npixx, npixy, uvres, grid):
     """ Grid visibilities into rounded uv coordinates for multiple cores"""
 
@@ -309,50 +335,14 @@ def _grid_visibilities_gu(data, us, vs, ws, npixx, npixy, uvres, grid):
 
     for j in range(data.shape[0]):
         for k in range(data.shape[1]):
-            ubl[j,k] = int64(np.round(us[j,k]/uvres, 0))
-            vbl[j,k] = int64(np.round(vs[j,k]/uvres, 0))
+            ubl[j, k] = int64(np.round(us[j, k]/uvres, 0))
+            vbl[j, k] = int64(np.round(vs[j, k]/uvres, 0))
             if (np.abs(ubl[j, k]) < npixx//2) and \
                (np.abs(vbl[j, k]) < npixy//2):
                 u = np.mod(ubl[j, k], npixx)
                 v = np.mod(vbl[j, k], npixy)
                 for l in range(data.shape[2]):
                     grid[u, v] += data[j, k, l]
-
-
-def grid_visibilities_image(st, data, segment):
-    """ Grid and image using multiple cores"""
-
-    if st.prefs.nthread == 1:
-        mode = 'single'
-    else:
-        mode = 'multi'
-
-    grid = grid_visibilities(data, st.get_uvw_segment(segment), st.npixx, st.npixy, st.uvres, mode=mode)
-
-    _ = pyfftw.interfaces.numpy_fft.ifft2(grid, overwrite_input=True, 
-                                          auto_align_input=True,
-                                          auto_contiguous=True,
-                                          planner_effort='FFTW_MEASURE',
-                                          threads=st.prefs.nthread)
-
-    return recenter(grid.real, (st.npixx//2, st.npixy//2))
-
-
-def image_fftw(grids, wisdom=None):
-    """ Plan pyfftw ifft2 and run it on uv grids (time, npixx, npixy)
-    Returns time images.
-    """
-
-    if wisdom:
-        logger.debug('Importing wisdom...')
-        pyfftw.import_wisdom(wisdom)
-    images = pyfftw.interfaces.numpy_fft.ifft2(grids, auto_align_input=True,
-                                               auto_contiguous=True,
-                                               planner_effort='FFTW_MEASURE')
-
-    npixx, npixy = images[0].shape
-
-    return recenter(images.real, (npixx//2, npixy//2))
 
 
 def recenter(array, center):

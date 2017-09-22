@@ -459,6 +459,14 @@ class State(object):
         return self.fringetime_orig - np.mod(self.fringetime_orig, self.inttime)
 
     @property
+    def fftmode(self):
+        """ Should the FFT be done with fftw or cuda?
+        *Could overload here based on local configuration*
+        """
+
+        return self.prefs.fftmode
+
+    @property
     def ants(self):
         return sorted([ant for ant in self.metadata.antids
                        if ant not in self.prefs.excludeants])

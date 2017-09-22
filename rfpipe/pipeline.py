@@ -9,7 +9,7 @@ from rfpipe import source, search, util
 import logging
 logger = logging.getLogger(__name__)
 vys_timeout_default = 10
-
+  
 
 def pipeline_scan_distributed(st, segments=None, host='cbe-node-01',
                               cfile=None, vys_timeout=vys_timeout_default):
@@ -38,12 +38,13 @@ def pipeline_seg(st, segment, cl=None, cfile=None,
     """
 
     logger.info('Building dask for observation {0}.'.format(st.fileroot))
+    mode = 'single' if st.prefs.nthread == 1 else 'multi'
 
     if not cl:
         cl = distributed.Client(n_workers=1, threads_per_worker=1)
 
-    # plan fft
-    wisdom = cl.submit(search.set_wisdom, st.npixx, st.npixy, pure=True)
+    # plan, if using fftw
+    wisdom = cl.submit(search.set_wisdom, st.npixx, st.npixy, pure=True) if st.fftwmode == 'fftw' else None
 
     data = cl.submit(source.read_segment, st, segment, timeout=vys_timeout,
                      cfile=cfile, pure=True,
@@ -55,12 +56,12 @@ def pipeline_seg(st, segment, cl=None, cfile=None,
     for dmind in range(len(st.dmarr)):
         delay = cl.submit(util.calc_delay, st.freq, st.freq.max(),
                           st.dmarr[dmind], st.inttime, pure=True)
-        data_dm = cl.submit(search.dedisperse, data_prep, delay, pure=True,
-                            resources={'MEMORY': 1.1*st.vismem})
+        data_dm = cl.submit(search.dedisperse, data_prep, delay, mode=mode,
+                            pure=True, resources={'MEMORY': 1.1*st.vismem})
 
         for dtind in range(len(st.dtarr)):
             data_dmdt = cl.submit(search.resample, data_dm, st.dtarr[dtind],
-                                  pure=True,
+                                  mode=mode, pure=True,
                                   resources={'MEMORY':
                                              1.1*st.vismem/st.dtarr[dtind]})
             canddatalist = cl.submit(search.search_thresh, st, data_dmdt,

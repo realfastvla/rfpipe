@@ -68,6 +68,7 @@ class Preferences(object):
     npixy = attr.ib(default=0)
     npix_max = attr.ib(default=0)
     uvoversample = attr.ib(default=1.)
+    fftmode = attr.ib(default='fftw')  # either 'fftw' or 'cuda'
 
     savenoise = attr.ib(default=False)
     savecands = attr.ib(default=False)
