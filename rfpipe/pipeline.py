@@ -44,7 +44,7 @@ def pipeline_seg(st, segment, cl=None, cfile=None,
         cl = distributed.Client(n_workers=1, threads_per_worker=1)
 
     # plan, if using fftw
-    wisdom = cl.submit(search.set_wisdom, st.npixx, st.npixy, pure=True) if st.fftwmode == 'fftw' else None
+    wisdom = cl.submit(search.set_wisdom, st.npixx, st.npixy, pure=True) if st.fftmode == 'fftw' else None
 
     data = cl.submit(source.read_segment, st, segment, timeout=vys_timeout,
                      cfile=cfile, pure=True,
