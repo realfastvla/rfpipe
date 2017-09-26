@@ -66,7 +66,7 @@ def pipeline_seg(st, segment, cl=None, cfile=None,
 #                                             1.1*st.vismem/st.dtarr[dtind]})
             canddatalist = cl.submit(search.search_thresh, st, data_dmdt,
                                      segment, dmind, dtind, wisdom=wisdom,
-                                     mode='cuda', pure=True,
+                                     pure=True,
                                      resources={'GPU': 1})#,
 #                                                'MEMORY': 1.1*st.immem})
 #                                     mode='fftw', pure=True,
