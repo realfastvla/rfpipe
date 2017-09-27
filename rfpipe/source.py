@@ -144,7 +144,7 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout):
                 .format(st.metadata.inttime, st.datashape, t0, t1))
 
     with vysmaw_reader.Reader(t0, t1, cfile=cfile) as reader:
-        data[:] = reader.readwindow(nant=st.nants, nspw=st.nspw,
+        data[:] = reader.readwindow(nant=st.ants, nspw=st.nspw,
                                     nchan=st.metadata.spw_nchan[0],
                                     npol=st.npol,
                                     inttime_micros=st.metadata.inttime*1e6,
