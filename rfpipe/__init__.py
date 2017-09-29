@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 __all__ = ['search', 'state', 'source', 'pipeline', 'util', 'metadata',
            'preferences', 'reproduce', 'fileLock']
 
