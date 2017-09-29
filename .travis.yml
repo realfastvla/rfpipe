@@ -39,4 +39,5 @@ notifications:
   email: false
   slack: realfastvla:ID1qIFG70HGYf3G6Y3oWoFFk
 
-dist: trusty
+sudo: required
+dist: precise
