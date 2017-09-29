@@ -29,7 +29,7 @@ before_script:
   - git config --global user.name "Travis-CI"
 
 script: 
-  - coverage run --source rfpipe -m py.test
+  - PYTHONPATH=. coverage run --source rfpipe -m py.test
 
 after_success:
   - coverage report
