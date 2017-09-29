@@ -134,7 +134,8 @@ def pipeline_imdata(st, candloc, data_dmdt=None):
 
     i = candint//dt
     image = search.image(data_dmdt, uvw, st.npixx, st.npixy, st.uvres,
-                         wisdom, integrations=[i])[0]
+                         st.fftmode, st.prefs.nthread, wisdom=wisdom,
+                         integrations=[i])[0]
     dl, dm = st.pixtolm(np.where(image == image.max()))
     search.phase_shift(data_dmdt, uvw, dl, dm)
     dataph = data_dmdt[i-st.prefs.timewindow//2:i+st.prefs.timewindow//2].mean(axis=1)
