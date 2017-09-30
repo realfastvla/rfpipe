@@ -41,9 +41,8 @@ realfast cluster. More project info at http://realfast.io.
 """
 
 # Load the package's __version__.py module as a dictionary.
-about = {}
-with open(os.path.join(here, NAME, '__version__.py')) as f:
-    exec(f.read(), about)
+with open(os.path.join(here, NAME, 'version.py')) as f:
+    exec(f.read())
 
 
 class PublishCommand(Command):
@@ -82,7 +81,7 @@ class PublishCommand(Command):
 # Where the magic happens:
 setup(
     name=NAME,
-    version=about['__version__'],
+    version=__version__,
     description=DESCRIPTION,
     long_description=long_description,
     author=AUTHOR,
