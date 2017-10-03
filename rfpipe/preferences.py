@@ -5,7 +5,10 @@ from io import open
 
 import attr
 import yaml
+import json
 from os import getcwd
+from collections import OrderedDict
+import hashlib
 from rfpipe.version import __version__
 
 import logging
@@ -77,6 +80,37 @@ class Preferences(object):
     timewindow = attr.ib(default=30)
 #    logfile = attr.ib(default=True)
     loglevel = attr.ib(default='INFO')
+
+    @property
+    def ordered(self):
+        """ Get OrderedDict of preferences sorted by key
+        """
+
+        keys = sorted(self.__dict__)
+        return OrderedDict([(key, self.__dict__[key]) for key in keys])
+
+    @property
+    def json(self):
+        """ json string that can be loaded into elasticsearch or hashed.
+        """
+
+        return json.dumps(self.ordered)
+
+    @property
+    def name(self):
+        """ Unique name for an instance of preferences.
+        To be used to look up preference set for a given candidate or data set.
+        """
+
+        return hashlib.md5(self.json).hexdigest()
+
+
+def parsejson(jsonstring):
+    """ Take json string (as from elasticsearch) and creates preference object.
+    """
+
+    inprefs = json.loads(jsonstring)
+    return Preferences(**inprefs)
 
 
 def parsepreffile(preffile=None, name=None):
