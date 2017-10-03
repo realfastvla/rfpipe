@@ -143,8 +143,10 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout):
     logger.info('Reading {0} s ints into shape {1} from {2} - {3} unix seconds'
                 .format(st.metadata.inttime, st.datashape, t0, t1))
 
+    antnums = [int(ant.lstrip('ea')) for ant in st.ants]
+
     with vysmaw_reader.Reader(t0, t1, cfile=cfile) as reader:
-        data[:] = reader.readwindow(nant=st.ants, nspw=st.nspw,
+        data[:] = reader.readwindow(antlist=antnums, nspw=st.nspw,
                                     nchan=st.metadata.spw_nchan[0],
                                     npol=st.npol,
                                     inttime_micros=st.metadata.inttime*1e6,
