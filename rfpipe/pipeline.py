@@ -4,7 +4,7 @@ from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
 import distributed
-from rfpipe import source, search, util
+from rfpipe import source, search, util, candidates
 
 import logging
 logger = logging.getLogger(__name__)
@@ -72,9 +72,9 @@ def pipeline_seg(st, segment, cl=None, cfile=None,
 #                                     mode='fftw', pure=True,
 #                                     resources={'MEMORY': 1.1*st.immem})
 
-            candidates = cl.submit(search.calc_features, canddatalist,
+            candidates = cl.submit(candidates.calc_features, canddatalist,
                                    pure=True)
-            saved.append(cl.submit(search.save_cands, st, candidates,
+            saved.append(cl.submit(candidates.save_cands, st, candidates,
                                    canddatalist, pure=True))
 
     # ** or aggregate over dt or dm trials? **
