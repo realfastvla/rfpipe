@@ -2,6 +2,9 @@ import rfpipe
 import pytest
 from astropy import time
 import numpy as np
+import sys, os
+myPath = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, myPath + '/../')
 
 # simulate no flag, transient/no flag, transient/flag
 inprefs = [{'flaglist': [], 'npix_max': 32, 'sigma_image1': -999,

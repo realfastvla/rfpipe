@@ -1,6 +1,9 @@
 import rfpipe
 import pytest
 import os.path
+import sys, os
+myPath = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, myPath + '/../')
 
 _install_dir = os.path.abspath(os.path.dirname(__file__))
 
