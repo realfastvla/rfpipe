@@ -33,9 +33,12 @@ def data_prep(st, data):
         # ** dataflag points to rtpipe for now
         data = util.dataflag(st, data)
 
-        logger.info('Subtracting mean visibility in time.')
         if st.prefs.timesub == 'mean':
+            logger.info('Subtracting mean visibility in time.')
             data = util.meantsub(data)
+        else:
+            logger.info('No visibility subtraction done.')
+
 
     return data
 

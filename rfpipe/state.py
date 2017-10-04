@@ -667,7 +667,7 @@ class State(object):
         """ Memory required to store read data (in GB)
         """
 
-        toGB = 8/1024**3   # number of complex64s to GB
+        toGB = 8/1000**3   # number of complex64s to GB
 
         return self.datasize * toGB
 
@@ -678,7 +678,7 @@ class State(object):
         segments.
         """
 
-        toGB = 8/1024**3   # number of complex64s to GB
+        toGB = 8/1000**3   # number of complex64s to GB
         return toGB*long(self.t_overlap /
                          self.inttime*self.nbl*self.nchan*self.npol /
                          (self.prefs.read_tdownsample *
@@ -689,11 +689,8 @@ class State(object):
         """ Memory required to create all images in a chunk of read integrations
         """
 
-        toGB = 8/1024**3   # number of complex64s to GB
-        immem = self.prefs.nthread * (self.readints * self.npixx *
-                                      self.npixy) * toGB
-
-        return immem
+        toGB = 8/1000**3   # number of complex64s to GB
+        return (self.readints * self.npixx * self.npixy) * toGB
 
     @property
     def immem_limit(self):
@@ -701,11 +698,12 @@ class State(object):
         Limit defined for all threads.
         """
 
-        toGB = 8/1024**3   # number of complex64s to GB
-        immem = self.prefs.nthread * ((self.t_overlap/self.inttime) *
-                                      self.npixx * self.npixy) * toGB
+        toGB = 8/1000**3   # number of complex64s to GB
+        return ((self.t_overlap/self.inttime) * self.npixx * self.npixy) * toGB
 
-        return immem
+    @property
+    def defined(self):
+        return [key for key in self.__dict__.keys() if key[0] != '_']
 
 # **not sure we need this
 #
@@ -731,24 +729,6 @@ class State(object):
     #   uvoversample + npix_max + metadata => npixx, npixy
 
     # flagantsol should be merged with flaglist
-
-# ** not sure we need this yet.
-#
-#    @property
-#    def hash(self):
-#        """ Hash that identifies pipeline state that produces unique set of output products """
-#
-#        extant_keys = self.keys()
-#        if all([kk in self.reproducekeys for kk in extant_keys]):
-#            values = [self[key] for key in self.reproducekeys]
-#            return hash(json.dumps(repr(values)))  # is repr safe?
-#        else:
-#            print('Cannot make hash without minimal set defined in reproducekeys property.')
-#            return None
-
-    @property
-    def defined(self):
-        return [key for key in self.__dict__.keys() if key[0] != '_']
 
 
 def calc_dmarr(state):
