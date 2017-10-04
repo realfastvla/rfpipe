@@ -84,7 +84,7 @@ def calc_features(canddatalist):
     logger.info('Calculating features for {0} candidates.'
                 .format(len(canddatalist)))
 
-    candidates = {}
+    features = {}
     for i in xrange(len(canddatalist)):
         canddata = canddatalist[i]
         st = canddata.state
@@ -117,26 +117,26 @@ def calc_features(canddatalist):
                 raise NotImplementedError("Feature {0} calculation not ready"
                                           .format(feat))
 
-        candidates[candloc] = list(ff)
+        features[candloc] = list(ff)
 
-    return candidates
+    return features
 
 
-def save_cands(st, candidates, canddatalist):
-    """ Save candidates in reproducible form.
+def save_cands(st, features, canddatalist):
+    """ Save candidate features in reproducible form.
     Saves as DataFrame with metadata and preferences attached.
     Writes to location defined by state using a file lock to allow multiple
     writers.
     """
 
-    if st.prefs.savecands and len(candidates):
-        logger.info('Saving {0} candidates to {1}.'.format(len(candidates),
+    if st.prefs.savecands and len(features):
+        logger.info('Saving {0} candidates to {1}.'.format(len(features),
                                                            st.candsfile))
 
         df = pd.DataFrame(OrderedDict(zip(st.search_dimensions,
-                                          np.transpose(candidates.keys()))))
+                                          np.transpose(features.keys()))))
         df2 = pd.DataFrame(OrderedDict(zip(st.features,
-                                           np.transpose(candidates.values()))))
+                                           np.transpose(features.values()))))
         df3 = pd.concat([df, df2], axis=1)
 
         cdf = CandidateDF(df3, prefs=st.prefs, metadata=st.metadata)
@@ -147,7 +147,7 @@ def save_cands(st, candidates, canddatalist):
                     pickle.dump(cdf, pkl)
         except fileLock.FileLock.FileLockException:
             scan = st.metadata.scan
-            loc, prop = candidates.popitem()
+            loc, prop = features.popitem()
             segment = loc[0]
             newcandsfile = ('{0}_sc{0}_seg{1}.pkl'
                             .format(st.candsfile.rstrip('.pkl'),
@@ -162,13 +162,14 @@ def save_cands(st, candidates, canddatalist):
             maxindex = cdf.df[cdf.df.snr1 == cdf.df.snr1.max()].index[0]
             candplot(canddatalist[maxindex], snrs=snrs)
 
-        return st.candsfile
-    elif st.prefs.savecands and not len(candidates):
+    elif st.prefs.savecands and not len(features):
         logger.debug('No candidates to save to {0}.'.format(st.candsfile))
-        return None
+
     elif not st.prefs.savecands:
         logger.info('Not saving candidates.')
-        return None
+
+    return st  # return state as handle on pipeline
+
 
 def candplot(canddatalist, snrs=[], outname=''):
     """ Takes output of search_thresh (CandData objects) to make
@@ -647,7 +648,6 @@ def deg2HMS(ra='', dec='', round=False):
         return (RA, DEC)
     else:
         return RA or DEC
-
 
 
 class CandidateDF(object):

@@ -33,8 +33,8 @@ def pipeline_seg(st, segment, cl=None, cfile=None,
     """ Submit pipeline processing of a single segment to scheduler.
     Can use distributed client or compute locally.
 
-    Uses distributed resources parameter to control scheduling.
-    dask-worker must have "MEMORY" resource defined.
+    Uses distributed resources parameter to control scheduling of GPUs.
+    Pipeline produces jobs per DM/dt and returns the state as a handle to each.
     """
 
     logger.info('Building dask for observation {0}.'.format(st.fileroot))
@@ -57,29 +57,30 @@ def pipeline_seg(st, segment, cl=None, cfile=None,
         delay = cl.submit(util.calc_delay, st.freq, st.freq.max(),
                           st.dmarr[dmind], st.inttime, pure=True)
         data_dm = cl.submit(search.dedisperse, data_prep, delay, mode=mode,
-                            pure=True)#, resources={'MEMORY': 1.1*st.vismem})
+                            pure=True)
+#                           , resources={'MEMORY': 1.1*st.vismem})
 
         for dtind in range(len(st.dtarr)):
             data_dmdt = cl.submit(search.resample, data_dm, st.dtarr[dtind],
-                                  mode=mode, pure=True)#
+                                  mode=mode, pure=True)
 #                                  resources={'MEMORY':
 #                                             1.1*st.vismem/st.dtarr[dtind]})
             canddatalist = cl.submit(search.search_thresh, st, data_dmdt,
                                      segment, dmind, dtind, wisdom=wisdom,
                                      pure=True,
-                                     resources={'GPU': 1})#,
+                                     resources={'GPU': 1})
 #                                                'MEMORY': 1.1*st.immem})
 #                                     mode='fftw', pure=True,
 #                                     resources={'MEMORY': 1.1*st.immem})
 
             features = cl.submit(candidates.calc_features, canddatalist,
-                                   pure=True)
+                                 pure=True)
             saved.append(cl.submit(candidates.save_cands, st, features,
                                    canddatalist, pure=True))
 
     # ** or aggregate over dt or dm trials? **
 
-    return saved
+    return saved  # each item in list is a state object
 
 
 def pipeline_seg2(st, segment, cfile=None, vys_timeout=vys_timeout_default):

@@ -663,6 +663,18 @@ class State(object):
                                 'cands_' + self.fileroot + '.pkl')
 
     @property
+    def noisefile(self):
+        """ File name to write noises into """
+
+        return self.candsfile.replace('cands_', 'noise_')
+
+    @property
+    def mockfile(self):
+        """ File name to write mocks into """
+
+        return self.candsfile.replace('cands_', 'mock_')
+
+    @property
     def vismem(self):
         """ Memory required to store read data (in GB)
         """
