@@ -32,3 +32,14 @@ def test_overload():
     prefs = rfpipe.preferences.Preferences(**prefdict)
 
     assert prefs.flaglist == []
+
+
+def test_name():
+    preffile = os.path.join(_install_dir, 'data/realfast.yml')
+    prefdict = rfpipe.preferences.parsepreffile(preffile)
+    prefs0 = rfpipe.preferences.Preferences(**prefdict)
+
+    prefdict['flaglist'] = []
+    prefs = rfpipe.preferences.Preferences(**prefdict)
+
+    assert prefs0.name != prefs.name

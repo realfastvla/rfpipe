@@ -57,7 +57,7 @@ def test_search(mockstate):
                                                            dtind,
                                                            wisdom=wisdom)
 
-                features = rfpipe.search.calc_features(canddatalist)
+                features = rfpipe.candidates.calc_features(canddatalist)
                 featurelist.append(features)
                 print(features.keys())
                 times += [canddata.time_top for canddata in canddatalist]

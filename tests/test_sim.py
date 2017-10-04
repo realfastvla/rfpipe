@@ -51,7 +51,7 @@ def test_search(mockstate, mockdm, wisdom):
     canddatalist = rfpipe.search.search_thresh(mockstate, mockdm, segment,
                                                dmind, dtind, wisdom=wisdom)
 
-    features = rfpipe.search.calc_features(canddatalist)
+    features = rfpipe.candidates.calc_features(canddatalist)
     assert type(features) == dict
 
     if mockstate.prefs.simulated_transient:
