@@ -9,7 +9,7 @@ import numpy as np
 from collections import OrderedDict
 import pandas as pd
 import matplotlib.pyplot as plt
-from rfpipe import state, util, version, fileLock
+from rfpipe import util, version, fileLock
 
 import logging
 logger = logging.getLogger(__name__)

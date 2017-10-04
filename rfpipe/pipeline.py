@@ -72,9 +72,9 @@ def pipeline_seg(st, segment, cl=None, cfile=None,
 #                                     mode='fftw', pure=True,
 #                                     resources={'MEMORY': 1.1*st.immem})
 
-            candidates = cl.submit(candidates.calc_features, canddatalist,
+            features = cl.submit(candidates.calc_features, canddatalist,
                                    pure=True)
-            saved.append(cl.submit(candidates.save_cands, st, candidates,
+            saved.append(cl.submit(candidates.save_cands, st, features,
                                    canddatalist, pure=True))
 
     # ** or aggregate over dt or dm trials? **
@@ -103,5 +103,5 @@ def pipeline_seg2(st, segment, cfile=None, vys_timeout=vys_timeout_default):
             canddatalist = search.search_thresh(st, data_dmdt, segment, dmind,
                                                 dtind, wisdom=wisdom)
 
-            candidates = search.calc_features(canddatalist)
-            search.save_cands(st, candidates, canddatalist)
+            features = candidates.calc_features(canddatalist)
+            search.save_cands(st, features, canddatalist)

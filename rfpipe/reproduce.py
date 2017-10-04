@@ -8,7 +8,7 @@ import os.path
 from collections import OrderedDict
 import numpy as np
 import pandas as pd
-from rfpipe import preferences, state, util, search, source, metadata
+from rfpipe import preferences, state, util, search, source, metadata, candidates
 
 import logging
 logger = logging.getLogger(__name__)
@@ -141,7 +141,7 @@ def pipeline_imdata(st, candloc, data_dmdt=None):
     dataph = data_dmdt[i-st.prefs.timewindow//2:i+st.prefs.timewindow//2].mean(axis=1)
     search.phase_shift(data_dmdt, uvw, -dl, -dm)
 
-    canddata = search.CandData(state=st, loc=tuple(candloc), image=image,
+    canddata = candidates.CandData(state=st, loc=tuple(candloc), image=image,
                                data=dataph)
 
     # output is as from search.image_thresh
@@ -158,8 +158,8 @@ def pipeline_candidate(st, candloc, canddata=None):
     if canddata is None:
         canddatalist = pipeline_imdata(st, candloc)
 
-    candidate = search.calc_features(canddatalist)
+    features = candidates.calc_features(canddatalist)
 
 #    search.candplot(canddatalist)
 
-    return candidate
+    return features

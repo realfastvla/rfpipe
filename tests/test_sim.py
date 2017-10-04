@@ -1,7 +1,8 @@
 import rfpipe
 import pytest
 from astropy import time
-import sys, os
+import sys
+import os
 myPath = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, myPath + '/../')
 
@@ -9,7 +10,8 @@ sys.path.insert(0, myPath + '/../')
 inprefs = [{'flaglist': [], 'npix_max': 512},
 #           {'read_tdownsample': 2, 'read_fdownsample': 2, 'npix_max': 512},
            {'simulated_transient': [(1., 30, 25, 5e-3, 0.001, 0.001)],
-            'maxdm': 50, 'dtarr': [1, 2], 'npix_max': 512, 'savecands': True}]
+            'maxdm': 50, 'dtarr': [1, 2], 'npix_max': 512, 'savecands': True,
+            'savenoise': True}]
 
 
 @pytest.fixture(scope="module", params=inprefs)
