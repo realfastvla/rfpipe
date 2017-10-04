@@ -394,24 +394,3 @@ def phase_shift(data, uvw, dl, dm):
                         # phasor unwraps phase at (dl, dm) per (bl, chan)
                         frot = np.exp(-2j*np.pi*(dl*u[j, k] + dm*v[j, k]))
                         data[i, j, k, l] = data[i, j, k, l] * frot
-
-
-#
-# CUDA
-#
-
-
-@vectorize(nopython=True)
-def get_mask(x):
-    """ Returns equal sized array of 0/1 """
-
-    return x != 0j
-
-
-def runcuda(func, arr, threadsperblock, *args, **kwargs):
-    """ Function to run cuda kernels while defining threads/blocks """
-
-    blockspergrid = []
-    for tpb, sh in threadsperblock, arr.shape:
-        blockspergrid.append = int32(math.ceil(sh / tpb))
-    func[tuple(blockspergrid), threadsperblock](arr, *args, **kwargs)

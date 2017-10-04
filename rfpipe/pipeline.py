@@ -9,7 +9,7 @@ from rfpipe import source, search, util, candidates
 import logging
 logger = logging.getLogger(__name__)
 vys_timeout_default = 10
-  
+
 
 def pipeline_scan_distributed(st, segments=None, host='cbe-node-01',
                               cfile=None, vys_timeout=vys_timeout_default):

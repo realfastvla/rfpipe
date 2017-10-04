@@ -39,6 +39,8 @@ def data_prep(st, data):
         else:
             logger.info('No visibility subtraction done.')
 
+        if st.prefs.savenoise:
+            logger.warn("Saving of noise properties not implemented yet.")
 
     return data
 

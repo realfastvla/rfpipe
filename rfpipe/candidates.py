@@ -68,7 +68,6 @@ class CandData(object):
         return self.time_top - delay
 
 
-
 def calc_features(canddatalist):
     """ Calculates the candidate features for CandData instance(s).
     Returns dictionary of candidate features with keys as defined in
@@ -121,6 +120,7 @@ def calc_features(canddatalist):
         candidates[candloc] = list(ff)
 
     return candidates
+
 
 def save_cands(st, candidates, canddatalist):
     """ Save candidates in reproducible form.
