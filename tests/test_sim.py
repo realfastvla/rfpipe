@@ -3,6 +3,9 @@ import pytest
 from astropy import time
 import sys
 import os
+import distributed
+
+# ** is this needed?
 myPath = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, myPath + '/../')
 
@@ -63,5 +66,12 @@ def test_search(mockstate, mockdm, wisdom):
 
 def test_pipeline(mockstate):
     res = rfpipe.pipeline.pipeline_seg(mockstate, 0)
+
+    assert len(res) == len(mockstate.dmarr)*len(mockstate.dtarr)
+
+
+def test_pipeline_distributed(mockstate):
+    cl = distributed.client.Client()
+    res = rfpipe.pipeline.pipeline_seg(mockstate, 0, cl=cl)
 
     assert len(res) == len(mockstate.dmarr)*len(mockstate.dtarr)

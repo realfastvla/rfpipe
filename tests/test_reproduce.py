@@ -4,6 +4,8 @@ from astropy import time
 import numpy as np
 import os.path
 import sys, os
+
+# **is this needed?
 myPath = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, myPath + '/../')
 
