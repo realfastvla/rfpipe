@@ -22,8 +22,8 @@ def pipeline_scan_distributed(st, segments=None, host='cbe-node-01',
         segments = range(st.nsegment)
 
     for segment in segments:
-        saved += pipeline_seg(st, segment, cl=cl, cfile=cfile,
-                              vys_timeout=vys_timeout)
+        saved.append(pipeline_seg(st, segment, cl=cl, cfile=cfile,
+                                  vys_timeout=vys_timeout))
 
     return saved
 
@@ -67,22 +67,27 @@ def pipeline_seg(st, segment, cl=None, cfile=None,
                                   mode=mode, pure=True)
 #                                  resources={'MEMORY':
 #                                             1.1*st.vismem/st.dtarr[dtind]})
-            canddatalist = cl.submit(search.search_thresh, st, data_dmdt,
-                                     segment, dmind, dtind, wisdom=wisdom,
-                                     pure=True,
-                                     resources={'GPU': 1})
+            saved.append(cl.submit(search.search_thresh, st, data_dmdt,
+                                   segment, dmind, dtind, wisdom=wisdom,
+                                   pure=True, resources={'GPU': 1}))
 #                                                'MEMORY': 1.1*st.immem})
 #                                     mode='fftw', pure=True,
 #                                     resources={'MEMORY': 1.1*st.immem})
 
-            features = cl.submit(candidates.calc_features, canddatalist,
-                                 pure=True)
-            saved.append(cl.submit(candidates.save_cands, st, features,
-                                   canddatalist, pure=True))
-
     # ** or aggregate over dt or dm trials? **
+    canddatalist = cl.submit(mergelists, saved, pure=True)
+    features = cl.submit(candidates.calc_features, canddatalist,
+                         pure=True)
+    return cl.submit(candidates.save_cands, st, features, canddatalist,
+                     pure=True)
 
-    return saved  # each item in list is a state object
+
+def mergelists(futlists):
+    """ Take list of lists and return single list
+    ** TODO: could put logic here to find islands, peaks, etc?
+    """
+
+    return [fut for futlist in futlists for fut in futlist]
 
 
 def pipeline_seg2(st, segment, cfile=None, vys_timeout=vys_timeout_default):
