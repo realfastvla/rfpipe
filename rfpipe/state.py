@@ -84,7 +84,9 @@ class State(object):
             if (self.sdmfile and self.sdmscan) and not self.config:
                 meta = metadata.sdm_metadata(sdmfile, sdmscan)
             elif self.config and not (self.sdmfile or self.sdmscan):
-                meta = metadata.config_metadata(config)
+                # config datasource can be vys or simulated data
+                datasource = inmeta['datasource'] if 'datasource' in inmeta else 'vys'
+                meta = metadata.config_metadata(config, datasource=datasource)
             else:
                 meta = {}
 
