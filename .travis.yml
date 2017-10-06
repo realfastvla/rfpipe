@@ -17,7 +17,9 @@ install:
   - conda config --append channels pkgw-forge 
 
   # install with conda and pip
-  - conda install -q python=2.7 numpy scipy jupyter bokeh cython matplotlib numba pytest setuptools pip coverage pyfftw
+  - conda create -n conda pip
+  - source activate conda
+  - conda install -q python=2.7 numpy scipy jupyter bokeh cython matplotlib numba pytest setuptools coverage pyfftw
   - conda install -q python=2.7 pwkit casa-tools casa-python casa-data
   - pip install git+git://github.com/realfastvla/evla_mcast.git
   - pip install git+git://github.com/realfastvla/sdmpy.git
