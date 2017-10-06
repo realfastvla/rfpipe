@@ -107,8 +107,11 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
 
     # optionally add transients
     if st.prefs.simulated_transient is not None:
+        assert isinstance(st.prefs.simulated_transient, list)
         uvw = st.get_uvw_segment(segment)
         for params in st.prefs.simulated_transient:
+            assert isinstance(params, tuple)
+            assert len(params) == 6
             (amp, i0, dm, dt, l, m) = params
             logger.info("Adding transient with Amp {0} at int {1}, DM {2}, "
                         "dt {3} and l,m={4},{5}".format(amp, i0, dm, dt, l, m))
