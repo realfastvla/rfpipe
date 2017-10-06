@@ -37,7 +37,9 @@ def pipeline_seg(st, segment, cl=None, cfile=None,
     Pipeline produces jobs per DM/dt and returns the state as a handle to each.
     """
 
-    logger.info('Building dask for observation {0}.'.format(st.fileroot))
+    logger.info('Building dask for observation {0}, scan {1}, segment {2}.'
+                .format(st.metadata.filename, st.metadata.scan, segment))
+
     mode = 'single' if st.prefs.nthread == 1 else 'multi'
 
     if not cl:
