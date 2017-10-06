@@ -30,8 +30,9 @@ def data_prep(st, data):
         else:
             logger.info('Not applying telcal solutions for simulated data')
 
-        # ** dataflag points to rtpipe for now
-        data = util.dataflag(st, data)
+        # ** dataflag points to rtpipe for now.
+        # changes memory in place, so need to force writability
+        data = util.dataflag(st, np.require(data, requirements='W'))
 
         if st.prefs.timesub == 'mean':
             logger.info('Subtracting mean visibility in time.')
@@ -58,6 +59,7 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
         data_read = read_vys_segment(st, segment, cfile=cfile, timeout=timeout)
     elif st.metadata.datasource == 'sim':
         data_read = simulate_segment(st)
+
     else:
         logger.error('Datasource {0} not recognized.'
                      .format(st.metadata.datasource))

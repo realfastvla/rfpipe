@@ -45,7 +45,8 @@ class Preferences(object):
     badspwpol = attr.ib(default=2.)  # 0 means no flagging done
     applyonlineflags = attr.ib(default=True)
     gainfile = attr.ib(default=None)
-    # simulate transients from list of tuples with (amp, i0, dm, dt, dl, dm)
+    # simulate transients from list of tuples with
+    # values/units: (amp/system, i0/int, dm/pc/cm3, dt/s, dl/rad, dm/rad)
     simulated_transient = attr.ib(default=None)
 
     # processing

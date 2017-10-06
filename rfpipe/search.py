@@ -24,9 +24,12 @@ def dedisperse(data, delay, mode='multi'):
     if not np.any(data):
         return np.array([])
 
+    # changes memory in place, so need to force writability
     data = np.require(data, requirements='W')
+
     logger.info('Dedispersing up to delay shift of {0} integrations'
                 .format(delay.max()))
+
     if mode == 'single':
         return _dedisperse_jit(data, delay)
     elif mode == 'multi':
@@ -77,6 +80,8 @@ def resample(data, dt, mode='multi'):
 
     if not np.any(data):
         return np.array([])
+
+    # changes memory in place, so need to force writability
     data = np.require(data, requirements='W')
 
     len0 = data.shape[0]
