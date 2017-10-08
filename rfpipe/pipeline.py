@@ -67,9 +67,10 @@ def pipeline_seg(st, segment, cl=None, cfile=None,
                                   mode=mode, pure=True)
 #                                  resources={'MEMORY':
 #                                             1.1*st.vismem/st.dtarr[dtind]})
+            resources = None if st.fftmode == 'fftw' else {'GPU': 1}
             saved.append(cl.submit(search.search_thresh, st, data_dmdt,
                                    segment, dmind, dtind, wisdom=wisdom,
-                                   pure=True, resources={'GPU': 1}))
+                                   pure=True, resources=resources))
 #                                                'MEMORY': 1.1*st.immem})
 #                                     mode='fftw', pure=True,
 #                                     resources={'MEMORY': 1.1*st.immem})
