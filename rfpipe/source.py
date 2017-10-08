@@ -117,7 +117,11 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
             (amp, i0, dm, dt, l, m) = params
             logger.info("Adding transient with Amp {0} at int {1}, DM {2}, "
                         "dt {3} and l,m={4},{5}".format(amp, i0, dm, dt, l, m))
-            model = generate_transient(st, amp, i0, dm, dt)
+            try:
+                model = generate_transient(st, amp, i0, dm, dt)
+            except IndexError:
+                logger.warn("IndexError while adding transient. Skipping...")
+                continue
             search.phase_shift(data_read, uvw, l, m)
             data_read += model.transpose()[:, None, :, None]
             search.phase_shift(data_read, uvw, -l, -m)
