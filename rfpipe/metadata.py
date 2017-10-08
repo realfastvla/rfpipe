@@ -157,6 +157,7 @@ def config_metadata(config, datasource='vys'):
     Parallel structure to sdm_metadata, so this inherits some of its
     nomenclature. datasource defines expected data source (vys expected when
     using scan config)
+    spworder is required for proper indexing of vys data.
     """
 
     logger.info('Reading metadata from config object')
@@ -188,6 +189,9 @@ def config_metadata(config, datasource='vys'):
     meta['spw_chansize'] = [sb.bw/subband0.spectralChannels for sb in subbands]
     meta['spw_orig'] = [sb.sbid for sb in subbands]
     meta['spw_reffreq'] = [sb.sky_center_freq*1e6 for sb in subbands]
+    meta['spworder'] = sorted([('{0}-{1}'.format(sb.IFid, sb.sbid),
+                                sb.sky_center_freq)
+                               for sb in subbands], key=lambda x: x[1])
 
     return meta
 
