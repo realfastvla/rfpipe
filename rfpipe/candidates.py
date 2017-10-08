@@ -34,6 +34,8 @@ class CandData(object):
         assert len(loc) == len(state.search_dimensions), ("candidate location "
                                                           "should set each of "
                                                           "the st.search_dimensions")
+    def __repr__(self):
+        return 'CandData for state {0} at loc {1}'.format(state, loc)
 
     @property
     def peak_lm(self):
@@ -660,3 +662,6 @@ class CandidateDF(object):
         self.prefs = prefs
         self.metadata = metadata
         self.rfpipe_version = version.__version__
+
+    def __repr__(self):
+        return 'CandidateDF with {0} rows'.format(df.len)

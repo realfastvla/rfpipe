@@ -77,6 +77,7 @@ class State(object):
             logger.warn('inprefs should be either a dictionary or \
                          preferences.Preferences object')
 
+        # TODO: is this working?
         logger.parent.setLevel(getattr(logging, self.prefs.loglevel))
 
         if isinstance(inmeta, dict):
@@ -106,6 +107,10 @@ class State(object):
 
         if showsummary:
             self.summarize()
+
+    def __repr__(self):
+        return ('rfpipe state with metadata/prefs ({0}/{1})'
+                .format(self.metadata.filename, self.prefs.name))
 
     def summarize(self):
         """ Print summary of pipeline state """
