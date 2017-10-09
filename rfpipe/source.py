@@ -163,7 +163,7 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout):
     with vysmaw_reader.Reader(t0, t1, cfile=cfile, timeout=timeout) as reader:
         data[:] = reader.readwindow(antlist=antlist, spwlist=spwlist,
                                     nchan=st.metadata.spw_nchan[0],
-                                    npol=st.npol,
+                                    pollist=st.pols,
                                     inttime_micros=st.metadata.inttime*1e6)
 
     return data
