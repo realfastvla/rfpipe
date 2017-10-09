@@ -51,11 +51,13 @@ class Metadata(object):
     xyz = attr.ib(default=None)  # in m, geocentric
 
     # spectral info
+    spworder = attr.ib(default=None)
     spw_orig = attr.ib(default=None)  # indexes for spw
     spw_nchan = attr.ib(default=None)  # channesl per spw
     spw_reffreq = attr.ib(default=None)  # reference frequency in Hz
     spw_chansize = attr.ib(default=None)  # channel size in Hz
     pols_orig = attr.ib(default=None)
+    
 
     def atdefaults(self):
         """ Is metadata still set at default values? """
