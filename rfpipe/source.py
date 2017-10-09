@@ -158,7 +158,7 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout):
                 .format(st.metadata.inttime, st.datashape, t0, t1))
 
     antlist = [int(ant.lstrip('ea')) for ant in st.ants]
-    spwlist = zip(*st.metadata.spworder)[0]  # list of strings ["bb-spw"] in increasing freq order
+    spwlist = list(zip(*st.metadata.spworder)[0])  # list of strings ["bb-spw"] in increasing freq order
 
     with vysmaw_reader.Reader(t0, t1, cfile=cfile) as reader:
         data[:] = reader.readwindow(antlist=antlist, spwlist=spwlist,
