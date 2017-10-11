@@ -9,3 +9,13 @@ Extends on [rtpipe](http://github.com/caseyjlaw/rtpipe).
 [![Build Status](https://travis-ci.org/realfastvla/rfpipe.svg?branch=master)](https://travis-ci.org/realfastvla/rfpipe)
 
 [![codecov](https://codecov.io/gh/realfastvla/rfpipe/branch/master/graph/badge.svg)](https://codecov.io/gh/realfastvla/rfpipe)
+
+## Installation
+
+```
+conda config --add channels pkgw-forge
+conda config --add channels conda-forge
+conda create -n realfast numpy scipy jupyter bokeh cython matplotlib pwkit casa-tools casa-python casa-data numba astropy pandas
+pip install git+ssh://git@github.com/realfastvla/sdmpy
+pip install git+ssh://git@github.com/realfastvla/rfpipe
+```
