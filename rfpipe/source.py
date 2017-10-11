@@ -158,12 +158,18 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout):
                 .format(st.metadata.inttime, st.datashape, t0, t1))
 
     antlist = [int(ant.lstrip('ea')) for ant in st.ants]
+
+    polmap_standard = ['A*A', 'A*B', 'B*A', 'B*B']
+    pollist = [polmap_standard.index(pol) for pol in st.pols]
+
+    bbmap_standard = ['A1C1', 'A2C2', 'AC', 'B1D1', 'B2D2', 'BD']
     spwlist = list(zip(*st.metadata.spworder)[0])  # list of strings ["bb-spw"] in increasing freq order
+    bbsplist = ['{0}-{1}'.format(bbmap_standard.index(spw.split('-')[0]), spw.split('-')[1]) for spw in spwlist]
 
     with vysmaw_reader.Reader(t0, t1, cfile=cfile, timeout=timeout) as reader:
-        data[:] = reader.readwindow(antlist=antlist, spwlist=spwlist,
+        data[:] = reader.readwindow(antlist=antlist, bbsplist=bbsplist,
                                     nchan=st.metadata.spw_nchan[0],
-                                    pollist=st.pols,
+                                    pollist=pollist,
                                     inttime_micros=st.metadata.inttime*1e6)
 
     return data
