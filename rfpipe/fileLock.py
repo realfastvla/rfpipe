@@ -73,6 +73,10 @@ of the authors and should not be interpreted as representing official policies,
 either expressed or implied, of the FreeBSD Project.
 """
 
+from __future__ import print_function, division, absolute_import #, unicode_literals # not casa compatible
+from builtins import bytes, dict, object, range, map, input#, str # not casa compatible
+from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
+
 import os
 import sys
 import time
@@ -179,42 +183,3 @@ class FileLock(object):
             self.release()
             return True
         return False
-    
-if __name__ == "__main__":
-    import sys
-    import functools
-    import threading
-    import tempfile
-    temp_dir = tempfile.mkdtemp()
-    protected_filepath = os.path.join( temp_dir, "somefile.txt" )
-    print "Protecting file: {}".format( protected_filepath )
-    fl = FileLock( protected_filepath )
-
-    def writeLines(line, repeat=10):
-        with fl:
-            for _ in range(repeat):
-                with open( protected_filepath, 'a' ) as f:
-                    f.write( line + "\n" )
-                    f.flush()
-    
-    th1 = threading.Thread(target=functools.partial( writeLines, "1111111111111111111111111111111" ) )
-    th2 = threading.Thread(target=functools.partial( writeLines, "2222222222222222222222222222222" ) )
-    th3 = threading.Thread(target=functools.partial( writeLines, "3333333333333333333333333333333" ) )
-    th4 = threading.Thread(target=functools.partial( writeLines, "4444444444444444444444444444444" ) )
-    
-    th1.start()
-    th2.start()
-    th3.start()
-    th4.start()
-    
-    th1.join()
-    th2.join()
-    th3.join()
-    th4.join()
-    
-    assert not os.path.exists( fl.lockfile ), "The lock file wasn't cleaned up!"
-    
-    # Print the contents of the file.
-    # Please manually inspect the output.  Does it look like the operations were atomic?
-    with open( protected_filepath, 'r' ) as f:
-        sys.stdout.write( f.read() )
