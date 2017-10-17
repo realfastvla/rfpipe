@@ -34,8 +34,9 @@ class CandData(object):
         assert len(loc) == len(state.search_dimensions), ("candidate location "
                                                           "should set each of "
                                                           "the st.search_dimensions")
+
     def __repr__(self):
-        return 'CandData for state {0} at loc {1}'.format(state, loc)
+        return 'CandData for state {0} at loc {1}'.format(self.state, self.loc)
 
     @property
     def peak_lm(self):
@@ -171,6 +172,22 @@ def save_cands(st, features, canddatalist):
         logger.info('Not saving candidates.')
 
     return st  # return state as handle on pipeline
+
+
+def itercands(candsfile):
+    """ Iterate through (new style) candsfile and return them individually.
+    """
+
+    with open(candsfile) as pkl:
+        while True:  # step through all possible segments
+            try:
+                cands = pickle.load(pkl)
+                for cand in cands.df.itertuples():
+                    yield cand
+
+            except EOFError:
+                logger.info('No more candidates')
+                break
 
 
 def candplot(canddatalist, snrs=[], outname=''):
