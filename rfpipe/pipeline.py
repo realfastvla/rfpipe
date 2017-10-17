@@ -80,7 +80,7 @@ def pipeline_seg(st, segment, cl=None, cfile=None,
     features = cl.submit(candidates.calc_features, canddatalist,
                          pure=True)
     return cl.submit(candidates.save_cands, st, features, canddatalist,
-                     pure=True)
+                     data, pure=True)
 
 
 def mergelists(futlists):
@@ -113,4 +113,4 @@ def pipeline_seg2(st, segment, cfile=None, vys_timeout=vys_timeout_default):
                                                 dtind, wisdom=wisdom)
 
             features = candidates.calc_features(canddatalist)
-            search.save_cands(st, features, canddatalist)
+            search.save_cands(st, features, canddatalist, data)

@@ -125,24 +125,23 @@ def calc_features(canddatalist):
     return features
 
 
-def save_cands(st, features, canddatalist):
+def save_cands(st, features, canddatalist, data):
     """ Save candidate features in reproducible form.
     Saves as DataFrame with metadata and preferences attached.
     Writes to location defined by state using a file lock to allow multiple
     writers.
     """
 
+    df = pd.DataFrame(OrderedDict(zip(st.search_dimensions,
+                                      np.transpose(features.keys()))))
+    df2 = pd.DataFrame(OrderedDict(zip(st.features,
+                                       np.transpose(features.values()))))
+    df3 = pd.concat([df, df2], axis=1)
+    cdf = CandidateDF(df3, prefs=st.prefs, metadata=st.metadata)
+
     if st.prefs.savecands and len(features):
         logger.info('Saving {0} candidates to {1}.'.format(len(features),
                                                            st.candsfile))
-
-        df = pd.DataFrame(OrderedDict(zip(st.search_dimensions,
-                                          np.transpose(features.keys()))))
-        df2 = pd.DataFrame(OrderedDict(zip(st.features,
-                                           np.transpose(features.values()))))
-        df3 = pd.concat([df, df2], axis=1)
-
-        cdf = CandidateDF(df3, prefs=st.prefs, metadata=st.metadata)
 
         try:
             with fileLock.FileLock(st.candsfile+'.lock', timeout=10):
@@ -171,19 +170,19 @@ def save_cands(st, features, canddatalist):
     elif not st.prefs.savecands:
         logger.info('Not saving candidates.')
 
-    return st  # return state as handle on pipeline
+    return cdf, data  # return (cdf, data) tuple as handle on pipeline
 
 
-def itercands(candsfile):
-    """ Iterate through (new style) candsfile and return them individually.
+def iter_cands(candsfile):
+    """ Iterate through (new style) candsfile and return a dataframe
+    for each segment.
     """
 
     with open(candsfile) as pkl:
         while True:  # step through all possible segments
             try:
-                cands = pickle.load(pkl)
-                for cand in cands.df.itertuples():
-                    yield cand
+                canddf = pickle.load(pkl)
+                yield canddf
 
             except EOFError:
                 logger.info('No more candidates')
@@ -681,4 +680,22 @@ class CandidateDF(object):
         self.rfpipe_version = version.__version__
 
     def __repr__(self):
-        return 'CandidateDF with {0} rows'.format(df.len)
+        return ('CandidateDF for {0}, scan {1} with {2} rows'
+                .format(self.metadata.filename, self.metadata.scan,
+                        len(self.df)))
+
+    @property
+    def scan(self):
+        return self.metadata.scan
+
+    @property
+    def segment(self):
+        segments = np.unique(self.df['segment'])
+        if len(segments) == 1:
+            return segments[0]
+        elif len(segments) > 1:
+            logger.warn("Multiple segments in this dataframe")
+            return segments
+        else:
+            logger.warn("No candidates in this dataframe")
+            return None
