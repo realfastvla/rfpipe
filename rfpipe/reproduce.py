@@ -7,7 +7,6 @@ import pickle
 import os.path
 from collections import OrderedDict
 import numpy as np
-import pandas as pd
 from rfpipe import preferences, state, util, search, source, metadata, candidates
 
 import logging
@@ -69,14 +68,15 @@ def oldcands_readone(candsfile, scan):
 
     colnames = d['featureind']
     logger.info('Calculating candidate properties for scan {0}'.format(scan))
-    df = pd.DataFrame(OrderedDict(zip(colnames, loc.transpose())))
-    df2 = pd.DataFrame(OrderedDict(zip(st.features, prop.transpose())))
-    df3 = pd.concat([df, df2], axis=1)[df.scan == scan]
+#    df = pd.DataFrame(OrderedDict(zip(colnames, loc.transpose())))
+#    df2 = pd.DataFrame(OrderedDict(zip(st.features, prop.transpose())))
+#    df3 = pd.concat([df, df2], axis=1)[df.scan == scan]
+#    df3.metadata = st.metadata
+#    df3.prefs = st.prefs
+    features = np.concatenate(colnames, loc.transpose())
+    cc = candidates.CandCollection(features, st.prefs, st.metadata)
 
-    df3.metadata = st.metadata
-    df3.prefs = st.prefs
-
-    return st, df3
+    return st, cc
 
 
 def pipeline_dataprep(st, candloc):

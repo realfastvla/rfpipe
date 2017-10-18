@@ -7,7 +7,6 @@ import pickle
 import os
 import numpy as np
 from collections import OrderedDict
-import pandas as pd
 import matplotlib.pyplot as plt
 from rfpipe import util, version, fileLock
 
@@ -71,9 +70,45 @@ class CandData(object):
         return self.time_top - delay
 
 
+class CandCollection(object):
+    """ Wrap candidate array with metadata and
+    prefs to be attached and pickled.
+    """
+
+    def __init__(self, array, prefs, metadata):
+        self.array = array
+        self.prefs = prefs
+        self.metadata = metadata
+        self.rfpipe_version = version.__version__
+
+    def __repr__(self):
+        return ('CandCollection for {0}, scan {1} with {2} rows'
+                .format(self.metadata.filename, self.metadata.scan,
+                        len(self.array)))
+
+    @property
+    def scan(self):
+        return self.metadata.scan
+
+    @property
+    def segment(self):
+        if len(self.array):
+            segments = np.unique(self.array['segment'])
+            if len(segments) == 1:
+                return segments[0]
+            elif len(segments) > 1:
+                logger.warn("Multiple segments in this collection")
+                return segments
+            else:
+                logger.warn("No candidates in this collection")
+                return None
+        else:
+            return None
+
+
 def calc_features(canddatalist):
     """ Calculates the candidate features for CandData instance(s).
-    Returns dictionary of candidate features with keys as defined in
+    Returns structured numpy array of candidate features labels defined in
     st.search_dimensions.
     """
 
@@ -87,16 +122,22 @@ def calc_features(canddatalist):
     logger.info('Calculating features for {0} candidates.'
                 .format(len(canddatalist)))
 
-    features = {}
+    # TODO: generate dtype from st.features
+    dtype = [('segment', '<i4'), ('integration', '<i4'), ('dmind', '<i4'),
+             ('dtind', '<i4'), ('beamnum', '<i4'), ('snr1', '<f4'),
+             ('immax1', '<f4'), ('l1', '<f4'), ('m1', '<f4')]
+#    features = {}
+    features = np.empty(0, dtype=dtype)
+
     for i in xrange(len(canddatalist)):
         canddata = canddatalist[i]
         st = canddata.state
-        candloc = canddata.loc
+#        candloc = canddata.loc
         image = canddata.image
         dataph = canddata.data
 
         # assemble feature in requested order
-        ff = []
+        ff = list(canddata.loc)
         for feat in st.features:
             if feat == 'snr1':
                 imstd = util.madtostd(image)
@@ -120,61 +161,64 @@ def calc_features(canddatalist):
                 raise NotImplementedError("Feature {0} calculation not ready"
                                           .format(feat))
 
-        features[candloc] = list(ff)
+#        features[candloc] = list(ff)
+        features = np.concatenate(features, np.array(tuple(ff), dtype=dtype))
 
-    return features
+    cc = CandCollection(features, st.prefs, st.metadata)
+
+    return cc
 
 
-def save_cands(st, features, canddatalist, data):
+def save_cands(st, candcollection, canddatalist, data):
     """ Save candidate features in reproducible form.
-    Saves as DataFrame with metadata and preferences attached.
+    Saves as array with metadata and preferences attached.
     Writes to location defined by state using a file lock to allow multiple
     writers.
     """
 
-    df = pd.DataFrame(OrderedDict(zip(st.search_dimensions,
-                                      np.transpose(features.keys()))))
-    df2 = pd.DataFrame(OrderedDict(zip(st.features,
-                                       np.transpose(features.values()))))
-    df3 = pd.concat([df, df2], axis=1)
-    cdf = CandidateDF(df3, prefs=st.prefs, metadata=st.metadata)
+#    df = pd.DataFrame(OrderedDict(zip(st.search_dimensions,
+#                                      np.transpose(features.keys()))))
+#    df2 = pd.DataFrame(OrderedDict(zip(st.features,
+#                                       np.transpose(features.values()))))
+#    df3 = pd.concat([df, df2], axis=1)
+#    cdf = CandidateDF(df3, st.prefs, st.metadata)
 
-    if st.prefs.savecands and len(features):
-        logger.info('Saving {0} candidates to {1}.'.format(len(features),
-                                                           st.candsfile))
+    if st.prefs.savecands and len(candcollection.array):
+        logger.info('Saving {0} candidates to {1}.'
+                    .format(len(candcollection.array), st.candsfile))
 
         try:
             with fileLock.FileLock(st.candsfile+'.lock', timeout=10):
                 with open(st.candsfile, 'ab+') as pkl:
-                    pickle.dump(cdf, pkl)
+                    pickle.dump(candcollection, pkl)
         except fileLock.FileLock.FileLockException:
             scan = st.metadata.scan
-            loc, prop = features.popitem()
-            segment = loc[0]
+            cand = candcollection.array[0]
+            segment = cand[0]
             newcandsfile = ('{0}_sc{0}_seg{1}.pkl'
                             .format(st.candsfile.rstrip('.pkl'),
                                     scan, segment))
             logger.warn('Candidate file writing timeout. '
                         'Spilling to new file {0}.'.format(newcandsfile))
             with open(newcandsfile, 'ab+') as pkl:
-                pickle.dump(cdf, pkl)
+                pickle.dump(candcollection, pkl)
 
-        if len(cdf.df):
-            snrs = cdf.df['snr1'].values
-            maxindex = cdf.df[cdf.df.snr1 == cdf.df.snr1.max()].index[0]
-            candplot(canddatalist[maxindex], snrs=snrs)
+        # make plot
+        snrs = candcollection.array['snr1'].flatten()
+        maxindex = np.argmax(snrs)
+        candplot(canddatalist[maxindex], snrs=snrs)
 
-    elif st.prefs.savecands and not len(features):
+    elif st.prefs.savecands and not len(candcollection.array):
         logger.debug('No candidates to save to {0}.'.format(st.candsfile))
 
     elif not st.prefs.savecands:
         logger.info('Not saving candidates.')
 
-    return cdf, data  # return (cdf, data) tuple as handle on pipeline
+    return candcollection, data  # return tuple as handle on pipeline
 
 
 def iter_cands(candsfile):
-    """ Iterate through (new style) candsfile and return a dataframe
+    """ Iterate through (new style) candsfile and return a collection
     for each segment.
     """
 
@@ -666,36 +710,3 @@ def deg2HMS(ra='', dec='', round=False):
         return (RA, DEC)
     else:
         return RA or DEC
-
-
-class CandidateDF(object):
-    """ Wrap pandas DataFrame that allows candidate metadata and
-    prefs to be attached and pickled.
-    """
-
-    def __init__(self, df, prefs=None, metadata=None):
-        self.df = df
-        self.prefs = prefs
-        self.metadata = metadata
-        self.rfpipe_version = version.__version__
-
-    def __repr__(self):
-        return ('CandidateDF for {0}, scan {1} with {2} rows'
-                .format(self.metadata.filename, self.metadata.scan,
-                        len(self.df)))
-
-    @property
-    def scan(self):
-        return self.metadata.scan
-
-    @property
-    def segment(self):
-        segments = np.unique(self.df['segment'])
-        if len(segments) == 1:
-            return segments[0]
-        elif len(segments) > 1:
-            logger.warn("Multiple segments in this dataframe")
-            return segments
-        else:
-            logger.warn("No candidates in this dataframe")
-            return None
