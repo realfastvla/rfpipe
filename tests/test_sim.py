@@ -4,6 +4,7 @@ from astropy import time
 import sys
 import os
 import distributed
+from numpy import ndarray
 
 # ** is this needed?
 myPath = os.path.dirname(os.path.abspath(__file__))
@@ -56,12 +57,12 @@ def test_search(mockstate, mockdm, wisdom):
     canddatalist = rfpipe.search.search_thresh(mockstate, mockdm, segment,
                                                dmind, dtind, wisdom=wisdom)
 
-    features = rfpipe.candidates.calc_features(canddatalist)
-    assert type(features) == dict
+    candcollection = rfpipe.candidates.calc_features(canddatalist)
+    assert type(candcollection.array) == ndarray
 
     if mockstate.prefs.simulated_transient:
         print(mockstate.prefs.simulated_transient, mockstate.prefs.flaglist)
-        assert len(features)
+        assert len(candcollection.array)
 
 
 def test_pipeline(mockstate):

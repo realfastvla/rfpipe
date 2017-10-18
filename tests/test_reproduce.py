@@ -3,7 +3,8 @@ import pytest
 from astropy import time
 import numpy as np
 import os.path
-import sys, os
+import sys
+import os
 
 # **is this needed?
 myPath = os.path.dirname(os.path.abspath(__file__))
@@ -30,9 +31,9 @@ def candloc(request):
 
 
 def test_candidate(mockstate, candloc):
-    candidate = rfpipe.reproduce.pipeline_candidate(mockstate, candloc)
-    assert isinstance(candidate, dict)
-    assert np.all(candidate.keys()[0] == candloc)
+    candcollection = rfpipe.reproduce.pipeline_candidate(mockstate, candloc)
+    assert isinstance(candcollection, rfpipe.candidate.CandCollection)
+    assert np.all(candcollection[0, :5] == candloc)
 
 
 def test_parse():

@@ -132,12 +132,12 @@ def calc_features(canddatalist):
     for i in xrange(len(canddatalist)):
         canddata = canddatalist[i]
         st = canddata.state
-#        candloc = canddata.loc
         image = canddata.image
         dataph = canddata.data
+#        candloc = canddata.loc
+        ff = list(canddata.loc)
 
         # assemble feature in requested order
-        ff = list(canddata.loc)
         for feat in st.features:
             if feat == 'snr1':
                 imstd = util.madtostd(image)
@@ -162,11 +162,9 @@ def calc_features(canddatalist):
                                           .format(feat))
 
 #        features[candloc] = list(ff)
-        features = np.concatenate(features, np.array(tuple(ff), dtype=dtype))
+        features = np.concatenate((features, np.array([tuple(ff)], dtype=dtype)))
 
-    cc = CandCollection(features, st.prefs, st.metadata)
-
-    return cc
+    return CandCollection(features, st.prefs, st.metadata)
 
 
 def save_cands(st, candcollection, canddatalist, data):
@@ -225,8 +223,8 @@ def iter_cands(candsfile):
     with open(candsfile) as pkl:
         while True:  # step through all possible segments
             try:
-                canddf = pickle.load(pkl)
-                yield canddf
+                candcollection = pickle.load(pkl)
+                yield candcollection
 
             except EOFError:
                 logger.info('No more candidates')

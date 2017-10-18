@@ -35,7 +35,7 @@ def test_search(mockstate):
 
     wisdom = rfpipe.search.set_wisdom(mockstate.npixx, mockstate.npixy)
 
-    featurelist = []
+    candcollections = []
     times = []
     for segment in range(mockstate.nsegment):
         data_prep = mockdata(mockstate, segment)
@@ -57,9 +57,8 @@ def test_search(mockstate):
                                                            dtind,
                                                            wisdom=wisdom)
 
-                features = rfpipe.candidates.calc_features(canddatalist)
-                featurelist.append(features)
-                print(features.keys())
+                candcollection = rfpipe.candidates.calc_features(canddatalist)
+                candcollections.append(candcollection)
                 times += [canddata.time_top for canddata in canddatalist]
                 assert len(canddatalist) == (mockstate.readints-mockstate.dmshifts[dmind])//mockstate.dtarr[dtind]
 
@@ -70,8 +69,9 @@ def test_search(mockstate):
     integs0_0 = []
     integs1_0 = []
     integs0_1 = []
-    for features in featurelist:
-        for (seg, integ, dmind, dtind, beamnum) in features.keys():
+    for candcollection in candcollections:
+        for i in range(len(candcollection.array)):
+            (seg, integ, dmind, dtind, beamnum) = cand[i,:5]
 
             if dtind == 0 and dmind == 0:
                 integs0_0.append(integ)
