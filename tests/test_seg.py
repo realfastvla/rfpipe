@@ -2,7 +2,8 @@ import rfpipe
 import pytest
 from astropy import time
 import numpy as np
-import sys, os
+import sys
+import os
 myPath = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, myPath + '/../')
 
@@ -71,7 +72,7 @@ def test_search(mockstate):
     integs0_1 = []
     for candcollection in candcollections:
         for i in range(len(candcollection.array)):
-            (seg, integ, dmind, dtind, beamnum) = candcollection.array[i, :5]
+            (seg, integ, dmind, dtind, beamnum) = candcollection.array[list(mockstate.search_dimensions)][i]
 
             if dtind == 0 and dmind == 0:
                 integs0_0.append(integ)

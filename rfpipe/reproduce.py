@@ -66,14 +66,14 @@ def oldcands_readone(candsfile, scan):
                     'versions <=1.54 used an incorrect DM scaling prefactor.'
                     .format(st.rtpipe_version))
 
-    colnames = d['featureind']
+#    colnames = d['featureind']
     logger.info('Calculating candidate properties for scan {0}'.format(scan))
 #    df = pd.DataFrame(OrderedDict(zip(colnames, loc.transpose())))
 #    df2 = pd.DataFrame(OrderedDict(zip(st.features, prop.transpose())))
 #    df3 = pd.concat([df, df2], axis=1)[df.scan == scan]
 #    df3.metadata = st.metadata
 #    df3.prefs = st.prefs
-    features = np.concatenate(colnames, loc.transpose())
+    features = np.concatenate(loc.transpose(), prop.transpose())
     cc = candidates.CandCollection(features, st.prefs, st.metadata)
 
     return st, cc
