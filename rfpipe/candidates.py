@@ -82,9 +82,12 @@ class CandCollection(object):
         self.rfpipe_version = version.__version__
 
     def __repr__(self):
-        return ('CandCollection for {0}, scan {1} with {2} rows'
-                .format(self.metadata.filename, self.metadata.scan,
-                        len(self.array)))
+        if self.metadata is not None:
+            return ('CandCollection for {0}, scan {1} with {2} rows'
+                    .format(self.metadata.filename, self.metadata.scan,
+                            len(self.array)))
+        else:
+            return ('CandCollection with {0} rows'.format(len(self.array)))
 
     @property
     def scan(self):
@@ -130,7 +133,7 @@ def calc_features(canddatalist):
              ('dtind', '<i4'), ('beamnum', '<i4'), ('snr1', '<f4'),
              ('immax1', '<f4'), ('l1', '<f4'), ('m1', '<f4')]
 #    features = {}
-    features = np.empty(0, dtype=dtype)
+    features = np.zeros(1, dtype=dtype)
 
     for i in xrange(len(canddatalist)):
         canddata = canddatalist[i]
@@ -138,7 +141,9 @@ def calc_features(canddatalist):
         image = canddata.image
         dataph = canddata.data
 #        candloc = canddata.loc
-        ff = list(canddata.loc)
+        features0 = features.copy()
+        features0[list(st.search_dimensions)] = list(canddata.loc)
+#        ff = list(canddata.loc)
 
         # assemble feature in requested order
         # TODO: fill out more features
@@ -148,31 +153,37 @@ def calc_features(canddatalist):
                 snrmax = image.max()/imstd
                 snrmin = image.min()/imstd
                 snr = snrmax if snrmax >= snrmin else snrmin
-                ff.append(snr)
+                features0['snr1'] = snr
+#                ff.append(snr)
             elif feat == 'immax1':
                 if snr > 0:
-                    ff.append(image.max())
+                    features0['immax1'] = image.max()
+#                    ff.append(image.max())
                 else:
-                    ff.append(image.min())
+                    features0['immax1'] = image.min()
+#                    ff.append(image.min())
             elif feat == 'l1':
                 l1, m1 = st.pixtolm(np.where(image == image.max()))
-                ff.append(float(l1))
+                features0['l1'] = float(l1)
+#                ff.append(float(l1))
             elif feat == 'm1':
                 l1, m1 = st.pixtolm(np.where(image == image.max()))
-                ff.append(float(m1))
+                features0['m1'] = float(m1)
+#                ff.append(float(m1))
             else:
                 print(feat)
                 raise NotImplementedError("Feature {0} calculation not ready"
                                           .format(feat))
 
 #        features[candloc] = list(ff)
-        features = np.concatenate((features, np.array([tuple(ff)], dtype=dtype)))
+        features = np.concatenate((features, features0))
 
     candcollection = CandCollection(features, st.prefs, st.metadata)
 
     save_cands(st, candcollection, canddatalist)
 
     return candcollection  # return tuple as handle on pipeline
+
 
 def save_cands(st, candcollection, canddatalist):
     """ Save candidate features in reproducible form.

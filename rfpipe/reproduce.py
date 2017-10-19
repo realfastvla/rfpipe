@@ -158,8 +158,6 @@ def pipeline_candidate(st, candloc, canddata=None):
     if canddata is None:
         canddatalist = pipeline_imdata(st, candloc)
 
-    features = candidates.calc_features(canddatalist)
+    candcollection = candidates.calc_features(canddatalist)
 
-#    search.candplot(canddatalist)
-
-    return features
+    return candcollection
