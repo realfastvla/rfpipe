@@ -113,7 +113,7 @@ def calc_features(canddatalist):
     """
 
     if not len(canddatalist):
-        return {}
+        return CandCollection([], st.prefs, st.metadata)
 
     if not isinstance(canddatalist, list):
         logger.debug('Wrapping solo CandData object')

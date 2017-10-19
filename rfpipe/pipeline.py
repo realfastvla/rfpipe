@@ -77,9 +77,9 @@ def pipeline_seg(st, segment, cl=None, cfile=None,
 
     # ** or aggregate over dt or dm trials? **
     canddatalist = cl.submit(mergelists, saved, pure=True)
-    features = cl.submit(candidates.calc_features, canddatalist,
+    collection = cl.submit(candidates.calc_features, canddatalist,
                          pure=True)
-    return cl.submit(candidates.save_cands, st, features, canddatalist,
+    return cl.submit(candidates.save_cands, st, collection, canddatalist,
                      data, pure=True)
 
 
