@@ -75,7 +75,7 @@ class CandCollection(object):
     prefs to be attached and pickled.
     """
 
-    def __init__(self, array, prefs, metadata):
+    def __init__(self, array=np.array([]), prefs=None, metadata=None):
         self.array = array
         self.prefs = prefs
         self.metadata = metadata
@@ -88,7 +88,10 @@ class CandCollection(object):
 
     @property
     def scan(self):
-        return self.metadata.scan
+        if self.metadata is not None:
+            return self.metadata.scan
+        else:
+            return None
 
     @property
     def segment(self):
@@ -113,7 +116,7 @@ def calc_features(canddatalist):
     """
 
     if not len(canddatalist):
-        return CandCollection([], st.prefs, st.metadata)
+        return CandCollection()
 
     if not isinstance(canddatalist, list):
         logger.debug('Wrapping solo CandData object')
@@ -138,6 +141,7 @@ def calc_features(canddatalist):
         ff = list(canddata.loc)
 
         # assemble feature in requested order
+        # TODO: fill out more features
         for feat in st.features:
             if feat == 'snr1':
                 imstd = util.madtostd(image)
