@@ -71,7 +71,7 @@ def test_search(mockstate):
     integs0_1 = []
     for candcollection in candcollections:
         for i in range(len(candcollection.array)):
-            (seg, integ, dmind, dtind, beamnum) = cand[i,:5]
+            (seg, integ, dmind, dtind, beamnum) = candcollection.array[i, :5]
 
             if dtind == 0 and dmind == 0:
                 integs0_0.append(integ)

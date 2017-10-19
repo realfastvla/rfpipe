@@ -32,15 +32,15 @@ def candloc(request):
 
 def test_candidate(mockstate, candloc):
     candcollection = rfpipe.reproduce.pipeline_candidate(mockstate, candloc)
-    assert isinstance(candcollection, rfpipe.candidate.CandCollection)
-    assert np.all(candcollection[0, :5] == candloc)
+    assert isinstance(candcollection, rfpipe.candidates.CandCollection)
+    assert np.all(candcollection.array[0, :5] == candloc)
 
 
 def test_parse():
     candsfile = os.path.join(_install_dir,
                              'data/cands_17A-396_TEST_30m_001.57849.887411006945_merge.pkl')
-    canddflist = rfpipe.reproduce.oldcands_read(candsfile)
-    assert len(canddflist) == 43
-    st, df = canddflist[0]
+    candcollection = rfpipe.reproduce.oldcands_read(candsfile)
+    assert len(candcollection) == 43
+    st, df = candcollection[0]
     assert isinstance(st, rfpipe.state.State)
     assert len(df) == 18
