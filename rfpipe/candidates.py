@@ -168,10 +168,13 @@ def calc_features(canddatalist):
 #        features[candloc] = list(ff)
         features = np.concatenate((features, np.array([tuple(ff)], dtype=dtype)))
 
-    return CandCollection(features, st.prefs, st.metadata)
+    candcollection = CandCollection(features, st.prefs, st.metadata)
 
+    save_cands(st, candcollection, canddatalist)
 
-def save_cands(st, candcollection, canddatalist, data):
+    return candcollection  # return tuple as handle on pipeline
+
+def save_cands(st, candcollection, canddatalist):
     """ Save candidate features in reproducible form.
     Saves as array with metadata and preferences attached.
     Writes to location defined by state using a file lock to allow multiple
@@ -216,7 +219,7 @@ def save_cands(st, candcollection, canddatalist, data):
     elif not st.prefs.savecands:
         logger.info('Not saving candidates.')
 
-    return candcollection, data  # return tuple as handle on pipeline
+#    return candcollection  # return tuple as handle on pipeline
 
 
 def iter_cands(candsfile):

@@ -25,7 +25,7 @@ def pipeline_scan_distributed(st, segments=None, host='cbe-node-01',
         saved.append(pipeline_seg(st, segment, cl=cl, cfile=cfile,
                                   vys_timeout=vys_timeout))
 
-    return saved
+    return saved  # list of tuples (collection, data)
 
 
 def pipeline_seg(st, segment, cl=None, cfile=None,
@@ -79,8 +79,10 @@ def pipeline_seg(st, segment, cl=None, cfile=None,
     canddatalist = cl.submit(mergelists, saved, pure=True)
     collection = cl.submit(candidates.calc_features, canddatalist,
                          pure=True)
-    return cl.submit(candidates.save_cands, st, collection, canddatalist,
-                     data, pure=True)
+#    cl.submit(candidates.save_cands, st, collection, canddatalist,
+#                     pure=True) # subsumed into calc_features
+
+    return collection, data  # TODO: make returning data future optional?
 
 
 def mergelists(futlists):
