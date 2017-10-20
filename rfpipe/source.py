@@ -144,7 +144,7 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout):
     try:
         import vysmaw_reader
     except ImportError:
-        logger.error('ImportError for vysmaw app. Need vysmaw to '
+        logger.error('ImportError for vysmaw_reader. Cannot '
                      'consume vys data.')
 
     t0 = time.Time(st.segmenttimes[seg][0], format='mjd', precision=9).unix

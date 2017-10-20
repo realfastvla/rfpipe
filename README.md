@@ -9,7 +9,7 @@ Planned future development include:
 - Extending support for GPUs.
 - Supporting other interferometers by adding data and metadata reading functions.
 - Remove dependence on rtpipe.
-- Python 3 support
+- Python 3 support.
 
 [![Documentation Status](https://readthedocs.org/projects/rfpipe/badge/?version=latest)](http://rfpipe.readthedocs.io/en/latest/?badge=latest)
 
@@ -31,13 +31,13 @@ pip install git+ssh://git@github.com/realfastvla/rfpipe
 
 ## Dependencies
 
-pwkit casa environment (for quanta and measures)
-numba for multi-core and gpu acceleration
-astropy for time
-sdmpy for reading sdm data
-rtpipe for flagging
-pyfftw
-pyyaml
-attrs
-pycuda and pyfft (optional)
-vys/vysmaw and vysmaw_reader (optional)
+- pwkit casa environment (for quanta and measures)
+- numba for multi-core and gpu acceleration
+- astropy for time
+- sdmpy for reading sdm data
+- rtpipe for flagging
+- pyfftw
+- pyyaml
+- attrs
+- pycuda and pyfft (optional; for GPU FFTs)
+- vys/vysmaw and vysmaw_reader (optional; to read vys data at VLA)
