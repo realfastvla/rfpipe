@@ -24,7 +24,7 @@ Planned future development include:
 ```
 conda config --add channels pkgw-forge
 conda config --add channels conda-forge
-conda create -n realfast numpy scipy jupyter bokeh cython matplotlib pwkit casa-tools casa-python casa-data numba astropy pandas pyfftw
+conda create -n realfast numpy scipy jupyter bokeh cython matplotlib pwkit casa-tools casa-python casa-data numba astropy pyfftw
 source activate realfast
 pip install git+ssh://git@github.com/realfastvla/rfpipe
 ```
