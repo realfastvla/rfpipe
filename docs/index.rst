@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to rfpipe's documentation!
-==================================
+rfpipe: radio interferometric transient search
+=================================================
 
 Contents:
 
@@ -12,13 +12,15 @@ Contents:
    :maxdepth: 2
 
    Overview
-   Examples
-   Methods
+   State
+   Pipeline
+   Searching
+   Candidates
+   Reproduce
 
 Indices and tables
 ==================
 
 * :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+
 
