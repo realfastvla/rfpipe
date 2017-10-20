@@ -24,21 +24,21 @@ Planned future development include:
 ```
 conda config --add channels pkgw-forge
 conda config --add channels conda-forge
-conda create -n realfast numpy scipy jupyter bokeh cython matplotlib pwkit casa-tools casa-python casa-data numba astropy pyfftw
+conda create -n realfast numpy scipy cython matplotlib pwkit casa-tools casa-python casa-data numba astropy pyfftw
 source activate realfast
 pip install git+ssh://git@github.com/realfastvla/rfpipe
 ```
 
 ## Dependencies
 
+- numpy/scipy/matplotlib
 - pwkit casa environment (for quanta and measures)
 - numba (for multi-core and gpu acceleration)
+- rtpipe (for flagging; will be removed soon)
 - astropy
 - sdmpy
-- rtpipe (for flagging; will be removed soon)
 - pyfftw
 - pyyaml
 - attrs
 - pycuda and pyfft (optional; for GPU FFTs)
 - vys/vysmaw and vysmaw_reader (optional; to read vys data from VLA correlator)
-- evla_mcast (optional; to read VLA correlator metadata)
