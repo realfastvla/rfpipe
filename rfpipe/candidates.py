@@ -133,7 +133,7 @@ def calc_features(canddatalist):
              ('dtind', '<i4'), ('beamnum', '<i4'), ('snr1', '<f4'),
              ('immax1', '<f4'), ('l1', '<f4'), ('m1', '<f4')]
 #    features = {}
-    features = np.zeros(1, dtype=dtype)
+    features = np.zeros(len(canddatalist), dtype=dtype)
 
     for i in xrange(len(canddatalist)):
         canddata = canddatalist[i]
@@ -141,11 +141,9 @@ def calc_features(canddatalist):
         image = canddata.image
         dataph = canddata.data
 #        candloc = canddata.loc
-        features0 = features.copy()
-        features0[list(st.search_dimensions)] = list(canddata.loc)
-#        ff = list(canddata.loc)
+        ff = list(canddata.loc)
 
-        # assemble feature in requested order
+        # assemble feature in requested order. Order matters!
         # TODO: fill out more features
         for feat in st.features:
             if feat == 'snr1':
@@ -153,30 +151,24 @@ def calc_features(canddatalist):
                 snrmax = image.max()/imstd
                 snrmin = image.min()/imstd
                 snr = snrmax if snrmax >= snrmin else snrmin
-                features0['snr1'] = snr
-#                ff.append(snr)
+                ff.append(snr)
             elif feat == 'immax1':
                 if snr > 0:
-                    features0['immax1'] = image.max()
-#                    ff.append(image.max())
+                    ff.append(image.max())
                 else:
-                    features0['immax1'] = image.min()
-#                    ff.append(image.min())
+                    ff.append(image.min())
             elif feat == 'l1':
                 l1, m1 = st.pixtolm(np.where(image == image.max()))
-                features0['l1'] = float(l1)
-#                ff.append(float(l1))
+                ff.append(float(l1))
             elif feat == 'm1':
                 l1, m1 = st.pixtolm(np.where(image == image.max()))
-                features0['m1'] = float(m1)
-#                ff.append(float(m1))
+                ff.append(float(m1))
             else:
                 print(feat)
                 raise NotImplementedError("Feature {0} calculation not ready"
                                           .format(feat))
 
-#        features[candloc] = list(ff)
-        features = np.concatenate((features, features0))
+        features[i] = ff
 
     candcollection = CandCollection(features, st.prefs, st.metadata)
 
