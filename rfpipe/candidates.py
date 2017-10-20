@@ -168,7 +168,7 @@ def calc_features(canddatalist):
                 raise NotImplementedError("Feature {0} calculation not ready"
                                           .format(feat))
 
-        features[i] = ff
+        features[i] = tuple(ff)
 
     candcollection = CandCollection(features, st.prefs, st.metadata)
 

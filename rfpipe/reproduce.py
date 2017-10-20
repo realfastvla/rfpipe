@@ -73,7 +73,7 @@ def oldcands_readone(candsfile, scan):
 #    df3 = pd.concat([df, df2], axis=1)[df.scan == scan]
 #    df3.metadata = st.metadata
 #    df3.prefs = st.prefs
-    features = np.concatenate(loc.transpose(), prop.transpose())
+    features = np.concatenate((loc.transpose(), prop.transpose()))
     cc = candidates.CandCollection(features, st.prefs, st.metadata)
 
     return st, cc

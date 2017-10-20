@@ -234,10 +234,13 @@ def image_cuda(grids):
     """ Run 2d FFT to image each plane of grid array
     """
 
-    from pyfft.cuda import Plan
-    from pycuda.tools import make_default_context
-    import pycuda.gpuarray as gpuarray
-    import pycuda.driver as cuda
+    try:
+        from pyfft.cuda import Plan
+        from pycuda.tools import make_default_context
+        import pycuda.gpuarray as gpuarray
+        import pycuda.driver as cuda
+    except ImportError:
+        logger.error('ImportError for pycuda or pyfft. Use pyfftw instead.')
 
     nints, npixx, npixy = grids.shape
 

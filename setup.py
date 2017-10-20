@@ -4,7 +4,6 @@
 # Note: To use the 'upload' functionality of this file, you must:
 #   $ pip install twine
 
-import io
 import os
 import sys
 from shutil import rmtree
@@ -20,7 +19,7 @@ AUTHOR = 'Casey Law'
 
 # What packages are required for this module to be executed?
 REQUIRED = ['numpy', 'scipy', 'pwkit', 'sdmpy', 'pyfftw',
-            'click', 'dask', 'distributed', 'attrs', 'future',
+            'distributed', 'attrs', 'future',
             'astropy', 'pyyaml', 'numba', 'rtpipe'],
 
 # The rest you shouldn't have to touch too much :)
