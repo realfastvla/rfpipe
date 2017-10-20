@@ -19,7 +19,7 @@ AUTHOR = 'Casey Law'
 
 # What packages are required for this module to be executed?
 REQUIRED = ['numpy', 'scipy', 'pwkit', 'sdmpy', 'pyfftw', 'mock',
-            'attrs', 'future>3.1', 'astropy', 'pyyaml', 'numba', 'rtpipe'],
+            'attrs', 'future', 'astropy', 'pyyaml', 'numba', 'rtpipe'],
 
 # The rest you shouldn't have to touch too much :)
 # ------------------------------------------------
