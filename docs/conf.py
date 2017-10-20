@@ -26,8 +26,7 @@ cwd = os.getcwd()
 project_root = os.path.dirname(cwd)
 sys.path.insert(0, project_root)
 
-MOCK_MODULES = ['numpy', 'scipy', 'pwkit', 'sdmpy', 'pyfftw', 'mock',
-                'attrs', 'future', 'astropy', 'pyyaml', 'numba', 'rtpipe']
+MOCK_MODULES = ['matplotlib', 'matplotlib.pyplot', 'pyfftw', 'numba', 'rtpipe']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 source_parsers = {
