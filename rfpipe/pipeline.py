@@ -35,7 +35,7 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default):
     data = source.read_segment(st, segment, timeout=vys_timeout, cfile=cfile)
     data_prep = source.data_prep(st, data)
 
-    featurelist = []
+    collections = []
     for dmind in range(len(st.dmarr)):
         delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
                                 st.inttime)
@@ -46,7 +46,7 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default):
             canddatalist = search.search_thresh(st, data_dmdt, segment, dmind,
                                                 dtind, wisdom=wisdom)
 
-            features = candidates.calc_features(canddatalist)
-            featurelist.append(features)
+            collection = candidates.calc_features(canddatalist)
+            collections.append(collection)
 
-    return featurelist
+    return collections
