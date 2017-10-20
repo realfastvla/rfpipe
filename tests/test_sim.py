@@ -3,7 +3,6 @@ import pytest
 from astropy import time
 import sys
 import os
-import distributed
 from numpy import ndarray
 
 # ** is this needed?
@@ -66,12 +65,6 @@ def test_search(mockstate, mockdm, wisdom):
 
 
 def test_pipeline(mockstate):
-    res = rfpipe.pipeline.pipeline_seg(mockstate, 0)
-
-#    assert len(res) == len(mockstate.dmarr)*len(mockstate.dtarr)
-
-
-def test_pipeline_distributed(mockstate):
     res = rfpipe.pipeline.pipeline_seg(mockstate, 0)
 
 #    assert len(res) == len(mockstate.dmarr)*len(mockstate.dtarr)

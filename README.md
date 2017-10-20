@@ -32,12 +32,13 @@ pip install git+ssh://git@github.com/realfastvla/rfpipe
 ## Dependencies
 
 - pwkit casa environment (for quanta and measures)
-- numba for multi-core and gpu acceleration
-- astropy for time
-- sdmpy for reading sdm data
-- rtpipe for flagging
+- numba (for multi-core and gpu acceleration)
+- astropy
+- sdmpy
+- rtpipe (for flagging; will be removed soon)
 - pyfftw
 - pyyaml
 - attrs
 - pycuda and pyfft (optional; for GPU FFTs)
-- vys/vysmaw and vysmaw_reader (optional; to read vys data at VLA)
+- vys/vysmaw and vysmaw_reader (optional; to read vys data from VLA correlator)
+- evla_mcast (optional; to read VLA correlator metadata)
