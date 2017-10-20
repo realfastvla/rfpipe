@@ -155,7 +155,7 @@ class Metadata(object):
 
 
 def config_metadata(config, datasource='vys'):
-    """ Wraps Metadata call to provide immutable, attribute-filled class instance.
+    """ Creates dict holding metadata from evla_mcast scan config object.
     Parallel structure to sdm_metadata, so this inherits some of its
     nomenclature. datasource defines expected data source (vys expected when
     using scan config)

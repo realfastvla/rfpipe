@@ -3,14 +3,9 @@ import pytest
 from astropy import time
 import numpy as np
 import os.path
-import sys
-import os
-
-# **is this needed?
-#myPath = os.path.dirname(os.path.abspath(__file__))
-#sys.path.insert(0, myPath + '/../')
 
 _install_dir = os.path.abspath(os.path.dirname(__file__))
+
 
 # simulate no flag, transient/no flag, transient/flag
 inprefs = [{'flaglist': [], 'npix_max': 512}]
