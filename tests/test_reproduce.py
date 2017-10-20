@@ -7,8 +7,8 @@ import sys
 import os
 
 # **is this needed?
-myPath = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, myPath + '/../')
+#myPath = os.path.dirname(os.path.abspath(__file__))
+#sys.path.insert(0, myPath + '/../')
 
 _install_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -43,4 +43,4 @@ def test_parse():
     assert len(candcollections) == 43
     st, cc = candcollections[0]
     assert isinstance(st, rfpipe.state.State)
-    assert len(cc) == 18
+    assert len(cc.array) == 18

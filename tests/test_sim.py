@@ -7,8 +7,8 @@ import distributed
 from numpy import ndarray
 
 # ** is this needed?
-myPath = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, myPath + '/../')
+#myPath = os.path.dirname(os.path.abspath(__file__))
+#sys.path.insert(0, myPath + '/../')
 
 # simulate no flag, transient/no flag, transient/flag
 inprefs = [{'flaglist': [], 'npix_max': 512},
@@ -72,7 +72,6 @@ def test_pipeline(mockstate):
 
 
 def test_pipeline_distributed(mockstate):
-    cl = distributed.client.Client()
-    res = rfpipe.pipeline.pipeline_seg(mockstate, 0, cl=cl)
+    res = rfpipe.pipeline.pipeline_seg(mockstate, 0)
 
 #    assert len(res) == len(mockstate.dmarr)*len(mockstate.dtarr)
