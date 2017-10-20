@@ -26,7 +26,7 @@ cwd = os.getcwd()
 project_root = os.path.dirname(cwd)
 sys.path.insert(0, project_root)
 
-MOCK_MODULES = ["rfpipe", "rfpipe.candidates"]
+MOCK_MODULES = ["rfpipe", "rfpipe.candidates", "rfpipe.state", "rfpipe.preferences", "rfpipe.metadata", "rfpipe.search", "rfpipe.reproduce"]
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 source_parsers = {
