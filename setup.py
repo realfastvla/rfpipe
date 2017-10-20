@@ -18,7 +18,7 @@ EMAIL = 'claw@astro.berkeley.edu'
 AUTHOR = 'Casey Law'
 
 # What packages are required for this module to be executed?
-REQUIRED = ['numpy', 'scipy', 'pwkit', 'sdmpy', 'pyfftw', 'mock',
+REQUIRED = ['numpy', 'scipy', 'pwkit', 'sdmpy', 'pyfftw',
             'attrs', 'future', 'astropy', 'pyyaml', 'numba', 'rtpipe'],
 
 # The rest you shouldn't have to touch too much :)

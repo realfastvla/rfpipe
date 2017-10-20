@@ -18,10 +18,13 @@
 #
 import os
 import sys
-from mock import Mock
-sys.modules['rfpipe'] = Mock()
-sys.path.insert(0, os.path.abspath('..'))
 from recommonmark.parser import CommonMarkParser
+
+sys.path.append(os.path.join(os.path.abspath(os.pardir)))
+autodoc_mock_imports = ["rfpipe"]
+cwd = os.getcwd()
+project_root = os.path.dirname(cwd)
+sys.path.insert(0, project_root)
 
 source_parsers = {
     '.md': CommonMarkParser,
