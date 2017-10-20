@@ -28,7 +28,7 @@ sys.path.insert(0, project_root)
 
 MOCK_MODULES = ['matplotlib', 'matplotlib.pyplot', 'pyfftw', 'numba', 'rtpipe', 'builtins', 'future', 
                 'pwkit', 'pwkit.environments', 'pwkit.environments.casa','pwkit.environments.casa.util',
-                'attr']
+                'attr', 'sdmpy']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 source_parsers = {
