@@ -1,3 +1,6 @@
+from __future__ import print_function, division, absolute_import #, unicode_literals # not casa compatible
+from builtins import bytes, dict, object, range, map, input#, str # not casa compatible
+
 # -*- coding: utf-8 -*-
 #
 # rfpipe documentation build configuration file, created by
