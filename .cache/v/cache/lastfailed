@@ -1,0 +1,11 @@
+{
+  "tests/test_metadata.py::test_configstate[inprefs0]": true, 
+  "tests/test_metadata.py::test_configstate[inprefs1]": true, 
+  "tests/test_metadata.py::test_configstate[inprefs2]": true, 
+  "tests/test_metadata.py::test_metastate[inprefs0]": true, 
+  "tests/test_metadata.py::test_metastate[inprefs1]": true, 
+  "tests/test_metadata.py::test_metastate[inprefs2]": true, 
+  "tests/test_metadata.py::test_sim[inprefs0]": true, 
+  "tests/test_metadata.py::test_sim[inprefs1]": true, 
+  "tests/test_metadata.py::test_sim[inprefs2]": true
+}

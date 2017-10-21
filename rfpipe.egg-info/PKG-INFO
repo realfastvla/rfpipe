@@ -1,0 +1,11 @@
+Metadata-Version: 1.1
+Name: rfpipe
+Version: 0.4
+Summary: realfast pipeline
+Home-page: http://github.com/realfastvla/rfpipe
+Author: Casey Law
+Author-email: caseyjlaw@gmail.com
+License: UNKNOWN
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 2.7
