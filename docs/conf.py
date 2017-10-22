@@ -19,17 +19,17 @@
 import os
 import sys
 from recommonmark.parser import CommonMarkParser
-from mock import Mock
+#from mock import Mock
 
 sys.path.append(os.path.join(os.path.abspath(os.pardir)))
 cwd = os.getcwd()
 project_root = os.path.dirname(cwd)
 sys.path.insert(0, project_root)
 
-MOCK_MODULES = ['matplotlib', 'matplotlib.pyplot', 'pyfftw', 'numba', 'rtpipe', 'builtins', 'future', 
-                'pwkit', 'pwkit.environments', 'pwkit.environments.casa','pwkit.environments.casa.util',
-                'attr', 'sdmpy']
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+#MOCK_MODULES = ['matplotlib', 'matplotlib.pyplot', 'pyfftw', 'numba', 'rtpipe', 'builtins', 'future', 
+#                'pwkit', 'pwkit.environments', 'pwkit.environments.casa','pwkit.environments.casa.util',
+#                'attr', 'sdmpy']
+#sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 source_parsers = {
     '.md': CommonMarkParser,
