@@ -1,0 +1,250 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>rfpipe.reproduce &#8212; rfpipe 0.6.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">rfpipe 0.6.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for rfpipe.reproduce</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">absolute_import</span> <span class="c1">#, unicode_literals # not casa compatible</span>
+<span class="kn">from</span> <span class="nn">builtins</span> <span class="k">import</span> <span class="nb">bytes</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="nb">object</span><span class="p">,</span> <span class="nb">range</span><span class="p">,</span> <span class="nb">map</span><span class="p">,</span> <span class="nb">input</span><span class="c1">#, str # not casa compatible</span>
+<span class="kn">from</span> <span class="nn">future.utils</span> <span class="k">import</span> <span class="n">itervalues</span><span class="p">,</span> <span class="n">viewitems</span><span class="p">,</span> <span class="n">iteritems</span><span class="p">,</span> <span class="n">listvalues</span><span class="p">,</span> <span class="n">listitems</span>
+<span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="nb">open</span>
+
+<span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">import</span> <span class="nn">os.path</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">rfpipe</span> <span class="k">import</span> <span class="n">preferences</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">util</span><span class="p">,</span> <span class="n">search</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">metadata</span><span class="p">,</span> <span class="n">candidates</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="oldcands_read"><a class="viewcode-back" href="../../Reproduce.html#rfpipe.reproduce.oldcands_read">[docs]</a><span class="k">def</span> <span class="nf">oldcands_read</span><span class="p">(</span><span class="n">candsfile</span><span class="p">,</span> <span class="n">sdmscan</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Read old-style candfile and create new-style DataFrame</span>
+<span class="sd">    Returns a list of tuples (state, dataframe) per scan.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">candsfile</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">pkl</span><span class="p">:</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">pkl</span><span class="p">)</span>
+        <span class="n">loc</span><span class="p">,</span> <span class="n">prop</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">pkl</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">sdmscan</span><span class="p">:</span>
+        <span class="n">scanind</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;featureind&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;scan&#39;</span><span class="p">)</span>
+        <span class="n">scans</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">scanind</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">scans</span> <span class="o">=</span> <span class="p">[</span><span class="n">sdmscan</span><span class="p">]</span>
+
+    <span class="n">ll</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">scan</span> <span class="ow">in</span> <span class="n">scans</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">st</span><span class="p">,</span> <span class="n">df</span> <span class="o">=</span> <span class="n">oldcands_readone</span><span class="p">(</span><span class="n">candsfile</span><span class="p">,</span> <span class="n">scan</span><span class="p">)</span>
+            <span class="n">ll</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">st</span><span class="p">,</span> <span class="n">df</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+    <span class="k">return</span> <span class="n">ll</span></div>
+
+
+<div class="viewcode-block" id="oldcands_readone"><a class="viewcode-back" href="../../Reproduce.html#rfpipe.reproduce.oldcands_readone">[docs]</a><span class="k">def</span> <span class="nf">oldcands_readone</span><span class="p">(</span><span class="n">candsfile</span><span class="p">,</span> <span class="n">scan</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; For old-style merged candidate file, create new state and candidate</span>
+<span class="sd">    dataframe for a given scan.</span>
+<span class="sd">    Requires sdm locally with bdf for given scan.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">candsfile</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">pkl</span><span class="p">:</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">pkl</span><span class="p">)</span>
+        <span class="n">loc</span><span class="p">,</span> <span class="n">prop</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">pkl</span><span class="p">)</span>
+
+    <span class="n">inprefs</span> <span class="o">=</span> <span class="n">preferences</span><span class="o">.</span><span class="n">oldstate_preferences</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">scan</span><span class="o">=</span><span class="n">scan</span><span class="p">)</span>
+    <span class="n">inprefs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;gainfile&#39;</span><span class="p">)</span>
+    <span class="n">sdmfile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;filename&#39;</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">sdmfile</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Parsing metadata from sdmfile </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sdmfile</span><span class="p">))</span>
+        <span class="n">st</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">State</span><span class="p">(</span><span class="n">sdmfile</span><span class="o">=</span><span class="n">sdmfile</span><span class="p">,</span> <span class="n">sdmscan</span><span class="o">=</span><span class="n">scan</span><span class="p">,</span> <span class="n">inprefs</span><span class="o">=</span><span class="n">inprefs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Parsing metadata from cands file&#39;</span><span class="p">)</span>
+        <span class="n">meta</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">oldstate_metadata</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">scan</span><span class="o">=</span><span class="n">scan</span><span class="p">)</span>
+        <span class="n">st</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">State</span><span class="p">(</span><span class="n">inmeta</span><span class="o">=</span><span class="n">meta</span><span class="p">,</span> <span class="n">inprefs</span><span class="o">=</span><span class="n">inprefs</span><span class="p">,</span> <span class="n">showsummary</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">st</span><span class="o">.</span><span class="n">rtpipe_version</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;rtpipe_version&#39;</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">st</span><span class="o">.</span><span class="n">rtpipe_version</span> <span class="o">&lt;=</span> <span class="mf">1.54</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Candidates detected with rtpipe version </span><span class="si">{0}</span><span class="s1">. All &#39;</span>
+                    <span class="s1">&#39;versions &lt;=1.54 used an incorrect DM scaling prefactor.&#39;</span>
+                    <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">rtpipe_version</span><span class="p">))</span>
+
+<span class="c1">#    colnames = d[&#39;featureind&#39;]</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating candidate properties for scan </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">scan</span><span class="p">))</span>
+<span class="c1">#    df = pd.DataFrame(OrderedDict(zip(colnames, loc.transpose())))</span>
+<span class="c1">#    df2 = pd.DataFrame(OrderedDict(zip(st.features, prop.transpose())))</span>
+<span class="c1">#    df3 = pd.concat([df, df2], axis=1)[df.scan == scan]</span>
+<span class="c1">#    df3.metadata = st.metadata</span>
+<span class="c1">#    df3.prefs = st.prefs</span>
+    <span class="n">features</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">loc</span><span class="o">.</span><span class="n">transpose</span><span class="p">(),</span> <span class="n">prop</span><span class="o">.</span><span class="n">transpose</span><span class="p">()))</span>
+    <span class="n">cc</span> <span class="o">=</span> <span class="n">candidates</span><span class="o">.</span><span class="n">CandCollection</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">st</span><span class="p">,</span> <span class="n">cc</span></div>
+
+
+<div class="viewcode-block" id="pipeline_dataprep"><a class="viewcode-back" href="../../Reproduce.html#rfpipe.reproduce.pipeline_dataprep">[docs]</a><span class="k">def</span> <span class="nf">pipeline_dataprep</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">candloc</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Prepare (read, cal, flag) data for a given state and candloc.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">segment</span><span class="p">,</span> <span class="n">candint</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">,</span> <span class="n">beamnum</span> <span class="o">=</span> <span class="n">candloc</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+
+    <span class="c1"># prep data</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">read_segment</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">)</span>
+    <span class="n">data_prep</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">data_prep</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">data_prep</span></div>
+
+
+<div class="viewcode-block" id="pipeline_datacorrect"><a class="viewcode-back" href="../../Reproduce.html#rfpipe.reproduce.pipeline_datacorrect">[docs]</a><span class="k">def</span> <span class="nf">pipeline_datacorrect</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">candloc</span><span class="p">,</span> <span class="n">data_prep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Prepare and correct for dm and dt sampling of a given candloc</span>
+<span class="sd">    Can optionally pass in prepared (flagged, calibrated) data, if available.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">data_prep</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">data_prep</span> <span class="o">=</span> <span class="n">pipeline_dataprep</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">candloc</span><span class="p">)</span>
+
+    <span class="n">segment</span><span class="p">,</span> <span class="n">candint</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">,</span> <span class="n">beamnum</span> <span class="o">=</span> <span class="n">candloc</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    <span class="n">dt</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">dtarr</span><span class="p">[</span><span class="n">dtind</span><span class="p">]</span>
+    <span class="n">dm</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">dmarr</span><span class="p">[</span><span class="n">dmind</span><span class="p">]</span>
+
+    <span class="n">scale</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="s2">&quot;rtpipe_version&quot;</span><span class="p">):</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="mf">4.2e-3</span> <span class="k">if</span> <span class="n">st</span><span class="o">.</span><span class="n">rtpipe_version</span> <span class="o">&lt;=</span> <span class="mf">1.54</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="n">delay</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">calc_delay</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">freq</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">freq</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">dm</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">inttime</span><span class="p">,</span>
+                            <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">)</span>
+
+    <span class="n">data_dm</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">dedisperse</span><span class="p">(</span><span class="n">data_prep</span><span class="p">,</span> <span class="n">delay</span><span class="p">)</span>
+    <span class="n">data_dmdt</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="n">data_dm</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">data_dmdt</span></div>
+
+
+<div class="viewcode-block" id="pipeline_imdata"><a class="viewcode-back" href="../../Reproduce.html#rfpipe.reproduce.pipeline_imdata">[docs]</a><span class="k">def</span> <span class="nf">pipeline_imdata</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">candloc</span><span class="p">,</span> <span class="n">data_dmdt</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Generate image and phased visibility data for candloc.</span>
+<span class="sd">    Phases to peak pixel in image of candidate.</span>
+<span class="sd">    Can optionally pass in corrected data, if available.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">segment</span><span class="p">,</span> <span class="n">candint</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">,</span> <span class="n">beamnum</span> <span class="o">=</span> <span class="n">candloc</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    <span class="n">dt</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">dtarr</span><span class="p">[</span><span class="n">dtind</span><span class="p">]</span>
+    <span class="n">dm</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">dmarr</span><span class="p">[</span><span class="n">dmind</span><span class="p">]</span>
+
+    <span class="n">uvw</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">get_uvw_segment</span><span class="p">(</span><span class="n">segment</span><span class="p">)</span>
+    <span class="n">wisdom</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">set_wisdom</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">npixx</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">npixy</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">data_dmdt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">data_dmdt</span> <span class="o">=</span> <span class="n">pipeline_datacorrect</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">candloc</span><span class="p">)</span>
+
+    <span class="n">i</span> <span class="o">=</span> <span class="n">candint</span><span class="o">//</span><span class="n">dt</span>
+    <span class="n">image</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="n">data_dmdt</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">npixx</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">npixy</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">uvres</span><span class="p">,</span>
+                         <span class="n">st</span><span class="o">.</span><span class="n">fftmode</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">nthread</span><span class="p">,</span> <span class="n">wisdom</span><span class="o">=</span><span class="n">wisdom</span><span class="p">,</span>
+                         <span class="n">integrations</span><span class="o">=</span><span class="p">[</span><span class="n">i</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">dl</span><span class="p">,</span> <span class="n">dm</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">pixtolm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">image</span> <span class="o">==</span> <span class="n">image</span><span class="o">.</span><span class="n">max</span><span class="p">()))</span>
+    <span class="n">search</span><span class="o">.</span><span class="n">phase_shift</span><span class="p">(</span><span class="n">data_dmdt</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="n">dl</span><span class="p">,</span> <span class="n">dm</span><span class="p">)</span>
+    <span class="n">dataph</span> <span class="o">=</span> <span class="n">data_dmdt</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">timewindow</span><span class="o">//</span><span class="mi">2</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">timewindow</span><span class="o">//</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">search</span><span class="o">.</span><span class="n">phase_shift</span><span class="p">(</span><span class="n">data_dmdt</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="o">-</span><span class="n">dl</span><span class="p">,</span> <span class="o">-</span><span class="n">dm</span><span class="p">)</span>
+
+    <span class="n">canddata</span> <span class="o">=</span> <span class="n">candidates</span><span class="o">.</span><span class="n">CandData</span><span class="p">(</span><span class="n">state</span><span class="o">=</span><span class="n">st</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">candloc</span><span class="p">),</span> <span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span>
+                               <span class="n">data</span><span class="o">=</span><span class="n">dataph</span><span class="p">)</span>
+
+    <span class="c1"># output is as from search.image_thresh</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">canddata</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="pipeline_candidate"><a class="viewcode-back" href="../../Reproduce.html#rfpipe.reproduce.pipeline_candidate">[docs]</a><span class="k">def</span> <span class="nf">pipeline_candidate</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">candloc</span><span class="p">,</span> <span class="n">canddata</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; End-to-end pipeline to reproduce candidate plot and calculate features.</span>
+<span class="sd">    Can optionally pass in image and corrected data, if available.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">segment</span><span class="p">,</span> <span class="n">candint</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">,</span> <span class="n">beamnum</span> <span class="o">=</span> <span class="n">candloc</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">canddata</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">canddatalist</span> <span class="o">=</span> <span class="n">pipeline_imdata</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">candloc</span><span class="p">)</span>
+
+    <span class="n">candcollection</span> <span class="o">=</span> <span class="n">candidates</span><span class="o">.</span><span class="n">calc_features</span><span class="p">(</span><span class="n">canddatalist</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">candcollection</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">rfpipe 0.6.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Casey Law.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.
+    </div>
+  </body>
+</html>

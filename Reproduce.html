@@ -1,0 +1,148 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Reproducing Transient Detections &#8212; rfpipe 0.6.0 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Candidates" href="Candidates.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Candidates.html" title="Candidates"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">rfpipe 0.6.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="reproducing-transient-detections">
+<h1>Reproducing Transient Detections<a class="headerlink" href="#reproducing-transient-detections" title="Permalink to this headline">¶</a></h1>
+<p>The rfpipe library has been developed for the realfast project, a real-time transient search instrument at the VLA. The realfast project will capture VLA visibility data for candidate transients detected in real time. Those results can be reproduced offline by rfpipe.</p>
+<span class="target" id="module-rfpipe.reproduce"></span><dl class="function">
+<dt id="rfpipe.reproduce.oldcands_read">
+<code class="descclassname">rfpipe.reproduce.</code><code class="descname">oldcands_read</code><span class="sig-paren">(</span><em>candsfile</em>, <em>sdmscan=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/reproduce.html#oldcands_read"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.reproduce.oldcands_read" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read old-style candfile and create new-style DataFrame
+Returns a list of tuples (state, dataframe) per scan.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.reproduce.oldcands_readone">
+<code class="descclassname">rfpipe.reproduce.</code><code class="descname">oldcands_readone</code><span class="sig-paren">(</span><em>candsfile</em>, <em>scan</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/reproduce.html#oldcands_readone"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.reproduce.oldcands_readone" title="Permalink to this definition">¶</a></dt>
+<dd><p>For old-style merged candidate file, create new state and candidate
+dataframe for a given scan.
+Requires sdm locally with bdf for given scan.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.reproduce.pipeline_candidate">
+<code class="descclassname">rfpipe.reproduce.</code><code class="descname">pipeline_candidate</code><span class="sig-paren">(</span><em>st</em>, <em>candloc</em>, <em>canddata=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/reproduce.html#pipeline_candidate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.reproduce.pipeline_candidate" title="Permalink to this definition">¶</a></dt>
+<dd><p>End-to-end pipeline to reproduce candidate plot and calculate features.
+Can optionally pass in image and corrected data, if available.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.reproduce.pipeline_datacorrect">
+<code class="descclassname">rfpipe.reproduce.</code><code class="descname">pipeline_datacorrect</code><span class="sig-paren">(</span><em>st</em>, <em>candloc</em>, <em>data_prep=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/reproduce.html#pipeline_datacorrect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.reproduce.pipeline_datacorrect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepare and correct for dm and dt sampling of a given candloc
+Can optionally pass in prepared (flagged, calibrated) data, if available.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.reproduce.pipeline_dataprep">
+<code class="descclassname">rfpipe.reproduce.</code><code class="descname">pipeline_dataprep</code><span class="sig-paren">(</span><em>st</em>, <em>candloc</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/reproduce.html#pipeline_dataprep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.reproduce.pipeline_dataprep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepare (read, cal, flag) data for a given state and candloc.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.reproduce.pipeline_imdata">
+<code class="descclassname">rfpipe.reproduce.</code><code class="descname">pipeline_imdata</code><span class="sig-paren">(</span><em>st</em>, <em>candloc</em>, <em>data_dmdt=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/reproduce.html#pipeline_imdata"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.reproduce.pipeline_imdata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate image and phased visibility data for candloc.
+Phases to peak pixel in image of candidate.
+Can optionally pass in corrected data, if available.</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="Candidates.html"
+                        title="previous chapter">Candidates</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Reproduce.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Candidates.html" title="Candidates"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">rfpipe 0.6.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Casey Law.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.
+    </div>
+  </body>
+</html>

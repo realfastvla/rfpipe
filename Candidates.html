@@ -1,0 +1,163 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Candidates &#8212; rfpipe 0.6.0 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Reproducing Transient Detections" href="Reproduce.html" />
+    <link rel="prev" title="Searching for Transients" href="Searching.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Reproduce.html" title="Reproducing Transient Detections"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="Searching.html" title="Searching for Transients"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">rfpipe 0.6.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="candidates">
+<h1>Candidates<a class="headerlink" href="#candidates" title="Permalink to this headline">¶</a></h1>
+<p>The search functions (or the pipeline) will return objects that summarize the candidates detected.</p>
+<dl class="class">
+<dt id="rfpipe.candidates.CandData">
+<em class="property">class </em><code class="descclassname">rfpipe.candidates.</code><code class="descname">CandData</code><span class="sig-paren">(</span><em>state</em>, <em>loc</em>, <em>image</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/candidates.html#CandData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.candidates.CandData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Object that bundles data from search stage to candidate visualization.
+Provides some properties for the state of the phased data and candidate.</p>
+<dl class="attribute">
+<dt id="rfpipe.candidates.CandData.peak_lm">
+<code class="descname">peak_lm</code><a class="headerlink" href="#rfpipe.candidates.CandData.peak_lm" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.candidates.CandData.peak_xy">
+<code class="descname">peak_xy</code><a class="headerlink" href="#rfpipe.candidates.CandData.peak_xy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Peak pixel in image
+Only supports positive peaks for now.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.candidates.CandData.time_infinite">
+<code class="descname">time_infinite</code><a class="headerlink" href="#rfpipe.candidates.CandData.time_infinite" title="Permalink to this definition">¶</a></dt>
+<dd><p>Time in mjd where burst is at infinite frequency</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.candidates.CandData.time_top">
+<code class="descname">time_top</code><a class="headerlink" href="#rfpipe.candidates.CandData.time_top" title="Permalink to this definition">¶</a></dt>
+<dd><p>Time in mjd where burst is at top of band</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="rfpipe.candidates.CandCollection">
+<em class="property">class </em><code class="descclassname">rfpipe.candidates.</code><code class="descname">CandCollection</code><span class="sig-paren">(</span><em>array=array([]</em>, <em>dtype=float64)</em>, <em>prefs=None</em>, <em>metadata=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/candidates.html#CandCollection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.candidates.CandCollection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrap candidate array with metadata and
+prefs to be attached and pickled.</p>
+<dl class="attribute">
+<dt id="rfpipe.candidates.CandCollection.scan">
+<code class="descname">scan</code><a class="headerlink" href="#rfpipe.candidates.CandCollection.scan" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.candidates.CandCollection.segment">
+<code class="descname">segment</code><a class="headerlink" href="#rfpipe.candidates.CandCollection.segment" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="Searching.html"
+                        title="previous chapter">Searching for Transients</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="Reproduce.html"
+                        title="next chapter">Reproducing Transient Detections</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Candidates.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Reproduce.html" title="Reproducing Transient Detections"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="Searching.html" title="Searching for Transients"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">rfpipe 0.6.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Casey Law.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.
+    </div>
+  </body>
+</html>

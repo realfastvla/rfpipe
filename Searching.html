@@ -1,0 +1,196 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Searching for Transients &#8212; rfpipe 0.6.0 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Candidates" href="Candidates.html" />
+    <link rel="prev" title="Using a Search Pipeline" href="Pipeline.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Candidates.html" title="Candidates"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="Pipeline.html" title="Using a Search Pipeline"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">rfpipe 0.6.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="searching-for-transients">
+<h1>Searching for Transients<a class="headerlink" href="#searching-for-transients" title="Permalink to this headline">¶</a></h1>
+<p>Functions for searching…</p>
+<span class="target" id="module-rfpipe.search"></span><dl class="function">
+<dt id="rfpipe.search.dedisperse">
+<code class="descclassname">rfpipe.search.</code><code class="descname">dedisperse</code><span class="sig-paren">(</span><em>data</em>, <em>delay</em>, <em>mode='multi'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#dedisperse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.dedisperse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shift data in time (axis=0) by channel-dependent value given in
+delay. Returns new array with time length shortened by max delay in
+integrations. wraps _dedisperse to add logging.
+Can set mode to “single” or “multi” to use different functions.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.search.grid_visibilities">
+<code class="descclassname">rfpipe.search.</code><code class="descname">grid_visibilities</code><span class="sig-paren">(</span><em>data</em>, <em>uvw</em>, <em>npixx</em>, <em>npixy</em>, <em>uvres</em>, <em>mode='multi'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#grid_visibilities"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.grid_visibilities" title="Permalink to this definition">¶</a></dt>
+<dd><p>Grid visibilities into rounded uv coordinates</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.search.image">
+<code class="descclassname">rfpipe.search.</code><code class="descname">image</code><span class="sig-paren">(</span><em>data</em>, <em>uvw</em>, <em>npixx</em>, <em>npixy</em>, <em>uvres</em>, <em>fftmode</em>, <em>nthread</em>, <em>wisdom=None</em>, <em>integrations=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.image" title="Permalink to this definition">¶</a></dt>
+<dd><p>Grid and image data.
+Optionally image integrations in list i.
+fftmode can be fftw or cuda.
+nthread is number of threads to use</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.search.image_arm">
+<code class="descclassname">rfpipe.search.</code><code class="descname">image_arm</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#image_arm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.image_arm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes visibilities and images arms of VLA</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.search.image_cuda">
+<code class="descclassname">rfpipe.search.</code><code class="descname">image_cuda</code><span class="sig-paren">(</span><em>grids</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#image_cuda"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.image_cuda" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run 2d FFT to image each plane of grid array</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.search.image_fftw">
+<code class="descclassname">rfpipe.search.</code><code class="descname">image_fftw</code><span class="sig-paren">(</span><em>grids</em>, <em>nthread=1</em>, <em>wisdom=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#image_fftw"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.image_fftw" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plan pyfftw ifft2 and run it on uv grids (time, npixx, npixy)
+Returns time images.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.search.phase_shift">
+<code class="descclassname">rfpipe.search.</code><code class="descname">phase_shift</code><a class="reference internal" href="_modules/rfpipe/search.html#phase_shift"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.phase_shift" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies a phase shift to data for a given (dl, dm).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.search.recenter">
+<code class="descclassname">rfpipe.search.</code><code class="descname">recenter</code><span class="sig-paren">(</span><em>array</em>, <em>center</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#recenter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.recenter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Recenters images in array to location center (x, y)
+Array can be either 2d (x, y) or 3d array (time, x, y).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.search.resample">
+<code class="descclassname">rfpipe.search.</code><code class="descname">resample</code><span class="sig-paren">(</span><em>data</em>, <em>dt</em>, <em>mode='multi'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#resample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.resample" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resample (integrate) by factor dt and return new data structure
+wraps _resample to add logging.
+Can set mode to “single” or “multi” to use different functions.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.search.search_thresh">
+<code class="descclassname">rfpipe.search.</code><code class="descname">search_thresh</code><span class="sig-paren">(</span><em>st</em>, <em>data</em>, <em>segment</em>, <em>dmind</em>, <em>dtind</em>, <em>beamnum=0</em>, <em>wisdom=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#search_thresh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.search_thresh" title="Permalink to this definition">¶</a></dt>
+<dd><p>High-level wrapper for search algorithms.
+Expects dedispersed, resampled data as input and data state.
+Returns list of CandData objects that define candidates with
+candloc, image, and phased visibility data.</p>
+<p>** only supports threshold &gt; image max (no min)
+** dmind, dtind, beamnum assumed to represent current state of data</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.search.set_wisdom">
+<code class="descclassname">rfpipe.search.</code><code class="descname">set_wisdom</code><span class="sig-paren">(</span><em>npixx</em>, <em>npixy</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#set_wisdom"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.set_wisdom" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run single 2d ifft like image to prep fftw wisdom in worker cache</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="Pipeline.html"
+                        title="previous chapter">Using a Search Pipeline</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="Candidates.html"
+                        title="next chapter">Candidates</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Searching.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Candidates.html" title="Candidates"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="Pipeline.html" title="Using a Search Pipeline"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">rfpipe 0.6.0 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Casey Law.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.
+    </div>
+  </body>
+</html>

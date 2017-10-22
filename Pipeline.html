@@ -5,7 +5,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>rfpipe: radio interferometric transient search &#8212; rfpipe 0.6.0 documentation</title>
+    <title>Using a Search Pipeline &#8212; rfpipe 0.6.0 documentation</title>
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
@@ -23,7 +23,8 @@
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Overview" href="Overview.html" /> 
+    <link rel="next" title="Searching for Transients" href="Searching.html" />
+    <link rel="prev" title="Search State, Preferences, and Metadata" href="State.html" /> 
   </head>
   <body>
     <div class="related" role="navigation" aria-label="related navigation">
@@ -36,9 +37,12 @@
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="Overview.html" title="Overview"
+          <a href="Searching.html" title="Searching for Transients"
              accesskey="N">next</a> |</li>
-        <li class="nav-item nav-item-0"><a href="#">rfpipe 0.6.0 documentation</a> &#187;</li> 
+        <li class="right" >
+          <a href="State.html" title="Search State, Preferences, and Metadata"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">rfpipe 0.6.0 documentation</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -47,29 +51,24 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="rfpipe-radio-interferometric-transient-search">
-<h1>rfpipe: radio interferometric transient search<a class="headerlink" href="#rfpipe-radio-interferometric-transient-search" title="Permalink to this headline">¶</a></h1>
-<p>Contents:</p>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="Overview.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Overview.html#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Overview.html#quick-start">Quick Start</a><ul class="simple">
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="State.html">Search State, Preferences, and Metadata</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Pipeline.html">Using a Search Pipeline</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Searching.html">Searching for Transients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Candidates.html">Candidates</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Reproduce.html">Reproducing Transient Detections</a></li>
-</ul>
-</div>
-</div>
-<div class="section" id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
-<ul class="simple">
-<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
-</ul>
+  <div class="section" id="using-a-search-pipeline">
+<h1>Using a Search Pipeline<a class="headerlink" href="#using-a-search-pipeline" title="Permalink to this headline">¶</a></h1>
+<p>A transient search is composed of a series of steps to read, prepare, and process data…</p>
+<p>The standard search is described by this flow chart:</p>
+<img alt="_images/rf-pipeline.png" src="_images/rf-pipeline.png" />
+<p>The pipeline module has the following members:</p>
+<span class="target" id="module-rfpipe.pipeline"></span><dl class="function">
+<dt id="rfpipe.pipeline.pipeline_scan">
+<code class="descclassname">rfpipe.pipeline.</code><code class="descname">pipeline_scan</code><span class="sig-paren">(</span><em>st</em>, <em>segments=None</em>, <em>host='cbe-node-01'</em>, <em>cfile=None</em>, <em>vys_timeout=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/pipeline.html#pipeline_scan"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.pipeline.pipeline_scan" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given rfpipe state and dask distributed client, run search pipline</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.pipeline.pipeline_seg">
+<code class="descclassname">rfpipe.pipeline.</code><code class="descname">pipeline_seg</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>cfile=None</em>, <em>vys_timeout=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/pipeline.html#pipeline_seg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.pipeline.pipeline_seg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Submit pipeline processing of a single segment on a single node.</p>
+</dd></dl>
+
 </div>
 
 
@@ -78,19 +77,16 @@
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-  <h3><a href="#">Table Of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">rfpipe: radio interferometric transient search</a></li>
-<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
-</ul>
-
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="State.html"
+                        title="previous chapter">Search State, Preferences, and Metadata</a></p>
   <h4>Next topic</h4>
-  <p class="topless"><a href="Overview.html"
-                        title="next chapter">Overview</a></p>
+  <p class="topless"><a href="Searching.html"
+                        title="next chapter">Searching for Transients</a></p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
-      <li><a href="_sources/index.rst.txt"
+      <li><a href="_sources/Pipeline.rst.txt"
             rel="nofollow">Show Source</a></li>
     </ul>
    </div>
@@ -118,9 +114,12 @@
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="Overview.html" title="Overview"
+          <a href="Searching.html" title="Searching for Transients"
              >next</a> |</li>
-        <li class="nav-item nav-item-0"><a href="#">rfpipe 0.6.0 documentation</a> &#187;</li> 
+        <li class="right" >
+          <a href="State.html" title="Search State, Preferences, and Metadata"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">rfpipe 0.6.0 documentation</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">

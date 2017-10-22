@@ -1,0 +1,447 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>rfpipe.metadata &#8212; rfpipe 0.6.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">rfpipe 0.6.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for rfpipe.metadata</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">absolute_import</span> <span class="c1">#, unicode_literals # not casa compatible</span>
+<span class="kn">from</span> <span class="nn">builtins</span> <span class="k">import</span> <span class="nb">bytes</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="nb">object</span><span class="p">,</span> <span class="nb">range</span><span class="p">,</span> <span class="nb">map</span><span class="p">,</span> <span class="nb">input</span><span class="c1">#, str # not casa compatible</span>
+<span class="kn">from</span> <span class="nn">future.utils</span> <span class="k">import</span> <span class="n">itervalues</span><span class="p">,</span> <span class="n">viewitems</span><span class="p">,</span> <span class="n">iteritems</span><span class="p">,</span> <span class="n">listvalues</span><span class="p">,</span> <span class="n">listitems</span>
+<span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="nb">open</span>
+
+<span class="kn">import</span> <span class="nn">os.path</span>
+<span class="kn">import</span> <span class="nn">attr</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">rfpipe</span> <span class="k">import</span> <span class="n">source</span><span class="p">,</span> <span class="n">util</span>
+<span class="kn">import</span> <span class="nn">pwkit.environments.casa.util</span> <span class="k">as</span> <span class="nn">casautil</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">qa</span> <span class="o">=</span> <span class="n">casautil</span><span class="o">.</span><span class="n">tools</span><span class="o">.</span><span class="n">quanta</span><span class="p">()</span>
+<span class="n">me</span> <span class="o">=</span> <span class="n">casautil</span><span class="o">.</span><span class="n">tools</span><span class="o">.</span><span class="n">measures</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="Metadata"><a class="viewcode-back" href="../../State.html#rfpipe.metadata.Metadata">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span>
+<span class="k">class</span> <span class="nc">Metadata</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Metadata we need to translate parameters into a pipeline state.</span>
+<span class="sd">    Called from a function defined for a given source (e.g., an sdm file).</span>
+<span class="sd">    Built from *nominally* immutable attributes and properties.</span>
+<span class="sd">    To modify metadata, use attr.assoc(inst, key=newval)</span>
+
+<span class="sd">    TODO: can we freeze attributes while still having cached values?</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># basics</span>
+    <span class="n">datasource</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">scan</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>  <span class="c1"># int</span>
+    <span class="n">bdfdir</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">bdfstr</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="c1">#    configid = attr.ib(default=None)</span>
+
+    <span class="c1"># data structure and source properties</span>
+    <span class="n">source</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">radec</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>  <span class="c1"># (radians, radians)</span>
+    <span class="n">inttime</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>  <span class="c1"># seconds</span>
+    <span class="n">nints_</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">telescope</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+    <span class="c1"># array/antenna info</span>
+    <span class="n">starttime_mjd</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>  <span class="c1"># float</span>
+    <span class="n">endtime_mjd_</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">dishdiameter</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">intent</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">antids</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="c1">#    stationids = attr.ib(default=None) # needed?</span>
+    <span class="n">xyz</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>  <span class="c1"># in m, geocentric</span>
+
+    <span class="c1"># spectral info</span>
+    <span class="n">spworder</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">spw_orig</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>  <span class="c1"># indexes for spw</span>
+    <span class="n">spw_nchan</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>  <span class="c1"># channesl per spw</span>
+    <span class="n">spw_reffreq</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>  <span class="c1"># reference frequency in Hz</span>
+    <span class="n">spw_chansize</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>  <span class="c1"># channel size in Hz</span>
+    <span class="n">pols_orig</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    
+
+<div class="viewcode-block" id="Metadata.atdefaults"><a class="viewcode-back" href="../../State.html#rfpipe.metadata.Metadata.atdefaults">[docs]</a>    <span class="k">def</span> <span class="nf">atdefaults</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Is metadata still set at default values? &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">ab</span><span class="p">]</span> <span class="k">for</span> <span class="n">ab</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">])</span></div>
+
+<span class="c1">#    @property</span>
+<span class="c1">#    def spw_chanr(self):</span>
+<span class="c1">#        chanr = []</span>
+<span class="c1">#        i0 = 0</span>
+<span class="c1">#        for nch in self.spw_nchan:</span>
+<span class="c1">#            chanr.append((i0, i0+nch))</span>
+<span class="c1">#            i0 = nch</span>
+<span class="c1">#        return chanr</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">freq_orig</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Spacing of channel centers in GHz.</span>
+<span class="sd">        Out of order metadata order is sorted in state/data reading&quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spw_reffreq</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">spw_reffreq</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">+</span>
+                                     <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spw_nchan</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">spw_chansize</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">spw_nchan</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
+                        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">spw_reffreq</span><span class="p">)))],</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span><span class="o">/</span><span class="mf">1e9</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nchan_orig</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">freq_orig</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nants_orig</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">antids</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nbl_orig</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nants_orig</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nants_orig</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">antpos</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyz</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyz</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xyz</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">me</span><span class="o">.</span><span class="n">position</span><span class="p">(</span><span class="s1">&#39;itrf&#39;</span><span class="p">,</span> <span class="n">qa</span><span class="o">.</span><span class="n">quantity</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s1">&#39;m&#39;</span><span class="p">),</span>
+                           <span class="n">qa</span><span class="o">.</span><span class="n">quantity</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="s1">&#39;m&#39;</span><span class="p">),</span> <span class="n">qa</span><span class="o">.</span><span class="n">quantity</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="s1">&#39;m&#39;</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">starttime_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">qa</span><span class="o">.</span><span class="n">time</span><span class="p">(</span><span class="n">qa</span><span class="o">.</span><span class="n">quantity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">starttime_mjd</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">),</span>
+                       <span class="n">form</span><span class="o">=</span><span class="s1">&#39;ymd&#39;</span><span class="p">,</span> <span class="n">prec</span><span class="o">=</span><span class="mi">8</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">endtime_mjd</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; If nints_ is defined (e.g., for SDM data), then endtime_mjd is calculated.</span>
+<span class="sd">        Otherwise (e.g., for scan_config/vys data), it looks for endtime_mjd_ </span>
+<span class="sd">        attribute</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">endtime_mjd_</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">endtime_mjd_</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">nints_</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">starttime_mjd</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nints_</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">inttime</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mi">24</span><span class="o">*</span><span class="mi">3600</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;Either endtime_mjd_ or nints_ need to be &quot;</span>
+                                 <span class="s2">&quot;defined.&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nints</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; If endtime_mjd_ is defined (e.g., for scan_config/vys</span>
+<span class="sd">        data), then endtime_mjd is calculated.</span>
+<span class="sd">        Otherwise (e.g., for SDM data), it looks for nints_ attribute</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nints_</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">nints_</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">endtime_mjd_</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">endtime_mjd_</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">starttime_mjd</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mi">24</span><span class="o">*</span><span class="mi">3600</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">inttime</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;Either endtime_mjd_ or nints_ need to be &quot;</span>
+                                 <span class="s2">&quot;defined.&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">uvrange_orig</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_uvrange_orig&#39;</span><span class="p">):</span>
+            <span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">calc_uvw</span><span class="p">(</span><span class="n">datetime</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">starttime_string</span><span class="p">,</span>
+                                      <span class="n">radec</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">radec</span><span class="p">,</span>
+                                      <span class="n">antpos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">antpos</span><span class="p">,</span>
+                                      <span class="n">telescope</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">telescope</span><span class="p">)</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">u</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">freq_orig</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1e9</span><span class="o">/</span><span class="mf">3e8</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">v</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">freq_orig</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1e9</span><span class="o">/</span><span class="mf">3e8</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_uvrange_orig</span> <span class="o">=</span> <span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">-</span> <span class="n">u</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">v</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">-</span> <span class="n">v</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_uvrange_orig</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">npol_orig</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pols_orig</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">config_metadata</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">datasource</span><span class="o">=</span><span class="s1">&#39;vys&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Creates dict holding metadata from evla_mcast scan config object.</span>
+<span class="sd">    Parallel structure to sdm_metadata, so this inherits some of its</span>
+<span class="sd">    nomenclature. datasource defines expected data source (vys expected when</span>
+<span class="sd">    using scan config)</span>
+<span class="sd">    spworder is required for proper indexing of vys data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Reading metadata from config object&#39;</span><span class="p">)</span>
+
+    <span class="n">meta</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;datasource&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">datasource</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;filename&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">datasetId</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;scan&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">scanNo</span>
+<span class="c1">#    meta[&#39;configid&#39;] = config.Id</span>
+
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;starttime_mjd&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">startTime</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;endtime_mjd_&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">stopTime</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;source&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">source</span><span class="p">)</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;intent&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">scan_intent</span><span class="p">)</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;telescope&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">telescope</span><span class="p">)</span>
+    <span class="n">antennas</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get_antennas</span><span class="p">()</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;antids&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">ant</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">ant</span> <span class="ow">in</span> <span class="n">antennas</span><span class="p">]</span>
+<span class="c1">#    meta[&#39;stationids&#39;] = config.listOfStations</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;xyz&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">ant</span><span class="o">.</span><span class="n">xyz</span> <span class="k">for</span> <span class="n">ant</span> <span class="ow">in</span> <span class="n">antennas</span><span class="p">])</span>
+
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;radec&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">ra_deg</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">dec_deg</span><span class="p">))</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;dishdiameter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">25.</span>  <span class="c1"># ?</span>
+
+    <span class="n">subbands</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get_subbands</span><span class="p">()</span>
+    <span class="n">subband0</span> <span class="o">=</span> <span class="n">subbands</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># **parsing single subband for now</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;inttime&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">subband0</span><span class="o">.</span><span class="n">hw_time_res</span>  <span class="c1"># assumes vys stream post-hw-integ</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;pols_orig&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">subband0</span><span class="o">.</span><span class="n">pp</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;spw_nchan&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">sb</span><span class="o">.</span><span class="n">spectralChannels</span> <span class="k">for</span> <span class="n">sb</span> <span class="ow">in</span> <span class="n">subbands</span><span class="p">]</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;spw_chansize&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">sb</span><span class="o">.</span><span class="n">bw</span><span class="o">/</span><span class="n">subband0</span><span class="o">.</span><span class="n">spectralChannels</span> <span class="k">for</span> <span class="n">sb</span> <span class="ow">in</span> <span class="n">subbands</span><span class="p">]</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;spw_orig&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">sb</span><span class="o">.</span><span class="n">sbid</span> <span class="k">for</span> <span class="n">sb</span> <span class="ow">in</span> <span class="n">subbands</span><span class="p">]</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;spw_reffreq&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">sb</span><span class="o">.</span><span class="n">sky_center_freq</span><span class="o">*</span><span class="mf">1e6</span> <span class="k">for</span> <span class="n">sb</span> <span class="ow">in</span> <span class="n">subbands</span><span class="p">]</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;spworder&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">-</span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sb</span><span class="o">.</span><span class="n">IFid</span><span class="p">,</span> <span class="n">sb</span><span class="o">.</span><span class="n">sbid</span><span class="p">),</span>
+                                <span class="n">sb</span><span class="o">.</span><span class="n">sky_center_freq</span><span class="p">)</span>
+                               <span class="k">for</span> <span class="n">sb</span> <span class="ow">in</span> <span class="n">subbands</span><span class="p">],</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">meta</span>
+
+
+<span class="k">def</span> <span class="nf">sdm_metadata</span><span class="p">(</span><span class="n">sdmfile</span><span class="p">,</span> <span class="n">scan</span><span class="p">,</span> <span class="n">bdfdir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Wraps Metadata call to provide immutable, attribute-filled class instance.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Reading metadata from </span><span class="si">{0}</span><span class="s1">, scan </span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sdmfile</span><span class="p">,</span> <span class="n">scan</span><span class="p">))</span>
+
+    <span class="n">sdm</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">getsdm</span><span class="p">(</span><span class="n">sdmfile</span><span class="p">,</span> <span class="n">bdfdir</span><span class="o">=</span><span class="n">bdfdir</span><span class="p">)</span>
+    <span class="n">scanobj</span> <span class="o">=</span> <span class="n">sdm</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span><span class="n">scan</span><span class="p">)</span>
+
+    <span class="n">meta</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;datasource&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;sdm&#39;</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;filename&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sdmfile</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;scan&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">scan</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;bdfdir&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bdfdir</span>
+<span class="c1">#    meta[&#39;configid&#39;] = scanobj.configDescriptionId</span>
+    <span class="n">bdfstr</span> <span class="o">=</span> <span class="n">scanobj</span><span class="o">.</span><span class="n">bdf</span><span class="o">.</span><span class="n">fname</span>
+    <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">bdfstr</span><span class="p">))</span> <span class="ow">or</span> <span class="p">(</span><span class="s1">&#39;X1&#39;</span> <span class="ow">in</span> <span class="n">bdfstr</span><span class="p">):</span>
+        <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;bdfstr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;bdfstr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bdfstr</span>
+
+    <span class="n">starttime_mjd</span> <span class="o">=</span> <span class="n">scanobj</span><span class="o">.</span><span class="n">bdf</span><span class="o">.</span><span class="n">startTime</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;starttime_mjd&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">starttime_mjd</span>
+    <span class="n">nints</span> <span class="o">=</span> <span class="n">scanobj</span><span class="o">.</span><span class="n">bdf</span><span class="o">.</span><span class="n">numIntegration</span>
+    <span class="n">inttime</span> <span class="o">=</span> <span class="n">scanobj</span><span class="o">.</span><span class="n">bdf</span><span class="o">.</span><span class="n">get_integration</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">interval</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;inttime&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">inttime</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;nints_&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nints</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;source&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">scanobj</span><span class="o">.</span><span class="n">source</span><span class="p">)</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;intent&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">scanobj</span><span class="o">.</span><span class="n">intents</span><span class="p">)</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;telescope&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">sdm</span><span class="p">[</span><span class="s1">&#39;ExecBlock&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;telescopeName&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;antids&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">ant</span><span class="p">)</span> <span class="k">for</span> <span class="n">ant</span> <span class="ow">in</span> <span class="n">scanobj</span><span class="o">.</span><span class="n">antennas</span><span class="p">]</span>  <span class="c1"># ** test that these are the same as what we expected with rtpipe **</span>
+<span class="c1">#    meta[&#39;stationids&#39;] = scanobj.stations</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;xyz&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">scanobj</span><span class="o">.</span><span class="n">positions</span><span class="p">)</span>
+
+    <span class="n">sources</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">sdm_sources</span><span class="p">(</span><span class="n">sdmfile</span><span class="p">)</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;radec&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[(</span><span class="n">prop</span><span class="p">[</span><span class="s1">&#39;ra&#39;</span><span class="p">],</span> <span class="n">prop</span><span class="p">[</span><span class="s1">&#39;dec&#39;</span><span class="p">])</span>
+                     <span class="k">for</span> <span class="p">(</span><span class="n">sr</span><span class="p">,</span> <span class="n">prop</span><span class="p">)</span> <span class="ow">in</span> <span class="n">sources</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()</span>
+                     <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">prop</span><span class="p">[</span><span class="s1">&#39;source&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="nb">str</span><span class="p">(</span><span class="n">scanobj</span><span class="o">.</span><span class="n">source</span><span class="p">)][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;dishdiameter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">sdm</span><span class="p">[</span><span class="s1">&#39;Antenna&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dishDiameter</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;spw_orig&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">spectralWindowId</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">sdm</span><span class="p">[</span><span class="s1">&#39;SpectralWindow&#39;</span><span class="p">]]</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;spw_nchan&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">numChan</span><span class="p">)</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">sdm</span><span class="p">[</span><span class="s1">&#39;SpectralWindow&#39;</span><span class="p">]]</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;spw_reffreq&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">chanFreqStart</span><span class="p">)</span>
+                           <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">sdm</span><span class="p">[</span><span class="s1">&#39;SpectralWindow&#39;</span><span class="p">]]</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;spw_chansize&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">chanFreqStep</span><span class="p">)</span>
+                            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">sdm</span><span class="p">[</span><span class="s1">&#39;SpectralWindow&#39;</span><span class="p">]]</span>
+
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;pols_orig&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">pol</span> <span class="k">for</span> <span class="n">pol</span> <span class="ow">in</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">sdm</span><span class="p">[</span><span class="s1">&#39;Polarization&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                                             <span class="o">.</span><span class="n">corrType</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                                         <span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">))</span>
+                         <span class="k">if</span> <span class="n">pol</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;XX&#39;</span><span class="p">,</span> <span class="s1">&#39;YY&#39;</span><span class="p">,</span> <span class="s1">&#39;XY&#39;</span><span class="p">,</span> <span class="s1">&#39;YX&#39;</span><span class="p">,</span>
+                                    <span class="s1">&#39;RR&#39;</span><span class="p">,</span> <span class="s1">&#39;LL&#39;</span><span class="p">,</span> <span class="s1">&#39;RL&#39;</span><span class="p">,</span> <span class="s1">&#39;LR&#39;</span><span class="p">,</span>
+                                    <span class="s1">&#39;A*A&#39;</span><span class="p">,</span> <span class="s1">&#39;B*B&#39;</span><span class="p">,</span> <span class="s1">&#39;A*B&#39;</span><span class="p">,</span> <span class="s1">&#39;B*A&#39;</span><span class="p">]]</span>
+
+    <span class="k">return</span> <span class="n">meta</span>
+
+
+<span class="k">def</span> <span class="nf">mock_metadata</span><span class="p">(</span><span class="n">t0</span><span class="p">,</span> <span class="n">t1</span><span class="p">,</span> <span class="n">nants</span><span class="p">,</span> <span class="n">nspw</span><span class="p">,</span> <span class="n">npol</span><span class="p">,</span> <span class="n">inttime_micros</span><span class="p">,</span>
+                  <span class="n">datasource</span><span class="o">=</span><span class="s1">&#39;vys&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Wraps Metadata call to provide immutable, attribute-filled class instance.</span>
+<span class="sd">    Parallel structure to sdm_metadata, so this inherits some of its</span>
+<span class="sd">    nomenclature. t0, t1 are times in mjd. Supports up to nant=27, npol=4, and</span>
+<span class="sd">    nspw=8. datasource is expected source of data (typically vys when mocking).</span>
+<span class="sd">    Assumes 32 channels per spw of width 4 MHz.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Generating mock metadata&#39;</span><span class="p">)</span>
+
+    <span class="n">meta</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;datasource&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">datasource</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;filename&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;test&#39;</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;scan&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;bdfdir&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+<span class="c1">#    meta[&#39;configid&#39;] = 0</span>
+<span class="c1">#    meta[&#39;bdfstr&#39;] = &#39;&#39;</span>
+
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;starttime_mjd&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">t0</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;endtime_mjd_&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">t1</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;inttime&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">inttime_micros</span><span class="o">/</span><span class="mf">1e6</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;source&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;testsource&#39;</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;intent&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;OBSERVE_TARGET&#39;</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;telescope&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;VLA&#39;</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;antids&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ea</span><span class="si">{0:02}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ant</span><span class="p">)</span> <span class="k">for</span> <span class="n">ant</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nants</span><span class="o">+</span><span class="mi">1</span><span class="p">)]</span>
+<span class="c1">#    meta[&#39;stationids&#39;] = range(nants)</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;xyz&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="mf">1604008.7444</span><span class="p">,</span> <span class="o">-</span><span class="mf">5042135.8251</span><span class="p">,</span>  <span class="mf">3553403.7108</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1601315.9005</span><span class="p">,</span> <span class="o">-</span><span class="mf">5041985.30747</span><span class="p">,</span>  <span class="mf">3554808.311</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1604865.6575</span><span class="p">,</span> <span class="o">-</span><span class="mf">5042190.032</span><span class="p">,</span>  <span class="mf">3552962.3635</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1601068.806</span><span class="p">,</span> <span class="o">-</span><span class="mf">5042051.9327</span><span class="p">,</span>  <span class="mf">3554824.8388</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1596127.7308</span><span class="p">,</span> <span class="o">-</span><span class="mf">5045193.7421</span><span class="p">,</span>  <span class="mf">3552652.4197</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1601110.022</span><span class="p">,</span> <span class="o">-</span><span class="mf">5041488.0826</span><span class="p">,</span>  <span class="mf">3555597.4446</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1601061.9544</span><span class="p">,</span> <span class="o">-</span><span class="mf">5041175.8753</span><span class="p">,</span>  <span class="mf">3556058.0267</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1602044.9123</span><span class="p">,</span> <span class="o">-</span><span class="mf">5042025.8014</span><span class="p">,</span>  <span class="mf">3554427.8357</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1600863.6922</span><span class="p">,</span> <span class="o">-</span><span class="mf">5039885.3167</span><span class="p">,</span>  <span class="mf">3557965.3178</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1599340.8001</span><span class="p">,</span> <span class="o">-</span><span class="mf">5043150.963</span><span class="p">,</span>  <span class="mf">3554065.2315</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1601004.6988</span><span class="p">,</span> <span class="o">-</span><span class="mf">5040802.801</span><span class="p">,</span>  <span class="mf">3556610.1493</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1597899.8959</span><span class="p">,</span> <span class="o">-</span><span class="mf">5044068.6847</span><span class="p">,</span>  <span class="mf">3553432.4502</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1600801.9314</span><span class="p">,</span> <span class="o">-</span><span class="mf">5042219.3826</span><span class="p">,</span>  <span class="mf">3554706.4294</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1600930.0836</span><span class="p">,</span> <span class="o">-</span><span class="mf">5040316.3864</span><span class="p">,</span>  <span class="mf">3557330.39</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1603249.6721</span><span class="p">,</span> <span class="o">-</span><span class="mf">5042091.4281</span><span class="p">,</span>  <span class="mf">3553797.7842</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1601173.9647</span><span class="p">,</span> <span class="o">-</span><span class="mf">5041902.6458</span><span class="p">,</span>  <span class="mf">3554987.5342</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1606841.961</span><span class="p">,</span> <span class="o">-</span><span class="mf">5042279.6752</span><span class="p">,</span>  <span class="mf">3551913.0214</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1602592.8535</span><span class="p">,</span> <span class="o">-</span><span class="mf">5042054.9924</span><span class="p">,</span>  <span class="mf">3554140.7028</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1599926.1041</span><span class="p">,</span> <span class="o">-</span><span class="mf">5042772.9772</span><span class="p">,</span>  <span class="mf">3554319.8011</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1598663.082</span><span class="p">,</span> <span class="o">-</span><span class="mf">5043581.3912</span><span class="p">,</span>  <span class="mf">3553767.0141</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1605808.6341</span><span class="p">,</span> <span class="o">-</span><span class="mf">5042230.084</span><span class="p">,</span>  <span class="mf">3552459.1978</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1600416.518</span><span class="p">,</span> <span class="o">-</span><span class="mf">5042462.4305</span><span class="p">,</span>  <span class="mf">3554536.0417</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1601614.0832</span><span class="p">,</span> <span class="o">-</span><span class="mf">5042001.6569</span><span class="p">,</span>  <span class="mf">3554652.5059</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1601147.9425</span><span class="p">,</span> <span class="o">-</span><span class="mf">5041733.8336</span><span class="p">,</span>  <span class="mf">3555235.947</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1597053.1244</span><span class="p">,</span> <span class="o">-</span><span class="mf">5044604.675</span><span class="p">,</span>  <span class="mf">3553058.9927</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1600690.6125</span><span class="p">,</span> <span class="o">-</span><span class="mf">5038758.7161</span><span class="p">,</span>  <span class="mf">3559632.0571</span><span class="p">],</span>
+                            <span class="p">[</span><span class="o">-</span><span class="mf">1600781.0607</span><span class="p">,</span> <span class="o">-</span><span class="mf">5039347.4391</span><span class="p">,</span>  <span class="mf">3558761.5271</span><span class="p">]])[:</span><span class="n">nants</span><span class="p">]</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;radec&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;dishdiameter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">25</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;spw_orig&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">nspw</span><span class="p">)</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;spw_reffreq&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">2.488E9</span><span class="p">,</span> <span class="mf">2.616E9</span><span class="p">,</span> <span class="mf">2.744E9</span><span class="p">,</span> <span class="mf">2.872E9</span><span class="p">,</span> <span class="mf">3.0E9</span><span class="p">,</span> <span class="mf">3.128E9</span><span class="p">,</span>
+                           <span class="mf">3.256E9</span><span class="p">,</span> <span class="mf">3.384E9</span><span class="p">][:</span><span class="n">nspw</span><span class="p">]</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;spw_chansize&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4000000</span><span class="p">]</span><span class="o">*</span><span class="mi">8</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;spw_nchan&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">32</span><span class="p">]</span><span class="o">*</span><span class="n">nspw</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;pols_orig&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;RR&#39;</span><span class="p">,</span> <span class="s1">&#39;LL&#39;</span><span class="p">,</span> <span class="s1">&#39;RL&#39;</span><span class="p">,</span> <span class="s1">&#39;LR&#39;</span><span class="p">][:</span><span class="n">npol</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">meta</span>
+
+
+<span class="k">def</span> <span class="nf">oldstate_metadata</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">scan</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bdfdir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Parses old state function (&quot;d&quot;, a dictionary) into new metadata instance</span>
+<span class="sd">    Note: d from merged candidate file will have some parameters defined by</span>
+<span class="sd">    last scan.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">scan</span><span class="p">:</span>
+        <span class="n">scan</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;scan&#39;</span><span class="p">]</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Reading metadata from old state dictionary for scan </span><span class="si">{0}</span><span class="s1">&#39;</span>
+                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">scan</span><span class="p">))</span>
+
+    <span class="n">meta</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;datasource&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;sdm&#39;</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;filename&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;fileroot&#39;</span><span class="p">]</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;scan&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">scan</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;bdfdir&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bdfdir</span>
+
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;starttime_mjd&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;starttime_mjddict&#39;</span><span class="p">][</span><span class="n">scan</span><span class="p">]</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;inttime&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;inttime&#39;</span><span class="p">]</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;nints_&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;nints&#39;</span><span class="p">]</span>
+
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;source&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;source&#39;</span><span class="p">])</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;telescope&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;VLA&#39;</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;antids&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ea&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">ant</span><span class="p">)</span> <span class="k">for</span> <span class="n">ant</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;ants&#39;</span><span class="p">]]</span>  <span class="c1"># ** test that these are the same as what we expected with rtpipe **</span>
+<span class="c1">#    meta[&#39;xyz&#39;] = #</span>
+
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;radec&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;radec&#39;</span><span class="p">]</span>  <span class="c1"># ** for last scan! **</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;dishdiameter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;dishdiameter&#39;</span><span class="p">]</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;spw_orig&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;spw_orig&#39;</span><span class="p">]</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;spw_nchan&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;spw_nchan&#39;</span><span class="p">]</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;spw_reffreq&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;spw_reffreq&#39;</span><span class="p">]</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;spw_chansize&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;spw_chansize&#39;</span><span class="p">]</span>
+
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;pols_orig&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;pols_orig&#39;</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">meta</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">rfpipe 0.6.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Casey Law.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.
+    </div>
+  </body>
+</html>

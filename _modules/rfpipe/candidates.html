@@ -1,0 +1,807 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>rfpipe.candidates &#8212; rfpipe 0.6.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.6.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">rfpipe 0.6.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for rfpipe.candidates</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">absolute_import</span> <span class="c1">#, unicode_literals # not casa compatible</span>
+<span class="kn">from</span> <span class="nn">builtins</span> <span class="k">import</span> <span class="nb">bytes</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="nb">object</span><span class="p">,</span> <span class="nb">range</span><span class="p">,</span> <span class="nb">map</span><span class="p">,</span> <span class="nb">input</span><span class="c1">#, str # not casa compatible</span>
+<span class="kn">from</span> <span class="nn">future.utils</span> <span class="k">import</span> <span class="n">itervalues</span><span class="p">,</span> <span class="n">viewitems</span><span class="p">,</span> <span class="n">iteritems</span><span class="p">,</span> <span class="n">listvalues</span><span class="p">,</span> <span class="n">listitems</span>
+<span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="nb">open</span>
+
+<span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">rfpipe</span> <span class="k">import</span> <span class="n">util</span><span class="p">,</span> <span class="n">version</span><span class="p">,</span> <span class="n">fileLock</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="CandData"><a class="viewcode-back" href="../../Candidates.html#rfpipe.candidates.CandData">[docs]</a><span class="k">class</span> <span class="nc">CandData</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Object that bundles data from search stage to candidate visualization.</span>
+<span class="sd">    Provides some properties for the state of the phased data and candidate.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Instantiate with pipeline state, candidate location tuple,</span>
+<span class="sd">        image, and resampled data phased to candidate.</span>
+<span class="sd">        TODO: Need to use search_dimensions to infer candloc meaning</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">state</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loc</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">loc</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">=</span> <span class="n">image</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">loc</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">search_dimensions</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;candidate location &quot;</span>
+                                                          <span class="s2">&quot;should set each of &quot;</span>
+                                                          <span class="s2">&quot;the st.search_dimensions&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;CandData for state </span><span class="si">{0}</span><span class="s1"> at loc </span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">loc</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">peak_lm</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">pixtolm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">peak_xy</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">peak_xy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Peak pixel in image</span>
+<span class="sd">        Only supports positive peaks for now.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">image</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">time_top</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Time in mjd where burst is at top of band</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">starttime_mjd</span> <span class="o">+</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">inttime</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mi">24</span><span class="o">*</span><span class="mi">3600</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">time_infinite</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Time in mjd where burst is at infinite frequency</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">delay</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">calc_delay</span><span class="p">(</span><span class="mf">1e5</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_top</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dmarr</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">2</span><span class="p">]],</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">inttime</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_top</span> <span class="o">-</span> <span class="n">delay</span></div>
+
+
+<div class="viewcode-block" id="CandCollection"><a class="viewcode-back" href="../../Candidates.html#rfpipe.candidates.CandCollection">[docs]</a><span class="k">class</span> <span class="nc">CandCollection</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Wrap candidate array with metadata and</span>
+<span class="sd">    prefs to be attached and pickled.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([]),</span> <span class="n">prefs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">array</span> <span class="o">=</span> <span class="n">array</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span> <span class="o">=</span> <span class="n">prefs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="n">metadata</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rfpipe_version</span> <span class="o">=</span> <span class="n">version</span><span class="o">.</span><span class="n">__version__</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;CandCollection for </span><span class="si">{0}</span><span class="s1">, scan </span><span class="si">{1}</span><span class="s1"> with </span><span class="si">{2}</span><span class="s1"> rows&#39;</span>
+                    <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">scan</span><span class="p">,</span>
+                            <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">array</span><span class="p">)))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;CandCollection with </span><span class="si">{0}</span><span class="s1"> rows&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">array</span><span class="p">)))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">scan</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">scan</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">segment</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">array</span><span class="p">):</span>
+            <span class="n">segments</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">array</span><span class="p">[</span><span class="s1">&#39;segment&#39;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">segments</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">segments</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">segments</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Multiple segments in this collection&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">segments</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;No candidates in this collection&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<span class="k">def</span> <span class="nf">calc_features</span><span class="p">(</span><span class="n">canddatalist</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Calculates the candidate features for CandData instance(s).</span>
+<span class="sd">    Returns structured numpy array of candidate features labels defined in</span>
+<span class="sd">    st.search_dimensions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">canddatalist</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">CandCollection</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">canddatalist</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Wrapping solo CandData object&#39;</span><span class="p">)</span>
+        <span class="n">canddatalist</span> <span class="o">=</span> <span class="p">[</span><span class="n">canddatalist</span><span class="p">]</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating features for </span><span class="si">{0}</span><span class="s1"> candidates.&#39;</span>
+                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">canddatalist</span><span class="p">)))</span>
+
+    <span class="c1"># TODO: generate dtype from st.features</span>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;segment&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;i4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;integration&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;i4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;dmind&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;i4&#39;</span><span class="p">),</span>
+             <span class="p">(</span><span class="s1">&#39;dtind&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;i4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;beamnum&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;i4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;snr1&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;f4&#39;</span><span class="p">),</span>
+             <span class="p">(</span><span class="s1">&#39;immax1&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;f4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;l1&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;f4&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;m1&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;f4&#39;</span><span class="p">)]</span>
+<span class="c1">#    features = {}</span>
+    <span class="n">features</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">canddatalist</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">canddatalist</span><span class="p">)):</span>
+        <span class="n">canddata</span> <span class="o">=</span> <span class="n">canddatalist</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">st</span> <span class="o">=</span> <span class="n">canddata</span><span class="o">.</span><span class="n">state</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">canddata</span><span class="o">.</span><span class="n">image</span>
+        <span class="n">dataph</span> <span class="o">=</span> <span class="n">canddata</span><span class="o">.</span><span class="n">data</span>
+<span class="c1">#        candloc = canddata.loc</span>
+        <span class="n">ff</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">canddata</span><span class="o">.</span><span class="n">loc</span><span class="p">)</span>
+
+        <span class="c1"># assemble feature in requested order. Order matters!</span>
+        <span class="c1"># TODO: fill out more features</span>
+        <span class="k">for</span> <span class="n">feat</span> <span class="ow">in</span> <span class="n">st</span><span class="o">.</span><span class="n">features</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">feat</span> <span class="o">==</span> <span class="s1">&#39;snr1&#39;</span><span class="p">:</span>
+                <span class="n">imstd</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">madtostd</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+                <span class="n">snrmax</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">/</span><span class="n">imstd</span>
+                <span class="n">snrmin</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">/</span><span class="n">imstd</span>
+                <span class="n">snr</span> <span class="o">=</span> <span class="n">snrmax</span> <span class="k">if</span> <span class="n">snrmax</span> <span class="o">&gt;=</span> <span class="n">snrmin</span> <span class="k">else</span> <span class="n">snrmin</span>
+                <span class="n">ff</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">snr</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">feat</span> <span class="o">==</span> <span class="s1">&#39;immax1&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">snr</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">ff</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">ff</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+            <span class="k">elif</span> <span class="n">feat</span> <span class="o">==</span> <span class="s1">&#39;l1&#39;</span><span class="p">:</span>
+                <span class="n">l1</span><span class="p">,</span> <span class="n">m1</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">pixtolm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">image</span> <span class="o">==</span> <span class="n">image</span><span class="o">.</span><span class="n">max</span><span class="p">()))</span>
+                <span class="n">ff</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">l1</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">feat</span> <span class="o">==</span> <span class="s1">&#39;m1&#39;</span><span class="p">:</span>
+                <span class="n">l1</span><span class="p">,</span> <span class="n">m1</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">pixtolm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">image</span> <span class="o">==</span> <span class="n">image</span><span class="o">.</span><span class="n">max</span><span class="p">()))</span>
+                <span class="n">ff</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">m1</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">feat</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Feature </span><span class="si">{0}</span><span class="s2"> calculation not ready&quot;</span>
+                                          <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">feat</span><span class="p">))</span>
+
+        <span class="n">features</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">ff</span><span class="p">)</span>
+
+    <span class="n">candcollection</span> <span class="o">=</span> <span class="n">CandCollection</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span>
+
+    <span class="n">save_cands</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">candcollection</span><span class="p">,</span> <span class="n">canddatalist</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">candcollection</span>  <span class="c1"># return tuple as handle on pipeline</span>
+
+
+<span class="k">def</span> <span class="nf">save_cands</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">candcollection</span><span class="p">,</span> <span class="n">canddatalist</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Save candidate features in reproducible form.</span>
+<span class="sd">    Saves as array with metadata and preferences attached.</span>
+<span class="sd">    Writes to location defined by state using a file lock to allow multiple</span>
+<span class="sd">    writers.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<span class="c1">#    df = pd.DataFrame(OrderedDict(zip(st.search_dimensions,</span>
+<span class="c1">#                                      np.transpose(features.keys()))))</span>
+<span class="c1">#    df2 = pd.DataFrame(OrderedDict(zip(st.features,</span>
+<span class="c1">#                                       np.transpose(features.values()))))</span>
+<span class="c1">#    df3 = pd.concat([df, df2], axis=1)</span>
+<span class="c1">#    cdf = CandidateDF(df3, st.prefs, st.metadata)</span>
+
+    <span class="k">if</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">savecands</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">candcollection</span><span class="o">.</span><span class="n">array</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Saving </span><span class="si">{0}</span><span class="s1"> candidates to </span><span class="si">{1}</span><span class="s1">.&#39;</span>
+                    <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">candcollection</span><span class="o">.</span><span class="n">array</span><span class="p">),</span> <span class="n">st</span><span class="o">.</span><span class="n">candsfile</span><span class="p">))</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">fileLock</span><span class="o">.</span><span class="n">FileLock</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">candsfile</span><span class="o">+</span><span class="s1">&#39;.lock&#39;</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">candsfile</span><span class="p">,</span> <span class="s1">&#39;ab+&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">pkl</span><span class="p">:</span>
+                    <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">candcollection</span><span class="p">,</span> <span class="n">pkl</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">fileLock</span><span class="o">.</span><span class="n">FileLock</span><span class="o">.</span><span class="n">FileLockException</span><span class="p">:</span>
+            <span class="n">scan</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">scan</span>
+            <span class="n">cand</span> <span class="o">=</span> <span class="n">candcollection</span><span class="o">.</span><span class="n">array</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">segment</span> <span class="o">=</span> <span class="n">cand</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">newcandsfile</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">_sc</span><span class="si">{0}</span><span class="s1">_seg</span><span class="si">{1}</span><span class="s1">.pkl&#39;</span>
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">candsfile</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;.pkl&#39;</span><span class="p">),</span>
+                                    <span class="n">scan</span><span class="p">,</span> <span class="n">segment</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;Candidate file writing timeout. &#39;</span>
+                        <span class="s1">&#39;Spilling to new file </span><span class="si">{0}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">newcandsfile</span><span class="p">))</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">newcandsfile</span><span class="p">,</span> <span class="s1">&#39;ab+&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">pkl</span><span class="p">:</span>
+                <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">candcollection</span><span class="p">,</span> <span class="n">pkl</span><span class="p">)</span>
+
+        <span class="c1"># make plot</span>
+        <span class="n">snrs</span> <span class="o">=</span> <span class="n">candcollection</span><span class="o">.</span><span class="n">array</span><span class="p">[</span><span class="s1">&#39;snr1&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        <span class="n">maxindex</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">snrs</span><span class="p">)</span>
+        <span class="n">candplot</span><span class="p">(</span><span class="n">canddatalist</span><span class="p">[</span><span class="n">maxindex</span><span class="p">],</span> <span class="n">snrs</span><span class="o">=</span><span class="n">snrs</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">savecands</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">candcollection</span><span class="o">.</span><span class="n">array</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;No candidates to save to </span><span class="si">{0}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">candsfile</span><span class="p">))</span>
+
+    <span class="k">elif</span> <span class="ow">not</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">savecands</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Not saving candidates.&#39;</span><span class="p">)</span>
+
+<span class="c1">#    return candcollection  # return tuple as handle on pipeline</span>
+
+
+<span class="k">def</span> <span class="nf">iter_cands</span><span class="p">(</span><span class="n">candsfile</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Iterate through (new style) candsfile and return a collection</span>
+<span class="sd">    for each segment.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">candsfile</span><span class="p">)</span> <span class="k">as</span> <span class="n">pkl</span><span class="p">:</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>  <span class="c1"># step through all possible segments</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">candcollection</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">pkl</span><span class="p">)</span>
+                <span class="k">yield</span> <span class="n">candcollection</span>
+
+            <span class="k">except</span> <span class="ne">EOFError</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;No more candidates&#39;</span><span class="p">)</span>
+                <span class="k">break</span>
+
+
+<span class="k">def</span> <span class="nf">candplot</span><span class="p">(</span><span class="n">canddatalist</span><span class="p">,</span> <span class="n">snrs</span><span class="o">=</span><span class="p">[],</span> <span class="n">outname</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes output of search_thresh (CandData objects) to make</span>
+<span class="sd">    candidate plots.</span>
+<span class="sd">    Expects pipeline state, candidate location, image, and</span>
+<span class="sd">    phased, dedispersed data (cut out in time, dual-pol).</span>
+
+<span class="sd">    snrs is array for an (optional) SNR histogram plot.</span>
+<span class="sd">    Written by Bridget Andersen and modified by Casey for rfpipe.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">canddatalist</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Wrapping solo CandData object&#39;</span><span class="p">)</span>
+        <span class="n">canddatalist</span> <span class="o">=</span> <span class="p">[</span><span class="n">canddatalist</span><span class="p">]</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Making </span><span class="si">{0}</span><span class="s1"> candidate plots.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">canddatalist</span><span class="p">)))</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">canddatalist</span><span class="p">)):</span>
+        <span class="n">canddata</span> <span class="o">=</span> <span class="n">canddatalist</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">st</span> <span class="o">=</span> <span class="n">canddata</span><span class="o">.</span><span class="n">state</span>
+        <span class="n">candloc</span> <span class="o">=</span> <span class="n">canddata</span><span class="o">.</span><span class="n">loc</span>
+        <span class="n">im</span> <span class="o">=</span> <span class="n">canddata</span><span class="o">.</span><span class="n">image</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">canddata</span><span class="o">.</span><span class="n">data</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Plotting for (image, data) shapes: (</span><span class="si">{0}</span><span class="s1">, </span><span class="si">{1}</span><span class="s1">)&#39;</span>
+                    <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">im</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)))</span>
+
+        <span class="n">scan</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">scan</span>
+        <span class="n">segment</span><span class="p">,</span> <span class="n">candint</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">,</span> <span class="n">beamnum</span> <span class="o">=</span> <span class="n">candloc</span>
+
+        <span class="c1"># calc source location</span>
+        <span class="n">imstd</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">madtostd</span><span class="p">(</span><span class="n">im</span><span class="p">)</span>
+        <span class="n">snrmin</span> <span class="o">=</span> <span class="n">im</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">/</span><span class="n">imstd</span>
+        <span class="n">snrmax</span> <span class="o">=</span> <span class="n">im</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">/</span><span class="n">imstd</span>
+        <span class="k">if</span> <span class="n">snrmax</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="o">*</span><span class="n">snrmin</span><span class="p">:</span>
+            <span class="n">l1</span><span class="p">,</span> <span class="n">m1</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">pixtolm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">im</span> <span class="o">==</span> <span class="n">im</span><span class="o">.</span><span class="n">max</span><span class="p">()))</span>
+            <span class="n">snrobs</span> <span class="o">=</span> <span class="n">snrmax</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">l1</span><span class="p">,</span> <span class="n">m1</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">pixtolm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">im</span> <span class="o">==</span> <span class="n">im</span><span class="o">.</span><span class="n">min</span><span class="p">()))</span>
+            <span class="n">snrobs</span> <span class="o">=</span> <span class="n">snrmin</span>
+        <span class="n">pt_ra</span><span class="p">,</span> <span class="n">pt_dec</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">radec</span>
+        <span class="n">src_ra</span><span class="p">,</span> <span class="n">src_dec</span> <span class="o">=</span> <span class="n">source_location</span><span class="p">(</span><span class="n">pt_ra</span><span class="p">,</span> <span class="n">pt_dec</span><span class="p">,</span> <span class="n">l1</span><span class="p">,</span> <span class="n">m1</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Peak (RA, Dec): </span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">src_ra</span><span class="p">,</span> <span class="n">src_dec</span><span class="p">))</span>
+
+        <span class="c1"># convert l1 and m1 from radians to arcminutes</span>
+        <span class="n">l1arcm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="n">l1</span><span class="p">)</span><span class="o">*</span><span class="mi">60</span>
+        <span class="n">m1arcm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="n">m1</span><span class="p">)</span><span class="o">*</span><span class="mi">60</span>
+
+        <span class="c1"># build overall plot</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">Figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">12.75</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+
+        <span class="c1"># add metadata in subfigure</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;white&#39;</span><span class="p">)</span>
+
+        <span class="c1"># calculate the overall dispersion delay: dd</span>
+        <span class="n">f1</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">freq_orig</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">f2</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">freq_orig</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">dd</span> <span class="o">=</span> <span class="mf">4.15</span><span class="o">*</span><span class="n">st</span><span class="o">.</span><span class="n">dmarr</span><span class="p">[</span><span class="n">dmind</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">f1</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span><span class="o">-</span><span class="n">f2</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">))</span>
+
+        <span class="c1"># add annotating info</span>
+        <span class="c1"># set spacing and location of the annotating information</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="mf">1.1</span>
+        <span class="n">space</span> <span class="o">=</span> <span class="mf">0.07</span>
+        <span class="n">left</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">fileroot</span><span class="p">,</span> <span class="n">fontname</span><span class="o">=</span><span class="s1">&#39;sans-serif&#39;</span><span class="p">,</span>
+                <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="s1">&#39;small&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">start</span><span class="o">-</span><span class="n">space</span><span class="p">,</span> <span class="s1">&#39;Peak (arcmin): (&#39;</span>
+                <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">l1arcm</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span>
+                <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">m1arcm</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span><span class="p">,</span>
+                <span class="n">fontname</span><span class="o">=</span><span class="s1">&#39;sans-serif&#39;</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
+                <span class="n">fontsize</span><span class="o">=</span><span class="s1">&#39;small&#39;</span><span class="p">)</span>
+        <span class="c1"># split the RA and Dec and display in a nice format</span>
+        <span class="n">ra</span> <span class="o">=</span> <span class="n">src_ra</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">dec</span> <span class="o">=</span> <span class="n">src_dec</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">start</span><span class="o">-</span><span class="mi">2</span><span class="o">*</span><span class="n">space</span><span class="p">,</span> <span class="s1">&#39;Peak (RA, Dec): (&#39;</span> <span class="o">+</span> <span class="n">ra</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;:&#39;</span> <span class="o">+</span> <span class="n">ra</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="o">+</span> <span class="s1">&#39;:&#39;</span> <span class="o">+</span> <span class="n">ra</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span> <span class="o">+</span> <span class="n">dec</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;:&#39;</span> <span class="o">+</span> <span class="n">dec</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;:&#39;</span>
+                <span class="o">+</span> <span class="n">dec</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span><span class="p">,</span>
+                <span class="n">fontname</span><span class="o">=</span><span class="s1">&#39;sans-serif&#39;</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
+                <span class="n">fontsize</span><span class="o">=</span><span class="s1">&#39;small&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">start</span><span class="o">-</span><span class="mi">3</span><span class="o">*</span><span class="n">space</span><span class="p">,</span> <span class="s1">&#39;Source: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">source</span><span class="p">),</span>
+                <span class="n">fontname</span><span class="o">=</span><span class="s1">&#39;sans-serif&#39;</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
+                <span class="n">fontsize</span><span class="o">=</span><span class="s1">&#39;small&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">start</span><span class="o">-</span><span class="mi">4</span><span class="o">*</span><span class="n">space</span><span class="p">,</span> <span class="s1">&#39;scan: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">scan</span><span class="p">),</span>
+                <span class="n">fontname</span><span class="o">=</span><span class="s1">&#39;sans-serif&#39;</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
+                <span class="n">fontsize</span><span class="o">=</span><span class="s1">&#39;small&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">start</span><span class="o">-</span><span class="mi">5</span><span class="o">*</span><span class="n">space</span><span class="p">,</span> <span class="s1">&#39;segment: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">segment</span><span class="p">),</span>
+                <span class="n">fontname</span><span class="o">=</span><span class="s1">&#39;sans-serif&#39;</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
+                <span class="n">fontsize</span><span class="o">=</span><span class="s1">&#39;small&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">start</span><span class="o">-</span><span class="mi">6</span><span class="o">*</span><span class="n">space</span><span class="p">,</span> <span class="s1">&#39;integration: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">candint</span><span class="p">),</span>
+                <span class="n">fontname</span><span class="o">=</span><span class="s1">&#39;sans-serif&#39;</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
+                <span class="n">fontsize</span><span class="o">=</span><span class="s1">&#39;small&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">start</span><span class="o">-</span><span class="mi">7</span><span class="o">*</span><span class="n">space</span><span class="p">,</span> <span class="s1">&#39;DM = &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">dmarr</span><span class="p">[</span><span class="n">dmind</span><span class="p">])</span>
+                <span class="o">+</span> <span class="s1">&#39; (index &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">dmind</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span><span class="p">,</span>
+                <span class="n">fontname</span><span class="o">=</span><span class="s1">&#39;sans-serif&#39;</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
+                <span class="n">fontsize</span><span class="o">=</span><span class="s1">&#39;small&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">start</span><span class="o">-</span><span class="mi">8</span><span class="o">*</span><span class="n">space</span><span class="p">,</span> <span class="s1">&#39;dt = &#39;</span>
+                <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">inttime</span><span class="o">*</span><span class="n">st</span><span class="o">.</span><span class="n">dtarr</span><span class="p">[</span><span class="n">dtind</span><span class="p">],</span> <span class="mi">3</span><span class="p">)</span><span class="o">*</span><span class="mf">1e3</span><span class="p">)</span>
+                <span class="o">+</span> <span class="s1">&#39; ms&#39;</span> <span class="o">+</span> <span class="s1">&#39; (index &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">dtind</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span><span class="p">,</span>
+                <span class="n">fontname</span><span class="o">=</span><span class="s1">&#39;sans-serif&#39;</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
+                <span class="n">fontsize</span><span class="o">=</span><span class="s1">&#39;small&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">start</span><span class="o">-</span><span class="mi">9</span><span class="o">*</span><span class="n">space</span><span class="p">,</span> <span class="s1">&#39;disp delay = &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">dd</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+                <span class="o">+</span> <span class="s1">&#39; ms&#39;</span><span class="p">,</span>
+                <span class="n">fontname</span><span class="o">=</span><span class="s1">&#39;sans-serif&#39;</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
+                <span class="n">fontsize</span><span class="o">=</span><span class="s1">&#39;small&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">start</span><span class="o">-</span><span class="mi">10</span><span class="o">*</span><span class="n">space</span><span class="p">,</span> <span class="s1">&#39;SNR: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">snrobs</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
+                <span class="n">fontname</span><span class="o">=</span><span class="s1">&#39;sans-serif&#39;</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
+                <span class="n">fontsize</span><span class="o">=</span><span class="s1">&#39;small&#39;</span><span class="p">)</span>
+
+        <span class="c1"># set the plot invisible so that it doesn&#39;t interfere with annotations</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">get_xaxis</span><span class="p">()</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">get_yaxis</span><span class="p">()</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[</span><span class="s1">&#39;bottom&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">set_color</span><span class="p">(</span><span class="s1">&#39;white&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[</span><span class="s1">&#39;top&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">set_color</span><span class="p">(</span><span class="s1">&#39;white&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[</span><span class="s1">&#39;right&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">set_color</span><span class="p">(</span><span class="s1">&#39;white&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[</span><span class="s1">&#39;left&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">set_color</span><span class="p">(</span><span class="s1">&#39;white&#39;</span><span class="p">)</span>
+
+        <span class="c1"># plot full dynamic spectra</span>
+        <span class="n">left</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="mf">0.75</span><span class="p">,</span> <span class="mf">0.2</span><span class="o">*</span><span class="mf">2.</span><span class="o">/</span><span class="mf">3.</span>
+        <span class="n">bottom</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.7</span>
+        <span class="c1"># three rectangles for each panel of the spectrum (RR, RR+LL, LL)</span>
+        <span class="n">rect_dynsp1</span> <span class="o">=</span> <span class="p">[</span><span class="n">left</span><span class="p">,</span> <span class="n">bottom</span><span class="p">,</span> <span class="n">width</span><span class="o">/</span><span class="mf">3.</span><span class="p">,</span> <span class="n">height</span><span class="p">]</span>
+        <span class="n">rect_dynsp2</span> <span class="o">=</span> <span class="p">[</span><span class="n">left</span><span class="o">+</span><span class="n">width</span><span class="o">/</span><span class="mf">3.</span><span class="p">,</span> <span class="n">bottom</span><span class="p">,</span> <span class="n">width</span><span class="o">/</span><span class="mf">3.</span><span class="p">,</span> <span class="n">height</span><span class="p">]</span>
+        <span class="n">rect_dynsp3</span> <span class="o">=</span> <span class="p">[</span><span class="n">left</span><span class="o">+</span><span class="mf">2.</span><span class="o">*</span><span class="n">width</span><span class="o">/</span><span class="mf">3.</span><span class="p">,</span> <span class="n">bottom</span><span class="p">,</span> <span class="n">width</span><span class="o">/</span><span class="mf">3.</span><span class="p">,</span> <span class="n">height</span><span class="p">]</span>
+        <span class="n">rect_lc1</span> <span class="o">=</span> <span class="p">[</span><span class="n">left</span><span class="p">,</span> <span class="n">bottom</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">width</span><span class="o">/</span><span class="mf">3.</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">]</span>
+        <span class="n">rect_lc2</span> <span class="o">=</span> <span class="p">[</span><span class="n">left</span><span class="o">+</span><span class="n">width</span><span class="o">/</span><span class="mf">3.</span><span class="p">,</span> <span class="n">bottom</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">width</span><span class="o">/</span><span class="mf">3.</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">]</span>
+        <span class="n">rect_lc3</span> <span class="o">=</span> <span class="p">[</span><span class="n">left</span><span class="o">+</span><span class="mf">2.</span><span class="o">*</span><span class="n">width</span><span class="o">/</span><span class="mf">3.</span><span class="p">,</span> <span class="n">bottom</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">width</span><span class="o">/</span><span class="mf">3.</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">]</span>
+        <span class="n">rect_sp</span> <span class="o">=</span> <span class="p">[</span><span class="n">left</span><span class="o">+</span><span class="n">width</span><span class="p">,</span> <span class="n">bottom</span><span class="p">,</span> <span class="mf">0.1</span><span class="o">*</span><span class="mf">2.</span><span class="o">/</span><span class="mf">3.</span><span class="p">,</span> <span class="n">height</span><span class="p">]</span>
+        <span class="n">ax_dynsp1</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_axes</span><span class="p">(</span><span class="n">rect_dynsp1</span><span class="p">)</span>
+        <span class="c1"># sharey so that axes line up</span>
+        <span class="n">ax_dynsp2</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_axes</span><span class="p">(</span><span class="n">rect_dynsp2</span><span class="p">,</span> <span class="n">sharey</span><span class="o">=</span><span class="n">ax_dynsp1</span><span class="p">)</span>
+        <span class="n">ax_dynsp3</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_axes</span><span class="p">(</span><span class="n">rect_dynsp3</span><span class="p">,</span> <span class="n">sharey</span><span class="o">=</span><span class="n">ax_dynsp1</span><span class="p">)</span>
+        <span class="c1"># hide RR+LL and LL dynamic spectra y labels to avoid overlap</span>
+        <span class="p">[</span><span class="n">label</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">ax_dynsp2</span><span class="o">.</span><span class="n">get_yticklabels</span><span class="p">()]</span>
+        <span class="p">[</span><span class="n">label</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">ax_dynsp3</span><span class="o">.</span><span class="n">get_yticklabels</span><span class="p">()]</span>
+        <span class="n">ax_sp</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_axes</span><span class="p">(</span><span class="n">rect_sp</span><span class="p">,</span> <span class="n">sharey</span><span class="o">=</span><span class="n">ax_dynsp3</span><span class="p">)</span>
+        <span class="p">[</span><span class="n">label</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">ax_sp</span><span class="o">.</span><span class="n">get_yticklabels</span><span class="p">()]</span>
+        <span class="n">ax_lc1</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_axes</span><span class="p">(</span><span class="n">rect_lc1</span><span class="p">)</span>
+        <span class="n">ax_lc2</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_axes</span><span class="p">(</span><span class="n">rect_lc2</span><span class="p">,</span> <span class="n">sharey</span><span class="o">=</span><span class="n">ax_lc1</span><span class="p">)</span>
+        <span class="n">ax_lc3</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_axes</span><span class="p">(</span><span class="n">rect_lc3</span><span class="p">,</span> <span class="n">sharey</span><span class="o">=</span><span class="n">ax_lc1</span><span class="p">)</span>
+        <span class="p">[</span><span class="n">label</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">ax_lc2</span><span class="o">.</span><span class="n">get_yticklabels</span><span class="p">()]</span>
+        <span class="p">[</span><span class="n">label</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">ax_lc3</span><span class="o">.</span><span class="n">get_yticklabels</span><span class="p">()]</span>
+
+        <span class="c1"># now actually plot the data</span>
+        <span class="n">spectra</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">dd1</span> <span class="o">=</span> <span class="n">spectra</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">dd2</span> <span class="o">=</span> <span class="n">spectra</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">spectra</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">dd3</span> <span class="o">=</span> <span class="n">spectra</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">colormap</span> <span class="o">=</span> <span class="s1">&#39;viridis&#39;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dd1</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dd2</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dd3</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">ax_dynsp1</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">dd1</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="s1">&#39;lower&#39;</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">,</span>
+                             <span class="n">aspect</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">colormap</span><span class="p">))</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">ax_dynsp2</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">dd2</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="s1">&#39;lower&#39;</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">,</span>
+                             <span class="n">aspect</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">colormap</span><span class="p">))</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">ax_dynsp3</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">dd3</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="s1">&#39;lower&#39;</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">,</span>
+                             <span class="n">aspect</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">colormap</span><span class="p">))</span>
+        <span class="n">ax_dynsp1</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">freq</span><span class="p">),</span> <span class="mi">30</span><span class="p">))</span>
+        <span class="n">ax_dynsp1</span><span class="o">.</span><span class="n">set_yticklabels</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">freq</span><span class="p">[::</span><span class="mi">30</span><span class="p">])</span>
+        <span class="n">ax_dynsp1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Freq (GHz)&#39;</span><span class="p">)</span>
+        <span class="n">ax_dynsp1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;RR&#39;</span><span class="p">)</span>
+        <span class="n">ax_dynsp1</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_label_position</span><span class="p">(</span><span class="s1">&#39;top&#39;</span><span class="p">)</span>
+        <span class="n">ax_dynsp2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;RR+LL&#39;</span><span class="p">)</span>
+        <span class="n">ax_dynsp2</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_label_position</span><span class="p">(</span><span class="s1">&#39;top&#39;</span><span class="p">)</span>
+        <span class="n">ax_dynsp3</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;LL&#39;</span><span class="p">)</span>
+        <span class="n">ax_dynsp3</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_label_position</span><span class="p">(</span><span class="s1">&#39;top&#39;</span><span class="p">)</span>
+        <span class="c1"># hide xlabels invisible so that they don&#39;t interefere with lc plots</span>
+        <span class="p">[</span><span class="n">label</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">ax_dynsp1</span><span class="o">.</span><span class="n">get_xticklabels</span><span class="p">()]</span>
+        <span class="c1"># This one y label was getting in the way</span>
+        <span class="n">ax_dynsp1</span><span class="o">.</span><span class="n">get_yticklabels</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="c1"># plot stokes I spectrum of the candidate pulse (assume middle bin)</span>
+        <span class="c1"># select stokes I middle bin</span>
+        <span class="n">spectrum</span> <span class="o">=</span> <span class="n">spectra</span><span class="p">[:,</span> <span class="nb">len</span><span class="p">(</span><span class="n">spectra</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">//</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">ax_sp</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">spectrum</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">spectrum</span><span class="p">)),</span> <span class="s1">&#39;k.&#39;</span><span class="p">)</span>
+        <span class="c1"># plot 0 Jy dotted line</span>
+        <span class="n">ax_sp</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">spectrum</span><span class="p">)),</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">spectrum</span><span class="p">)),</span> <span class="s1">&#39;r:&#39;</span><span class="p">)</span>
+        <span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span> <span class="o">=</span> <span class="n">ax_sp</span><span class="o">.</span><span class="n">get_xlim</span><span class="p">()</span>
+        <span class="n">ax_sp</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+        <span class="n">ax_sp</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Flux (Jy)&#39;</span><span class="p">)</span>
+
+        <span class="c1"># plot mean flux values for each time bin</span>
+        <span class="n">lc1</span> <span class="o">=</span> <span class="n">dd1</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">lc2</span> <span class="o">=</span> <span class="n">dd2</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">lc3</span> <span class="o">=</span> <span class="n">dd3</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">lenlc</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">ax_lc1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">lenlc</span><span class="p">),</span> <span class="nb">list</span><span class="p">(</span><span class="n">lc1</span><span class="p">)[:</span><span class="n">lenlc</span><span class="p">],</span> <span class="s1">&#39;k.&#39;</span><span class="p">)</span>
+        <span class="n">ax_lc2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">lenlc</span><span class="p">),</span> <span class="nb">list</span><span class="p">(</span><span class="n">lc2</span><span class="p">)[:</span><span class="n">lenlc</span><span class="p">],</span> <span class="s1">&#39;k.&#39;</span><span class="p">)</span>
+        <span class="n">ax_lc3</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">lenlc</span><span class="p">),</span> <span class="nb">list</span><span class="p">(</span><span class="n">lc3</span><span class="p">)[:</span><span class="n">lenlc</span><span class="p">],</span> <span class="s1">&#39;k.&#39;</span><span class="p">)</span>
+        <span class="c1"># plot 0 Jy dotted line for each plot</span>
+        <span class="n">ax_lc1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">lenlc</span><span class="p">),</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">lenlc</span><span class="p">)),</span> <span class="s1">&#39;r:&#39;</span><span class="p">)</span>
+        <span class="n">ax_lc2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">lenlc</span><span class="p">),</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">lenlc</span><span class="p">)),</span> <span class="s1">&#39;r:&#39;</span><span class="p">)</span>
+        <span class="n">ax_lc3</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">lenlc</span><span class="p">),</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">lenlc</span><span class="p">)),</span> <span class="s1">&#39;r:&#39;</span><span class="p">)</span>
+        <span class="n">ax_lc2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Integration (rel)&#39;</span><span class="p">)</span>
+        <span class="n">ax_lc1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Flux (Jy)&#39;</span><span class="p">)</span>
+        <span class="n">ax_lc1</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">lenlc</span><span class="p">,</span> <span class="n">lenlc</span><span class="p">])</span>
+        <span class="c1"># only show the &#39;0&#39; label for one of the plots to avoid messy overlap</span>
+        <span class="n">ax_lc1</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">([</span><span class="s1">&#39;0&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">lenlc</span><span class="o">//</span><span class="mi">2</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">lenlc</span><span class="p">)])</span>
+        <span class="n">ax_lc2</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">lenlc</span><span class="p">,</span> <span class="n">lenlc</span><span class="p">])</span>
+        <span class="n">ax_lc2</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">([</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">lenlc</span><span class="o">//</span><span class="mi">2</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">lenlc</span><span class="p">)])</span>
+        <span class="n">ax_lc3</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">lenlc</span><span class="p">,</span> <span class="n">lenlc</span><span class="p">])</span>
+        <span class="n">ax_lc3</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">([</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">lenlc</span><span class="o">//</span><span class="mi">2</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">lenlc</span><span class="p">)])</span>
+        <span class="n">ymin</span><span class="p">,</span> <span class="n">ymax</span> <span class="o">=</span> <span class="n">ax_lc1</span><span class="o">.</span><span class="n">get_ylim</span><span class="p">()</span>
+        <span class="n">ax_lc1</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">ymin</span><span class="p">,</span> <span class="n">ymax</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+
+        <span class="c1"># adjust the x tick marks to line up with the lc plots</span>
+        <span class="n">ax_dynsp1</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">lenlc</span><span class="p">,</span> <span class="n">lenlc</span><span class="p">])</span>
+        <span class="n">ax_dynsp2</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">lenlc</span><span class="p">,</span> <span class="n">lenlc</span><span class="p">])</span>
+        <span class="n">ax_dynsp3</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">lenlc</span><span class="p">,</span> <span class="n">lenlc</span><span class="p">])</span>
+
+        <span class="c1"># plot second set of dynamic spectra</span>
+        <span class="n">left</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="mf">0.45</span><span class="p">,</span> <span class="mf">0.1333</span>
+        <span class="n">bottom</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.4</span>
+        <span class="n">rect_dynsp1</span> <span class="o">=</span> <span class="p">[</span><span class="n">left</span><span class="p">,</span> <span class="n">bottom</span><span class="p">,</span> <span class="n">width</span><span class="o">/</span><span class="mf">3.</span><span class="p">,</span> <span class="n">height</span><span class="p">]</span>
+        <span class="n">rect_dynsp2</span> <span class="o">=</span> <span class="p">[</span><span class="n">left</span><span class="o">+</span><span class="n">width</span><span class="o">/</span><span class="mf">3.</span><span class="p">,</span> <span class="n">bottom</span><span class="p">,</span> <span class="n">width</span><span class="o">/</span><span class="mf">3.</span><span class="p">,</span> <span class="n">height</span><span class="p">]</span>
+        <span class="n">rect_dynsp3</span> <span class="o">=</span> <span class="p">[</span><span class="n">left</span><span class="o">+</span><span class="mf">2.</span><span class="o">*</span><span class="n">width</span><span class="o">/</span><span class="mf">3.</span><span class="p">,</span> <span class="n">bottom</span><span class="p">,</span> <span class="n">width</span><span class="o">/</span><span class="mf">3.</span><span class="p">,</span> <span class="n">height</span><span class="p">]</span>
+        <span class="n">rect_sp</span> <span class="o">=</span> <span class="p">[</span><span class="n">left</span><span class="o">+</span><span class="n">width</span><span class="p">,</span> <span class="n">bottom</span><span class="p">,</span> <span class="mf">0.1</span><span class="o">*</span><span class="mf">2.</span><span class="o">/</span><span class="mf">3.</span><span class="p">,</span> <span class="n">height</span><span class="p">]</span>
+        <span class="n">ax_dynsp1</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_axes</span><span class="p">(</span><span class="n">rect_dynsp1</span><span class="p">)</span>
+        <span class="n">ax_dynsp2</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_axes</span><span class="p">(</span><span class="n">rect_dynsp2</span><span class="p">,</span> <span class="n">sharey</span><span class="o">=</span><span class="n">ax_dynsp1</span><span class="p">)</span>
+        <span class="n">ax_dynsp3</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_axes</span><span class="p">(</span><span class="n">rect_dynsp3</span><span class="p">,</span> <span class="n">sharey</span><span class="o">=</span><span class="n">ax_dynsp1</span><span class="p">)</span>
+        <span class="c1"># hide RR+LL and LL dynamic spectra y labels</span>
+        <span class="p">[</span><span class="n">label</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">ax_dynsp2</span><span class="o">.</span><span class="n">get_yticklabels</span><span class="p">()]</span>
+        <span class="p">[</span><span class="n">label</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">ax_dynsp3</span><span class="o">.</span><span class="n">get_yticklabels</span><span class="p">()]</span>
+        <span class="n">ax_sp</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_axes</span><span class="p">(</span><span class="n">rect_sp</span><span class="p">,</span> <span class="n">sharey</span><span class="o">=</span><span class="n">ax_dynsp3</span><span class="p">)</span>
+        <span class="p">[</span><span class="n">label</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">ax_sp</span><span class="o">.</span><span class="n">get_yticklabels</span><span class="p">()]</span>
+
+        <span class="c1"># calculate the channels to average together for SNR=2</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="mf">2.</span><span class="o">*</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">spectra</span><span class="p">))</span><span class="o">**</span><span class="mf">0.5</span><span class="o">/</span><span class="n">snrobs</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># if n==0 then don&#39;t average</span>
+            <span class="n">dd1avg</span> <span class="o">=</span> <span class="n">dd1</span>
+            <span class="n">dd3avg</span> <span class="o">=</span> <span class="n">dd3</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># otherwise, add zeros onto the data so that it&#39;s length is cleanly</span>
+            <span class="c1"># divisible by n (makes it easier to average over)</span>
+            <span class="n">dd1zerotemp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">spectra</span><span class="p">)</span> <span class="o">%</span> <span class="n">n</span><span class="p">,</span>
+                                                    <span class="nb">len</span><span class="p">(</span><span class="n">spectra</span><span class="p">[</span><span class="mi">0</span><span class="p">])),</span>
+                                         <span class="n">dtype</span><span class="o">=</span><span class="n">dd1</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">dd1</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">dd3zerotemp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">spectra</span><span class="p">)</span> <span class="o">%</span> <span class="n">n</span><span class="p">,</span>
+                                                    <span class="nb">len</span><span class="p">(</span><span class="n">spectra</span><span class="p">[</span><span class="mi">0</span><span class="p">])),</span>
+                                         <span class="n">dtype</span><span class="o">=</span><span class="n">dd3</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">dd3</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="c1"># make masked arrays so appended zeros do not affect average</span>
+            <span class="n">zeros</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">dd1</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">dd1</span><span class="p">[</span><span class="mi">0</span><span class="p">])))</span>
+            <span class="n">ones</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">spectra</span><span class="p">)</span> <span class="o">%</span> <span class="n">n</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dd1</span><span class="p">[</span><span class="mi">0</span><span class="p">])))</span>
+            <span class="n">masktemp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">ones</span><span class="p">,</span> <span class="n">zeros</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">dd1zero</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_array</span><span class="p">(</span><span class="n">dd1zerotemp</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">masktemp</span><span class="p">)</span>
+            <span class="n">dd3zero</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_array</span><span class="p">(</span><span class="n">dd3zerotemp</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">masktemp</span><span class="p">)</span>
+            <span class="c1"># average together the data</span>
+            <span class="n">dd1avg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dd1</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">spectra</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+                <span class="n">temp</span> <span class="o">=</span> <span class="n">dd1zero</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+                <span class="n">tempavg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">temp</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">temp</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span>
+                <span class="c1"># repeats the mean values to create more pixels</span>
+                <span class="c1"># (easier to properly crop when it is finally displayed)</span>
+                <span class="n">temprep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">tempavg</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">dd1avg</span> <span class="o">=</span> <span class="n">temprep</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">dd1avg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">dd1avg</span><span class="p">,</span> <span class="n">temprep</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">dd3avg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dd3</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">spectra</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+                <span class="n">temp</span> <span class="o">=</span> <span class="n">dd3zero</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+                <span class="n">tempavg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">temp</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">temp</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span>
+                <span class="n">temprep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">tempavg</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">dd3avg</span> <span class="o">=</span> <span class="n">temprep</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">dd3avg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">dd3avg</span><span class="p">,</span> <span class="n">temprep</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">dd2avg</span> <span class="o">=</span> <span class="n">dd1avg</span> <span class="o">+</span> <span class="n">dd3avg</span>  <span class="c1"># add together to get averaged RR+LL spectrum</span>
+        <span class="n">colormap</span> <span class="o">=</span> <span class="s1">&#39;viridis&#39;</span>
+        <span class="c1"># if n==0 then don&#39;t crop the spectra because no zeroes were appended</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">dd1avgcrop</span> <span class="o">=</span> <span class="n">dd1avg</span>
+            <span class="n">dd2avgcrop</span> <span class="o">=</span> <span class="n">dd2avg</span>
+            <span class="n">dd3avgcrop</span> <span class="o">=</span> <span class="n">dd3avg</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># otherwise, crop off the appended zeroes</span>
+            <span class="n">dd1avgcrop</span> <span class="o">=</span> <span class="n">dd1avg</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">ones</span><span class="p">):</span><span class="nb">len</span><span class="p">(</span><span class="n">dd1avg</span><span class="p">),</span> <span class="p">:]</span>
+            <span class="n">dd2avgcrop</span> <span class="o">=</span> <span class="n">dd2avg</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">ones</span><span class="p">):</span><span class="nb">len</span><span class="p">(</span><span class="n">dd2avg</span><span class="p">),</span> <span class="p">:]</span>
+            <span class="n">dd3avgcrop</span> <span class="o">=</span> <span class="n">dd3avg</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">ones</span><span class="p">):</span><span class="nb">len</span><span class="p">(</span><span class="n">dd3avg</span><span class="p">),</span> <span class="p">:]</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dd1avgcrop</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dd2avgcrop</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dd3avgcrop</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">ax_dynsp1</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">dd1avgcrop</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="s1">&#39;lower&#39;</span><span class="p">,</span>
+                             <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span>
+                             <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">colormap</span><span class="p">))</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">ax_dynsp2</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">dd2avgcrop</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="s1">&#39;lower&#39;</span><span class="p">,</span>
+                             <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span>
+                             <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">colormap</span><span class="p">))</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">ax_dynsp3</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">dd3avgcrop</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="s1">&#39;lower&#39;</span><span class="p">,</span>
+                             <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span>
+                             <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">colormap</span><span class="p">))</span>
+        <span class="n">ax_dynsp1</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">freq</span><span class="p">),</span> <span class="mi">30</span><span class="p">))</span>
+        <span class="n">ax_dynsp1</span><span class="o">.</span><span class="n">set_yticklabels</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">freq</span><span class="p">[::</span><span class="mi">30</span><span class="p">])</span>
+        <span class="n">ax_dynsp1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Freq (GHz)&#39;</span><span class="p">)</span>
+        <span class="n">ax_dynsp1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;RR&#39;</span><span class="p">)</span>
+        <span class="n">ax_dynsp1</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_label_position</span><span class="p">(</span><span class="s1">&#39;top&#39;</span><span class="p">)</span>
+        <span class="n">ax_dynsp2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Integration (rel)&#39;</span><span class="p">)</span>
+        <span class="n">ax2</span> <span class="o">=</span> <span class="n">ax_dynsp2</span><span class="o">.</span><span class="n">twiny</span><span class="p">()</span>
+        <span class="n">ax2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;RR+LL&#39;</span><span class="p">)</span>
+        <span class="p">[</span><span class="n">label</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">ax2</span><span class="o">.</span><span class="n">get_xticklabels</span><span class="p">()]</span>
+        <span class="n">ax_dynsp3</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;LL&#39;</span><span class="p">)</span>
+        <span class="n">ax_dynsp3</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_label_position</span><span class="p">(</span><span class="s1">&#39;top&#39;</span><span class="p">)</span>
+
+        <span class="c1"># plot stokes I spectrum of the candidate pulse from middle integration</span>
+        <span class="n">ax_sp</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">dd2avgcrop</span><span class="p">[:,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dd2avgcrop</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">//</span><span class="mi">2</span><span class="p">]</span><span class="o">/</span><span class="mf">2.</span><span class="p">,</span>
+                   <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dd2avgcrop</span><span class="p">)),</span> <span class="s1">&#39;k.&#39;</span><span class="p">)</span>
+        <span class="n">ax_sp</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dd2avgcrop</span><span class="p">)),</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dd2avgcrop</span><span class="p">)),</span> <span class="s1">&#39;r:&#39;</span><span class="p">)</span>
+        <span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span> <span class="o">=</span> <span class="n">ax_sp</span><span class="o">.</span><span class="n">get_xlim</span><span class="p">()</span>
+        <span class="n">ax_sp</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+        <span class="n">ax_sp</span><span class="o">.</span><span class="n">get_xticklabels</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">ax_sp</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Flux (Jy)&#39;</span><span class="p">)</span>
+
+        <span class="c1"># readjust the x tick marks on the dynamic spectra</span>
+        <span class="n">ax_dynsp1</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">lenlc</span><span class="p">,</span> <span class="n">lenlc</span><span class="p">])</span>
+        <span class="n">ax_dynsp1</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">([</span><span class="s1">&#39;0&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">lenlc</span><span class="o">//</span><span class="mi">2</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">lenlc</span><span class="p">)])</span>
+        <span class="n">ax_dynsp2</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">lenlc</span><span class="p">,</span> <span class="n">lenlc</span><span class="p">])</span>
+        <span class="n">ax_dynsp2</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">([</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">lenlc</span><span class="o">//</span><span class="mi">2</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">lenlc</span><span class="p">)])</span>
+        <span class="n">ax_dynsp3</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">lenlc</span><span class="p">,</span> <span class="n">lenlc</span><span class="p">])</span>
+        <span class="n">ax_dynsp3</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">([</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">lenlc</span><span class="o">//</span><span class="mi">2</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">lenlc</span><span class="p">)])</span>
+
+        <span class="c1"># plot the image and zoomed cutout</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+        <span class="n">fov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="mf">1.</span><span class="o">/</span><span class="n">st</span><span class="o">.</span><span class="n">uvres</span><span class="p">)</span><span class="o">*</span><span class="mf">60.</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">im</span><span class="o">.</span><span class="n">transpose</span><span class="p">(),</span> <span class="n">aspect</span><span class="o">=</span><span class="s1">&#39;equal&#39;</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="s1">&#39;upper&#39;</span><span class="p">,</span>
+                      <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">,</span>
+                      <span class="n">extent</span><span class="o">=</span><span class="p">[</span><span class="n">fov</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="n">fov</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="n">fov</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">fov</span><span class="o">/</span><span class="mi">2</span><span class="p">],</span>
+                      <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="s1">&#39;viridis&#39;</span><span class="p">),</span> <span class="n">vmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                      <span class="n">vmax</span><span class="o">=</span><span class="mf">0.5</span><span class="o">*</span><span class="n">im</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;RA Offset (arcmin)&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Dec Offset (arcmin)&#39;</span><span class="p">)</span>
+        <span class="c1"># to set scale when we plot the triangles that label the location</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">autoscale</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="c1"># add markers on the axes at measured position of the candidate</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="p">[</span><span class="n">l1arcm</span><span class="p">],</span> <span class="n">y</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="n">fov</span><span class="o">/</span><span class="mi">2</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="s1">&#39;#ffff00&#39;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;^&#39;</span><span class="p">,</span>
+                   <span class="n">clip_on</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="p">[</span><span class="n">fov</span><span class="o">/</span><span class="mi">2</span><span class="p">],</span> <span class="n">y</span><span class="o">=</span><span class="p">[</span><span class="n">m1arcm</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="s1">&#39;#ffff00&#39;</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;&gt;&#39;</span><span class="p">,</span>
+                   <span class="n">clip_on</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="c1"># makes it so the axis does not intersect the location triangles</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_frame_on</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># add a zoomed cutout image of the candidate (set width at 5*beam)</span>
+        <span class="n">sbeam</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">beamsize_deg</span><span class="p">)</span><span class="o">*</span><span class="mi">60</span>
+        <span class="c1"># figure out the location to center the zoomed image on</span>
+        <span class="n">xratio</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">im</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span><span class="n">fov</span>  <span class="c1"># pix/arcmin</span>
+        <span class="n">yratio</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">im</span><span class="p">)</span><span class="o">/</span><span class="n">fov</span>  <span class="c1"># pix/arcmin</span>
+        <span class="n">mult</span> <span class="o">=</span> <span class="mi">5</span>  <span class="c1"># sets how many times the synthesized beam the zoomed FOV is</span>
+        <span class="n">xmin</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">im</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">//</span><span class="mi">2</span><span class="o">-</span><span class="p">(</span><span class="n">m1arcm</span><span class="o">+</span><span class="n">sbeam</span><span class="o">*</span><span class="n">mult</span><span class="p">)</span><span class="o">*</span><span class="n">xratio</span><span class="p">))</span>
+        <span class="n">xmax</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">im</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">//</span><span class="mi">2</span><span class="o">-</span><span class="p">(</span><span class="n">m1arcm</span><span class="o">-</span><span class="n">sbeam</span><span class="o">*</span><span class="n">mult</span><span class="p">)</span><span class="o">*</span><span class="n">xratio</span><span class="p">)</span>
+        <span class="n">ymin</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">im</span><span class="p">)</span><span class="o">//</span><span class="mi">2</span><span class="o">-</span><span class="p">(</span><span class="n">l1arcm</span><span class="o">+</span><span class="n">sbeam</span><span class="o">*</span><span class="n">mult</span><span class="p">)</span><span class="o">*</span><span class="n">yratio</span><span class="p">))</span>
+        <span class="n">ymax</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">im</span><span class="p">)</span><span class="o">//</span><span class="mi">2</span><span class="o">-</span><span class="p">(</span><span class="n">l1arcm</span><span class="o">-</span><span class="n">sbeam</span><span class="o">*</span><span class="n">mult</span><span class="p">)</span><span class="o">*</span><span class="n">yratio</span><span class="p">)</span>
+        <span class="n">left</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="mf">0.231</span><span class="p">,</span> <span class="mf">0.15</span>
+        <span class="n">bottom</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="mf">0.465</span><span class="p">,</span> <span class="mf">0.15</span>
+        <span class="n">rect_imcrop</span> <span class="o">=</span> <span class="p">[</span><span class="n">left</span><span class="p">,</span> <span class="n">bottom</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">]</span>
+        <span class="n">ax_imcrop</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_axes</span><span class="p">(</span><span class="n">rect_imcrop</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">im</span><span class="o">.</span><span class="n">transpose</span><span class="p">()[</span><span class="n">xmin</span><span class="p">:</span><span class="n">xmax</span><span class="p">,</span> <span class="n">ymin</span><span class="p">:</span><span class="n">ymax</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1"> </span><span class="si">{1}</span><span class="s1"> </span><span class="si">{2}</span><span class="s1"> </span><span class="si">{3}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">xmin</span><span class="p">,</span> <span class="n">xmax</span><span class="p">,</span> <span class="n">ymin</span><span class="p">,</span> <span class="n">ymax</span><span class="p">))</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">ax_imcrop</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">im</span><span class="o">.</span><span class="n">transpose</span><span class="p">()[</span><span class="n">xmin</span><span class="p">:</span><span class="n">xmax</span><span class="p">,</span><span class="n">ymin</span><span class="p">:</span><span class="n">ymax</span><span class="p">],</span> <span class="n">aspect</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                             <span class="n">origin</span><span class="o">=</span><span class="s1">&#39;upper&#39;</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">,</span>
+                             <span class="n">extent</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                             <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="s1">&#39;viridis&#39;</span><span class="p">),</span> <span class="n">vmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                             <span class="n">vmax</span><span class="o">=</span><span class="mf">0.5</span><span class="o">*</span><span class="n">im</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+        <span class="c1"># setup the axes</span>
+        <span class="n">ax_imcrop</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Dec (arcmin)&#39;</span><span class="p">)</span>
+        <span class="n">ax_imcrop</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;RA (arcmin)&#39;</span><span class="p">)</span>
+        <span class="n">ax_imcrop</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_label_position</span><span class="p">(</span><span class="s1">&#39;top&#39;</span><span class="p">)</span>
+        <span class="n">ax_imcrop</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">tick_top</span><span class="p">()</span>
+        <span class="n">xlabels</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">l1arcm</span><span class="o">+</span><span class="n">sbeam</span><span class="o">*</span><span class="n">mult</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                   <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">l1arcm</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                   <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">l1arcm</span><span class="o">-</span><span class="n">sbeam</span><span class="o">*</span><span class="n">mult</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))]</span>
+        <span class="n">ylabels</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">m1arcm</span><span class="o">-</span><span class="n">sbeam</span><span class="o">*</span><span class="n">mult</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                   <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">m1arcm</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                   <span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">m1arcm</span><span class="o">+</span><span class="n">sbeam</span><span class="o">*</span><span class="n">mult</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))]</span>
+        <span class="n">ax_imcrop</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">(</span><span class="n">xlabels</span><span class="p">)</span>
+        <span class="n">ax_imcrop</span><span class="o">.</span><span class="n">set_yticklabels</span><span class="p">(</span><span class="n">ylabels</span><span class="p">)</span>
+        <span class="c1"># change axis label loc of inset to avoid the full picture</span>
+        <span class="n">ax_imcrop</span><span class="o">.</span><span class="n">get_yticklabels</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_verticalalignment</span><span class="p">(</span><span class="s1">&#39;bottom&#39;</span><span class="p">)</span>
+
+        <span class="c1"># create SNR versus N histogram for the whole observation</span>
+        <span class="c1"># (properties for each candidate in the observation given by prop)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">snrs</span><span class="p">):</span>
+            <span class="n">left</span><span class="p">,</span> <span class="n">width</span> <span class="o">=</span> <span class="mf">0.45</span><span class="p">,</span> <span class="mf">0.2</span>
+            <span class="n">bottom</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.3</span>
+            <span class="n">rect_snr</span> <span class="o">=</span> <span class="p">[</span><span class="n">left</span><span class="p">,</span> <span class="n">bottom</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">]</span>
+            <span class="n">ax_snr</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_axes</span><span class="p">(</span><span class="n">rect_snr</span><span class="p">)</span>
+            <span class="n">pos_snrs</span> <span class="o">=</span> <span class="n">snrs</span><span class="p">[</span><span class="n">snrs</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">neg_snrs</span> <span class="o">=</span> <span class="n">snrs</span><span class="p">[</span><span class="n">snrs</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">neg_snrs</span><span class="p">):</span>  <span class="c1"># if working with subset and only pos snrs</span>
+                <span class="n">neg_snrs</span> <span class="o">=</span> <span class="n">pos_snrs</span>
+                <span class="n">nonegs</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">nonegs</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">minval</span> <span class="o">=</span> <span class="mf">5.5</span>
+            <span class="n">maxval</span> <span class="o">=</span> <span class="mf">8.0</span>
+            <span class="c1"># determine the min and max values of the x axis</span>
+            <span class="k">if</span> <span class="nb">min</span><span class="p">(</span><span class="n">pos_snrs</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">min</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">neg_snrs</span><span class="p">)):</span>
+                <span class="n">minval</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">pos_snrs</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">minval</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">neg_snrs</span><span class="p">))</span>
+            <span class="k">if</span> <span class="nb">max</span><span class="p">(</span><span class="n">pos_snrs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">neg_snrs</span><span class="p">)):</span>
+                <span class="n">maxval</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">pos_snrs</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">maxval</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">neg_snrs</span><span class="p">))</span>
+
+            <span class="c1"># positive SNR bins are in blue</span>
+            <span class="c1"># absolute values of negative SNR bins are taken and plotted as</span>
+            <span class="c1"># red x&#39;s on top of positive blue bins for compactness</span>
+            <span class="n">n</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">patches</span> <span class="o">=</span> <span class="n">ax_snr</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">pos_snrs</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="p">(</span><span class="n">minval</span><span class="p">,</span> <span class="n">maxval</span><span class="p">),</span>
+                                        <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">vals</span><span class="p">,</span> <span class="n">bin_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">neg_snrs</span><span class="p">),</span> <span class="mi">50</span><span class="p">,</span>
+                                           <span class="p">(</span><span class="n">minval</span><span class="p">,</span> <span class="n">maxval</span><span class="p">))</span>
+            <span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([(</span><span class="n">bin_edges</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="n">bin_edges</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span><span class="o">/</span><span class="mf">2.</span>
+                             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">))])</span>
+            <span class="n">vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">nonegs</span><span class="p">:</span>
+                <span class="n">ax_snr</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">bins</span><span class="p">[</span><span class="n">vals</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">],</span> <span class="n">vals</span><span class="p">[</span><span class="n">vals</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">],</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span>
+                               <span class="n">c</span><span class="o">=</span><span class="s1">&#39;orangered&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">ax_snr</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;SNR&#39;</span><span class="p">)</span>
+            <span class="n">ax_snr</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">left</span><span class="o">=</span><span class="n">minval</span><span class="o">-</span><span class="mf">0.2</span><span class="p">)</span>
+            <span class="n">ax_snr</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">right</span><span class="o">=</span><span class="n">maxval</span><span class="o">+</span><span class="mf">0.2</span><span class="p">)</span>
+            <span class="n">ax_snr</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;N&#39;</span><span class="p">)</span>
+            <span class="n">ax_snr</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s1">&#39;log&#39;</span><span class="p">)</span>
+            <span class="c1"># draw vertical line where the candidate SNR is</span>
+            <span class="n">ax_snr</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">snrobs</span><span class="p">),</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">outname</span><span class="p">:</span>
+            <span class="n">outname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span>
+                                   <span class="s1">&#39;cands_</span><span class="si">{}</span><span class="s1">_sc</span><span class="si">{}</span><span class="s1">-seg</span><span class="si">{}</span><span class="s1">-i</span><span class="si">{}</span><span class="s1">-dm</span><span class="si">{}</span><span class="s1">-dt</span><span class="si">{}</span><span class="s1">.png&#39;</span>
+                                   <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">fileroot</span><span class="p">,</span> <span class="n">scan</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">candint</span><span class="p">,</span>
+                                           <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">))</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">matplotlib.backends.backend_agg</span> <span class="k">import</span> <span class="n">FigureCanvasAgg</span>
+            <span class="n">canvas</span> <span class="o">=</span> <span class="n">FigureCanvasAgg</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+            <span class="n">canvas</span><span class="o">.</span><span class="n">print_figure</span><span class="p">(</span><span class="n">outname</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;Could not write figure to </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">outname</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">source_location</span><span class="p">(</span><span class="n">pt_ra</span><span class="p">,</span> <span class="n">pt_dec</span><span class="p">,</span> <span class="n">l1</span><span class="p">,</span> <span class="n">m1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes phase center and src l,m in radians to get ra,dec of source.</span>
+<span class="sd">    Returns string (&#39;hh mm ss&#39;, &#39;dd mm ss&#39;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">math</span>
+
+    <span class="n">srcra</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="n">pt_ra</span> <span class="o">+</span> <span class="n">l1</span><span class="o">/</span><span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">pt_dec</span><span class="p">))</span>
+    <span class="n">srcdec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="n">pt_dec</span> <span class="o">+</span> <span class="n">m1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">deg2HMS</span><span class="p">(</span><span class="n">srcra</span><span class="p">,</span> <span class="n">srcdec</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">deg2HMS</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">dec</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="nb">round</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; quick and dirty coord conversion. googled to find bdnyc.org.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">RA</span><span class="p">,</span> <span class="n">DEC</span><span class="p">,</span> <span class="n">rs</span><span class="p">,</span> <span class="n">ds</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span>
+    <span class="k">if</span> <span class="n">dec</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">dec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;-&#39;</span><span class="p">:</span>
+            <span class="n">ds</span><span class="p">,</span> <span class="n">dec</span> <span class="o">=</span> <span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="nb">abs</span><span class="p">(</span><span class="n">dec</span><span class="p">)</span>
+        <span class="n">deg</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dec</span><span class="p">)</span>
+        <span class="n">decM</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">int</span><span class="p">((</span><span class="n">dec</span><span class="o">-</span><span class="n">deg</span><span class="p">)</span><span class="o">*</span><span class="mi">60</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">round</span><span class="p">:</span>
+            <span class="n">decS</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="nb">abs</span><span class="p">((</span><span class="n">dec</span><span class="o">-</span><span class="n">deg</span><span class="p">)</span><span class="o">*</span><span class="mi">60</span><span class="p">)</span><span class="o">-</span><span class="n">decM</span><span class="p">)</span><span class="o">*</span><span class="mi">60</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">decS</span> <span class="o">=</span> <span class="p">(</span><span class="nb">abs</span><span class="p">((</span><span class="n">dec</span><span class="o">-</span><span class="n">deg</span><span class="p">)</span><span class="o">*</span><span class="mi">60</span><span class="p">)</span><span class="o">-</span><span class="n">decM</span><span class="p">)</span><span class="o">*</span><span class="mi">60</span>
+        <span class="n">DEC</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{0}{1}</span><span class="s1"> </span><span class="si">{2}</span><span class="s1"> </span><span class="si">{3}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">deg</span><span class="p">,</span> <span class="n">decM</span><span class="p">,</span> <span class="n">decS</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">ra</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">ra</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;-&#39;</span><span class="p">:</span>
+            <span class="n">rs</span><span class="p">,</span> <span class="n">ra</span> <span class="o">=</span> <span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="nb">abs</span><span class="p">(</span><span class="n">ra</span><span class="p">)</span>
+        <span class="n">raH</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ra</span><span class="o">/</span><span class="mi">15</span><span class="p">)</span>
+        <span class="n">raM</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(((</span><span class="n">ra</span><span class="o">/</span><span class="mi">15</span><span class="p">)</span><span class="o">-</span><span class="n">raH</span><span class="p">)</span><span class="o">*</span><span class="mi">60</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">round</span><span class="p">:</span>
+            <span class="n">raS</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(((((</span><span class="n">ra</span><span class="o">/</span><span class="mi">15</span><span class="p">)</span><span class="o">-</span><span class="n">raH</span><span class="p">)</span><span class="o">*</span><span class="mi">60</span><span class="p">)</span><span class="o">-</span><span class="n">raM</span><span class="p">)</span><span class="o">*</span><span class="mi">60</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">raS</span> <span class="o">=</span> <span class="p">((((</span><span class="n">ra</span><span class="o">/</span><span class="mi">15</span><span class="p">)</span><span class="o">-</span><span class="n">raH</span><span class="p">)</span><span class="o">*</span><span class="mi">60</span><span class="p">)</span><span class="o">-</span><span class="n">raM</span><span class="p">)</span><span class="o">*</span><span class="mi">60</span>
+        <span class="n">RA</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{0}{1}</span><span class="s1"> </span><span class="si">{2}</span><span class="s1"> </span><span class="si">{3}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">rs</span><span class="p">,</span> <span class="n">raH</span><span class="p">,</span> <span class="n">raM</span><span class="p">,</span> <span class="n">raS</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">ra</span> <span class="ow">and</span> <span class="n">dec</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">RA</span><span class="p">,</span> <span class="n">DEC</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">RA</span> <span class="ow">or</span> <span class="n">DEC</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">rfpipe 0.6.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Casey Law.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.
+    </div>
+  </body>
+</html>
