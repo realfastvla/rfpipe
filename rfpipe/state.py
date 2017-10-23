@@ -39,15 +39,16 @@ class State(object):
     - uvoversample + npix_max + metadata => npixx, npixy
     """
 
-    def __init__(self, config=None, sdmfile=None, sdmscan=None, inprefs={},
-                 inmeta={}, preffile=None, name=None, showsummary=True):
+    def __init__(self, config=None, sdmfile=None, sdmscan=None, bdfdir=None,
+                 inprefs={}, inmeta={}, preffile=None, name=None,
+                 showsummary=True):
         """ Initialize preference attributes with text file, preffile.
         name can select preference set from within yaml file.
         preferences are overloaded with inprefs.
 
         Metadata source can be either:
         1) Config object is a scan_config object (see evla_mcast library) or
-        2) sdmfile and sdmscan.
+        2) sdmfile and sdmscan (optional bdfdir for reading from CBE).
 
         inmeta is a dict with key-value pairs to overload metadata (e.g., to
         mock metadata from a simulation)
@@ -83,7 +84,7 @@ class State(object):
         if isinstance(inmeta, dict):
             # get metadata
             if (self.sdmfile and self.sdmscan) and not self.config:
-                meta = metadata.sdm_metadata(sdmfile, sdmscan)
+                meta = metadata.sdm_metadata(sdmfile, sdmscan, bdfdir=bdfdir)
             elif self.config and not (self.sdmfile or self.sdmscan):
                 # config datasource can be vys or simulated data
                 datasource = inmeta['datasource'] if 'datasource' in inmeta else 'vys'
