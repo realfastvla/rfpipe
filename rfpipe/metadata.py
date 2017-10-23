@@ -251,6 +251,11 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
                          if pol in ['XX', 'YY', 'XY', 'YX',
                                     'RR', 'LL', 'RL', 'LR',
                                     'A*A', 'B*B', 'A*B', 'B*A']]
+    meta['spworder'] = sorted(zip(['{0}-{1}'.format(spw.swbb.rstrip('_8BIT'),
+                                                    spw.sw-1)
+                                   for spw in scanobj.bdf.spws],
+                                  np.array(scanobj.reffreqs)/1e6),
+                              key=lambda x: x[1])
 
     return meta
 
