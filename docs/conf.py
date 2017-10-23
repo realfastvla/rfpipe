@@ -19,17 +19,12 @@
 import os
 import sys
 from recommonmark.parser import CommonMarkParser
-from mock import Mock
+import sphinx_bootstrap_theme
 
 sys.path.append(os.path.join(os.path.abspath(os.pardir)))
 cwd = os.getcwd()
 project_root = os.path.dirname(cwd)
 sys.path.insert(0, project_root)
-
-MOCK_MODULES = ['matplotlib', 'matplotlib.pyplot', 'pyfftw', 'numba', 'rtpipe', 'builtins', 'future', 
-                'pwkit', 'pwkit.environments', 'pwkit.environments.casa','pwkit.environments.casa.util',
-                'attr', 'sdmpy']
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 source_parsers = {
     '.md': CommonMarkParser,
@@ -140,20 +135,19 @@ todo_include_todos = False
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'classic'
+html_theme = 'bootstrap'
+html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
+#html_theme = 'classic'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-html_theme_options = {
-    "sidebarbgcolor": "grey",
-    "relbarbgcolor": "grey",
-    "footerbgcolor": "black"
-}
-# html_theme_options = {
-#     "relbarbgcolor": "black",
-#     }
+#html_theme_options = {
+#    "sidebarbgcolor": "grey",
+#    "relbarbgcolor": "grey",
+#    "footerbgcolor": "black"
+#}
 
 # Add any paths that contain custom themes here, relative to this directory.
 # html_theme_path = []
@@ -170,7 +164,7 @@ html_theme_options = {
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
 #
-# html_logo = None
+html_logo = 'favicon.ico.png'
 
 # The name of an image file (relative to this directory) to use as a favicon of
 # the docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
