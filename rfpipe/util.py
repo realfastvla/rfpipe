@@ -192,9 +192,9 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
     v = np.empty(int(len(uvwlist)/3), dtype='float32')
     w = np.empty(int(len(uvwlist)/3), dtype='float32')
     nants = len(antpos['m0']['value'])
-    ord1 = [i*nants+j for i in range(nants) for j in range(i+1,nants)]
+    ord1 = [i*nants+j for i in range(nants) for j in range(i+1, nants)]
     ord2 = [i*nants+j for j in range(nants) for i in range(j)]
-    key=[]
+    key = []
     for new in ord2:
         key.append(ord1.index(new))
     for i in range(len(key)):

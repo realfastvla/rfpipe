@@ -139,16 +139,17 @@ class Metadata(object):
 
     @property
     def uvrange_orig(self):
-        if not hasattr(self, '_uvrange_orig'):
-            (u, v, w) = util.calc_uvw(datetime=self.starttime_string,
-                                      radec=self.radec,
-                                      antpos=self.antpos,
-                                      telescope=self.telescope)
-            u = u * self.freq_orig.min() * (1e9/3e8) * (-1)
-            v = v * self.freq_orig.min() * (1e9/3e8) * (-1)
-            self._uvrange_orig = (u.max() - u.min(), v.max() - v.min())
+#        if not hasattr(self, '_uvrange_orig'):
+        (u, v, w) = util.calc_uvw(datetime=self.starttime_string,
+                                  radec=self.radec,
+                                  antpos=self.antpos,
+                                  telescope=self.telescope)
+        u = u * self.freq_orig.min() * (1e9/3e8) * (-1)
+        v = v * self.freq_orig.min() * (1e9/3e8) * (-1)
+#        self._uvrange_orig = (u.max() - u.min(), v.max() - v.min())
+#        return self._uvrange_orig
 
-        return self._uvrange_orig
+        return (u.max() - u.min(), v.max() - v.min())
 
     @property
     def npol_orig(self):
