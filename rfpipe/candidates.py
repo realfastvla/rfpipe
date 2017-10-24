@@ -111,11 +111,13 @@ class CandCollection(object):
         else:
             return None
 
-    def getstate(self):
+    def getstate(self, showsummary=False):
         """ Regenerate state function given the metadata and prefs.
+        Does not show summary by default.
         """
 
-        return state.State(inmeta=self.metadata, inprefs=self.prefs)
+        return state.State(inmeta=self.metadata, inprefs=self.prefs,
+                           showsummary=showsummary)
 
 
 def calc_features(canddatalist):
