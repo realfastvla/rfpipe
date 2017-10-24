@@ -5,7 +5,6 @@ from io import open
 
 import pickle
 import os.path
-from collections import OrderedDict
 import numpy as np
 from rfpipe import preferences, state, util, search, source, metadata, candidates
 
@@ -137,9 +136,9 @@ def pipeline_imdata(st, candloc, data_dmdt=None):
                          st.fftmode, st.prefs.nthread, wisdom=wisdom,
                          integrations=[i])[0]
     dl, dm = st.pixtolm(np.where(image == image.max()))
-    search.phase_shift(data_dmdt, uvw, dl, dm)
+    util.phase_shift(data_dmdt, uvw, dl, dm)
     dataph = data_dmdt[i-st.prefs.timewindow//2:i+st.prefs.timewindow//2].mean(axis=1)
-    search.phase_shift(data_dmdt, uvw, -dl, -dm)
+    util.phase_shift(data_dmdt, uvw, -dl, -dm)
 
     canddata = candidates.CandData(state=st, loc=tuple(candloc), image=image,
                                data=dataph)
