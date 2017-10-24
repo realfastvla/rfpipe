@@ -178,13 +178,13 @@ def search_thresh(st, data, segment, dmind, dtind, beamnum=0, wisdom=None):
                 candim = images[i]
                 l, m = st.pixtolm(np.where(candim == candim.max()))
                 logger.debug("image peak at l, m: {0}, {1}".format(l, m))
-                phase_shift(data, uvw, l, m)
+                util.phase_shift(data, uvw, l, m)
                 logger.debug("phasing data from: {0}, {1}"
                              .format(max(0, i-st.prefs.timewindow//2),
                                      min(i+st.prefs.timewindow//2, len(data))))
                 dataph = data[max(0, i-st.prefs.timewindow//2):
                               min(i+st.prefs.timewindow//2, len(data))].mean(axis=1)
-                phase_shift(data, uvw, -l, -m)
+                util.phase_shift(data, uvw, -l, -m)
                 canddatalist.append(candidates.CandData(state=st, loc=candloc,
                                                         image=candim, data=dataph))
     else:
@@ -384,21 +384,3 @@ def set_wisdom(npixx, npixy):
                                                 auto_contiguous=True,
                                                 planner_effort='FFTW_MEASURE')
     return pyfftw.export_wisdom()
-
-
-@jit(nogil=True, nopython=True)
-def phase_shift(data, uvw, dl, dm):
-    """ Applies a phase shift to data for a given (dl, dm).
-    """
-
-    sh = data.shape
-    u, v, w = uvw
-
-    if (dl != 0.) or (dm != 0.):
-        for j in xrange(sh[1]):
-            for k in xrange(sh[2]):
-                for i in xrange(sh[0]):    # iterate over pols
-                    for l in xrange(sh[3]):
-                        # phasor unwraps phase at (dl, dm) per (bl, chan)
-                        frot = np.exp(-2j*np.pi*(dl*u[j, k] + dm*v[j, k]))
-                        data[i, j, k, l] = data[i, j, k, l] * frot
