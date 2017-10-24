@@ -8,7 +8,7 @@ import os
 import numpy as np
 from collections import OrderedDict
 import matplotlib.pyplot as plt
-from rfpipe import util, version, fileLock
+from rfpipe import util, version, fileLock, state
 
 import logging
 logger = logging.getLogger(__name__)
@@ -57,7 +57,7 @@ class CandData(object):
         """ Time in mjd where burst is at top of band
         """
 
-        return (self.state.metadata.starttime_mjd +
+        return (self.state.segmenttimes[self.loc[0]][0] +
                 (self.loc[1]*self.state.inttime)/(24*3600))
 
     @property
@@ -110,6 +110,12 @@ class CandCollection(object):
                 return None
         else:
             return None
+
+    def state(self):
+        """ Regenerate state function given the metadata and prefs.
+        """
+
+        return state.State(inmeta=self.metadata, inprefs=self.prefs)
 
 
 def calc_features(canddatalist):

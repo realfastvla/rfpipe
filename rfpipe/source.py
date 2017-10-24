@@ -177,7 +177,7 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout):
 
 def read_bdf_segment(st, segment):
     """ Uses sdmpy to reads bdf (sdm) format data into numpy array in given
-    segment.
+    segment. Each segment has st.readints integrations.
     """
 
     assert segment < st.nsegment, ('segment {0} is too big for nsegment {1}'
