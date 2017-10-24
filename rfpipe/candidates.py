@@ -8,7 +8,8 @@ import os
 import numpy as np
 from collections import OrderedDict
 import matplotlib.pyplot as plt
-from rfpipe import util, version, fileLock, state
+from rfpipe import util, version, fileLock
+from rfpipe.state import State
 
 import logging
 logger = logging.getLogger(__name__)
@@ -115,7 +116,7 @@ class CandCollection(object):
         """ Regenerate state function given the metadata and prefs.
         """
 
-        return state.State(inmeta=self.metadata, inprefs=self.prefs)
+        return State(inmeta=self.metadata, inprefs=self.prefs)
 
 
 def calc_features(canddatalist):

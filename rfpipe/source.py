@@ -7,7 +7,8 @@ import numpy as np
 import sdmpy
 from astropy import time
 import pwkit.environments.casa.util as casautil
-from rfpipe import util, calibration, search
+from rfpipe import util, calibration
+from rfpipe.search import phase_shift
 
 import logging
 logger = logging.getLogger(__name__)
@@ -122,9 +123,9 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
             except IndexError:
                 logger.warn("IndexError while adding transient. Skipping...")
                 continue
-            search.phase_shift(data_read, uvw, l, m)
+            phase_shift(data_read, uvw, l, m)
             data_read += model.transpose()[:, None, :, None]
-            search.phase_shift(data_read, uvw, -l, -m)
+            phase_shift(data_read, uvw, -l, -m)
 
 #    takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
 #    logger.debug('Selecting pols {0}'.format(st.pols))
