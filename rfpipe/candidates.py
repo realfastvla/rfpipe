@@ -111,7 +111,7 @@ class CandCollection(object):
         else:
             return None
 
-    def state(self):
+    def getstate(self):
         """ Regenerate state function given the metadata and prefs.
         """
 
