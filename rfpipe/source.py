@@ -71,7 +71,7 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
     # read Flag.xml and apply flags for given ant/time range
     if st.prefs.applyonlineflags and st.metadata.datasource == 'sdm':
 
-        sdm = getsdm(st.metadata.datasetId, bdfdir=st.metadata.bdfdir)
+        sdm = getsdm(st.metadata.filename, bdfdir=st.metadata.bdfdir)
         scan = sdm.scan(st.metadata.scan)
 
         # segment flagged from logical OR from (start, stop) flags
@@ -197,31 +197,19 @@ def read_bdf_segment(st, segment):
     return data
 
 
-def simulate_segment(st, loc=0., scale=1.):
-    """ Simulates visibilities for a segment.
-    """
-    logger.info('Simulating data with shape {0}'.format(st.datashape))
-
-    data_read = np.zeros(shape=st.datashape, dtype='complex64')
-    data_read.real = np.random.normal(loc=loc, scale=scale, size=st.datashape)
-    data_read.imag = np.random.normal(loc=loc, scale=scale, size=st.datashape)
-
-    return data_read
-
-
 def read_bdf(st, nskip=0):
     """ Uses sdmpy to read a given range of integrations from sdm of given scan.
     readints=0 will read all of bdf (skipping nskip).
     Returns data in increasing frequency order.
     """
 
-    assert os.path.exists(st.metadata.datasetId), ('sdmfile {0} does not exist'
-                                                  .format(st.metadata.datasetId))
+    assert os.path.exists(st.metadata.filename), ('sdmfile {0} does not exist'
+                                                  .format(st.metadata.filename))
     assert st.metadata.bdfstr, ('bdfstr not defined for scan {0}'
                                 .format(st.metadata.scan))
 
     logger.info('Reading %d ints starting at int %d' % (st.readints, nskip))
-    sdm = getsdm(st.metadata.datasetId, bdfdir=st.metadata.bdfdir)
+    sdm = getsdm(st.metadata.filename, bdfdir=st.metadata.bdfdir)
     scan = sdm.scan(st.metadata.scan)
     data = np.empty((st.readints, st.metadata.nbl_orig, st.metadata.nchan_orig,
                      st.metadata.npol_orig), dtype='complex64', order='C')
@@ -236,6 +224,18 @@ def read_bdf(st, nskip=0):
 #    data[:] = scan.bdf.get_data(trange=[nskip, nskip+st.readints]).reshape(data.shape)
 
     return data
+
+
+def simulate_segment(st, loc=0., scale=1.):
+    """ Simulates visibilities for a segment.
+    """
+    logger.info('Simulating data with shape {0}'.format(st.datashape))
+
+    data_read = np.zeros(shape=st.datashape, dtype='complex64')
+    data_read.real = np.random.normal(loc=loc, scale=scale, size=st.datashape)
+    data_read.imag = np.random.normal(loc=loc, scale=scale, size=st.datashape)
+
+    return data_read
 
 
 def sdm_sources(sdmname):
