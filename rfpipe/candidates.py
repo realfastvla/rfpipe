@@ -101,7 +101,7 @@ class CandCollection(object):
         if len(self.array):
             segments = np.unique(self.array['segment'])
             if len(segments) == 1:
-                return segments[0]
+                return int(segments[0])
             elif len(segments) > 1:
                 logger.warn("Multiple segments in this collection")
                 return segments
