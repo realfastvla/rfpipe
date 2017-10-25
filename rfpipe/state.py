@@ -111,7 +111,7 @@ class State(object):
 
     def __repr__(self):
         return ('rfpipe state with metadata/prefs ({0}/{1})'
-                .format(self.metadata.filename, self.prefs.name))
+                .format(self.metadata.datasetId, self.prefs.name))
 
     def summarize(self):
         """ Print summary of pipeline state """
@@ -151,9 +151,6 @@ class State(object):
             else:
                 logger.warn('No telcal file found at {0}'
                             .format(self.gainfile))
-            logger.info('\t Products saved with {0}. telcal calibration with {1}.'
-                        .format(self.fileroot,
-                                os.path.basename(self.gainfile)))
 
             logger.info('\t Using {0} segment{1} of {2} ints ({3:.1f} s) with '
                         'overlap of {4:.1f} s'
@@ -222,7 +219,7 @@ class State(object):
         if self.prefs.fileroot:
             return self.prefs.fileroot
         else:
-            return os.path.basename(self.metadata.filename).rstrip('/')
+            return self.metadata.datasetId
 
     @property
     def dmarr(self):
@@ -499,7 +496,7 @@ class State(object):
             gainfile = os.path.join('/home/mchammer/evladata/telcal/'
                                     '{0}/{1:02}/{2}.GN'
                                     .format(today.year, today.month,
-                                            self.metadata.filename))
+                                            self.metadata.datasetId))
         else:
             if os.path.dirname(self.prefs.gainfile):  # use full path if given
                 gainfile = self.prefs.gainfile

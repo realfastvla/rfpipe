@@ -77,7 +77,7 @@ class Preferences(object):
     savenoise = attr.ib(default=False)
     savecands = attr.ib(default=False)
     candsfile = attr.ib(default=None)
-    workdir = attr.ib(default=getcwd())
+    workdir = attr.ib(default=getcwd())  # set upon import
     timewindow = attr.ib(default=30)
 #    logfile = attr.ib(default=True)
     loglevel = attr.ib(default='INFO')
