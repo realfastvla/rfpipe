@@ -21,19 +21,17 @@ me = casautil.tools.measures()
 class Metadata(object):
     """ Metadata we need to translate parameters into a pipeline state.
     Called from a function defined for a given source (e.g., an sdm file).
-    Built from *nominally* immutable attributes and properties.
+    Built from nominally immutable attributes and properties.
     To modify metadata, use attr.assoc(inst, key=newval)
-
-    TODO: can we freeze attributes while still having cached values?
     """
 
     # basics
     datasource = attr.ib(default=None)
-    filename = attr.ib(default=None)
+    datasetId = attr.ib(default=None)
     scan = attr.ib(default=None)  # int
+    subscan = attr.ib(default=None)  # int
     bdfdir = attr.ib(default=None)
     bdfstr = attr.ib(default=None)
-#    configid = attr.ib(default=None)
 
     # data structure and source properties
     source = attr.ib(default=None)
@@ -58,7 +56,6 @@ class Metadata(object):
     spw_reffreq = attr.ib(default=None)  # reference frequency in Hz
     spw_chansize = attr.ib(default=None)  # channel size in Hz
     pols_orig = attr.ib(default=None)
-    
 
     def atdefaults(self):
         """ Is metadata still set at default values? """
@@ -139,21 +136,26 @@ class Metadata(object):
 
     @property
     def uvrange_orig(self):
-#        if not hasattr(self, '_uvrange_orig'):
         (u, v, w) = util.calc_uvw(datetime=self.starttime_string,
                                   radec=self.radec,
                                   antpos=self.antpos,
                                   telescope=self.telescope)
         u = u * self.freq_orig.min() * (1e9/3e8) * (-1)
         v = v * self.freq_orig.min() * (1e9/3e8) * (-1)
-#        self._uvrange_orig = (u.max() - u.min(), v.max() - v.min())
-#        return self._uvrange_orig
 
         return (u.max() - u.min(), v.max() - v.min())
 
     @property
     def npol_orig(self):
         return len(self.pols_orig)
+
+    @property
+    def filename(self):
+        return self.datasetId  # for backwards compatibility
+
+    @property
+    def scanId(self):
+        return '{0}.{1}.{2}'.format(self.datasetId, self.scan, self.subscan)
 
 
 def config_metadata(config, datasource='vys'):
@@ -168,8 +170,9 @@ def config_metadata(config, datasource='vys'):
 
     meta = {}
     meta['datasource'] = datasource
-    meta['filename'] = config.datasetId
+    meta['datasetId'] = config.datasetId
     meta['scan'] = config.scanNo
+    meta['subscan'] = config.subscanNo
 #    meta['configid'] = config.Id
 
     meta['starttime_mjd'] = config.startTime
@@ -211,8 +214,9 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
 
     meta = {}
     meta['datasource'] = 'sdm'
-    meta['filename'] = sdmfile
+    meta['datasetId'] = os.path.basename(sdmfile)
     meta['scan'] = scan
+    meta['subscan'] = 1  # TODO: update for more than one subscan per scan
     meta['bdfdir'] = bdfdir
 #    meta['configid'] = scanobj.configDescriptionId
     bdfstr = scanobj.bdf.fname
