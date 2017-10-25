@@ -84,7 +84,7 @@ class CandCollection(object):
     def __repr__(self):
         if self.metadata is not None:
             return ('CandCollection for {0}, scan {1} with {2} rows'
-                    .format(self.metadata.filename, self.metadata.scan,
+                    .format(self.metadata.datasetId, self.metadata.scan,
                             len(self.array)))
         else:
             return ('CandCollection with {0} rows'.format(len(self.array)))

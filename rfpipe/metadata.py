@@ -279,7 +279,7 @@ def mock_metadata(t0, t1, nants, nspw, npol, inttime_micros,
 
     meta = {}
     meta['datasource'] = datasource
-    meta['filename'] = 'test'
+    meta['datasetId'] = 'test'
     meta['scan'] = 1
     meta['bdfdir'] = ''
 #    meta['configid'] = 0
@@ -346,7 +346,7 @@ def oldstate_metadata(d, scan=None, bdfdir=None):
 
     meta = {}
     meta['datasource'] = 'sdm'
-    meta['filename'] = d['fileroot']
+    meta['datasetId'] = d['fileroot']
     meta['scan'] = scan
     meta['bdfdir'] = bdfdir
 

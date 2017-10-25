@@ -146,12 +146,6 @@ class State(object):
                                 self.uvres_full, self.prefs.uvoversample))
 
             logger.info('Pipeline summary:')
-            if os.path.exists(self.gainfile):
-                logger.info('Found telcal file {0}'.format(self.gainfile))
-            else:
-                logger.warn('No telcal file found at {0}'
-                            .format(self.gainfile))
-
             logger.info('\t Using {0} segment{1} of {2} ints ({3:.1f} s) with '
                         'overlap of {4:.1f} s'
                         .format(self.nsegment, "s"[not self.nsegment-1:],
@@ -177,6 +171,12 @@ class State(object):
                                 self.prefs.read_fdownsample))
             logger.info('\t Excluding ants {0}'.format(self.prefs.excludeants))
             logger.info('\t Using pols {0}'.format(self.pols))
+            if os.path.exists(self.gainfile):
+                logger.info('\t Found telcal file {0}'.format(self.gainfile))
+            else:
+                logger.warn('\t No telcal file found at {0}'
+                            .format(self.gainfile))
+
             logger.info('')
 
             logger.info('\t Search with {0} and threshold {1}.'

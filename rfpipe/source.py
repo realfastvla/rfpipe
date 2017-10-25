@@ -71,7 +71,7 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
     # read Flag.xml and apply flags for given ant/time range
     if st.prefs.applyonlineflags and st.metadata.datasource == 'sdm':
 
-        sdm = getsdm(st.metadata.filename, bdfdir=st.metadata.bdfdir)
+        sdm = getsdm(st.metadata.datasetId, bdfdir=st.metadata.bdfdir)
         scan = sdm.scan(st.metadata.scan)
 
         # segment flagged from logical OR from (start, stop) flags
@@ -215,13 +215,13 @@ def read_bdf(st, nskip=0):
     Returns data in increasing frequency order.
     """
 
-    assert os.path.exists(st.metadata.filename), ('sdmfile {0} does not exist'
-                                                  .format(st.metadata.filename))
+    assert os.path.exists(st.metadata.datasetId), ('sdmfile {0} does not exist'
+                                                  .format(st.metadata.datasetId))
     assert st.metadata.bdfstr, ('bdfstr not defined for scan {0}'
                                 .format(st.metadata.scan))
 
     logger.info('Reading %d ints starting at int %d' % (st.readints, nskip))
-    sdm = getsdm(st.metadata.filename, bdfdir=st.metadata.bdfdir)
+    sdm = getsdm(st.metadata.datasetId, bdfdir=st.metadata.bdfdir)
     scan = sdm.scan(st.metadata.scan)
     data = np.empty((st.readints, st.metadata.nbl_orig, st.metadata.nchan_orig,
                      st.metadata.npol_orig), dtype='complex64', order='C')
