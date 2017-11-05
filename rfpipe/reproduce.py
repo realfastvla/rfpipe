@@ -62,7 +62,8 @@ def oldcands_readone(candsfile, scan=None):
         st = state.State(inmeta=meta, inprefs=inprefs, showsummary=False)
 
     if 'rtpipe_version' in d:
-        if float(st['rtpipe_version']) <= 1.54:
+        st.rtpipe_version = float(d['rtpipe_version'])  # TODO test this
+        if st.rtpipe_version <= 1.54:
             logger.info('Candidates detected with rtpipe version {0}. All '
                         'versions <=1.54 used incorrect DM scaling.'
                         .format(st.rtpipe_version))

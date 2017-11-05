@@ -108,7 +108,7 @@ class CandCollection(object):
         """ Candidate MJD at infinite frequency
         """
 
-        dt_inf = util.calc_delay(1e5, self.state.freq[-1], self.canddm,
+        dt_inf = util.calc_delay(1e5, self.state.freq.max(), self.canddm,
                                  self.metadata.inttime)
 
         intgeration = self.array['integration']
