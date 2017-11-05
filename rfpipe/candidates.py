@@ -60,15 +60,6 @@ class CandData(object):
         return (self.state.segmenttimes[self.loc[0]][0] +
                 (self.loc[1]*self.state.inttime)/(24*3600))
 
-    @property
-    def time_infinite(self):
-        """ Time in mjd where burst is at infinite frequency
-        """
-
-        delay = util.calc_delay(1e5, self.time_top, self.dmarr[self.loc[2]],
-                                self.state.inttime)
-        return self.time_top - delay
-
 
 class CandCollection(object):
     """ Wrap candidate array with metadata and
@@ -80,6 +71,7 @@ class CandCollection(object):
         self.prefs = prefs
         self.metadata = metadata
         self.rfpipe_version = version.__version__
+        self._state = None
 
     def __repr__(self):
         if self.metadata is not None:
@@ -111,13 +103,61 @@ class CandCollection(object):
         else:
             return None
 
-    def getstate(self, showsummary=False):
-        """ Regenerate state function given the metadata and prefs.
-        Does not show summary by default.
+    @property
+    def candmjd(self):
+        """ Candidate MJD at infinite frequency
         """
 
-        return state.State(inmeta=self.metadata, inprefs=self.prefs,
-                           showsummary=showsummary)
+        dt_inf = util.calc_delay(1e5, self.state.freq[-1], self.canddm,
+                                 self.metadata.inttime)
+
+        intgeration = self.array['integration']
+
+        return (self.state.segmenttimes[self.segment][0] +
+                (integration*self.state.inttime)/(24*3600) - dt_inf)
+
+    @property
+    def canddm(self):
+        """ Candidate DM in pc/cm3
+        """
+
+        dmarr = self.state.dmarr
+        return dmarr[self.array['dmind']]
+
+    @property
+    def canddt(self):
+        """ Candidate dt in seconds
+        """
+
+        dtarr = self.state.dmarr
+        return dmarr[self.array['dmind']]
+
+    @property
+    def candl(self):
+        """ Return l1 for candidate (offset from phase center in RA direction)
+        """
+        #  beamnum not yet supported
+
+        return self.array['l1']
+
+    @property
+    def candm(self):
+        """ Return m1 for candidate (offset from phase center in Dec direction)
+        """
+        #  beamnum not yet supported
+
+        return self.array['m1']
+
+    @property
+    def state(self):
+        """ Sets state by regenerating from the metadata and prefs.
+        """
+
+        if self._state is None:
+            self._state = state.State(inmeta=self.metadata, inprefs=self.prefs,
+                                      showsummary=showsummary)
+
+        return self._state
 
 
 def calc_features(canddatalist):
@@ -244,7 +284,7 @@ def iter_cands(candsfile):
                 yield candcollection
 
             except EOFError:
-                logger.info('No more candidates')
+                logger.info('No more CandCollections.')
                 break
 
 
