@@ -188,6 +188,7 @@ def preffiletype(preffile):
 
 def oldstate_preferences(d, scan=None):
     """ Parse old state dictionary "d" and to define preferences instance
+    If no scan is given, assumed to be a single scan state dict.
     """
 
     prefs = {}
@@ -195,13 +196,14 @@ def oldstate_preferences(d, scan=None):
 
     for key in d.keys():
         if key in allowed:
-            prefs[key] = d[key]
+            if key == 'segmenttimes':
+                prefs[key] = d[key].tolist()
+            else:
+                prefs[key] = d[key]
 
 #    prefs['nsegment'] = d['nsegments']
     prefs['selectpol'] = 'auto'
-
-    if not scan:
-        scan = d['scan']
-    prefs['segmenttimes'] = d['segmenttimesdict'][scan]
+    if scan is not None:
+        prefs['segmenttimes'] = d['segmenttimesdict'][scan].tolist()
 
     return prefs

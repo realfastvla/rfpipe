@@ -170,6 +170,7 @@ def search_thresh(st, data, segment, dmind, dtind, beamnum=0, wisdom=None):
                     .format(st.dmarr[dmind], st.dtarr[dtind],
                             st.prefs.sigma_image1))
 
+        # TODO: the following is really slow
         canddatalist = []
         for i in range(len(images)):
             if (images[i].max()/util.madtostd(images[i]) >

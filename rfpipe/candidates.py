@@ -137,10 +137,9 @@ def calc_features(canddatalist):
                 .format(len(canddatalist)))
 
     # TODO: generate dtype from st.features
-    dtype = [('segment', '<i4'), ('integration', '<i4'), ('dmind', '<i4'),
-             ('dtind', '<i4'), ('beamnum', '<i4'), ('snr1', '<f4'),
-             ('immax1', '<f4'), ('l1', '<f4'), ('m1', '<f4')]
-#    features = {}
+    st = canddatalist[0].state
+    dtype= zip(st.search_dimensions + st.features,
+               len(st.search_dimensions)*['<i4'] + len(st.features)*['<f4'])
     features = np.zeros(len(canddatalist), dtype=dtype)
 
     for i in xrange(len(canddatalist)):

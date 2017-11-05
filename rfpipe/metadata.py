@@ -334,21 +334,22 @@ def oldstate_metadata(d, scan=None, bdfdir=None):
     """ Parses old state function ("d", a dictionary) into new metadata instance
     Note: d from merged candidate file will have some parameters defined by
     last scan.
+    If scan is None, it will assume d is from single scan, not merged
     """
-
-    if not scan:
-        scan = d['scan']
-
-    logger.info('Reading metadata from old state dictionary for scan {0}'
-                .format(scan))
 
     meta = {}
     meta['datasource'] = 'sdm'
     meta['datasetId'] = d['fileroot']
-    meta['scan'] = scan
+    meta['subscan'] = 1
     meta['bdfdir'] = bdfdir
 
-    meta['starttime_mjd'] = d['starttime_mjddict'][scan]
+    if scan is not None:
+        meta['starttime_mjd'] = d['starttime_mjddict'][scan]
+        meta['scan'] = scan
+    else:
+        meta['starttime_mjd'] = d['starttime_mjd']
+        meta['scan'] = d['scan']
+
     meta['inttime'] = d['inttime']
     meta['nints_'] = d['nints']
 
@@ -365,5 +366,8 @@ def oldstate_metadata(d, scan=None, bdfdir=None):
     meta['spw_chansize'] = d['spw_chansize']
 
     meta['pols_orig'] = d['pols_orig']
+
+    logger.info('Read metadata from old state dictionary for scan {0}'
+                .format(scan))
 
     return meta

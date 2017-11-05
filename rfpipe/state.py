@@ -214,12 +214,10 @@ class State(object):
 
     @property
     def fileroot(self):
-        # **TODO: update for sdm or config sources
-
         if self.prefs.fileroot:
             return self.prefs.fileroot
         else:
-            return self.metadata.datasetId
+            return self.metadata.scanId
 
     @property
     def dmarr(self):

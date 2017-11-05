@@ -30,18 +30,19 @@ def oldcands_read(candsfile, sdmscan=None):
     ll = []
     for scan in scans:
         try:
-            st, df = oldcands_readone(candsfile, scan)
-            ll.append((st, df))
+            st, cc = oldcands_readone(candsfile, scan)
+            ll.append((st, cc))
         except AttributeError:
             pass
 
     return ll
 
 
-def oldcands_readone(candsfile, scan):
+def oldcands_readone(candsfile, scan=None):
     """ For old-style merged candidate file, create new state and candidate
     dataframe for a given scan.
     Requires sdm locally with bdf for given scan.
+    If no scan provided, assumes candsfile is from single scan not merged.
     """
 
     with open(candsfile, 'rb') as pkl:
@@ -51,6 +52,7 @@ def oldcands_readone(candsfile, scan):
     inprefs = preferences.oldstate_preferences(d, scan=scan)
     inprefs.pop('gainfile')
     sdmfile = os.path.basename(d['filename'])
+
     if os.path.exists(sdmfile):
         logger.info('Parsing metadata from sdmfile {0}'.format(sdmfile))
         st = state.State(sdmfile=sdmfile, sdmscan=scan, inprefs=inprefs)
@@ -59,20 +61,23 @@ def oldcands_readone(candsfile, scan):
         meta = metadata.oldstate_metadata(d, scan=scan)
         st = state.State(inmeta=meta, inprefs=inprefs, showsummary=False)
 
-    st.rtpipe_version = float(d['rtpipe_version'])
-    if st.rtpipe_version <= 1.54:
-        logger.info('Candidates detected with rtpipe version {0}. All '
-                    'versions <=1.54 used an incorrect DM scaling prefactor.'
-                    .format(st.rtpipe_version))
+    if 'rtpipe_version' in d:
+        if float(st['rtpipe_version']) <= 1.54:
+            logger.info('Candidates detected with rtpipe version {0}. All '
+                        'versions <=1.54 used incorrect DM scaling.'
+                        .format(st.rtpipe_version))
 
-#    colnames = d['featureind']
+    if scan is None:
+        scan = d['scan']
+
     logger.info('Calculating candidate properties for scan {0}'.format(scan))
-#    df = pd.DataFrame(OrderedDict(zip(colnames, loc.transpose())))
-#    df2 = pd.DataFrame(OrderedDict(zip(st.features, prop.transpose())))
-#    df3 = pd.concat([df, df2], axis=1)[df.scan == scan]
-#    df3.metadata = st.metadata
-#    df3.prefs = st.prefs
-    features = np.concatenate((loc.transpose(), prop.transpose()))
+
+    dtype = zip(st.search_dimensions + st.features,
+               len(st.search_dimensions)*['<i4'] + len(st.features)*['<f4'])
+#    features = np.concatenate((loc.transpose(), prop.transpose()))
+    features = np.zeros(len(loc), dtype=dtype)
+    for i in range(len(loc)):
+        features[i] = tuple(list(loc[i]) + list(prop[i]))
     cc = candidates.CandCollection(features, st.prefs, st.metadata)
 
     return st, cc
