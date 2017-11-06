@@ -105,23 +105,20 @@ class CandCollection(object):
 
     @property
     def candmjd(self):
-        """ Candidate MJD at infinite frequency
+        """ Candidate MJD at top of band
         """
 
-        dt_inf = util.calc_delay(1e5, self.state.freq.max(), self.canddm,
-                                 self.metadata.inttime)
+#        dt_inf = util.calc_delay2(1e5, self.state.freq.max(), self.canddm)
+        t_top = np.array(self.state.segmenttimes)[self.array['segment'], 0] + (self.array['integration']*self.state.inttime)/(24*3600)
 
-        intgeration = self.array['integration']
-
-        return (self.state.segmenttimes[self.segment][0] +
-                (integration*self.state.inttime)/(24*3600) - dt_inf)
+        return t_top
 
     @property
     def canddm(self):
         """ Candidate DM in pc/cm3
         """
 
-        dmarr = self.state.dmarr
+        dmarr = np.array(self.state.dmarr)
         return dmarr[self.array['dmind']]
 
     @property
@@ -129,8 +126,8 @@ class CandCollection(object):
         """ Candidate dt in seconds
         """
 
-        dtarr = self.state.dmarr
-        return dmarr[self.array['dmind']]
+        dtarr = np.array(self.state.dtarr)
+        return self.metadata.inttime*dtarr[self.array['dtind']]
 
     @property
     def candl(self):
@@ -155,7 +152,7 @@ class CandCollection(object):
 
         if self._state is None:
             self._state = state.State(inmeta=self.metadata, inprefs=self.prefs,
-                                      showsummary=showsummary)
+                                      showsummary=False)
 
         return self._state
 

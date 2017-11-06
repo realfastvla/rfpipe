@@ -153,7 +153,8 @@ def meantsub_cuda(data):
 
 
 def calc_delay(freq, freqref, dm, inttime, scale=None):
-    """ Calculates the delay due to dispersion relative to freqref in integer units of inttime.
+    """ Calculates the delay in integration time bins due to dispersion delay.
+    freq is array of frequencies. delay is relative to freqref.
     default scale is 4.1488e-3 as linear prefactor (reproducing for rtpipe<=1.54 requires 4.2e-3).
     """
 
@@ -164,6 +165,16 @@ def calc_delay(freq, freqref, dm, inttime, scale=None):
         delay[i] = np.round(scale * dm * (1./freq[i]**2 - 1./freqref**2)/inttime, 0)
 
     return delay
+
+
+def calc_delay2(freq, freqref, dm, scale=None):
+    """ Calculates the delay in seconds due to dispersion delay.
+    freq is array of frequencies. delay is relative to freqref.
+    default scale is 4.1488e-3 as linear prefactor (reproducing for rtpipe<=1.54 requires 4.2e-3).
+    """
+
+    scale = 4.1488e-3 if not scale else scale
+    return scale*dm*(1./freq**2 - 1./freqref**2)
 
 
 def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
