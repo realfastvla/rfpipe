@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def oldcands_read(candsfile, sdmscan=None):
-    """ Read old-style candfile and create new-style DataFrame
+    """ Read old-style candfile and create new-style candcollection
     Returns a list of tuples (state, dataframe) per scan.
     """
 
@@ -21,11 +21,13 @@ def oldcands_read(candsfile, sdmscan=None):
         d = pickle.load(pkl)
         loc, prop = pickle.load(pkl)
 
-    if not sdmscan:
+    if not sdmscan and 'scan' in d['featureind']:
         scanind = d['featureind'].index('scan')
         scans = np.unique(loc[:, scanind])
-    else:
+    elif sdmscan is not None:
         scans = [sdmscan]
+    else:
+        scans = [d['scan']]
 
     ll = []
     for scan in scans:
@@ -39,9 +41,9 @@ def oldcands_read(candsfile, sdmscan=None):
 
 
 def oldcands_readone(candsfile, scan=None):
-    """ For old-style merged candidate file, create new state and candidate
-    dataframe for a given scan.
-    Requires sdm locally with bdf for given scan.
+    """ Reads old-style candidate files to create new state and candidate
+    collection for a given scan.
+    Parsing merged cands file requires sdm locally with bdf for given scan.
     If no scan provided, assumes candsfile is from single scan not merged.
     """
 
@@ -49,15 +51,24 @@ def oldcands_readone(candsfile, scan=None):
         d = pickle.load(pkl)
         loc, prop = pickle.load(pkl)
 
+    # detect merged vs nonmerged
+    if 'scan' in d['featureind']:
+        locind0 = 1
+    else:
+        locind0 = 0
+
+    # merged candsfiles must be called with scan arg
+    if scan is None:
+        assert locind0 == 0, "Set scan if candsfile has multiple scans."
+
     inprefs = preferences.oldstate_preferences(d, scan=scan)
     inprefs.pop('gainfile')
     sdmfile = os.path.basename(d['filename'])
 
-    if os.path.exists(sdmfile):
-        logger.info('Parsing metadata from sdmfile {0}'.format(sdmfile))
+    try:
+        assert scan is not None
         st = state.State(sdmfile=sdmfile, sdmscan=scan, inprefs=inprefs)
-    else:
-        logger.info('Parsing metadata from cands file')
+    except:
         meta = metadata.oldstate_metadata(d, scan=scan)
         st = state.State(inmeta=meta, inprefs=inprefs, showsummary=False)
 
@@ -69,13 +80,16 @@ def oldcands_readone(candsfile, scan=None):
                         .format(st.rtpipe_version))
 
     if scan is None:
+        assert locind0 == 0, "Set scan if candsfile has multiple scans."
         scan = d['scan']
 
     logger.info('Calculating candidate properties for scan {0}'.format(scan))
 
+    if locind0 == 1:
+        loc = loc[np.where(loc[:, 0] == scan)][:,locind0:]
+
     dtype = zip(st.search_dimensions + st.features,
-               len(st.search_dimensions)*['<i4'] + len(st.features)*['<f4'])
-#    features = np.concatenate((loc.transpose(), prop.transpose()))
+                len(st.search_dimensions)*['<i4'] + len(st.features)*['<f4'])
     features = np.zeros(len(loc), dtype=dtype)
     for i in range(len(loc)):
         features[i] = tuple(list(loc[i]) + list(prop[i]))
