@@ -27,7 +27,7 @@ def oldcands_read(candsfile, sdmscan=None):
     elif sdmscan is not None:
         scans = [sdmscan]
     else:
-        scans = [d['scan']]
+        scans = [None]
 
     ll = []
     for scan in scans:
