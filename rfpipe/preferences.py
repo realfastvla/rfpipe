@@ -46,7 +46,7 @@ class Preferences(object):
     applyonlineflags = attr.ib(default=True)
     gainfile = attr.ib(default=None)
     # simulate transients from list of tuples with
-    # values/units: (amp/system, i0/int, dm/pc/cm3, dt/s, dl/rad, dm/rad)
+    # values/units: (segment, i0/int, dm/pc/cm3, dt/s, amp/sys, dl/rad, dm/rad)
     simulated_transient = attr.ib(default=None)
 
     # processing

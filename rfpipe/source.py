@@ -113,18 +113,20 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
         uvw = st.get_uvw_segment(segment)
         for params in st.prefs.simulated_transient:
             assert isinstance(params, tuple)
-            assert len(params) == 6
-            (amp, i0, dm, dt, l, m) = params
-            logger.info("Adding transient with Amp {0} at int {1}, DM {2}, "
-                        "dt {3} and l,m={4},{5}".format(amp, i0, dm, dt, l, m))
-            try:
-                model = generate_transient(st, amp, i0, dm, dt)
-            except IndexError:
-                logger.warn("IndexError while adding transient. Skipping...")
-                continue
-            util.phase_shift(data_read, uvw, l, m)
-            data_read += model.transpose()[:, None, :, None]
-            util.phase_shift(data_read, uvw, -l, -m)
+            assert len(params) == 7
+            (mock_segment, i0, dm, dt, amp, l, m) = params
+            if segment == mock_segment:
+                logger.info("Adding transient to segment {0} at int {1}, DM {2}, "
+                            "dt {3} with amp {4} and l,m={5},{6}"
+                            .format(mock_segment, i0, dm, dt, amp, l, m))
+                try:
+                    model = generate_transient(st, amp, i0, dm, dt)
+                except IndexError:
+                    logger.warn("IndexError while adding transient. Skipping...")
+                    continue
+                util.phase_shift(data_read, uvw, l, m)
+                data_read += model.transpose()[:, None, :, None]
+                util.phase_shift(data_read, uvw, -l, -m)
 
 #    takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
 #    logger.debug('Selecting pols {0}'.format(st.pols))
