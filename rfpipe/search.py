@@ -220,9 +220,9 @@ def image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,
                               npixy, uvres, mode=mode)
 
     if fftmode == 'fftw':
-        logger.info("Imaging with fftw.")
-        images = image_fftw(grids, nthread=1, wisdom=wisdom)
-#        images = image_fftw(grids, nthread=nthread, wisdom=wisdom)  # unstable?
+        nthread = 1
+        logger.info("Imaging with fftw on {0} threads".format(nthread))
+        images = image_fftw(grids, nthread=nthread, wisdom=wisdom)  # why unstable?
     elif fftmode == 'cuda':
         logger.info("Imaging with cuda.")
         images = image_cuda(grids)
