@@ -220,7 +220,7 @@ def image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,
                               npixy, uvres, mode=mode)
 
     if fftmode == 'fftw':
-        nthread = 1
+#        nthread = 1
         logger.info("Imaging with fftw on {0} threads".format(nthread))
         images = image_fftw(grids, nthread=nthread, wisdom=wisdom)  # why unstable?
     elif fftmode == 'cuda':
@@ -273,6 +273,7 @@ def image_fftw(grids, nthread=1, wisdom=None):
     images = pyfftw.interfaces.numpy_fft.ifft2(grids, auto_align_input=True,
                                                auto_contiguous=True,
                                                planner_effort='FFTW_MEASURE',
+                                               overwrite_input=True,
                                                threads=nthread)
 
     npixx, npixy = images[0].shape
