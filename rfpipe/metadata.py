@@ -279,6 +279,7 @@ def mock_metadata(t0, t1, nants, nspw, npol, inttime_micros,
     meta['datasource'] = datasource
     meta['datasetId'] = 'test'
     meta['scan'] = 1
+    meta['subscan'] = 1
     meta['bdfdir'] = ''
 #    meta['configid'] = 0
 #    meta['bdfstr'] = ''
