@@ -12,7 +12,7 @@ from numpy import ndarray
 # simulate no flag, transient/no flag, transient/flag
 inprefs = [{'flaglist': [], 'npix_max': 512},
 #           {'read_tdownsample': 2, 'read_fdownsample': 2, 'npix_max': 512},
-           {'simulated_transient': [(1., 30, 25, 5e-3, 0.001, 0.001)],
+           {'simulated_transient': [(0, 30, 25, 5e-3, 1., 0.001, 0.001)],
             'maxdm': 50, 'dtarr': [1, 2], 'npix_max': 512, 'savecands': True,
             'savenoise': True}]
 
