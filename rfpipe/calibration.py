@@ -36,11 +36,11 @@ class telcal_sol():
 
         if os.path.exists(telcalfile):
             self.parseGN(telcalfile)
-            self.logger.info('Read telcalfile %s' % telcalfile)
+            self.logger.info('Read telcalfile {0}'.format(telcalfile))
             if flagants:
                 self.flagants()
         else:
-            self.logger.warn('Gainfile not found.')
+            self.logger.warn('Gainfile {0} not found.'.format(telcalfile))
             raise IOError
 
     def flagants(self, threshold=50):

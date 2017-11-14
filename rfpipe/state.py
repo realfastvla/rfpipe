@@ -488,7 +488,7 @@ class State(object):
         suffix
         """
 
-        if not self.prefs.gainfile:
+        if self.prefs.gainfile is None:
             today = date.today()
             # look for gainfile in mchammer
             gainfile = os.path.join('/home/mchammer/evladata/telcal/'
@@ -499,7 +499,8 @@ class State(object):
             if os.path.dirname(self.prefs.gainfile):  # use full path if given
                 gainfile = self.prefs.gainfile
             else:  # else assume workdir
-                gainfile = os.path.join(self.prefs.workdir, self.prefs.gainfile)
+                gainfile = os.path.join(self.prefs.workdir,
+                                        self.prefs.gainfile)
 
         return gainfile
 

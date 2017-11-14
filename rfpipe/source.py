@@ -103,8 +103,7 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
             logger.info('Downsampling in frequency by {0}'
                         .format(st.prefs.read_fdownsample))
             for i in range(st.datashape[2]):
-                data_read2[:, :, i, :] = data_read[
-                    :, :, i * st.prefs.read_fdownsample:(i+1)*st.prefs.read_fdownsample].mean(axis=2)
+                data_read2[:, :, i, :] = data_read[:, :, i*st.prefs.read_fdownsample:(i+1)*st.prefs.read_fdownsample].mean(axis=2)
         data_read = data_read2
 
     # optionally add transients
@@ -125,7 +124,8 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
                     logger.warn("IndexError while adding transient. Skipping...")
                     continue
                 util.phase_shift(data_read, uvw, l, m)
-                model = calibration.apply_telcal(st, model)  # corrupt by gains for now
+                if os.path.exists(st.gainfile):  # corrupt by -gain
+                    model = calibration.apply_telcal(st, model, sign=-1)
                 data_read += model.transpose()[:, None, :, None]
                 util.phase_shift(data_read, uvw, -l, -m)
 
