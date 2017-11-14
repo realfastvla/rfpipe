@@ -30,27 +30,6 @@ def data_prep(st, data):
         else:
             logger.info('Not applying telcal solutions for simulated data')
 
-        # optionally add transients
-        if st.prefs.simulated_transient is not None:
-            assert isinstance(st.prefs.simulated_transient, list)
-            uvw = st.get_uvw_segment(segment)
-            for params in st.prefs.simulated_transient:
-                assert isinstance(params, tuple)
-                assert len(params) == 7
-                (mock_segment, i0, dm, dt, amp, l, m) = params
-                if segment == mock_segment:
-                    logger.info("Adding transient to segment {0} at int {1}, DM {2}, "
-                                "dt {3} with amp {4} and l,m={5},{6}"
-                                .format(mock_segment, i0, dm, dt, amp, l, m))
-                    try:
-                        model = generate_transient(st, amp, i0, dm, dt)
-                    except IndexError:
-                        logger.warn("IndexError while adding transient. Skipping...")
-                        continue
-                    util.phase_shift(data_read, uvw, l, m)
-                    data_read += model.transpose()[:, None, :, None]
-                    util.phase_shift(data_read, uvw, -l, -m)
-
         # TODO: update flagging from rtpipe dataflag
         # changes memory in place, so need to force writability
         data = util.dataflag(st, np.require(data, requirements='W'))
@@ -127,6 +106,28 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
                 data_read2[:, :, i, :] = data_read[
                     :, :, i * st.prefs.read_fdownsample:(i+1)*st.prefs.read_fdownsample].mean(axis=2)
         data_read = data_read2
+
+    # optionally add transients
+    if st.prefs.simulated_transient is not None:
+        assert isinstance(st.prefs.simulated_transient, list)
+
+        uvw = st.get_uvw_segment(segment)
+        for params in st.prefs.simulated_transient:
+            assert len(params) == 7
+            (mock_segment, i0, dm, dt, amp, l, m) = params
+            if segment == mock_segment:
+                logger.info("Adding transient to segment {0} at int {1}, DM {2}, "
+                            "dt {3} with amp {4} and l,m={5},{6}"
+                            .format(mock_segment, i0, dm, dt, amp, l, m))
+                try:
+                    model = generate_transient(st, amp, i0, dm, dt)
+                except IndexError:
+                    logger.warn("IndexError while adding transient. Skipping...")
+                    continue
+                util.phase_shift(data_read, uvw, l, m)
+                model = calibration.apply_telcal(st, model)  # corrupt by gains for now
+                data_read += model.transpose()[:, None, :, None]
+                util.phase_shift(data_read, uvw, -l, -m)
 
 #    takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
 #    logger.debug('Selecting pols {0}'.format(st.pols))

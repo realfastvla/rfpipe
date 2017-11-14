@@ -10,14 +10,17 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def apply_telcal(st, data, calname=None):
+def apply_telcal(st, data, calname=None, sign=+1):
     """ Wrap all telcal functions to parse telcal file and apply it to data
+    sign defines if calibration is applied (+1) or backed out (-1).
     """
+
+    assert sign in [-1, +1], 'sign must be +1 or -1'
 
     sols = telcal_sol(st.gainfile)
     sols.set_selection(st.segmenttimes.mean(), st.freq*1e9, st.blarr,
                        calname=calname)
-    sols.apply(data)
+    sols.apply(data, sign=sign)
 
     return data
 
@@ -228,8 +231,9 @@ class telcal_sol():
         else:
             return np.array([0])
 
-    def apply(self, data):
+    def apply(self, data, sign=1):
         """ Applies calibration solution to data array. Assumes structure of (nint, nbl, nch, npol).
+        Sign defines direction of calibration solution. +1 is correcting, -1 will corrupt.
         """
 
         # find best skyfreq for each channel
@@ -252,11 +256,11 @@ class telcal_sol():
                 ant1, ant2 = self.blarr[i]  # ant numbers (1-based)
                 for pol in self.polind:
                     # apply gain correction
-                    invg1g2 = self.calcgain(ant1, ant2, skyfreq, pol)
+                    invg1g2 = sign*self.calcgain(ant1, ant2, skyfreq, pol)
                     data[:,i,chans,pol-self.polind[0]] = data[:,i,chans,pol-self.polind[0]] * invg1g2    # hack: lousy data pol indexing
 
                     # apply delay correction
-                    d1d2 = self.calcdelay(ant1, ant2, skyfreq, pol)
+                    d1d2 = sign*self.calcdelay(ant1, ant2, skyfreq, pol)
                     delayrot = 2*np.pi*(d1d2[0] * 1e-9) * relfreq      # phase to rotate across band
                     data[:,i,chans,pol-self.polind[0]] = data[:,i,chans,pol-self.polind[0]] * np.exp(-1j*delayrot[None, None, :])     # do rotation
 
