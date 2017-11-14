@@ -10,9 +10,8 @@ logger = logging.getLogger(__name__)
 vys_timeout_default = 10
 
 
-def pipeline_scan(st, segments=None, host='cbe-node-01',
-                  cfile=None, vys_timeout=vys_timeout_default):
-    """ Given rfpipe state and dask distributed client, run search pipline """
+def pipeline_scan(st, segments=None, cfile=None, vys_timeout=vys_timeout_default):
+    """ Given rfpipe state run search pipline on all segments in a scan. """
 
     featurelists = []
     if not isinstance(segments, list):
