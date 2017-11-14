@@ -297,7 +297,7 @@ class State(object):
 
     @property
     def spw(self):
-        """ Spectral windows used.
+        """ List of spectral windows used.
         ** TODO: update for proper naming "basband"+"swindex"
         """
 

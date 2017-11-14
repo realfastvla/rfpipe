@@ -1,14 +1,15 @@
 import rfpipe
 import pytest
 from astropy import time
-import numpy as np
+from numpy import ndarray
 
 # simulate no flag, transient/no flag, transient/flag
-inprefs = [{'flaglist': [], 'npix_max': 512, 'chans': range(5, 60)},
-#           {'read_tdownsample': 2, 'read_fdownsample': 2, 'npix_max': 512},
+inprefs = [{'flaglist': [], 'npix_max': 512, 'chans': range(32), 'spw': [0]},
            {'simulated_transient': [(0, 30, 25, 5e-3, 1., 0.001, 0.001)],
             'maxdm': 50, 'dtarr': [1, 2], 'npix_max': 512, 'savecands': True,
             'savenoise': True}]
+#TODO:      support arbitrary channel selection and
+#           {'read_tdownsample': 2, 'read_fdownsample': 2, 'npix_max': 512},
 
 
 @pytest.fixture(scope="module", params=inprefs)
@@ -43,14 +44,6 @@ def test_dataprep(mockstate, mockdata):
     assert mockdata.shape == mockstate.datashape
 
 
-def test_cal(scope="module"):
-    segment = 0
-    data = rfpipe.source.read_segment(mockstate, segment)
-    datacal = rfpipe.calibration.apply_telcal(mockstate, data, sign=1)
-    datauncal = rfpipe.calibration.apply_telcal(mockstate, data, sign=-1)
-    assert np.all(datauncal == data)
-
-
 def test_search(mockstate, mockdm, wisdom):
     segment = 0
     dmind = 0
@@ -59,7 +52,7 @@ def test_search(mockstate, mockdm, wisdom):
                                                dmind, dtind, wisdom=wisdom)
 
     candcollection = rfpipe.candidates.calc_features(canddatalist)
-    assert type(candcollection.array) == np.ndarray
+    assert type(candcollection.array) == ndarray
 
     if mockstate.prefs.simulated_transient:
         print(mockstate.prefs.simulated_transient, mockstate.prefs.flaglist)

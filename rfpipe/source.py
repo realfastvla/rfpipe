@@ -53,6 +53,7 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
     cfile and timeout are specific to vys data.
     """
 
+    # assumed read shape (st.readints, st.nbl, st.metadata.nchan_orig, st.npol)
     if st.metadata.datasource == 'sdm':
         data_read = read_bdf_segment(st, segment)
     elif st.metadata.datasource == 'vys':
@@ -232,11 +233,12 @@ def read_bdf(st, nskip=0):
 def simulate_segment(st, loc=0., scale=1.):
     """ Simulates visibilities for a segment.
     """
-    logger.info('Simulating data with shape {0}'.format(st.datashape))
 
-    data_read = np.zeros(shape=st.datashape, dtype='complex64')
-    data_read.real = np.random.normal(loc=loc, scale=scale, size=st.datashape)
-    data_read.imag = np.random.normal(loc=loc, scale=scale, size=st.datashape)
+    shape = (st.readints, st.nbl, st.metadata.nchan_orig, st.npol)
+    logger.info('Simulating data with shape {0}'.format(shape))
+    data_read = np.empty(shape, dtype='complex64', order='C')
+    data_read.real = np.random.normal(loc=loc, scale=scale, size=shape)
+    data_read.imag = np.random.normal(loc=loc, scale=scale, size=shape)
 
     return data_read
 
