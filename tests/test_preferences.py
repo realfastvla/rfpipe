@@ -41,3 +41,9 @@ def test_name():
     prefs = rfpipe.preferences.Preferences(**prefdict)
 
     assert prefs0.name != prefs.name
+
+
+def test_state():
+    preffile = os.path.join(_install_dir, 'data/realfast.yml')
+    st = rfpipe.state.State(preffile=preffile, inprefs={'chans': range(10)})
+    assert st.chans == range(10)
