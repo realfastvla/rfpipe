@@ -244,12 +244,10 @@ def save_cands(st, candcollection, canddatalist):
                 with open(st.candsfile, 'ab+') as pkl:
                     pickle.dump(candcollection, pkl)
         except fileLock.FileLock.FileLockException:
-            scan = st.metadata.scan
             cand = candcollection.array[0]
             segment = cand[0]
-            newcandsfile = ('{0}_sc{0}_seg{1}.pkl'
-                            .format(st.candsfile.rstrip('.pkl'),
-                                    scan, segment))
+            newcandsfile = ('{0}_seg{1}.pkl'
+                            .format(st.candsfile.rstrip('.pkl'), segment))
             logger.warn('Candidate file writing timeout. '
                         'Spilling to new file {0}.'.format(newcandsfile))
             with open(newcandsfile, 'ab+') as pkl:
@@ -708,7 +706,7 @@ def candplot(canddatalist, snrs=[], outname=''):
 
         if not outname:
             outname = os.path.join(st.prefs.workdir,
-                                   'cands_{}_sc{}-seg{}-i{}-dm{}-dt{}.png'
+                                   'cands_{}_seg{}-i{}-dm{}-dt{}.png'
                                    .format(st.fileroot, scan, segment, candint,
                                            dmind, dtind))
 
