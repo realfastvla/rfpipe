@@ -5,9 +5,9 @@ from numpy import ndarray
 
 # simulate no flag, transient/no flag, transient/flag
 inprefs = [{'flaglist': [], 'npix_max': 512, 'chans': range(32), 'spw': [0]},
-           {'simulated_transient': [(0, 30, 25, 5e-3, 1., 0.001, 0.001)],
+           {'simulated_transient': [(0, 30, 25, 10e-3, 1., 0.001, 0.001)],
             'maxdm': 50, 'dtarr': [1, 2], 'npix_max': 512, 'savecands': True,
-            'savenoise': True}]
+            'savenoise': True, 'timesub': 'mean'}]
 #TODO:      support arbitrary channel selection and
 #           {'read_tdownsample': 2, 'read_fdownsample': 2, 'npix_max': 512},
 
@@ -55,7 +55,6 @@ def test_search(mockstate, mockdm, wisdom):
     assert type(candcollection.array) == ndarray
 
     if mockstate.prefs.simulated_transient:
-        print(mockstate.prefs.simulated_transient, mockstate.prefs.flaglist)
         assert len(candcollection.array)
 
 
