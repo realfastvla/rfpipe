@@ -24,7 +24,7 @@ def data_prep(st, data):
     if np.any(data):
         if st.metadata.datasource != 'sim':
             if os.path.exists(st.gainfile):
-                data = calibration.apply_telcal(st, data)
+                data = calibration.apply_telcal(st, np.require(data, requirements='W'))
             else:
                 logger.warn('Telcal file not found. No calibration being applied.')
         else:
@@ -123,7 +123,7 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
                     model = np.require(np.broadcast_to(generate_transient(st, amp, i0, dm, dt)
                                                        .transpose()[:, None, :, None],
                                                        data_read.shape),
-                                       requirements=['W'])
+                                       requirements='W')
                 except IndexError:
                     logger.warn("IndexError while adding transient. Skipping...")
                     continue
