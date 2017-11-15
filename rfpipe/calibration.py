@@ -199,7 +199,8 @@ class telcal_sol():
         """ Calculates the complex gain product (g1*g2) for a pair of antennas.
         """
 
-        select = self.select[np.where( (self.skyfreq[self.select] == skyfreq) & (self.polarization[self.select] == pol) )[0]]
+        select = self.select[np.where((self.skyfreq[self.select] == skyfreq) &
+                                      (self.polarization[self.select] == pol))[0]]
 
         if len(select):  # for when telcal solutions don't exist
             ind1 = np.where(ant1 == self.antnum[select])
@@ -207,13 +208,14 @@ class telcal_sol():
             g1 = self.amp[select][ind1]*np.exp(1j*np.radians(self.phase[select][ind1])) * (not self.flagged.astype(int)[select][ind1][0])
             g2 = self.amp[select][ind2]*np.exp(-1j*np.radians(self.phase[select][ind2])) * (not self.flagged.astype(int)[select][ind2][0])
         else:
-            g1 = [0]; g2 = [0]
+            g1 = [0]
+            g2 = [0]
 
         try:
             assert (g1[0] != 0j) and (g2[0] != 0j)
             invg1g2 = 1./(g1[0]*g2[0])
         except (AssertionError, IndexError):
-            invg1g2 = 0
+            invg1g2 = 0.
         return invg1g2
 
     def calcdelay(self, ant1, ant2, skyfreq, pol):
@@ -257,7 +259,8 @@ class telcal_sol():
                 for pol in self.polind:
                     # apply gain correction
                     invg1g2 = sign*self.calcgain(ant1, ant2, skyfreq, pol)
-                    data[:,i,chans,pol-self.polind[0]] = data[:,i,chans,pol-self.polind[0]] * invg1g2    # hack: lousy data pol indexing
+                    data[:, i, chans, pol-self.polind[0]] = data[:, i, chans,
+                                                                 pol-self.polind[0]] * invg1g2    # hack: lousy data pol indexing
 
                     # apply delay correction
                     d1d2 = sign*self.calcdelay(ant1, ant2, skyfreq, pol)

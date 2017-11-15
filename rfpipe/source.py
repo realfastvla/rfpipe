@@ -120,14 +120,17 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
                             "dt {3} with amp {4} and l,m={5},{6}"
                             .format(mock_segment, i0, dm, dt, amp, l, m))
                 try:
-                    model = generate_transient(st, amp, i0, dm, dt)
+                    model = generate_transient(st, amp, i0, dm, dt).transpose()[:, None, :, None]
+# TODO stack to get model = [:, st.nbl, :, st.npol]
                 except IndexError:
                     logger.warn("IndexError while adding transient. Skipping...")
                     continue
-                util.phase_shift(data_read, uvw, l, m)
+
                 if os.path.exists(st.gainfile):  # corrupt by -gain
                     model = calibration.apply_telcal(st, model, sign=-1)
-                data_read += model.transpose()[:, None, :, None]
+
+                util.phase_shift(data_read, uvw, l, m)
+                data_read += model
                 util.phase_shift(data_read, uvw, -l, -m)
 
 #    takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
@@ -221,9 +224,10 @@ def read_bdf(st, nskip=0):
     sortind = np.argsort(st.metadata.spw_reffreq)
     for i in range(nskip, nskip+st.readints):
         read = scan.bdf.get_integration(i).get_data(spwidx='all', type='cross')
-        data[i-nskip] = read.take(sortind, axis=1).reshape(st.metadata.nbl_orig,
-                                                     st.metadata.nchan_orig,
-                                                     st.metadata.npol_orig)
+        data[i-nskip] = read.take(sortind,
+                                  axis=1).reshape(st.metadata.nbl_orig,
+                                                  st.metadata.nchan_orig,
+                                                  st.metadata.npol_orig)
 
 #    data[:] = scan.bdf.get_data(trange=[nskip, nskip+st.readints]).reshape(data.shape)
 
@@ -283,7 +287,7 @@ def generate_transient(st, amp, i0, dm, dt):
     dm/dt are in units of pc/cm3 and seconds, respectively
     """
 
-    model = np.zeros((st.nchan, st.readints), dtype='float')
+    model = np.zeros((st.metadata.nchan_orig, st.readints), dtype='complex64')
     chans = np.arange(st.nchan)
 
     i = i0 + (4.1488e-3 * dm * (1/st.freq**2 - 1/st.freq.max()**2))/st.inttime
