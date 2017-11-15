@@ -49,3 +49,22 @@ def test_cal():
     datacal = rfpipe.calibration.apply_telcal(st, data, sign=1)
     datauncal = rfpipe.calibration.apply_telcal(st, data, sign=-1)
     assert np.all(datauncal == data)
+
+
+def test_simcal():
+    sdmfile = os.path.join(_install_dir,
+                           'data/16A-459_TEST_1hr_000.57633.66130137732.scan7.cut1')
+
+    preffile = os.path.join(_install_dir, 'data/realfast.yml')
+    inprefs = {'gainfile': os.path.join(_install_dir,
+                                        'data/16A-459_TEST_1hr_000.57633.66130137732.GN'),
+               'maxdm': 0,
+               'simulated_transient': [(0, 0, 0, 0, 1., 0., 0.)]}
+
+    st = rfpipe.state.State(sdmfile=sdmfile, sdmscan=7, preffile=preffile,
+                            inprefs=inprefs)
+    segment = 0
+    data = rfpipe.source.read_segment(st, segment)
+    datacal = rfpipe.calibration.apply_telcal(st, data, sign=1)
+    datauncal = rfpipe.calibration.apply_telcal(st, data, sign=-1)
+    assert np.all(datauncal == data)

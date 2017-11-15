@@ -120,14 +120,19 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
                             "dt {3} with amp {4} and l,m={5},{6}"
                             .format(mock_segment, i0, dm, dt, amp, l, m))
                 try:
-                    model = generate_transient(st, amp, i0, dm, dt).transpose()[:, None, :, None]
-# TODO stack to get model = [:, st.nbl, :, st.npol]
+                    model = np.require(np.broadcast_to(generate_transient(st, amp, i0, dm, dt)
+                                                       .transpose()[:, None, :, None],
+                                                       data_read.shape),
+                                       requirements=['W'])
                 except IndexError:
                     logger.warn("IndexError while adding transient. Skipping...")
                     continue
 
                 if os.path.exists(st.gainfile):  # corrupt by -gain
                     model = calibration.apply_telcal(st, model, sign=-1)
+                else:
+                    logger.warn("No gainfile {0} found. Not applying inverse "
+                                "gain.".format(st.gainfile))
 
                 util.phase_shift(data_read, uvw, l, m)
                 data_read += model
