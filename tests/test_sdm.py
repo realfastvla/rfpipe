@@ -7,9 +7,13 @@ import numpy as np
 _install_dir = os.path.abspath(os.path.dirname(__file__))
 
 # simulate no flag, transient/no flag, transient/flag
-inprefs = [{'flaglist': [], 'maxdm': 0, 'dtarr': [1], 'npix_max': 512},
+inprefs = [{'flaglist': [], 'maxdm': 0, 'dtarr': [1], 'npix_max': 512,
+            'gainfile': os.path.join(_install_dir,
+                                     'data/16A-459_TEST_1hr_000.57633.66130137732.GN')},
            {'simulated_transient': [(0, 0, 0, 5e-3, 1., 0.001, 0.001)],
-            'maxdm': 0, 'dtarr': [1], 'npix_max': 512}]
+            'maxdm': 0, 'dtarr': [1], 'npix_max': 512,
+            'gainfile': os.path.join(_install_dir,
+                                     'data/16A-459_TEST_1hr_000.57633.66130137732.GN')}]
 
 
 @pytest.fixture(scope="module", params=inprefs)
