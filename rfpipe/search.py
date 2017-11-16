@@ -283,8 +283,8 @@ def grid_visibilities(data, uvw, npixx, npixy, uvres, mode='multi'):
     """ Grid visibilities into rounded uv coordinates """
 
     data = np.require(data, requirements='W')
-    logger.info('Gridding visibilities for grid of ({0}, {1}) pix and {2} '
-                'resolution.'.format(npixx, npixy, uvres))
+    logger.debug('Gridding visibilities for grid of ({0}, {1}) pix and {2} '
+                 'resolution.'.format(npixx, npixy, uvres))
 
     if mode == 'single':
         return _grid_visibilities_jit(data, uvw, npixx, npixy, uvres)
