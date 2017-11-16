@@ -153,21 +153,28 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None, beamnum=0,
     if not np.any(data):
         return []
 
+    if integrations is None:
+        integrations = range(len(data))
+    elif isinstance(integrations, int):
+        integrations = [integrations]
+
+    assert isinstance(integrations, list), "integrations should be int, list of ints, or None."
+
     data = np.require(data, requirements='W')
     uvw = st.get_uvw_segment(segment)
 
-    logger.info('Imaging {0}x{1} pix with uvres of {2}.'
-                .format(st.npixx, st.npixy, st.uvres))
+    logger.info('Imaging {0} ints of size {1}x{2} (uvres {3}) with mode {4}.'
+                .format(len(integrations), st.npixx, st.npixy, st.uvres,
+                        st.fftmode))
+
+    logger.debug('Thresholding images for DM={0}, dt={1} at {2} sigma.'
+                 .format(st.dmarr[dmind], st.dtarr[dtind],
+                         st.prefs.sigma_image1))
 
     if 'image1' in st.prefs.searchtype:
-
         images = image(data, uvw, st.npixx, st.npixy, st.uvres, st.fftmode,
                        st.prefs.nthread, integrations=integrations,
                        wisdom=wisdom)
-
-        logger.info('Thresholding images for DM={0}, dt={1} at {2} sigma.'
-                    .format(st.dmarr[dmind], st.dtarr[dtind],
-                            st.prefs.sigma_image1))
 
         # TODO: the following is really slow
         canddatalist = []
@@ -206,17 +213,6 @@ def image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,
     """
 
     mode = 'single' if nthread == 1 else 'multi'
-
-    if integrations is None:
-        integrations = range(len(data))
-    elif isinstance(integrations, int):
-        integrations = [integrations]
-
-    assert isinstance(integrations, list), "integrations should be int, list of ints, or None."
-
-    logger.debug('Imaging int{0} {1}'
-                 .format('s'[not len(integrations)-1:],
-                         ','.join([str(i) for i in integrations])))
 
     grids = grid_visibilities(data.take(integrations, axis=0), uvw, npixx,
                               npixy, uvres, mode=mode)
