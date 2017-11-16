@@ -3,10 +3,8 @@ from builtins import bytes, dict, object, range, map, input#, str # not casa com
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
-import os
-import math
 import numpy as np
-from numba import jit, guvectorize, vectorize, int32, int64
+from numba import jit, guvectorize, int64
 import pyfftw
 from rfpipe import util, candidates
 
