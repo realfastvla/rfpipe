@@ -142,7 +142,7 @@ def _resample_gu(data, dt):
 #
 
 
-def search_thresh(st, data, segment, dmind, dtind, beamnum=0, wisdom=None):
+def search_thresh(st, data, segment, dmind, dtind, integrations=None, beamnum=0, wisdom=None):
     """ High-level wrapper for search algorithms.
     Expects dedispersed, resampled data as input and data state.
     Returns list of CandData objects that define candidates with
@@ -164,7 +164,8 @@ def search_thresh(st, data, segment, dmind, dtind, beamnum=0, wisdom=None):
     if 'image1' in st.prefs.searchtype:
 
         images = image(data, uvw, st.npixx, st.npixy, st.uvres, st.fftmode,
-                       st.prefs.nthread, wisdom=wisdom)
+                       st.prefs.nthread, integrations=integrations,
+                       wisdom=wisdom)
 
         logger.info('Thresholding images for DM={0}, dt={1} at {2} sigma.'
                     .format(st.dmarr[dmind], st.dtarr[dtind],
@@ -208,23 +209,26 @@ def image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,
 
     mode = 'single' if nthread == 1 else 'multi'
 
-    if not integrations:
+    if integrations is None:
         integrations = range(len(data))
-    else:
-        assert isinstance(integrations, list)
-        logger.info('Imaging int{0} {1}'
-                    .format('s'[not len(integrations)-1:],
-                            ','.join([str(i) for i in integrations])))
+    elif isinstance(integrations, int):
+        integrations = [integrations]
+
+    assert isinstance(integrations, list), "integrations should be int, list of ints, or None."
+
+    logger.debug('Imaging int{0} {1}'
+                 .format('s'[not len(integrations)-1:],
+                         ','.join([str(i) for i in integrations])))
 
     grids = grid_visibilities(data.take(integrations, axis=0), uvw, npixx,
                               npixy, uvres, mode=mode)
 
     if fftmode == 'fftw':
 #        nthread = 1
-        logger.info("Imaging with fftw on {0} threads".format(nthread))
+        logger.debug("Imaging with fftw on {0} threads".format(nthread))
         images = image_fftw(grids, nthread=nthread, wisdom=wisdom)  # why unstable?
     elif fftmode == 'cuda':
-        logger.info("Imaging with cuda.")
+        logger.debug("Imaging with cuda.")
         images = image_cuda(grids)
     else:
         logger.warn("Imaging fftmode {0} not supported.".format(fftmode))
