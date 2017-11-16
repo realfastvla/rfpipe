@@ -154,7 +154,7 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None, beamnum=0,
         return []
 
     if integrations is None:
-        integrations = range(len(data))
+        integrations = list(range(len(data)))
     elif isinstance(integrations, int):
         integrations = [integrations]
 
