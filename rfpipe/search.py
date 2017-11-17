@@ -96,6 +96,27 @@ def resample(data, dt, mode='multi'):
 
 
 @jit(nogil=True, nopython=True)
+def dedisperseresample_jit(data, delay, dt):
+
+    if delay.max() > 0 or dt > 1:
+        nint, nbl, nchan, npol = data.shape
+        newsh = (int64(nint-delay.max())//dt, nbl, nchan, npol)
+        result = np.zeros(shape=newsh, dtype=data.dtype)
+        for j in range(nbl):
+            for l in range(npol):
+                for k in range(nchan):
+                    for i in range((nint-delay.max())//dt):
+                        iprime = int64(i + delay[k])
+                        result[i, j, k, l] = data[iprime, j, k, l]
+                        for r in range(1, dt):
+                            result[i, j, k, l] += data[iprime+r, j, k, l]
+                        result[i, j, k, l] = result[i, j, k, l]/dt
+        return result
+    else:
+        return data
+
+
+@jit(nogil=True, nopython=True)
 def _resample_jit(data, dt):
 
     if dt > 1:
