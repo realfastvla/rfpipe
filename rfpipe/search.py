@@ -163,18 +163,18 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None, beamnum=0,
     data = np.require(data, requirements='W')
     uvw = st.get_uvw_segment(segment)
 
-    logger.info('Imaging {0} ints of size {1}x{2} (uvres {3}) with mode {4}.'
-                .format(len(integrations), st.npixx, st.npixy, st.uvres,
-                        st.fftmode))
-
-    logger.debug('Thresholding images for DM={0}, dt={1} at {2} sigma.'
-                 .format(st.dmarr[dmind], st.dtarr[dtind],
-                         st.prefs.sigma_image1))
+    logger.info('Imaging {0} ints for DM {1} and dt {2}. Size {3}x{4} '
+                '(uvres {5}) with mode {6}.'
+                .format(len(integrations), st.dmarr[dmind], st.dtarr[dtind],
+                        st.npixx, st.npixy, st.uvres, st.fftmode))
 
     if 'image1' in st.prefs.searchtype:
         images = image(data, uvw, st.npixx, st.npixy, st.uvres, st.fftmode,
                        st.prefs.nthread, integrations=integrations,
                        wisdom=wisdom)
+
+        logger.debug('Thresholding at {2} sigma.'
+                     .format(st.prefs.sigma_image1))
 
         # TODO: the following is really slow
         canddatalist = []
