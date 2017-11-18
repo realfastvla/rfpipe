@@ -96,27 +96,6 @@ def resample(data, dt, mode='multi'):
 
 
 @jit(nogil=True, nopython=True)
-def dedisperseresample_jit(data, delay, dt):
-
-    if delay.max() > 0 or dt > 1:
-        nint, nbl, nchan, npol = data.shape
-        newsh = (int64(nint-delay.max())//dt, nbl, nchan, npol)
-        result = np.zeros(shape=newsh, dtype=data.dtype)
-        for j in range(nbl):
-            for l in range(npol):
-                for k in range(nchan):
-                    for i in range((nint-delay.max())//dt):
-                        iprime = int64(i + delay[k])
-                        result[i, j, k, l] = data[iprime, j, k, l]
-                        for r in range(1, dt):
-                            result[i, j, k, l] += data[iprime+r, j, k, l]
-                        result[i, j, k, l] = result[i, j, k, l]/dt
-        return result
-    else:
-        return data
-
-
-@jit(nogil=True, nopython=True)
 def _resample_jit(data, dt):
 
     if dt > 1:
@@ -139,7 +118,8 @@ def _resample_jit(data, dt):
         return data
 
 
-@guvectorize(["void(complex64[:], int64)"], '(n),()', target='parallel', nopython=True)
+@guvectorize(["void(complex64[:], int64)"], '(n),()', target='parallel',
+             nopython=True)
 def _resample_gu(data, dt):
     """ Multicore resampling via numpy broadcasting.
     Requires that data be in nint axisto be last, so input
@@ -151,17 +131,77 @@ def _resample_gu(data, dt):
         for i in range(data.shape[0]//dt):
             iprime = int64(i*dt)
             data[i] = data[iprime]
-            for r in range(1,dt):
+            for r in range(1, dt):
 #                print(i0, i, iprime, r)
                 data[i] += data[iprime+r]
             data[i] = data[i]/dt
+
+
+def dedisperseresample(data, delay, dt, mode='multi'):
+    """ Dedisperse and resample in single function.
+    Can set mode to "single" or "multi" to use different functions.
+    """
+
+    if not np.any(data):
+        return np.array([])
+
+    # changes memory in place, so need to force writability
+    data = np.require(data, requirements='W')
+
+    logger.info('Max DM of {0} integrations and resampling by {1}'
+                .format(delay.max(), dt))
+
+    if mode == 'single':
+        return _dedisperseresample_jit(data, delay, dt)
+    elif mode == 'multi':
+        _ = _dedisperseresample_gu(np.swapaxes(data, 0, 1), delay, dt)
+        return data[0:(len(data)-delay.max())//dt]
+    else:
+        logger.error('No such dedispersion mode.')
+
+
+@guvectorize(["void(complex64[:,:,:], int64[:], int64)"], '(n,m,l),(m),()',
+             target='parallel', nopython=True)
+def _dedisperseresample_gu(data, delay, dt):
+    if delay.max() > 0 or dt > 1:
+        nint, nchan, npol = data.shape
+        for l in range(npol):
+            for k in range(nchan):
+                for i in range((nint-delay.max())//dt):
+                    iprime = int64(i + delay[k])
+                    data[i, k, l] = data[iprime, k, l]
+                    for r in range(1, dt):
+                        data[i, k, l] += data[iprime+r, k, l]
+                    data[i, k, l] = data[i, k, l]/dt
+
+
+@jit(nogil=True, nopython=True)
+def _dedisperseresample_jit(data, delay, dt):
+
+    if delay.max() > 0 or dt > 1:
+        nint, nbl, nchan, npol = data.shape
+        newsh = (int64(nint-delay.max())//dt, nbl, nchan, npol)
+        result = np.zeros(shape=newsh, dtype=data.dtype)
+        for j in range(nbl):
+            for l in range(npol):
+                for k in range(nchan):
+                    for i in range((nint-delay.max())//dt):
+                        iprime = int64(i + delay[k])
+                        result[i, j, k, l] = data[iprime, j, k, l]
+                        for r in range(1, dt):
+                            result[i, j, k, l] += data[iprime+r, j, k, l]
+                        result[i, j, k, l] = result[i, j, k, l]/dt
+        return result
+    else:
+        return data
+
 
 #
 # searching, imaging, thresholding
 #
 
-
-def search_thresh(st, data, segment, dmind, dtind, integrations=None, beamnum=0, wisdom=None):
+def search_thresh(st, data, segment, dmind, dtind, integrations=None,
+                  beamnum=0, wisdom=None):
     """ High-level wrapper for search algorithms.
     Expects dedispersed, resampled data as input and data state.
     Returns list of CandData objects that define candidates with

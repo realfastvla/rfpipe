@@ -228,12 +228,7 @@ def save_cands(st, candcollection, canddatalist):
     writers.
     """
 
-#    df = pd.DataFrame(OrderedDict(zip(st.search_dimensions,
-#                                      np.transpose(features.keys()))))
-#    df2 = pd.DataFrame(OrderedDict(zip(st.features,
-#                                       np.transpose(features.values()))))
-#    df3 = pd.concat([df, df2], axis=1)
-#    cdf = CandidateDF(df3, st.prefs, st.metadata)
+    # TODO: find a way to save canddata (image, spectrum) to train classifier
 
     if st.prefs.savecands and len(candcollection.array):
         logger.info('Saving {0} candidates to {1}.'
@@ -263,8 +258,6 @@ def save_cands(st, candcollection, canddatalist):
 
     elif not st.prefs.savecands:
         logger.info('Not saving candidates.')
-
-#    return candcollection  # return tuple as handle on pipeline
 
 
 def iter_cands(candsfile):
