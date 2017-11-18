@@ -234,7 +234,7 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
                        st.prefs.nthread, integrations=integrations,
                        wisdom=wisdom)
 
-        logger.debug('Thresholding at {2} sigma.'
+        logger.debug('Thresholding at {0} sigma.'
                      .format(st.prefs.sigma_image1))
 
         # TODO: the following is really slow
