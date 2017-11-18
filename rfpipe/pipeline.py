@@ -41,7 +41,7 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default):
 #        data_dm = search.dedisperse(data_prep, delay)
 
         for dtind in range(len(st.dtarr)):
-            data_dmdt = search.dedisperseresample(data_dm, delay,
+            data_dmdt = search.dedisperseresample(data_prep, delay,
                                                   st.dtarr[dtind])
             canddatalist = search.search_thresh(st, data_dmdt, segment, dmind,
                                                 dtind, wisdom=wisdom)
