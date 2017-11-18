@@ -221,7 +221,7 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
 
     assert isinstance(integrations, list), "integrations should be int, list of ints, or None."
 
-    data = np.require(data, requirements='W')
+    data = np.require(data.take(integrations, axis=0), requirements='W')
     uvw = st.get_uvw_segment(segment)
 
     logger.info('Imaging {0} ints for DM {1} and dt {2}. Size {3}x{4} '
@@ -230,9 +230,9 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
                         st.npixx, st.npixy, st.uvres, st.fftmode))
 
     if 'image1' in st.prefs.searchtype:
-        images = image(data, uvw, st.npixx, st.npixy, st.uvres, st.fftmode,
-                       st.prefs.nthread, integrations=integrations,
-                       wisdom=wisdom)
+        images = image(data, uvw, st.npixx,
+                       st.npixy, st.uvres, st.fftmode,
+                       st.prefs.nthread, wisdom=wisdom)
 
         logger.debug('Thresholding at {0} sigma.'
                      .format(st.prefs.sigma_image1))
@@ -242,7 +242,7 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
         for i in range(len(images)):
             if (images[i].max()/util.madtostd(images[i]) >
                st.prefs.sigma_image1):
-                candloc = (segment, i, dmind, dtind, beamnum)
+                candloc = (segment, integrations[i], dmind, dtind, beamnum)
                 candim = images[i]
                 l, m = st.pixtolm(np.where(candim == candim.max()))
                 logger.debug("image peak at l, m: {0}, {1}".format(l, m))
@@ -265,8 +265,7 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
     return canddatalist
 
 
-def image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,
-          integrations=None):
+def image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None):
     """ Grid and image data.
     Optionally image integrations in list i.
     fftmode can be fftw or cuda.
@@ -275,8 +274,7 @@ def image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,
 
     mode = 'single' if nthread == 1 else 'multi'
 
-    grids = grid_visibilities(data.take(integrations, axis=0), uvw, npixx,
-                              npixy, uvres, mode=mode)
+    grids = grid_visibilities(data, uvw, npixx, npixy, uvres, mode=mode)
 
     if fftmode == 'fftw':
 #        nthread = 1
