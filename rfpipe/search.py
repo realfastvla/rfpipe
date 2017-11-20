@@ -17,21 +17,20 @@ def dedisperse(data, delay, mode='multi'):
     delay. Returns new array with time length shortened by max delay in
     integrations. wraps _dedisperse to add logging.
     Can set mode to "single" or "multi" to use different functions.
+    Changes memory in place, so forces writability
     """
 
     if not np.any(data):
         return np.array([])
 
-    # changes memory in place, so need to force writability
-    data = np.require(data, requirements='W')
 
     logger.info('Dedispersing up to delay shift of {0} integrations'
                 .format(delay.max()))
 
     if mode == 'single':
-        return _dedisperse_jit(data, delay)
+        return _dedisperse_jit(np.require(data, requirements='W'), delay)
     elif mode == 'multi':
-        _ = _dedisperse_gu(np.swapaxes(data, 0, 1), delay)
+        _ = _dedisperse_gu(np.swapaxes(np.require(data, requirements='W'), 0, 1), delay)
         return data[0:len(data)-delay.max()]
     else:
         logger.error('No such dedispersion mode.')
@@ -74,22 +73,20 @@ def resample(data, dt, mode='multi'):
     """ Resample (integrate) by factor dt and return new data structure
     wraps _resample to add logging.
     Can set mode to "single" or "multi" to use different functions.
+    Changes memory in place, so forces writability
     """
 
     if not np.any(data):
         return np.array([])
-
-    # changes memory in place, so need to force writability
-    data = np.require(data, requirements='W')
 
     len0 = data.shape[0]
     logger.info('Resampling data of length {0} by a factor of {1}'
                 .format(len0, dt))
 
     if mode == 'single':
-        return _resample_jit(data, dt)
+        return _resample_jit(np.require(data, requirements='W'), dt)
     elif mode == 'multi':
-        _ = _resample_gu(np.swapaxes(data, 0, 3), dt)
+        _ = _resample_gu(np.swapaxes(np.require(data, requirements='W'), 0, 3), dt)
         return data[:len0//dt]
     else:
         logger.error('No such resample mode.')
@@ -140,21 +137,19 @@ def _resample_gu(data, dt):
 def dedisperseresample(data, delay, dt, mode='multi'):
     """ Dedisperse and resample in single function.
     Can set mode to "single" or "multi" to use different functions.
+    Changes memory in place, so forces writability
     """
 
     if not np.any(data):
         return np.array([])
 
-    # changes memory in place, so need to force writability
-    data = np.require(data, requirements='W')
-
     logger.info('Max DM of {0} integrations and resampling by {1}'
                 .format(delay.max(), dt))
 
     if mode == 'single':
-        return _dedisperseresample_jit(data, delay, dt)
+        return _dedisperseresample_jit(np.require(data, requirements='W'), delay, dt)
     elif mode == 'multi':
-        _ = _dedisperseresample_gu(np.swapaxes(data, 0, 1), delay, dt)
+        _ = _dedisperseresample_gu(np.swapaxes(np.require(data, requirements='W'), 0, 1), delay, dt)
         return data[0:(len(data)-delay.max())//dt]
     else:
         logger.error('No such dedispersion mode.')
@@ -270,12 +265,11 @@ def correct_search_thresh(st, segment, data, dmind, dtind, mode='multi',
     """ Fuse the dediserpse, resample, search, threshold functions.
     """
 
-    data2 = np.require(np.copy(data), requirements='W')
-
     delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
                             st.inttime)
 
-    data_corr = dedisperseresample(data2, delay, st.dtarr[dtind], mode=mode)
+    data_corr = dedisperseresample(np.require(data, requirements='W'), delay,
+                                   st.dtarr[dtind], mode=mode)
 
     canddatalist = search_thresh(st, data_corr, segment, dmind, dtind,
                                  wisdom=wisdom)

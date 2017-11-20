@@ -20,6 +20,8 @@ def data_prep(st, data):
     """ Applies calibration, flags, and subtracts time mean for data.
     """
 
+    mode = 'single' if st.prefs.nthread == 1 else 'multi'
+
     # ** need to make this portable or at least reimplement in rfpipe
     if np.any(data):
         if st.metadata.datasource != 'sim':
@@ -36,7 +38,7 @@ def data_prep(st, data):
 
         if st.prefs.timesub == 'mean':
             logger.info('Subtracting mean visibility in time.')
-            data = util.meantsub(data)
+            data = util.meantsub(data, mode=mode)
         else:
             logger.info('No visibility subtraction done.')
 
