@@ -72,7 +72,7 @@ def phase_shift(data, uvw, dl, dm):
                         data[i, j, k, l] = data[i, j, k, l] * frot
 
 
-def meantsub(data, mode='multi'):
+def meantsub(data, mode='single'):
     """ Subtract mean visibility in time.
     Option to use single or multi threaded version of algorithm.
     """

@@ -12,7 +12,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def dedisperse(data, delay, mode='multi'):
+def dedisperse(data, delay, mode='single'):
     """ Shift data in time (axis=0) by channel-dependent value given in
     delay. Returns new array with time length shortened by max delay in
     integrations. wraps _dedisperse to add logging.
@@ -69,7 +69,7 @@ def _dedisperse_gu(data, delay):
                 data[i, j, k] = data[iprime, j, k]
 
 
-def resample(data, dt, mode='multi'):
+def resample(data, dt, mode='single'):
     """ Resample (integrate) by factor dt and return new data structure
     wraps _resample to add logging.
     Can set mode to "single" or "multi" to use different functions.
@@ -134,7 +134,7 @@ def _resample_gu(data, dt):
             data[i] = data[i]/dt
 
 
-def dedisperseresample(data, delay, dt, mode='multi'):
+def dedisperseresample(data, delay, dt, mode='single'):
     """ Dedisperse and resample in single function.
     Can set mode to "single" or "multi" to use different functions.
     Changes memory in place, so forces writability
@@ -260,7 +260,7 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
     return canddatalist
 
 
-def correct_search_thresh(st, segment, data, dmind, dtind, mode='multi',
+def correct_search_thresh(st, segment, data, dmind, dtind, mode='single',
                           wisdom=None):
     """ Fuse the dediserpse, resample, search, threshold functions.
     """
@@ -350,7 +350,7 @@ def image_fftw(grids, nthread=1, wisdom=None):
     return recenter(images.real, (npixx//2, npixy//2))
 
 
-def grid_visibilities(data, uvw, npixx, npixy, uvres, mode='multi'):
+def grid_visibilities(data, uvw, npixx, npixy, uvres, mode='single'):
     """ Grid visibilities into rounded uv coordinates """
 
     data = np.require(data, requirements='W')
