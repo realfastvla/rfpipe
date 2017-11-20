@@ -265,6 +265,22 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
     return canddatalist
 
 
+def correct_search_thresh(st, segment, data, dmind, dtind, mode='multi',
+                          wisdom=None):
+    """ Fuse the dediserpse, resample, search, threshold functions.
+    """
+
+    delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
+                            st.inttime)
+
+    data_corr = dedisperseresample(data, delay, st.dtarr[dtind], mode=mode)
+
+    canddatalist = search_thresh(st, data_corr, segment, dmind, dtind,
+                                 wisdom=wisdom)
+
+    return canddatalist
+
+
 def image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None):
     """ Grid and image data.
     Optionally image integrations in list i.
