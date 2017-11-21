@@ -281,7 +281,7 @@ def correct_search_thresh(st, segment, data, dmind, dtind, mode='single',
     return canddatalist
 
 
-def image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None):
+def image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None, integrations=None):
     """ Grid and image data.
     Optionally image integrations in list i.
     fftmode can be fftw or cuda.
@@ -290,7 +290,14 @@ def image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None):
 
     mode = 'single' if nthread == 1 else 'multi'
 
-    grids = grid_visibilities(data, uvw, npixx, npixy, uvres, mode=mode)
+    if integrations is None:
+        integrations = list(range(len(data)))
+    elif isinstance(integrations, int):
+        integrations = [integrations]
+
+    assert isinstance(integrations, list), "integrations should be int, list of ints, or None."
+
+    grids = grid_visibilities(data.take(integrations, axis=0), uvw, npixx, npixy, uvres, mode=mode)
 
     if fftmode == 'fftw':
 #        nthread = 1
