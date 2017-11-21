@@ -23,35 +23,36 @@ def dedisperse(data, delay, mode='single'):
     if not np.any(data):
         return np.array([])
 
-
     logger.info('Dedispersing up to delay shift of {0} integrations'
                 .format(delay.max()))
-
-    if mode == 'single':
-        return _dedisperse_jit(np.require(data, requirements='W'), delay)
-    elif mode == 'multi':
-        _ = _dedisperse_gu(np.swapaxes(np.require(data, requirements='W'), 0, 1), delay)
-        return data[0:len(data)-delay.max()]
-    else:
-        logger.error('No such dedispersion mode.')
-
-
-@jit(nogil=True, nopython=True)
-def _dedisperse_jit(data, delay):
 
     if delay.max() > 0:
         nint, nbl, nchan, npol = data.shape
         newsh = (nint-delay.max(), nbl, nchan, npol)
         result = np.zeros(shape=newsh, dtype=data.dtype)
-        for k in range(nchan):
-            for i in range(nint-delay.max()):
-                iprime = i + delay[k]
-                for l in range(npol):
-                    for j in range(nbl):
-                        result[i, j, k, l] = data[iprime, j, k, l]
-        return result
+
+        if mode == 'single':
+            _dedisperse_jit(np.require(data, requirements='W'), delay, result)
+            return result
+        elif mode == 'multi':
+            _ = _dedisperse_gu(np.swapaxes(np.require(data, requirements='W'), 0, 1), delay)
+            return data[0:len(data)-delay.max()]
+        else:
+            logger.error('No such dedispersion mode.')
     else:
         return data
+
+
+@jit(nogil=True, nopython=True)
+def _dedisperse_jit(data, delay, result):
+
+    nint, nbl, nchan, npol = data.shape
+    for k in range(nchan):
+        for i in range(nint-delay.max()):
+            iprime = i + delay[k]
+            for l in range(npol):
+                for j in range(nbl):
+                    result[i, j, k, l] = data[iprime, j, k, l]
 
 
 @guvectorize(["void(complex64[:,:,:], int64[:])"], '(n,m,l),(m)',
@@ -83,36 +84,36 @@ def resample(data, dt, mode='single'):
     logger.info('Resampling data of length {0} by a factor of {1}'
                 .format(len0, dt))
 
-    if mode == 'single':
-        return _resample_jit(np.require(data, requirements='W'), dt)
-    elif mode == 'multi':
-        _ = _resample_gu(np.swapaxes(np.require(data, requirements='W'), 0, 3), dt)
-        return data[:len0//dt]
-    else:
-        logger.error('No such resample mode.')
-
-
-@jit(nogil=True, nopython=True)
-def _resample_jit(data, dt):
-
     if dt > 1:
         nint, nbl, nchan, npol = data.shape
         newsh = (int64(nint//dt), nbl, nchan, npol)
         result = np.zeros(shape=newsh, dtype=data.dtype)
 
-        for j in range(nbl):
-            for k in range(nchan):
-                for l in range(npol):
-                    for i in range(int64(nint//dt)):
-                        iprime = int64(i*dt)
-                        result[i, j, k, l] = data[iprime, j, k, l]
-                        for r in range(1, dt):
-                            result[i, j, k, l] += data[iprime+r, j, k, l]
-                        result[i, j, k, l] = result[i, j, k, l]/dt
-
-        return result
+        if mode == 'single':
+            _resample_jit(np.require(data, requirements='W'), dt, result)
+            return result
+        elif mode == 'multi':
+            _ = _resample_gu(np.swapaxes(np.require(data, requirements='W'), 0, 3), dt)
+            return data[:len0//dt]
+        else:
+            logger.error('No such resample mode.')
     else:
         return data
+
+
+@jit(nogil=True, nopython=True)
+def _resample_jit(data, dt, result):
+
+    nint, nbl, nchan, npol = data.shape
+    for j in range(nbl):
+        for k in range(nchan):
+            for l in range(npol):
+                for i in range(int64(nint//dt)):
+                    iprime = int64(i*dt)
+                    result[i, j, k, l] = data[iprime, j, k, l]
+                    for r in range(1, dt):
+                        result[i, j, k, l] += data[iprime+r, j, k, l]
+                    result[i, j, k, l] = result[i, j, k, l]/dt
 
 
 @guvectorize(["void(complex64[:], int64)"], '(n),()', target='parallel',
@@ -146,13 +147,37 @@ def dedisperseresample(data, delay, dt, mode='single'):
     logger.info('Max DM of {0} integrations and resampling by {1}'
                 .format(delay.max(), dt))
 
-    if mode == 'single':
-        return _dedisperseresample_jit(np.require(data, requirements='W'), delay, dt)
-    elif mode == 'multi':
-        _ = _dedisperseresample_gu(np.swapaxes(np.require(data, requirements='W'), 0, 1), delay, dt)
-        return data[0:(len(data)-delay.max())//dt]
+    if delay.max() > 0 or dt > 1:
+        nint, nbl, nchan, npol = data.shape
+        newsh = (int64(nint-delay.max())//dt, nbl, nchan, npol)
+        result = np.zeros(shape=newsh, dtype=data.dtype)
+
+        if mode == 'single':
+            _dedisperseresample_jit(np.require(data, requirements='W'), delay, dt, result)
+            return result
+        elif mode == 'multi':
+            _ = _dedisperseresample_gu(np.swapaxes(np.require(data, requirements='W'), 0, 1), delay, dt)
+            return data[0:(len(data)-delay.max())//dt]
+        else:
+            logger.error('No such dedispersion mode.')
     else:
-        logger.error('No such dedispersion mode.')
+        return data
+
+
+@jit(nogil=True, nopython=True)
+def _dedisperseresample_jit(data, delay, dt, result):
+
+    nint, nbl, nchan, npol = data.shape
+    for j in range(nbl):
+        for l in range(npol):
+            for k in range(nchan):
+                for i in range((nint-delay.max())//dt):
+                    iprime = int64(i + delay[k])
+                    result[i, j, k, l] = data[iprime, j, k, l]
+                    for r in range(1, dt):
+                        result[i, j, k, l] += data[iprime+r, j, k, l]
+                    result[i, j, k, l] = result[i, j, k, l]/dt
+    return result
 
 
 @guvectorize(["void(complex64[:,:,:], int64[:], int64)"], '(n,m,l),(m),()',
@@ -168,27 +193,6 @@ def _dedisperseresample_gu(data, delay, dt):
                     for r in range(1, dt):
                         data[i, k, l] += data[iprime+r, k, l]
                     data[i, k, l] = data[i, k, l]/dt
-
-
-@jit(nogil=True, nopython=True)
-def _dedisperseresample_jit(data, delay, dt):
-
-    if delay.max() > 0 or dt > 1:
-        nint, nbl, nchan, npol = data.shape
-        newsh = (int64(nint-delay.max())//dt, nbl, nchan, npol)
-        result = np.zeros(shape=newsh, dtype=data.dtype)
-        for j in range(nbl):
-            for l in range(npol):
-                for k in range(nchan):
-                    for i in range((nint-delay.max())//dt):
-                        iprime = int64(i + delay[k])
-                        result[i, j, k, l] = data[iprime, j, k, l]
-                        for r in range(1, dt):
-                            result[i, j, k, l] += data[iprime+r, j, k, l]
-                        result[i, j, k, l] = result[i, j, k, l]/dt
-        return result
-    else:
-        return data
 
 
 #
