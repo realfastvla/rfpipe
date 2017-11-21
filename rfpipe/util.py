@@ -54,7 +54,8 @@ def dataflag(st, data):
     return data
 
 
-@jit(nogil=True, nopython=True)
+#@jit(nogil=True, nopython=True)
+@jit(nopython=True)
 def phase_shift(data, uvw, dl, dm):
     """ Applies a phase shift to data for a given (dl, dm).
     """
@@ -87,7 +88,8 @@ def meantsub(data, mode='single'):
         logger.error('No such dedispersion mode.')
 
 
-@jit(nogil=True, nopython=True)
+#@jit(nogil=True, nopython=True)
+@jit(nopython=True)
 def _meantsub_jit(data):
     """ Calculate mean in time (ignoring zeros) and subtract in place
 
@@ -114,7 +116,6 @@ def _meantsub_jit(data):
                     for l in range(nint):
                         if data[l, i, j, k] != 0j:
                             data[l, i, j, k] -= mean
-#    return data
 
 
 @guvectorize(["void(complex64[:])"], '(m)', target='parallel', nopython=True)
