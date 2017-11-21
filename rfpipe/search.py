@@ -144,7 +144,7 @@ def dedisperseresample(data, delay, dt, mode='single'):
     if not np.any(data):
         return np.array([])
 
-    logger.info('Max DM of {0} integrations and resampling by {1}'
+    logger.info('Correcting for max delay of {0} integrations and resampling by {1}'
                 .format(delay.max(), dt))
 
     if delay.max() > 0 or dt > 1:
@@ -153,7 +153,7 @@ def dedisperseresample(data, delay, dt, mode='single'):
         result = np.zeros(shape=newsh, dtype=data.dtype)
 
         if mode == 'single':
-            _dedisperseresample_jit(np.require(data, requirements='W'), delay, dt, result)
+            _dedisperseresample_jit(data, delay, dt, result)
             return result
         elif mode == 'multi':
             _ = _dedisperseresample_gu(np.swapaxes(np.require(data, requirements='W'), 0, 1), delay, dt)
@@ -164,17 +164,21 @@ def dedisperseresample(data, delay, dt, mode='single'):
         return data
 
 
-@jit(nogil=True, nopython=True)
+#@jit(nogil=True, nopython=True)
+@jit(nopython=True)
 def _dedisperseresample_jit(data, delay, dt, result):
 
     nint, nbl, nchan, npol = data.shape
+    nintout = int64(len(result))
     for j in range(nbl):
         for l in range(npol):
             for k in range(nchan):
-                for i in range((nint-delay.max())//dt):
-                    iprime = int64(i + delay[k])
+                for i in range(nintout):
+                    iprime = int64(i*dt + delay[k])
                     result[i, j, k, l] = data[iprime, j, k, l]
                     for r in range(1, dt):
+                        if iprime+r >= nint:
+                            print(i, dt, r, nint, nintout)
                         result[i, j, k, l] += data[iprime+r, j, k, l]
                     result[i, j, k, l] = result[i, j, k, l]/dt
     return result
@@ -220,13 +224,13 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
 
     assert isinstance(integrations, list), "integrations should be int, list of ints, or None."
 
-    data = np.require(data.take(integrations, axis=0), requirements='W')
-    uvw = st.get_uvw_segment(segment)
-
     logger.info('Imaging {0} ints for DM {1} and dt {2}. Size {3}x{4} '
                 '(uvres {5}) with mode {6}.'
                 .format(len(integrations), st.dmarr[dmind], st.dtarr[dtind],
                         st.npixx, st.npixy, st.uvres, st.fftmode))
+
+    data = np.require(data.take(integrations, axis=0), requirements='W')
+    uvw = st.get_uvw_segment(segment)
 
     if 'image1' in st.prefs.searchtype:
         images = image(data, uvw, st.npixx,
@@ -272,8 +276,7 @@ def correct_search_thresh(st, segment, data, dmind, dtind, mode='single',
     delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
                             st.inttime)
 
-    data_corr = dedisperseresample(np.require(data, requirements='W'), delay,
-                                   st.dtarr[dtind], mode=mode)
+    data_corr = dedisperseresample(data, delay, st.dtarr[dtind], mode=mode)
 
     canddatalist = search_thresh(st, data_corr, segment, dmind, dtind,
                                  wisdom=wisdom)
@@ -297,12 +300,12 @@ def image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None, integra
 
     assert isinstance(integrations, list), "integrations should be int, list of ints, or None."
 
-    grids = grid_visibilities(data.take(integrations, axis=0), uvw, npixx, npixy, uvres, mode=mode)
+    grids = grid_visibilities(data.take(integrations, axis=0), uvw, npixx,
+                              npixy, uvres, mode=mode)
 
     if fftmode == 'fftw':
-#        nthread = 1
         logger.debug("Imaging with fftw on {0} threads".format(nthread))
-        images = image_fftw(grids, nthread=nthread, wisdom=wisdom)  # why unstable?
+        images = image_fftw(grids, nthread=nthread, wisdom=wisdom)
     elif fftmode == 'cuda':
         logger.debug("Imaging with cuda.")
         images = image_cuda(grids)
@@ -364,7 +367,6 @@ def image_fftw(grids, nthread=1, wisdom=None):
 def grid_visibilities(data, uvw, npixx, npixy, uvres, mode='single'):
     """ Grid visibilities into rounded uv coordinates """
 
-    data = np.require(data, requirements='W')
     logger.debug('Gridding visibilities for grid of ({0}, {1}) pix and {2} '
                  'resolution.'.format(npixx, npixy, uvres))
 
@@ -380,7 +382,8 @@ def grid_visibilities(data, uvw, npixx, npixy, uvres, mode='single'):
         logger.error('No such resample mode.')
 
 
-@jit(nogil=True, nopython=True)
+#@jit(nogil=True, nopython=True)
+@jit(nopython=True)
 def _grid_visibilities_jit(data, uvw, npixx, npixy, uvres):
     """ Grid visibilities into rounded uv coordinates using jit on single core.
     Rounding not working here, so minor differences with original and
