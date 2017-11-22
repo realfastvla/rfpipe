@@ -78,7 +78,7 @@ class State(object):
             logger.warn('inprefs should be either a dictionary or \
                          preferences.Preferences object')
 
-        # TODO: is this working?
+        # TODO: not working
         logger.parent.setLevel(getattr(logging, self.prefs.loglevel))
 
         if isinstance(inmeta, dict):

@@ -144,8 +144,8 @@ def dedisperseresample(data, delay, dt, mode='single'):
     if not np.any(data):
         return np.array([])
 
-    logger.info('Correcting for max delay of {0} integrations and resampling by {1}'
-                .format(delay.max(), dt))
+    logger.info('Correcting up to delay {0} ints, resampled {1} in mode {2}'
+                .format(delay.max(), dt, mode))
 
     if delay.max() > 0 or dt > 1:
         nint, nbl, nchan, npol = data.shape
@@ -164,8 +164,7 @@ def dedisperseresample(data, delay, dt, mode='single'):
         return data
 
 
-#@jit(nogil=True, nopython=True)
-@jit(nopython=True)
+@jit(nogil=True, nopython=True)
 def _dedisperseresample_jit(data, delay, dt, result):
 
     nint, nbl, nchan, npol = data.shape
@@ -225,34 +224,39 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
     assert isinstance(integrations, list), "integrations should be int, list of ints, or None."
 
     logger.info('Imaging {0} ints for DM {1} and dt {2}. Size {3}x{4} '
-                '(uvres {5}) with mode {6}.'
+                '(uvres {5}) with mode {6} and {7} threads (seg {8}).'
                 .format(len(integrations), st.dmarr[dmind], st.dtarr[dtind],
-                        st.npixx, st.npixy, st.uvres, st.fftmode))
+                        st.npixx, st.npixy, st.uvres, st.fftmode, st.prefs.nthread, segment))
 
-    data = np.require(data.take(integrations, axis=0), requirements='W')
+#    data = np.require(data.take(integrations, axis=0), requirements='W')
     uvw = st.get_uvw_segment(segment)
+    logger.info("Got uvw for segment {0}".format(segment))
 
     if 'image1' in st.prefs.searchtype:
         images = image(data, uvw, st.npixx,
                        st.npixy, st.uvres, st.fftmode,
                        st.prefs.nthread, wisdom=wisdom)
 
-        logger.debug('Thresholding at {0} sigma.'
-                     .format(st.prefs.sigma_image1))
+        logger.info('Thresholding at {0} sigma.'
+                    .format(st.prefs.sigma_image1))
 
         # TODO: the following is really slow
         canddatalist = []
         for i in range(len(images)):
-            if (images[i].max()/util.madtostd(images[i]) >
-               st.prefs.sigma_image1):
+#            logger.info("i {0}, segment {1}, dmind {2}, dtind {3}".format(i, segment, dmind, dtind))
+            peak_snr = images[i].max()/util.madtostd(images[i])
+            if peak_snr > st.prefs.sigma_image1:
+                logger.info("peak_snr {0}".format(peak_snr))
                 candloc = (segment, integrations[i], dmind, dtind, beamnum)
                 candim = images[i]
+                logger.info("i {0} shape {1}, loc {2}".format(i, candim.shape, candloc))
+                logger.info("max {0}".format(np.where(candim == candim.max())))
                 l, m = st.pixtolm(np.where(candim == candim.max()))
-                logger.debug("image peak at l, m: {0}, {1}".format(l, m))
+                logger.info("image peak at l, m: {0}, {1}".format(l, m))
                 util.phase_shift(data, uvw, l, m)
-                logger.debug("phasing data from: {0}, {1}"
-                             .format(max(0, i-st.prefs.timewindow//2),
-                                     min(i+st.prefs.timewindow//2, len(data))))
+                logger.info("phasing data from: {0}, {1}"
+                            .format(max(0, i-st.prefs.timewindow//2),
+                                    min(i+st.prefs.timewindow//2, len(data))))
                 dataph = data[max(0, i-st.prefs.timewindow//2):
                               min(i+st.prefs.timewindow//2, len(data))].mean(axis=1)
                 util.phase_shift(data, uvw, -l, -m)
@@ -284,7 +288,7 @@ def correct_search_thresh(st, segment, data, dmind, dtind, mode='single',
     return canddatalist
 
 
-def image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None, integrations=None):
+def image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None):
     """ Grid and image data.
     Optionally image integrations in list i.
     fftmode can be fftw or cuda.
@@ -293,18 +297,10 @@ def image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None, integra
 
     mode = 'single' if nthread == 1 else 'multi'
 
-    if integrations is None:
-        integrations = list(range(len(data)))
-    elif isinstance(integrations, int):
-        integrations = [integrations]
-
-    assert isinstance(integrations, list), "integrations should be int, list of ints, or None."
-
-    grids = grid_visibilities(data.take(integrations, axis=0), uvw, npixx,
-                              npixy, uvres, mode=mode)
+    grids = grid_visibilities(data, uvw, npixx, npixy, uvres, mode=mode)
 
     if fftmode == 'fftw':
-        logger.debug("Imaging with fftw on {0} threads".format(nthread))
+        logger.info("Imaging with fftw on {0} threads".format(nthread))
         images = image_fftw(grids, nthread=nthread, wisdom=wisdom)
     elif fftmode == 'cuda':
         logger.debug("Imaging with cuda.")
@@ -353,13 +349,16 @@ def image_fftw(grids, nthread=1, wisdom=None):
         logger.debug('Importing wisdom...')
         pyfftw.import_wisdom(wisdom)
 
+    logger.info("Starting pyfftw ifft2")
+
     images = pyfftw.interfaces.numpy_fft.ifft2(grids, auto_align_input=True,
                                                auto_contiguous=True,
                                                planner_effort='FFTW_MEASURE',
                                                overwrite_input=True,
                                                threads=nthread)
 
-    npixx, npixy = images[0].shape
+    nints, npixx, npixy = images.shape
+    logger.info('Recentering fft\'d images...')
 
     return recenter(images.real, (npixx//2, npixy//2))
 
@@ -367,49 +366,46 @@ def image_fftw(grids, nthread=1, wisdom=None):
 def grid_visibilities(data, uvw, npixx, npixy, uvres, mode='single'):
     """ Grid visibilities into rounded uv coordinates """
 
-    logger.debug('Gridding visibilities for grid of ({0}, {1}) pix and {2} '
-                 'resolution.'.format(npixx, npixy, uvres))
+    logger.info('Gridding {0} ints at ({1}, {2}) pix and {3} '
+                'resolution with mode {4}.'.format(len(data), npixx, npixy,
+                                                   uvres, mode))
+    u, v, w = uvw
+    grids = np.zeros(shape=(data.shape[0], npixx, npixy),
+                     dtype=np.complex64)
 
     if mode == 'single':
-        return _grid_visibilities_jit(data, uvw, npixx, npixy, uvres)
+        _grid_visibilities_jit(data, u, v, w, npixx, npixy, uvres, grids)
     elif mode == 'multi':
-        grid = np.zeros(shape=(data.shape[0], npixx, npixy),
-                        dtype=np.complex64)
-        u, v, w = uvw
-        _ = _grid_visibilities_gu(data, u, v, w, npixx, npixy, uvres, grid)
-        return grid
+        _ = _grid_visibilities_gu(data, u, v, w, npixx, npixy, uvres, grids)
     else:
         logger.error('No such resample mode.')
 
+    return grids
 
-#@jit(nogil=True, nopython=True)
-@jit(nopython=True)
-def _grid_visibilities_jit(data, uvw, npixx, npixy, uvres):
+
+@jit(nogil=True, nopython=True)
+def _grid_visibilities_jit(data, u, v, w, npixx, npixy, uvres, grids):
     """ Grid visibilities into rounded uv coordinates using jit on single core.
     Rounding not working here, so minor differences with original and
     guvectorized versions.
     """
 
-    us, vs, ws = uvw
     nint, nbl, nchan, npol = data.shape
 
 # rounding not available in numba
 #    ubl = np.round(us/uvres, 0).astype(np.int32)
 #    vbl = np.round(vs/uvres, 0).astype(np.int32)
-    ubl = (us/uvres).astype(np.int32)
-    vbl = (vs/uvres).astype(np.int32)
-
-    grids = np.zeros(shape=(nint, npixx, npixy), dtype=np.complex64)
 
     for j in range(nbl):
         for k in range(nchan):
-            if (np.abs(ubl[j, k]) < npixx//2) and \
-               (np.abs(vbl[j, k]) < npixy//2):
-                u = int64(np.mod(ubl[j, k], npixx))
-                v = int64(np.mod(vbl[j, k], npixy))
+            ubl = int64(u[j, k]/uvres)
+            vbl = int64(v[j, k]/uvres)
+            if (np.abs(ubl < npixx//2)) and (np.abs(vbl < npixy//2)):
+                umod = int64(np.mod(ubl, npixx))
+                vmod = int64(np.mod(vbl, npixy))
                 for i in range(nint):
                     for l in xrange(npol):
-                        grids[i, u, v] = grids[i, u, v] + data[i, j, k, l]
+                        grids[i, umod, vmod] += data[i, j, k, l]
 
     return grids
 
