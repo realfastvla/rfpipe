@@ -41,7 +41,7 @@ class State(object):
 
     def __init__(self, config=None, sdmfile=None, sdmscan=None, bdfdir=None,
                  inprefs={}, inmeta={}, preffile=None, name=None,
-                 showsummary=True):
+                 showsummary=True, lock=None):
         """ Initialize preference attributes with text file, preffile.
         name can select preference set from within yaml file.
         preferences are overloaded with inprefs.
@@ -59,6 +59,7 @@ class State(object):
         if sdmfile:
             sdmfile = sdmfile.rstrip('/')
         self.sdmfile = sdmfile
+        self.lock = lock
 
         if isinstance(inprefs, dict):
             # get pipeline preferences as dict
@@ -571,9 +572,15 @@ class State(object):
         """
 
         mjdstr = self.get_segmenttime_string(segment)
+
+        if self.lock is not None:
+            self.lock.acquire()
         (u, v, w) = util.calc_uvw(datetime=mjdstr, radec=self.metadata.radec,
                                   antpos=self.metadata.antpos,
                                   telescope=self.metadata.telescope)
+        if self.lock is not None:
+            self.lock.release()
+
 #        u = u * self.metadata.freq_orig[0] * (1e9/3e8) * (-1)
 #        v = v * self.metadata.freq_orig[0] * (1e9/3e8) * (-1)
 #        w = w * self.metadata.freq_orig[0] * (1e9/3e8) * (-1)
