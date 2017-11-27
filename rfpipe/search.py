@@ -241,7 +241,7 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
                        st.npixy, st.uvres, st.fftmode,
                        st.prefs.nthread, wisdom=wisdom)
 
-        logger.info('Thresholding at {0} sigma.'
+        logger.debug('Thresholding at {0} sigma.'
                     .format(st.prefs.sigma_image1))
 
         # TODO: the following is really slow
@@ -269,7 +269,7 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
 
     # tuple(list(int), list(ndarray), list(ndarray))
 #    return (ints, images_thresh, dataph)
-    logger.info("Returning data for {0} candidates for (seg, dmind, dtind) = "
+    logger.info("{0} candidates returned for (seg, dmind, dtind) = "
                 "({1}, {2}, {3})".format(len(canddatalist), segment, dmind,
                                          dtind))
 
@@ -292,7 +292,8 @@ def correct_search_thresh(st, segment, data, dmind, dtind, mode='single',
     return canddatalist
 
 
-def image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None):
+def image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,
+          integrations=None):
     """ Grid and image data.
     Optionally image integrations in list i.
     fftmode can be fftw or cuda.
@@ -301,7 +302,12 @@ def image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None):
 
     mode = 'single' if nthread == 1 else 'multi'
 
-    grids = grid_visibilities(data, uvw, npixx, npixy, uvres, mode=mode)
+    if integrations is None:
+        integrations = list(range(len(data)))
+    elif isinstance(integrations, int):
+        integrations = [integrations]
+
+    grids = grid_visibilities(data.take(integrations, axis=0), uvw, npixx, npixy, uvres, mode=mode)
 
     if fftmode == 'fftw':
         logger.debug("Imaging with fftw on {0} threads".format(nthread))

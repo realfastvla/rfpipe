@@ -574,7 +574,6 @@ class State(object):
         logger.info("Getting uvw for segment {0}".format(segment))
         mjdstr = self.get_segmenttime_string(segment)
 
-        logger.info('lock set to: {0}'.format(self.lock))
         if self.lock is not None:
             self.lock.acquire()
         (u, v, w) = util.calc_uvw(datetime=mjdstr, radec=self.metadata.radec,
