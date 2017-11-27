@@ -235,10 +235,8 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
                         st.npixx, st.npixy, st.uvres, st.fftmode,
                         st.prefs.nthread, segment))
 
-    uvw = st.get_uvw_segment(segment)
-    logger.info("Got uvw for segment {0}".format(segment))
-
     if 'image1' in st.prefs.searchtype:
+        uvw = st.get_uvw_segment(segment)
         images = image(data, uvw, st.npixx,
                        st.npixy, st.uvres, st.fftmode,
                        st.prefs.nthread, wisdom=wisdom)
