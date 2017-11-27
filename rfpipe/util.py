@@ -54,8 +54,7 @@ def dataflag(st, data):
     return data
 
 
-#@jit(nogil=True, nopython=True)
-@jit(nopython=True)
+@jit(nogil=True, nopython=True)
 def phase_shift(data, uvw, dl, dm):
     """ Applies a phase shift to data for a given (dl, dm).
     """
@@ -88,8 +87,7 @@ def meantsub(data, mode='single'):
         logger.error('No such dedispersion mode.')
 
 
-#@jit(nogil=True, nopython=True)
-@jit(nopython=True)
+@jit(nogil=True, nopython=True)
 def _meantsub_jit(data):
     """ Calculate mean in time (ignoring zeros) and subtract in place
 

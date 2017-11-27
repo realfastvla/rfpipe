@@ -130,7 +130,6 @@ def _resample_gu(data, dt):
             iprime = int64(i*dt)
             data[i] = data[iprime]
             for r in range(1, dt):
-#                print(i0, i, iprime, r)
                 data[i] += data[iprime+r]
             data[i] = data[i]/dt
 
@@ -173,14 +172,22 @@ def _dedisperseresample_jit(data, delay, dt, result):
         for l in range(npol):
             for k in range(nchan):
                 for i in range(nintout):
-                    iprime = int64(i*dt + delay[k])
-                    result[i, j, k, l] = data[iprime, j, k, l]
-                    for r in range(1, dt):
-                        if iprime+r >= nint:
-                            print(i, dt, r, nint, nintout)
-                        result[i, j, k, l] += data[iprime+r, j, k, l]
-                    result[i, j, k, l] = result[i, j, k, l]/dt
+                    weight = int64(0)
+                    for r in range(dt):
+                        iprime = int64(i*dt + delay[k] + r)
+                        val = data[iprime, j, k, l]
+                        result[i, j, k, l] += val
+                        if val != 0j:
+                            weight += 1
+
+                    if weight > 0:
+                        result[i, j, k, l] = result[i, j, k, l]/weight
+                    else:
+                        result[i, j, k, l] = weight
+
     return result
+
+
 
 
 @guvectorize(["void(complex64[:,:,:], int64[:], int64)"], '(n,m,l),(m),()',
