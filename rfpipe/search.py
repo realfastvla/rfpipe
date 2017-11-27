@@ -208,7 +208,7 @@ def _dedisperseresample_gu(data, delay, dt):
 # searching, imaging, thresholding
 #
 
-def search_thresh(st, data, uvw, segment, dmind, dtind, integrations=None,
+def search_thresh(st, data, segment, dmind, dtind, integrations=None,
                   beamnum=0, wisdom=None):
     """ High-level wrapper for search algorithms.
     Expects dedispersed, resampled data as input and data state.
@@ -235,8 +235,8 @@ def search_thresh(st, data, uvw, segment, dmind, dtind, integrations=None,
                         st.npixx, st.npixy, st.uvres, st.fftmode,
                         st.prefs.nthread, segment))
 
-#    uvw = st.get_uvw_segment(segment)
-#    logger.info("Got uvw for segment {0}".format(segment))
+    uvw = st.get_uvw_segment(segment)
+    logger.info("Got uvw for segment {0}".format(segment))
 
     if 'image1' in st.prefs.searchtype:
         images = image(data, uvw, st.npixx,
@@ -278,7 +278,7 @@ def search_thresh(st, data, uvw, segment, dmind, dtind, integrations=None,
     return canddatalist
 
 
-def correct_search_thresh(st, segment, uvw, data, dmind, dtind, mode='single',
+def correct_search_thresh(st, segment, data, dmind, dtind, mode='single',
                           wisdom=None):
     """ Fuse the dediserpse, resample, search, threshold functions.
     """
@@ -288,7 +288,7 @@ def correct_search_thresh(st, segment, uvw, data, dmind, dtind, mode='single',
 
     data_corr = dedisperseresample(data, delay, st.dtarr[dtind], mode=mode)
 
-    canddatalist = search_thresh(st, data_corr, uvw, segment, dmind, dtind,
+    canddatalist = search_thresh(st, data_corr, segment, dmind, dtind,
                                  wisdom=wisdom)
 
     return canddatalist

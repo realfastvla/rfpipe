@@ -11,8 +11,6 @@ from numba import cuda, guvectorize
 from numba import jit, complex64, int64
 
 import pwkit.environments.casa.util as casautil
-qa = casautil.tools.quanta()
-me = casautil.tools.measures()
 
 ##
 ## data prep
@@ -192,6 +190,7 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
     assert '/' in datetime, 'datetime must be in yyyy/mm/dd/hh:mm:ss.sss format'
     assert len(radec) == 2, 'radec must be (ra,dec) tuple in units of degrees'
 
+    me = casautil.tools.measures()
     direction = me.direction('J2000', str(np.degrees(radec[0]))+'deg', str(np.degrees(radec[1]))+'deg')
 
     logger.debug('Calculating uvw at %s for (RA, Dec) = %s' % (datetime, radec))
