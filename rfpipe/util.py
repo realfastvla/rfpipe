@@ -58,8 +58,8 @@ def phase_shift(data, uvw, dl, dm):
     """ Applies a phase shift to data for a given (dl, dm).
     """
 
-    _phaseshift_jit(np.require(data, requirements='W'))
-    return data
+    data = np.require(data, requirements='W')
+    _phaseshift_jit(data, uvw, dl, dm)
 
 
 @jit(nogil=True, nopython=True)

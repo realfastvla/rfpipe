@@ -143,7 +143,7 @@ def dedisperseresample(data, delay, dt, mode='single'):
     if not np.any(data):
         return np.array([])
 
-    logger.info('Correcting up to delay {0} ints, resampled {1} in mode {2}'
+    logger.info('Correcting by delay/resampling {0}/{1} ints in mode {2}'
                 .format(delay.max(), dt, mode))
 
     if delay.max() > 0 or dt > 1:
@@ -163,8 +163,7 @@ def dedisperseresample(data, delay, dt, mode='single'):
         return data
 
 
-#@jit(nogil=True, nopython=True)
-@jit(nopython=True)
+@jit(nogil=True, nopython=True)
 def _dedisperseresample_jit(data, delay, dt, result):
 
     nint, nbl, nchan, npol = data.shape
@@ -209,7 +208,7 @@ def _dedisperseresample_gu(data, delay, dt):
 # searching, imaging, thresholding
 #
 
-def search_thresh(st, data, segment, dmind, dtind, integrations=None,
+def search_thresh(st, data, uvw, segment, dmind, dtind, integrations=None,
                   beamnum=0, wisdom=None):
     """ High-level wrapper for search algorithms.
     Expects dedispersed, resampled data as input and data state.
@@ -236,9 +235,8 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
                         st.npixx, st.npixy, st.uvres, st.fftmode,
                         st.prefs.nthread, segment))
 
-#    data = np.require(data.take(integrations, axis=0), requirements='W')
-    uvw = st.get_uvw_segment(segment)
-    logger.info("Got uvw for segment {0}".format(segment))
+#    uvw = st.get_uvw_segment(segment)
+#    logger.info("Got uvw for segment {0}".format(segment))
 
     if 'image1' in st.prefs.searchtype:
         images = image(data, uvw, st.npixx,
@@ -251,7 +249,6 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
         # TODO: the following is really slow
         canddatalist = []
         for i in range(len(images)):
-#            logger.info("i {0}, segment {1}, dmind {2}, dtind {3}".format(i, segment, dmind, dtind))
             peak_snr = images[i].max()/util.madtostd(images[i])
             if peak_snr > st.prefs.sigma_image1:
                 candloc = (segment, integrations[i], dmind, dtind, beamnum)
@@ -274,12 +271,14 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
 
     # tuple(list(int), list(ndarray), list(ndarray))
 #    return (ints, images_thresh, dataph)
-    logger.info("Returning data for {0} candidates".format(len(canddatalist)))
+    logger.info("Returning data for {0} candidates for (seg, dmind, dtind) = "
+                "({1}, {2}, {3})".format(len(canddatalist), segment, dmind,
+                                         dtind))
 
     return canddatalist
 
 
-def correct_search_thresh(st, segment, data, dmind, dtind, mode='single',
+def correct_search_thresh(st, segment, uvw, data, dmind, dtind, mode='single',
                           wisdom=None):
     """ Fuse the dediserpse, resample, search, threshold functions.
     """
@@ -289,7 +288,7 @@ def correct_search_thresh(st, segment, data, dmind, dtind, mode='single',
 
     data_corr = dedisperseresample(data, delay, st.dtarr[dtind], mode=mode)
 
-    canddatalist = search_thresh(st, data_corr, segment, dmind, dtind,
+    canddatalist = search_thresh(st, data_corr, uvw, segment, dmind, dtind,
                                  wisdom=wisdom)
 
     return canddatalist
@@ -307,7 +306,7 @@ def image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None):
     grids = grid_visibilities(data, uvw, npixx, npixy, uvres, mode=mode)
 
     if fftmode == 'fftw':
-        logger.info("Imaging with fftw on {0} threads".format(nthread))
+        logger.debug("Imaging with fftw on {0} threads".format(nthread))
         images = image_fftw(grids, nthread=nthread, wisdom=wisdom)
     elif fftmode == 'cuda':
         logger.debug("Imaging with cuda.")
@@ -356,7 +355,7 @@ def image_fftw(grids, nthread=1, wisdom=None):
         logger.debug('Importing wisdom...')
         pyfftw.import_wisdom(wisdom)
 
-    logger.info("Starting pyfftw ifft2")
+    logger.debug("Starting pyfftw ifft2")
 
     images = pyfftw.interfaces.numpy_fft.ifft2(grids, auto_align_input=True,
                                                auto_contiguous=True,
@@ -365,7 +364,7 @@ def image_fftw(grids, nthread=1, wisdom=None):
                                                threads=nthread)
 
     nints, npixx, npixy = images.shape
-    logger.info('Recentering fft\'d images...')
+    logger.debug('Recentering fft\'d images...')
 
     return recenter(images.real, (npixx//2, npixy//2))
 
@@ -373,7 +372,7 @@ def image_fftw(grids, nthread=1, wisdom=None):
 def grid_visibilities(data, uvw, npixx, npixy, uvres, mode='single'):
     """ Grid visibilities into rounded uv coordinates """
 
-    logger.info('Gridding {0} ints at ({1}, {2}) pix and {3} '
+    logger.debug('Gridding {0} ints at ({1}, {2}) pix and {3} '
                 'resolution with mode {4}.'.format(len(data), npixx, npixy,
                                                    uvres, mode))
     u, v, w = uvw
@@ -390,8 +389,7 @@ def grid_visibilities(data, uvw, npixx, npixy, uvres, mode='single'):
     return grids
 
 
-#@jit(nogil=True, nopython=True)
-@jit(nopython=True)
+@jit(nogil=True, nopython=True)
 def _grid_visibilities_jit(data, u, v, w, npixx, npixy, uvres, grids):
     """ Grid visibilities into rounded uv coordinates using jit on single core.
     Rounding not working here, so minor differences with original and
