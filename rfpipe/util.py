@@ -54,10 +54,16 @@ def dataflag(st, data):
     return data
 
 
-@jit(nogil=True, nopython=True)
 def phase_shift(data, uvw, dl, dm):
     """ Applies a phase shift to data for a given (dl, dm).
     """
+
+    _phaseshift_jit(np.require(data, requirements='W'))
+    return data
+
+
+@jit(nogil=True, nopython=True)
+def _phaseshift_jit(data, uvw, dl, dm):
 
     sh = data.shape
     u, v, w = uvw

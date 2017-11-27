@@ -163,11 +163,13 @@ def dedisperseresample(data, delay, dt, mode='single'):
         return data
 
 
-@jit(nogil=True, nopython=True)
+#@jit(nogil=True, nopython=True)
+@jit(nopython=True)
 def _dedisperseresample_jit(data, delay, dt, result):
 
     nint, nbl, nchan, npol = data.shape
     nintout = int64(len(result))
+
     for j in range(nbl):
         for l in range(npol):
             for k in range(nchan):
@@ -186,8 +188,6 @@ def _dedisperseresample_jit(data, delay, dt, result):
                         result[i, j, k, l] = weight
 
     return result
-
-
 
 
 @guvectorize(["void(complex64[:,:,:], int64[:], int64)"], '(n,m,l),(m),()',
@@ -233,7 +233,8 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
     logger.info('Imaging {0} ints for DM {1} and dt {2}. Size {3}x{4} '
                 '(uvres {5}) with mode {6} and {7} threads (seg {8}).'
                 .format(len(integrations), st.dmarr[dmind], st.dtarr[dtind],
-                        st.npixx, st.npixy, st.uvres, st.fftmode, st.prefs.nthread, segment))
+                        st.npixx, st.npixy, st.uvres, st.fftmode,
+                        st.prefs.nthread, segment))
 
 #    data = np.require(data.take(integrations, axis=0), requirements='W')
     uvw = st.get_uvw_segment(segment)
@@ -253,17 +254,16 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
 #            logger.info("i {0}, segment {1}, dmind {2}, dtind {3}".format(i, segment, dmind, dtind))
             peak_snr = images[i].max()/util.madtostd(images[i])
             if peak_snr > st.prefs.sigma_image1:
-                logger.info("peak_snr {0}".format(peak_snr))
                 candloc = (segment, integrations[i], dmind, dtind, beamnum)
                 candim = images[i]
-                logger.info("i {0} shape {1}, loc {2}".format(i, candim.shape, candloc))
-                logger.info("max {0}".format(np.where(candim == candim.max())))
+#                logger.info("i {0} shape {1}, loc {2}".format(i, candim.shape, candloc))
+#                logger.info("max {0}".format(np.where(candim == candim.max())))
                 l, m = st.pixtolm(np.where(candim == candim.max()))
-                logger.info("image peak at l, m: {0}, {1}".format(l, m))
+#                logger.info("image peak at l, m: {0}, {1}".format(l, m))
                 util.phase_shift(data, uvw, l, m)
-                logger.info("phasing data from: {0}, {1}"
-                            .format(max(0, i-st.prefs.timewindow//2),
-                                    min(i+st.prefs.timewindow//2, len(data))))
+#                logger.info("phasing data from: {0}, {1}"
+#                            .format(max(0, i-st.prefs.timewindow//2),
+#                                    min(i+st.prefs.timewindow//2, len(data))))
                 dataph = data[max(0, i-st.prefs.timewindow//2):
                               min(i+st.prefs.timewindow//2, len(data))].mean(axis=1)
                 util.phase_shift(data, uvw, -l, -m)
@@ -390,7 +390,8 @@ def grid_visibilities(data, uvw, npixx, npixy, uvres, mode='single'):
     return grids
 
 
-@jit(nogil=True, nopython=True)
+#@jit(nogil=True, nopython=True)
+@jit(nopython=True)
 def _grid_visibilities_jit(data, u, v, w, npixx, npixy, uvres, grids):
     """ Grid visibilities into rounded uv coordinates using jit on single core.
     Rounding not working here, so minor differences with original and
