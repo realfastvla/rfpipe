@@ -228,7 +228,8 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
         if segment == 0:
             integrations = list(range(len(data)))
         else:
-            integrations = list(range((st.dmshifts[-1]-st.dmshifts[dmind])//st.dtarr[dtind], len(data)))
+            integrations = list(range((st.dmshifts[-1]-st.dmshifts[dmind])//st.dtarr[dtind],
+                                      len(data)))
     elif isinstance(integrations, int):
         integrations = [integrations]
 
@@ -312,7 +313,8 @@ def image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,
     elif isinstance(integrations, int):
         integrations = [integrations]
 
-    grids = grid_visibilities(data.take(integrations, axis=0), uvw, npixx, npixy, uvres, mode=mode)
+    grids = grid_visibilities(data.take(integrations, axis=0), uvw, npixx,
+                              npixy, uvres, mode=mode)
 
     if fftmode == 'fftw':
         logger.debug("Imaging with fftw on {0} threads".format(nthread))
@@ -382,8 +384,8 @@ def grid_visibilities(data, uvw, npixx, npixy, uvres, mode='single'):
     """ Grid visibilities into rounded uv coordinates """
 
     logger.debug('Gridding {0} ints at ({1}, {2}) pix and {3} '
-                'resolution with mode {4}.'.format(len(data), npixx, npixy,
-                                                   uvres, mode))
+                 'resolution with mode {4}.'.format(len(data), npixx, npixy,
+                                                    uvres, mode))
     u, v, w = uvw
     grids = np.zeros(shape=(data.shape[0], npixx, npixy),
                      dtype=np.complex64)
