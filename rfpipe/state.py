@@ -206,6 +206,17 @@ class State(object):
             except AttributeError:
                 pass
 
+    def get_search_ints(self, segment, dmind, dtind):
+        """ Helper function to get list of integrations
+        to be searched after correcting for DM and resampling.
+        """
+
+        if segment == 0:
+            return list(range((self.readints-self.dmshifts[dmind])//self.dtarr[dtind]))
+        else:
+            return list(range((self.dmshifts[-1]-self.dmshifts[dmind])//self.dtarr[dtind],
+                              (self.readints-self.dmshifts[dmind])//self.dtarr[dtind]))
+
     @property
     def version(self):
         if self.prefs.rfpipe_version:

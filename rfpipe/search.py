@@ -224,22 +224,19 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
     if not np.any(data):
         return []
 
+    # assumes dedispersed/resampled data has only back end trimmed off
     if integrations is None:
-        if segment == 0:
-            integrations = list(range(len(data)))
-        else:
-            integrations = list(range((st.dmshifts[-1]-st.dmshifts[dmind])//st.dtarr[dtind],
-                                      len(data)))
+        integrations = st.get_search_ints(segment, dmind, dtind)
     elif isinstance(integrations, int):
         integrations = [integrations]
 
     assert isinstance(integrations, list), "integrations should be int, list of ints, or None."
 
-    logger.info('Imaging {0} ints for DM {1} and dt {2}. Size {3}x{4} '
-                '(uvres {5}) with mode {6} and {7} threads (seg {8}).'
-                .format(len(integrations), st.dmarr[dmind], st.dtarr[dtind],
-                        st.npixx, st.npixy, st.uvres, st.fftmode,
-                        st.prefs.nthread, segment))
+    logger.info('Imaging {0} ints in seg {1} at DM/dt {2}/{3} with image '
+                '{4}x{5} (uvres {6}) with mode {7}'
+                .format(len(integrations), segment, st.dmarr[dmind],
+                        st.dtarr[dtind], st.npixx, st.npixy, st.uvres,
+                        st.fftmode))
 
     if 'image1' in st.prefs.searchtype:
         uvw = st.get_uvw_segment(segment)
@@ -283,7 +280,7 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
 
 
 def correct_search_thresh(st, segment, data, dmind, dtind, mode='single',
-                          wisdom=None):
+                          wisdom=None, integrations=None):
     """ Fuse the dediserpse, resample, search, threshold functions.
     """
 
@@ -293,7 +290,7 @@ def correct_search_thresh(st, segment, data, dmind, dtind, mode='single',
     data_corr = dedisperseresample(data, delay, st.dtarr[dtind], mode=mode)
 
     canddatalist = search_thresh(st, data_corr, segment, dmind, dtind,
-                                 wisdom=wisdom)
+                                 wisdom=wisdom, integrations=integrations)
 
     return canddatalist
 
