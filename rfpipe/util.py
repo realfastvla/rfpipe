@@ -3,21 +3,18 @@ from builtins import bytes, dict, object, range, map, input#, str # not casa com
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
-import logging
-logger = logging.getLogger(__name__)
-
 import numpy as np
 from numba import cuda, guvectorize
 from numba import jit, complex64, int64
 
 import pwkit.environments.casa.util as casautil
 
-##
-## data prep
-##
+import logging
+logger = logging.getLogger(__name__)
+
 
 def dataflag(st, data):
-    """ Flagging data in single process 
+    """ Flagging data in single process
     """
 
     import rtlib_cython as rtlib
@@ -135,20 +132,20 @@ def _meantsub_gu(data):
     mean = ss/weight
     for i in range(data.shape[0]):
         data[i] -= mean
-   
+
 
 @cuda.jit
 def meantsub_cuda(data):
     """ Calculate mean in time (ignoring zeros) and subtract in place """
 
-    x,y,z = cuda.grid(3)
+    x, y, z = cuda.grid(3)
     nint, nbl, nchan, npol = data.shape
     if x < nbl and y < nchan and z < npol:
         sum = complex64(0)
         weight = 0
         for i in range(nint):
             sum = sum + data[i, x, y, z]
-            if data[i,x,y,z] == 0j:
+            if data[i, x, y, z] == 0j:
                 weight = weight + 1
         mean = sum/weight
         for i in range(nint):

@@ -214,6 +214,8 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
     Expects dedispersed, resampled data as input and data state.
     Returns list of CandData objects that define candidates with
     candloc, image, and phased visibility data.
+    Integrations can define subset of all available in data to search.
+    Default will take integrations not searched in neighboring segments.
 
     ** only supports threshold > image max (no min)
     ** dmind, dtind, beamnum assumed to represent current state of data
@@ -223,7 +225,10 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
         return []
 
     if integrations is None:
-        integrations = list(range(len(data)))
+        if segment == 0:
+            integrations = list(range(len(data)))
+        else:
+            integrations = list(range((st.dmshifts[-1]-st.dmshifts[dmind])//st.dtarr[dtind], len(data)))
     elif isinstance(integrations, int):
         integrations = [integrations]
 
@@ -237,9 +242,9 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
 
     if 'image1' in st.prefs.searchtype:
         uvw = st.get_uvw_segment(segment)
-        images = image(data, uvw, st.npixx,
-                       st.npixy, st.uvres, st.fftmode,
-                       st.prefs.nthread, wisdom=wisdom)
+        images = image(data, uvw, st.npixx, st.npixy, st.uvres, st.fftmode,
+                       st.prefs.nthread, wisdom=wisdom,
+                       integrations=integrations)
 
         logger.debug('Thresholding at {0} sigma.'
                     .format(st.prefs.sigma_image1))
