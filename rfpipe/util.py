@@ -177,6 +177,45 @@ def calc_delay2(freq, freqref, dm, scale=None):
     return scale*dm*(1./freq**2 - 1./freqref**2)
 
 
+def calc_dmarr(state):
+    """ Function to calculate the DM values for a given maximum sensitivity loss.
+    dm_maxloss is sensitivity loss tolerated by dm bin width. dm_pulsewidth is
+    assumed pulse width in microsec.
+    """
+
+    dm_maxloss = state.prefs.dm_maxloss
+    dm_pulsewidth = state.prefs.dm_pulsewidth
+    mindm = state.prefs.mindm
+    maxdm = state.prefs.maxdm
+
+    # parameters
+    tsamp = state.inttime*1e6  # in microsec
+    k = 8.3
+    freq = state.freq.mean()  # central (mean) frequency in GHz
+    bw = 1e3*(state.freq.max() - state.freq.min())  # in MHz
+    ch = 1e-6*state.metadata.spw_chansize[0]  # in MHz ** first spw only
+
+    # width functions and loss factor
+    dt0 = lambda dm: np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2)
+    dt1 = lambda dm, ddm: np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2 + ((k*ddm*bw)/(freq**3.))**2)
+    loss = lambda dm, ddm: 1 - np.sqrt(dt0(dm)/dt1(dm,ddm))
+    loss_cordes = lambda ddm, dfreq, dm_pulsewidth, freq: 1 - (np.sqrt(np.pi) / (2 * 6.91e-3 * ddm * dfreq / (dm_pulsewidth*freq**3))) * erf(6.91e-3 * ddm * dfreq / (dm_pulsewidth*freq**3))  # not quite right for underresolved pulses
+
+    if maxdm == 0:
+        return [0]
+    else:
+        # iterate over dmgrid to find optimal dm values. go higher than maxdm to be sure final list includes full range.
+        dmgrid = np.arange(mindm, maxdm, 0.05)
+        dmgrid_final = [dmgrid[0]]
+        for i in range(len(dmgrid)):
+            ddm = (dmgrid[i] - dmgrid_final[-1])/2.
+            ll = loss(dmgrid[i],ddm)
+            if ll > dm_maxloss:
+                dmgrid_final.append(dmgrid[i])
+
+    return dmgrid_final
+
+
 def get_uvw_segment(st, segment):
     """ Returns uvw in units of baselines for a given segment.
     Tuple of u, v, w given with each a numpy array of (nbl, nchan) shape.
@@ -239,6 +278,71 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
         w[i] = uvwlist[3*key[i]+2]
 
     return u, v, w
+
+
+def calc_segment_times(state, scale_nsegment=1.):
+    """ Helper function for set_pipeline to define segmenttimes list.
+    Forces segment time windows to be fixed relative to integration boundaries.
+    Can optionally push nsegment scaling up.
+    """
+
+#    stopdts = np.linspace(int(round(state.t_overlap/state.inttime)), state.nints,
+#                          nsegment+1)[1:]  # nseg+1 keeps at least one seg
+#    startdts = np.concatenate(([0],
+#                              stopdts[:-1]-int(round(state.t_overlap/state.inttime))))
+    # or force on integer boundaries?
+
+    stopdts = np.arange(int(round(state.t_overlap/state.inttime)), state.nints+1,
+                        min(max(1,
+                            int(round(state.fringetime/state.inttime/scale_nsegment))),
+                        state.nints-int(round(state.t_overlap/state.inttime))),
+                        dtype=int)[1:]
+    startdts = np.concatenate(([0],
+                              stopdts[:-1]-int(round(state.t_overlap/state.inttime))))
+
+    assert all([len(stopdts), len(startdts)]), ('Could not set segment times.'
+                                                't_overlap may be longer than '
+                                                'nints or fringetime shorter '
+                                                'than inttime.')
+
+    segmenttimes = []
+    for (startdt, stopdt) in zip(state.inttime*startdts, state.inttime*stopdts):
+        starttime = qa.getvalue(qa.convert(qa.time(qa.quantity(state.metadata.starttime_mjd+startdt/(24*3600), 'd'),
+                                                   form=['ymd'], prec=9)[0], 's'))[0]/(24*3600)
+        stoptime = qa.getvalue(qa.convert(qa.time(qa.quantity(state.metadata.starttime_mjd+stopdt/(24*3600), 'd'),
+                                                  form=['ymd'], prec=9)[0], 's'))[0]/(24*3600)
+        segmenttimes.append((starttime, stoptime))
+
+    return np.array(segmenttimes)
+
+
+def find_segment_times(state):
+    """ Iterates to optimal segment time list, given memory and fringe time limits.
+    Segment sizes bounded by fringe time and memory limit,
+    Solution found by iterating from fringe time to memory size that fits.
+    """
+
+    scale_nsegment = 1.
+    state._segmenttimes = calc_segment_times(state, scale_nsegment)
+
+    # calculate memory limit to stop iteration
+    assert state.immem_limit+state.vismem_limit < state.prefs.memory_limit, 'memory_limit of {0} is smaller than best solution of {1}. Try setting maxdm/npix_max lower.'.format(state.prefs.memory_limit, state.immem_limit+state.vismem_limit)
+
+    if state.vismem+state.immem > state.prefs.memory_limit:
+        logger.info('Over memory limit of {0} when reading {1} segments '
+                    '({2}/{3} GB for visibilities/imaging). Searching for '
+                    'solution down to {4}/{5} GB...'
+                    .format(state.prefs.memory_limit, state.nsegment,
+                            state.vismem, state.immem, state.vismem_limit,
+                            state.immem_limit))
+
+        while state.vismem+state.immem > state.prefs.memory_limit:
+            logger.debug('Using {0} segments requires {1}/{2} GB for '
+                         'visibilities/images. Searching for better solution.'
+                         .format(state.nsegment, state.vismem, state.immem))
+
+            scale_nsegment *= (state.vismem+state.immem)/float(state.prefs.memory_limit)
+            state._segmenttimes = util.calc_segment_times(state, scale_nsegment)
 
 
 def madtostd(array):
