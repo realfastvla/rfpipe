@@ -177,6 +177,30 @@ def calc_delay2(freq, freqref, dm, scale=None):
     return scale*dm*(1./freq**2 - 1./freqref**2)
 
 
+def get_uvw_segment(st, segment):
+    """ Returns uvw in units of baselines for a given segment.
+    Tuple of u, v, w given with each a numpy array of (nbl, nchan) shape.
+    If available, uses a lock to control multithreaded casa measures call.
+    """
+
+    logger.debug("Getting uvw for segment {0}".format(segment))
+    mjdstr = st.get_segmenttime_string(segment)
+
+    if st.lock is not None:
+        st.lock.acquire()
+    (u, v, w) = util.calc_uvw(datetime=mjdstr, radec=st.metadata.radec,
+                              antpos=st.metadata.antpos,
+                              telescope=st.metadata.telescope)
+    if st.lock is not None:
+        st.lock.release()
+
+    u = np.outer(u, st.freq * (1e9/3e8) * (-1))
+    v = np.outer(v, st.freq * (1e9/3e8) * (-1))
+    w = np.outer(w, st.freq * (1e9/3e8) * (-1))
+
+    return u.astype('float32'), v.astype('float32'), w.astype('float32')
+
+
 def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
     """ Calculates and returns uvw in meters for a given time and pointing direction.
     datetime is time (as string) to calculate uvw (format: '2014/09/03/08:33:04.20')

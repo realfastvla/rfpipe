@@ -145,7 +145,7 @@ def pipeline_imdata(st, candloc, data_dmdt=None):
     dt = st.dtarr[dtind]
     dm = st.dmarr[dmind]
 
-    uvw = st.get_uvw_segment(segment)
+    uvw = util.get_uvw_segment(st, segment)
     wisdom = search.set_wisdom(st.npixx, st.npixy)
 
     if data_dmdt is None:

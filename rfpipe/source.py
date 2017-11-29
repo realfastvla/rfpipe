@@ -112,7 +112,7 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
     if st.prefs.simulated_transient is not None:
         assert isinstance(st.prefs.simulated_transient, list)
 
-        uvw = st.get_uvw_segment(segment)
+        uvw = util.get_uvw_segment(st, segment)
         for params in st.prefs.simulated_transient:
             assert len(params) == 7
             (mock_segment, i0, dm, dt, amp, l, m) = params

@@ -225,7 +225,6 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
         return []
 
     # assumes dedispersed/resampled data has only back end trimmed off
-    print(type(integrations), integrations)
     if integrations is None:
         integrations = st.get_search_ints(segment, dmind, dtind)
     elif isinstance(integrations, int):
@@ -242,7 +241,7 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
                         st.uvres, st.fftmode))
 
     if 'image1' in st.prefs.searchtype:
-        uvw = st.get_uvw_segment(segment)
+        uvw = util.get_uvw_segment(st, segment)
         images = image(data, uvw, st.npixx, st.npixy, st.uvres, st.fftmode,
                        st.prefs.nthread, wisdom=wisdom,
                        integrations=integrations)

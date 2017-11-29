@@ -584,31 +584,6 @@ class State(object):
         mid_mjd = self.segmenttimes[segment].mean()
         return qa.time(qa.quantity(mid_mjd, 'd'), form='ymd', prec=8)[0]
 
-    def get_uvw_segment(self, segment):
-        """ Returns uvw in units of baselines for a given segment.
-        Tuple of u, v, w given with each a numpy array of (nbl, nchan) shape.
-        """
-
-        logger.info("Getting uvw for segment {0}".format(segment))
-        mjdstr = self.get_segmenttime_string(segment)
-
-        if self.lock is not None:
-            self.lock.acquire()
-        (u, v, w) = util.calc_uvw(datetime=mjdstr, radec=self.metadata.radec,
-                                  antpos=self.metadata.antpos,
-                                  telescope=self.metadata.telescope)
-        if self.lock is not None:
-            self.lock.release()
-
-#        u = u * self.metadata.freq_orig[0] * (1e9/3e8) * (-1)
-#        v = v * self.metadata.freq_orig[0] * (1e9/3e8) * (-1)
-#        w = w * self.metadata.freq_orig[0] * (1e9/3e8) * (-1)
-        u = np.outer(u, self.freq * (1e9/3e8) * (-1))
-        v = np.outer(v, self.freq * (1e9/3e8) * (-1))
-        w = np.outer(w, self.freq * (1e9/3e8) * (-1))
-
-        return u.astype('float32'), v.astype('float32'), w.astype('float32')
-
     @property
     def nints(self):
         return self.metadata.nints
