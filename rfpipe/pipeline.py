@@ -24,9 +24,20 @@ def pipeline_scan(st, segments=None, cfile=None, vys_timeout=vys_timeout_default
     return featurelists  # list of tuples (collection, data)
 
 
-def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default):
+def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default, maxlen=None):
     """ Submit pipeline processing of a single segment on a single node.
     """
+
+    if maxlen is None:
+        maxlen = st.readints
+    imgbytes = maxlen*st.npixx*st.npixy*8/1000.**3
+    logger.info("Set maximum im grid len to {0} and im mem usage to {1}"
+                .format(maxlen, imgbytes))
+
+    imgranges = [[(min(st.get_search_ints(segment, dmind, dtind)),
+                  max(st.get_search_ints(segment, dmind, dtind)))
+                  for dtind in range(len(st.dtarr))]
+                 for dmind in range(len(st.dmarr))]
 
     # plan fft
     wisdom = search.set_wisdom(st.npixx, st.npixy)
@@ -38,19 +49,27 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default):
     for dmind in range(len(st.dmarr)):
         delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
                                 st.inttime)
-#        data_dm = search.dedisperse(data_prep, delay)
 
         for dtind in range(len(st.dtarr)):
-#            data_dmdt = search.dedisperseresample(data_prep, delay,
-#                                                  st.dtarr[dtind])
-#            canddatalist = search.search_thresh(st, data_dmdt, segment, dmind,
-#                                                dtind, wisdom=wisdom)
+            data_dmdt = search.dedisperseresample(data_prep, delay,
+                                                  st.dtarr[dtind])
 
-            canddatalist = search.correct_search_thresh(st, segment, data_prep,
-                                                        dmind, dtind,
-                                                        wisdom=wisdom)
-            
-            collection = candidates.calc_features(canddatalist)
-            collections.append(collection)
+            im0, im1 = imgranges[dmind][dtind]
+            integrationlist = [list(range(im0, im1)[i:i+maxlen])
+                               for i in range(im0, im1, maxlen)]
+            for integrations in integrationlist:
+                canddatalist = search.search_thresh(st, data_dmdt, segment,
+                                                    dmind, dtind,
+                                                    wisdom=wisdom,
+                                                    integrations=integrations)
+
+#                canddatalist = search.correct_search_thresh(st, segment,
+#                                                            data_prep, dmind,
+#                                                            dtind,
+#                                                            integrations=integrations,
+#                                                            wisdom=wisdom)
+
+                collection = candidates.calc_features(canddatalist)
+                collections.append(collection)
 
     return collections
