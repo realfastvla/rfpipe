@@ -30,4 +30,4 @@ def test_state():
     st = rfpipe.state.State(preffile=preffile, inmeta=meta,
                             inprefs={'chans': range(10, 20)})
     assert st.chans == range(10, 20)
-    assert len(st.get_uvw_segment(0))
+    assert len(rfpipe.util.get_uvw_segment(st, 0))
