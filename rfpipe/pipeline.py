@@ -35,7 +35,7 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default):
 
     # plan fft
     wisdom = search.set_wisdom(st.npixx, st.npixy)
-    uvw = util.calc_uvw_segment(st, segment)
+    uvw = util.get_uvw_segment(st, segment)
 
     data = source.read_segment(st, segment, timeout=vys_timeout, cfile=cfile)
     data_prep = source.data_prep(st, data)
