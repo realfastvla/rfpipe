@@ -68,9 +68,6 @@ class State(object):
             for key in inprefs:
                 prefs[key] = inprefs[key]
 
-            for key in prefs:
-                logger.debug(key, prefs[key], type(prefs[key]))
-
             self.prefs = preferences.Preferences(**prefs)
         elif isinstance(inprefs, preferences.Preferences):
             self.prefs = inprefs

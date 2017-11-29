@@ -32,6 +32,7 @@ def test_dataprep(mockstate):
 def test_search(mockstate):
 
     wisdom = rfpipe.search.set_wisdom(mockstate.npixx, mockstate.npixy)
+    uvw = rfpipe.util.get_uvw_segment(mockstate, segment)
 
     candcollections = []
     times = []
@@ -50,7 +51,7 @@ def test_search(mockstate):
                                                    mockstate.dtarr[dtind])
 
                 canddatalist = rfpipe.search.search_thresh(mockstate,
-                                                           data_dmdt,
+                                                           data_dmdt, uvw
                                                            segment, dmind,
                                                            dtind,
                                                            wisdom=wisdom)
