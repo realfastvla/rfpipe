@@ -208,7 +208,7 @@ def _dedisperseresample_gu(data, delay, dt):
 # searching, imaging, thresholding
 #
 
-def search_thresh(st, data, segment, dmind, dtind, integrations=None,
+def search_thresh(st, data, uvw, segment, dmind, dtind, integrations=None,
                   beamnum=0, wisdom=None):
     """ High-level wrapper for search algorithms.
     Expects dedispersed, resampled data as input and data state.
@@ -241,13 +241,12 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
                         st.uvres, st.fftmode))
 
     if 'image1' in st.prefs.searchtype:
-        uvw = util.get_uvw_segment(st, segment)
         images = image(data, uvw, st.npixx, st.npixy, st.uvres, st.fftmode,
                        st.prefs.nthread, wisdom=wisdom,
                        integrations=integrations)
 
         logger.debug('Thresholding at {0} sigma.'
-                    .format(st.prefs.sigma_image1))
+                     .format(st.prefs.sigma_image1))
 
         # TODO: the following is really slow
         canddatalist = []

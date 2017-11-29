@@ -15,7 +15,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 qa = casautil.tools.quanta()
-logger.info('Using pwkit casa')
 
 
 class State(object):

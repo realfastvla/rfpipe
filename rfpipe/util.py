@@ -6,11 +6,13 @@ from io import open
 import numpy as np
 from numba import cuda, guvectorize
 from numba import jit, complex64, int64
-
 import pwkit.environments.casa.util as casautil
 
 import logging
 logger = logging.getLogger(__name__)
+
+qa = casautil.tools.quanta()
+me = casautil.tools.measures()
 
 
 def dataflag(st, data):
@@ -222,14 +224,14 @@ def get_uvw_segment(st, segment):
     If available, uses a lock to control multithreaded casa measures call.
     """
 
-    logger.debug("Getting uvw for segment {0}".format(segment))
+    logger.info("Getting uvw for segment {0}".format(segment))
     mjdstr = st.get_segmenttime_string(segment)
 
     if st.lock is not None:
         st.lock.acquire()
-    (u, v, w) = util.calc_uvw(datetime=mjdstr, radec=st.metadata.radec,
-                              antpos=st.metadata.antpos,
-                              telescope=st.metadata.telescope)
+    (u, v, w) = calc_uvw(datetime=mjdstr, radec=st.metadata.radec,
+                         antpos=st.metadata.antpos,
+                         telescope=st.metadata.telescope)
     if st.lock is not None:
         st.lock.release()
 
@@ -250,7 +252,6 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
     assert '/' in datetime, 'datetime must be in yyyy/mm/dd/hh:mm:ss.sss format'
     assert len(radec) == 2, 'radec must be (ra,dec) tuple in units of degrees'
 
-    me = casautil.tools.measures()
     direction = me.direction('J2000', str(np.degrees(radec[0]))+'deg', str(np.degrees(radec[1]))+'deg')
 
     logger.debug('Calculating uvw at %s for (RA, Dec) = %s' % (datetime, radec))
