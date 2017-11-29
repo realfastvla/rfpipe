@@ -151,6 +151,8 @@ class State(object):
                         'overlap of {4:.1f} s'
                         .format(self.nsegment, "s"[not self.nsegment-1:],
                                 self.readints, self.t_segment, self.t_overlap))
+            logger.info('\t Searching {0} of {1} ints in scan'
+                        .format(self.searchints, self.metadata.nints))
             if ((self.t_overlap > self.t_segment/3.)
                and (self.t_overlap < self.t_segment)):
                 logger.info('\t\t Lots of segments needed, since Max DM sweep '
@@ -167,10 +169,14 @@ class State(object):
                             'subtraction will not work well.'
                             .format(self.inttime, self.fringetime))
 
-            logger.info('\t Downsampling in time/freq by {0}/{1}.'
-                        .format(self.prefs.read_tdownsample,
-                                self.prefs.read_fdownsample))
-            logger.info('\t Excluding ants {0}'.format(self.prefs.excludeants))
+            if (self.prefs.read_tdownsample > 1 or self.prefs.read_fdownsample > 1):
+                logger.info('\t Downsampling in time/freq by {0}/{1}.'
+                            .format(self.prefs.read_tdownsample,
+                                    self.prefs.read_fdownsample))
+            if len(self.prefs.excludeants):
+                logger.info('\t Excluding ants {0}'
+                            .format(self.prefs.excludeants))
+
             logger.info('\t Using pols {0}'.format(self.pols))
             if os.path.exists(self.gainfile):
                 logger.info('\t Found telcal file {0}'.format(self.gainfile))
@@ -180,14 +186,15 @@ class State(object):
 
             logger.info('')
 
-            logger.info('\t Search with {0} and threshold {1}.'
+            logger.info('\t Search with {0} with threshold {1} using {2} thread{3}.'
                         .format(self.prefs.searchtype,
-                                self.prefs.sigma_image1))
+                                self.prefs.sigma_image1, self.prefs.nthread,
+                                's'[not self.prefs.nthread-1:]))
             logger.info('\t Using {0} DMs from {1} to {2} and dts {3}.'
                         .format(len(self.dmarr), min(self.dmarr),
                                 max(self.dmarr), self.dtarr))
-            logger.info('\t Using uvgrid npix=({0}, {1}) and res={2}.'
-                        .format(self.npixx, self.npixy, self.uvres))
+            logger.info('\t Using uvgrid npix=({0}, {1}) and res={2} with {3} int chunks.'
+                        .format(self.npixx, self.npixy, self.uvres, self.chunksize))
             logger.info('\t Expect {0} thermal false positives per segment.'
                         .format(self.nfalse))
 
@@ -630,7 +637,9 @@ class State(object):
         """ Number of integrations searched
         """
 
-        return self.readints*self.nsegment
+        return self.readints + \
+        (self.readints - int(round(self.t_overlap/self.metadata.inttime))) * \
+        max(0, (self.nsegment-1))
 
     @property
     def datashape(self):
@@ -720,12 +729,21 @@ class State(object):
                           self.prefs.read_fdownsample))
 
     @property
+    def chunksize(self):
+        toGB = 8/1000**3   # number of complex64s to GB
+
+        if self.prefs.maximmem is not None:
+            return int(self.prefs.maximmem/(self.npixx*self.npixy*toGB))
+        else:
+            return self.readints
+
+    @property
     def immem(self):
         """ Memory required to create all images in a chunk of read integrations
         """
 
         toGB = 8/1000**3   # number of complex64s to GB
-        return (self.readints * self.npixx * self.npixy) * toGB
+        return (self.chunksize * self.npixx * self.npixy) * toGB
 
     @property
     def immem_limit(self):
@@ -734,7 +752,7 @@ class State(object):
         """
 
         toGB = 8/1000**3   # number of complex64s to GB
-        return ((self.t_overlap/self.inttime) * self.npixx * self.npixy) * toGB
+        return (min(self.chunksize, (self.t_overlap/self.inttime)) * self.npixx * self.npixy) * toGB
 
     @property
     def defined(self):

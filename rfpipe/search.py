@@ -225,18 +225,21 @@ def search_thresh(st, data, segment, dmind, dtind, integrations=None,
         return []
 
     # assumes dedispersed/resampled data has only back end trimmed off
+    print(type(integrations), integrations)
     if integrations is None:
         integrations = st.get_search_ints(segment, dmind, dtind)
     elif isinstance(integrations, int):
         integrations = [integrations]
 
     assert isinstance(integrations, list), "integrations should be int, list of ints, or None."
+    minint = min(integrations)
+    maxint = max(integrations)
 
-    logger.info('Imaging {0} ints in seg {1} at DM/dt {2}/{3} with image '
-                '{4}x{5} (uvres {6}) with mode {7}'
-                .format(len(integrations), segment, st.dmarr[dmind],
-                        st.dtarr[dtind], st.npixx, st.npixy, st.uvres,
-                        st.fftmode))
+    logger.info('Imaging {0} ints ({1}-{2}) in seg {3} at DM/dt {4}/{5} with '
+                'image {6}x{7} (uvres {8}) with mode {9}'
+                .format(len(integrations), minint, maxint, segment,
+                        st.dmarr[dmind], st.dtarr[dtind], st.npixx, st.npixy,
+                        st.uvres, st.fftmode))
 
     if 'image1' in st.prefs.searchtype:
         uvw = st.get_uvw_segment(segment)

@@ -54,7 +54,8 @@ class Preferences(object):
     nchunk = attr.ib(default=0)
 #    nsegment = attr.ib(default=0)
     segmenttimes = attr.ib(default=None)
-    memory_limit = attr.ib(default=32)
+    memory_limit = attr.ib(default=16)
+    maximmem = attr.ib(default=None)
 
     # search
     dmarr = attr.ib(default=None)
