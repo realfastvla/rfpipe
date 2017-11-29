@@ -268,7 +268,7 @@ class telcal_sol():
                     data[:,i,chans,pol-self.polind[0]] = data[:,i,chans,pol-self.polind[0]] * np.exp(-1j*delayrot[None, None, :])     # do rotation
 
 
-###
+### TODO
 ### Trying to clean up and put in functions. Not there yet...
 ###
 
@@ -338,18 +338,6 @@ def parseGN(telcalfile, onlycomplete=True, threshold=50):
     flagants(sols, threshold=threshold)
 
     return sols
-
-
-def flagants(sols, threshold=50):
-    """ Flags solutions with amplitude more than threshold larger than median.
-    """
-
-    # identify very low gain amps not already flagged
-    badsols = np.where( (np.median(sols['amp'])/sols['amp'] > threshold) & (sols['flagged'] == False))[0]
-    if len(badsols):
-        logger.info('Solutions %s flagged (times %s, ants %s, freqs %s) for low gain amplitude.' % (str(badsols), sols['mjd'][badsols], sols['antname'][badsols], sols['ifid'][badsols]))
-        for sol in badsols:
-            sols['flagged'][sol] = True
 
 
 def set_selection(sols, time, freqs, blarr, calname=None):
@@ -431,6 +419,18 @@ def apply(sols, data):
                 d1d2 = calcdelay(sols, ant1, ant2, skyfreq, pol)
                 delayrot = 2*np.pi*(d1d2[0] * 1e-9) * relfreq      # phase to rotate across band
                 data[:,i,chans,pol-sols['polind'][0]] = data[:,i,chans,pol-sols['polind'][0]] * np.exp(-1j*delayrot[None, None, :])     # do rotation
+
+
+def flagants(sols, threshold=50):
+    """ Flags solutions with amplitude more than threshold larger than median.
+    """
+
+    # identify very low gain amps not already flagged
+    badsols = np.where( (np.median(sols['amp'])/sols['amp'] > threshold) & (sols['flagged'] == False))[0]
+    if len(badsols):
+        logger.info('Solutions %s flagged (times %s, ants %s, freqs %s) for low gain amplitude.' % (str(badsols), sols['mjd'][badsols], sols['antname'][badsols], sols['ifid'][badsols]))
+        for sol in badsols:
+            sols['flagged'][sol] = True
 
 
 def calcgain(sols, ant1, ant2, skyfreq, pol):

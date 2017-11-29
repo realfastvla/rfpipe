@@ -343,7 +343,7 @@ def find_segment_times(state):
                          .format(state.nsegment, state.vismem, state.immem))
 
             scale_nsegment *= (state.vismem+state.immem)/float(state.prefs.memory_limit)
-            state._segmenttimes = util.calc_segment_times(state, scale_nsegment)
+            state._segmenttimes = calc_segment_times(state, scale_nsegment)
 
 
 def madtostd(array):

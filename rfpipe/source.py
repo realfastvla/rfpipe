@@ -28,12 +28,11 @@ def data_prep(st, data):
             if os.path.exists(st.gainfile):
                 data = calibration.apply_telcal(st, np.require(data, requirements='W'))
             else:
-                logger.warn('Telcal file not found. No calibration being applied.')
+                logger.warn('Telcal file not found. No calibration to apply.')
         else:
             logger.info('Not applying telcal solutions for simulated data')
 
         # TODO: update flagging from rtpipe dataflag
-        # changes memory in place, so need to force writability
         data = util.dataflag(st, np.require(data, requirements='W'))
 
         if st.prefs.timesub == 'mean':
