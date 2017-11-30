@@ -25,6 +25,21 @@ def apply_telcal(st, data, calname=None, sign=+1):
     return data
 
 
+def apply_telcal2(st, data, calname=None, sign=+1):
+    """ Wrap all telcal functions to parse telcal file and apply it to data
+    sign defines if calibration is applied (+1) or backed out (-1).
+    """
+
+    assert sign in [-1, +1], 'sign must be +1 or -1'
+
+    sols = parseGN(st.gainfile)
+    set_selection(sols, st.segmenttimes.mean(), st.freq*1e9, st.blarr,
+                  calname=calname)
+    apply(sols, data, sign=sign)
+
+    return data
+
+
 class telcal_sol():
     """ Instantiated with on telcalfile.
     Parses .GN file and provides tools for applying to data of shape (nints,
@@ -268,9 +283,7 @@ class telcal_sol():
                     data[:,i,chans,pol-self.polind[0]] = data[:,i,chans,pol-self.polind[0]] * np.exp(-1j*delayrot[None, None, :])     # do rotation
 
 
-### TODO
-### Trying to clean up and put in functions. Not there yet...
-###
+### Functional form
 
 
 def parseGN(telcalfile, onlycomplete=True, threshold=50):
@@ -333,7 +346,7 @@ def parseGN(telcalfile, onlycomplete=True, threshold=50):
             'flagged': flagged, 'zeroed': zeroed, 'ha': ha, 'az': az, 'el': el, 'source': source,
             'complete': complete}
 
-    sols['antnum'] = np.array([aa.lstrip('ea') for aa in antname]) # cut the 'ea' from start of antenna string to get integer
+    sols['antnum'] = np.array([int(aa.lstrip('ea')) for aa in antname]) # cut the 'ea' from start of antenna string to get integer
 
     flagants(sols, threshold=threshold)
 
@@ -398,8 +411,9 @@ def set_selection(sols, time, freqs, blarr, calname=None):
     logger.debug('Ants: %s' % str(np.unique(sols['antname'][sols['select']])))
 
 
-def apply(sols, data):
+apply(sols, data, sign=1):
     """ Applies calibration solution to data array. Assumes structure of (nint, nbl, nch, npol).
+        Sign defines direction of calibration solution. +1 is correcting, -1 will corrupt.
     """
 
     # find best skyfreq for each channel
@@ -422,11 +436,11 @@ def apply(sols, data):
             ant1, ant2 = sols['blarr'][i]  # ant numbers (1-based)
             for pol in sols['polind']:
                 # apply gain correction
-                invg1g2 = calcgain(sols, ant1, ant2, skyfreq, pol)
+                invg1g2 = sign*calcgain(sols, ant1, ant2, skyfreq, pol)
                 data[:,i,chans,pol-sols['polind'][0]] = data[:,i,chans,pol-sols['polind'][0]] * invg1g2    # hack: lousy data pol indexing
 
                 # apply delay correction
-                d1d2 = calcdelay(sols, ant1, ant2, skyfreq, pol)
+                d1d2 = sign*calcdelay(sols, ant1, ant2, skyfreq, pol)
                 delayrot = 2*np.pi*(d1d2[0] * 1e-9) * relfreq      # phase to rotate across band
                 data[:,i,chans,pol-sols['polind'][0]] = data[:,i,chans,pol-sols['polind'][0]] * np.exp(-1j*delayrot[None, None, :])     # do rotation
 
@@ -455,8 +469,9 @@ def calcgain(sols, ant1, ant2, skyfreq, pol):
         g1 = sols['amp'][select][ind1]*np.exp(1j*np.radians(sols['phase'][select][ind1])) * (not sols['flagged'].astype(int)[select][ind1][0])
         g2 = sols['amp'][select][ind2]*np.exp(-1j*np.radians(sols['phase'][select][ind2])) * (not sols['flagged'].astype(int)[select][ind2][0])
     else:
-        g1 = [0]; g2 = [0]
-        
+        g1 = [0]
+        g2 = [0]
+
     try:
         assert (g1[0] != 0j) and (g2[0] != 0j)
         invg1g2 = 1./(g1[0]*g2[0])
@@ -471,7 +486,7 @@ def calcdelay(sols, ant1, ant2, skyfreq, pol):
     """
 
     select = sols['select'][np.where( (sols['skyfreq'][sols['select']] == skyfreq) & (sols['polarization'][sols['select']] == pol) )[0]]
-    
+
     ind1 = np.where(ant1 == sols['antnum'][select])
     ind2 = np.where(ant2 == sols['antnum'][select])
     d1 = sols['delay'][select][ind1]

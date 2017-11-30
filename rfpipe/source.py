@@ -22,7 +22,7 @@ def data_prep(st, data):
 
     mode = 'single' if st.prefs.nthread == 1 else 'multi'
 
-    # ** need to make this portable or at least reimplement in rfpipe
+    # TODO: allow parallel execution with apply_telcal2
     if np.any(data):
         if st.metadata.datasource != 'sim':
             if os.path.exists(st.gainfile):
