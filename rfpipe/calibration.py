@@ -328,12 +328,12 @@ def parseGN(telcalfile, onlycomplete=True, threshold=50):
     else:
         complete = np.arange(len(mjd))
 
-    antnum = np.array([aa.lstrip('ea') for aa in antname]) # cut the 'ea' from start of antenna string to get integer
-
     sols = {'mjd': mjd, 'utc': utc, 'lstd': lstd, 'lsts': lsts, 'ifid': ifid, 'skyfreq': skyfreq,
             'antname': antname, 'amp': amp, 'phase': phase, 'residual': residual, 'delay': delay,
             'flagged': flagged, 'zeroed': zeroed, 'ha': ha, 'az': az, 'el': el, 'source': source,
             'complete': complete}
+
+    sols['antnum'] = np.array([aa.lstrip('ea') for aa in antname]) # cut the 'ea' from start of antenna string to get integer
 
     flagants(sols, threshold=threshold)
 
@@ -352,6 +352,16 @@ def set_selection(sols, time, freqs, blarr, calname=None):
     sols['chansize'] = freqs[1]-freqs[0]
     sols['select'] = sols['complete']   # use only complete solution sets (set during parse)
     sols['blarr'] = blarr
+
+    # assumes dual pol
+    sols['polind'] = [0, 1]
+
+    sols['polarization'] = np.empty(len(sols['ifid']))
+    for i in range(len(sols['ifid'])):
+        if ('A' in sols['ifid'][i]) or ('B' in sols['ifid'][i]):
+            sols['polarization'][i] = 0
+        elif ('C' in sols['ifid'][i]) or ('D' in sols['ifid'][i]):
+            sols['polarization'][i] = 1
 
     if calname:
         nameselect = []
