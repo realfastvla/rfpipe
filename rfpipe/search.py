@@ -263,8 +263,8 @@ def search_thresh(st, data, uvw, segment, dmind, dtind, integrations=None,
 #                logger.info("phasing data from: {0}, {1}"
 #                            .format(max(0, i-st.prefs.timewindow//2),
 #                                    min(i+st.prefs.timewindow//2, len(data))))
-                dataph = data[max(0, i-st.prefs.timewindow//2):
-                              min(i+st.prefs.timewindow//2, len(data))].mean(axis=1)
+                dataph = data[max(0, integrations[i]-st.prefs.timewindow//2):
+                              min(integrations[i]+st.prefs.timewindow//2, len(data))].mean(axis=1)
                 util.phase_shift(data, uvw, -l, -m)
                 canddatalist.append(candidates.CandData(state=st, loc=candloc,
                                                         image=candim, data=dataph))
