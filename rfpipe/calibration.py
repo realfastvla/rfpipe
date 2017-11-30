@@ -411,7 +411,7 @@ def set_selection(sols, time, freqs, blarr, calname=None):
     logger.debug('Ants: %s' % str(np.unique(sols['antname'][sols['select']])))
 
 
-apply(sols, data, sign=1):
+def apply(sols, data, sign=1):
     """ Applies calibration solution to data array. Assumes structure of (nint, nbl, nch, npol).
         Sign defines direction of calibration solution. +1 is correcting, -1 will corrupt.
     """
