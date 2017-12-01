@@ -19,7 +19,15 @@ def oldcands_read(candsfile, sdmscan=None):
 
     with open(candsfile, 'rb') as pkl:
         d = pickle.load(pkl)
-        loc, prop = pickle.load(pkl)
+        ret = pickle.load(pkl)
+        if isinstance(ret, tuple):
+            loc, prop = ret
+        elif isinstance(ret, dict):
+            loc = np.array(ret.keys())
+            prop = np.array(ret.values())
+        else:
+            logger.warn("Not sure what we've got in this here cands pkl file...")
+
 
     if not sdmscan and 'scan' in d['featureind']:
         scanind = d['featureind'].index('scan')
@@ -49,7 +57,14 @@ def oldcands_readone(candsfile, scan=None):
 
     with open(candsfile, 'rb') as pkl:
         d = pickle.load(pkl)
-        loc, prop = pickle.load(pkl)
+        ret = pickle.load(pkl)
+        if isinstance(ret, tuple):
+            loc, prop = ret
+        elif isinstance(ret, dict):
+            loc = np.array(ret.keys())
+            prop = np.array(ret.values())
+        else:
+            logger.warn("Not sure what we've got in this here cands pkl file...")
 
     # detect merged vs nonmerged
     if 'scan' in d['featureind']:
