@@ -704,7 +704,7 @@ class State(object):
         toGB = 8/1000**3   # number of complex64s to GB
 
         if self.prefs.maximmem is not None:
-            return int(self.prefs.maximmem/(self.npixx*self.npixy*toGB))
+            return max(1, int(self.prefs.maximmem/(self.npixx*self.npixy*toGB)))
         else:
             return self.readints
 
