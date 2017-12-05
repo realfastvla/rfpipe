@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 qa = casautil.tools.quanta()
-default_timeout = 10
+default_timeout = 10  # multiple of read time in seconds to wait
 
 
 def data_prep(st, data):
@@ -149,6 +149,7 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout):
     """ Read segment seg defined by state st from vys stream.
     Uses vysmaw application timefilter to receive multicast messages and pull
     spectra on the CBE.
+    timeout is a multiple of read time in seconds to wait.
     """
 
     # TODO: support for time downsampling

@@ -366,16 +366,22 @@ def image_fftw(grids, nthread=1, wisdom=None):
 
     logger.debug("Starting pyfftw ifft2")
 
-    images = pyfftw.interfaces.numpy_fft.ifft2(grids, auto_align_input=True,
-                                               auto_contiguous=True,
-                                               planner_effort='FFTW_MEASURE',
-                                               overwrite_input=True,
-                                               threads=nthread)
+#    images = pyfftw.interfaces.numpy_fft.ifft2(grids, auto_align_input=True,
+#                                               auto_contiguous=True,
+#                                               planner_effort='FFTW_MEASURE',
+#                                               overwrite_input=True,
+#                                               threads=nthread)
+#    nints, npixx, npixy = images.shape
+#
+#   return recenter(images.real, (npixx//2, npixy//2))
 
-    nints, npixx, npixy = images.shape
+    fft_obj = pyfftw.FFTW(grids, grids, axes=(1, 2), direction="FFTW_BACKWARD")
+    fft_obj.execute()
+    nints, npixx, npixy = grids.shape
+
     logger.debug('Recentering fft\'d images...')
 
-    return recenter(images.real, (npixx//2, npixy//2))
+    return recenter(grids.real, (npixx//2, npixy//2))
 
 
 def grid_visibilities(data, uvw, npixx, npixy, uvres, mode='single'):

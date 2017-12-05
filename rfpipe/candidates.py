@@ -7,6 +7,8 @@ import pickle
 import os
 import numpy as np
 from collections import OrderedDict
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from rfpipe import util, version, fileLock, state
 
