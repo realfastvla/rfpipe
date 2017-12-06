@@ -37,7 +37,7 @@ class CandData(object):
                                                           "the st.search_dimensions")
 
     def __repr__(self):
-        return 'CandData for state {0} at loc {1}'.format(self.state, self.loc)
+        return 'CandData for scanId {0} at loc {1}'.format(self.state.metadata.scanId, self.loc)
 
     @property
     def peak_lm(self):
@@ -177,8 +177,8 @@ def calc_features(canddatalist):
 
     # TODO: generate dtype from st.features
     st = canddatalist[0].state
-    dtype= zip(st.search_dimensions + st.features,
-               len(st.search_dimensions)*['<i4'] + len(st.features)*['<f4'])
+    dtype = zip(st.search_dimensions + st.features,
+                len(st.search_dimensions)*['<i4'] + len(st.features)*['<f4'])
     features = np.zeros(len(canddatalist), dtype=dtype)
 
     for i in xrange(len(canddatalist)):
@@ -194,6 +194,7 @@ def calc_features(canddatalist):
         for feat in st.features:
             if feat == 'snr1':
                 imstd = util.madtostd(image)
+                logger.info('{0} {1}'.format(image.shape, imstd))
                 snrmax = image.max()/imstd
                 snrmin = image.min()/imstd
                 snr = snrmax if snrmax >= snrmin else snrmin
@@ -725,11 +726,11 @@ def source_location(pt_ra, pt_dec, l1, m1):
     return deg2HMS(srcra, srcdec)
 
 
-def deg2HMS(ra='', dec='', round=False):
+def deg2HMS(ra=None, dec=None, round=False):
     """ quick and dirty coord conversion. googled to find bdnyc.org.
     """
     RA, DEC, rs, ds = '', '', '', ''
-    if dec:
+    if dec is not None:
         if str(dec)[0] == '-':
             ds, dec = '-', abs(dec)
         deg = int(dec)
@@ -740,7 +741,7 @@ def deg2HMS(ra='', dec='', round=False):
             decS = (abs((dec-deg)*60)-decM)*60
         DEC = '{0}{1} {2} {3}'.format(ds, deg, decM, decS)
 
-    if ra:
+    if ra is not None:
         if str(ra)[0] == '-':
             rs, ra = '-', abs(ra)
         raH = int(ra/15)
@@ -751,7 +752,7 @@ def deg2HMS(ra='', dec='', round=False):
             raS = ((((ra/15)-raH)*60)-raM)*60
         RA = '{0}{1} {2} {3}'.format(rs, raH, raM, raS)
 
-    if ra and dec:
+    if ra is not None and dec is not None:
         return (RA, DEC)
     else:
         return RA or DEC

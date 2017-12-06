@@ -776,7 +776,7 @@ def state_vystest(wait, catch, scantime=0, preffile=None, **kwargs):
     t0 = (time.Time.now()+dt).mjd
     meta['starttime_mjd'] = t0
     meta['stopime_mjd'] = t0+onesec*catch
-    meta['antids'] = ['ea{0}'.format(i) for i in range(1,26)]  # fixed for scan_config test docs
+    meta['antids'] = ['ea{0}'.format(i) for i in range(1, 26)]  # fixed for scan_config test docs
 
     # read example scan configuration
     config = scan_config.ScanConfig(vci=os.path.join(_install_dir, 'data/vci.xml'),

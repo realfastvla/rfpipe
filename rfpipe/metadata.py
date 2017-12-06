@@ -281,8 +281,6 @@ def mock_metadata(t0, t1, nants, nspw, npol, inttime_micros,
     meta['scan'] = 1
     meta['subscan'] = 1
     meta['bdfdir'] = ''
-#    meta['configid'] = 0
-#    meta['bdfstr'] = ''
 
     meta['starttime_mjd'] = t0
     meta['endtime_mjd_'] = t1
@@ -326,7 +324,10 @@ def mock_metadata(t0, t1, nants, nspw, npol, inttime_micros,
                            3.256E9, 3.384E9][:nspw]
     meta['spw_chansize'] = [4000000]*8
     meta['spw_nchan'] = [32]*nspw
-    meta['pols_orig'] = ['RR', 'LL', 'RL', 'LR'][:npol]
+    meta['pols_orig'] = ['A*A', 'B*B', 'A*B', 'B*A'][:npol]
+    meta['spworder'] = sorted([('{0}-{1}'.format('A1C1', sbid),
+                                meta['spw_reffreq'][sbid])
+                               for sbid in range(nspw)], key=lambda x: x[1])
 
     return meta
 
