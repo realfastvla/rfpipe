@@ -79,6 +79,7 @@ def oldcands_readone(candsfile, scan=None):
     inprefs = preferences.oldstate_preferences(d, scan=scan)
     inprefs.pop('gainfile')
     inprefs.pop('workdir')
+    inprefs.pop('fileroot')
     sdmfile = os.path.basename(d['filename'])
 
     try:
@@ -112,6 +113,15 @@ def oldcands_readone(candsfile, scan=None):
     cc = candidates.CandCollection(features, st.prefs, st.metadata)
 
     return st, cc
+
+
+def convert_candsfile(candsfile):
+    """ Take old style candsfile for a single scan and writes new style file.
+    """
+
+    st, cc = oldcands_readone(candsfile)
+    with open(st.candsfile, 'w') as pkl:
+        pickle.dump(cc, pkl)
 
 
 def pipeline_dataprep(st, candloc):
