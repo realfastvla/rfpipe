@@ -179,11 +179,11 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout):
     spwlist = list(zip(*st.metadata.spworder)[0])  # list of strings ["bb-spw"] in increasing freq order
     bbsplist = ['{0}-{1}'.format(bbmap_standard.index(spw.split('-')[0]), spw.split('-')[1]) for spw in spwlist]
 
-    with vysmaw_reader.Reader(t0, t1, cfile=cfile, timeout=timeout) as reader:
-        data[:] = reader.readwindow(antlist=antlist, bbsplist=bbsplist,
-                                    nchan=st.metadata.spw_nchan[0],
-                                    pollist=pollist,
-                                    inttime_micros=st.metadata.inttime*1e6)
+    with vysmaw_reader.Reader(t0, t1, antlist=antlist, bbsplist=bbsplist,
+                              nchan=st.metadata.spw_nchan[0], pollist=pollist,
+                              inttime_micros=st.metadata.inttime*1e6,
+                              cfile=cfile, timeout=timeout) as reader:
+        data[:] = reader.readwindow()
 
     return data
 
