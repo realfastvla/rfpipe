@@ -141,8 +141,8 @@ def _parsepref_old(preffile):
     """
 
     pars = {}
-    with open(preffile, 'r') as f:
-        for line in f.readlines():
+    with open(preffile, 'r') as fp:
+        for line in fp.readlines():
             # trim out comments and trailing cr
             line_clean = line.rstrip('\n').split('#')[0]
             if line_clean and '=' in line:   # use valid lines only
@@ -163,8 +163,9 @@ def _parsepref_yaml(preffile, name=None):
 
     name = 'default' if not name else name
 
-    yamlpars = yaml.load(open(preffile, 'r'))
-    pars = yamlpars['rfpipe'][name]
+    with open(preffile, 'r') as fp:
+        yamlpars = yaml.load(fp)
+        pars = yamlpars['rfpipe'][name]
 
     return pars
 
