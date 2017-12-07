@@ -268,7 +268,7 @@ def iter_cands(candsfile):
     for each segment.
     """
 
-    with open(candsfile) as pkl:
+    with open(candsfile, 'rb') as pkl:
         while True:  # step through all possible segments
             try:
                 candcollection = pickle.load(pkl)

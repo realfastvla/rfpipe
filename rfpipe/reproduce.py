@@ -103,7 +103,7 @@ def oldcands_readone(candsfile, scan=None):
     logger.info('Calculating candidate properties for scan {0}'.format(scan))
 
     if locind0 == 1:
-        loc = loc[np.where(loc[:, 0] == scan)][:,locind0:]
+        loc = loc[np.where(loc[:, 0] == scan)][:, locind0:]
 
     dtype = zip(st.search_dimensions + st.features,
                 len(st.search_dimensions)*['<i4'] + len(st.features)*['<f4'])
@@ -115,12 +115,12 @@ def oldcands_readone(candsfile, scan=None):
     return st, cc
 
 
-def convert_candsfile(candsfile):
+def oldcands_convert(candsfile, scan=None):
     """ Take old style candsfile for a single scan and writes new style file.
     """
 
-    st, cc = oldcands_readone(candsfile)
-    with open(st.candsfile, 'w') as pkl:
+    st, cc = oldcands_readone(candsfile, scan=scan)
+    with open(st.candsfile, 'wb') as pkl:
         pickle.dump(cc, pkl)
 
 
