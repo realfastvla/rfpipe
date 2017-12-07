@@ -78,6 +78,7 @@ def oldcands_readone(candsfile, scan=None):
 
     inprefs = preferences.oldstate_preferences(d, scan=scan)
     inprefs.pop('gainfile')
+    inprefs.pop('workdir')
     sdmfile = os.path.basename(d['filename'])
 
     try:

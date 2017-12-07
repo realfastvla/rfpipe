@@ -162,28 +162,29 @@ class telcal_sol():
         #flagreason = []
 
         i = 0
-        for line in open(telcalfile,'r'):
+        with open(telcalfile, 'r') as fp:
+            for line in fp:
 
-            fields = line.split()
-            if i < skip:
-                i += 1
-                continue
+                fields = line.split()
+                if i < skip:
+                    i += 1
+                    continue
 
-            if ('NO_ANTSOL_SOLUTIONS_FOUND' in line):
-                # keep ERROR solutions now that flagging works
-                continue
+                if ('NO_ANTSOL_SOLUTIONS_FOUND' in line):
+                    # keep ERROR solutions now that flagging works
+                    continue
 
-            try:
-                mjd.append(float(fields[MJD])); utc.append(fields[UTC]); lstd.append(float(fields[LSTD])); lsts.append(fields[LSTS])
-                ifid.append(fields[IFID]); skyfreq.append(float(fields[SKYFREQ])); antname.append(fields[ANT])
-                amp.append(float(fields[AMP])); phase.append(float(fields[PHASE])); residual.append(float(fields[RESIDUAL]))
-                delay.append(float(fields[DELAY])); flagged.append('true' == (fields[FLAGGED]))
-                zeroed.append('true' == (fields[ZEROED])); ha.append(float(fields[HA])); az.append(float(fields[AZ]))
-                el.append(float(fields[EL])); source.append(fields[SOURCE])
-#                flagreason.append('')  # 18th field not yet implemented
-            except ValueError:
-                self.logger.warn('Trouble parsing line of telcal file. Skipping.')
-                continue
+                try:
+                    mjd.append(float(fields[MJD])); utc.append(fields[UTC]); lstd.append(float(fields[LSTD])); lsts.append(fields[LSTS])
+                    ifid.append(fields[IFID]); skyfreq.append(float(fields[SKYFREQ])); antname.append(fields[ANT])
+                    amp.append(float(fields[AMP])); phase.append(float(fields[PHASE])); residual.append(float(fields[RESIDUAL]))
+                    delay.append(float(fields[DELAY])); flagged.append('true' == (fields[FLAGGED]))
+                    zeroed.append('true' == (fields[ZEROED])); ha.append(float(fields[HA])); az.append(float(fields[AZ]))
+                    el.append(float(fields[EL])); source.append(fields[SOURCE])
+#                   flagreason.append('')  # 18th field not yet implemented
+                except ValueError:
+                    self.logger.warn('Trouble parsing line of telcal file. Skipping.')
+                    continue
 
         self.mjd = np.array(mjd); self.utc = np.array(utc); self.lstd = np.array(lstd); self.lsts = np.array(lsts)
         self.ifid = np.array(ifid); self.skyfreq = np.array(skyfreq); self.antname = np.array(antname); self.amp = np.array(amp) 
@@ -303,24 +304,25 @@ def parseGN(telcalfile, onlycomplete=True, threshold=50):
     #flagreason = []
 
     i = 0
-    for line in open(telcalfile,'r'):
+    with open(telcalfile, 'r') as fp:
+        for line in fp:
 
-        fields = line.split()
-        if i < skip:
-            i += 1
-            continue
+            fields = line.split()
+            if i < skip:
+                i += 1
+                continue
 
-        try:
-            mjd.append(float(fields[MJD])); utc.append(fields[UTC]); lstd.append(float(fields[LSTD])); lsts.append(fields[LSTS])
-            ifid.append(fields[IFID]); skyfreq.append(float(fields[SKYFREQ])); antname.append(fields[ANT])
-            amp.append(float(fields[AMP])); phase.append(float(fields[PHASE])); residual.append(float(fields[RESIDUAL]))
-            delay.append(float(fields[DELAY])); flagged.append('true' == (fields[FLAGGED]))
-            zeroed.append('true' == (fields[ZEROED])); ha.append(float(fields[HA])); az.append(float(fields[AZ]))
-            el.append(float(fields[EL])); source.append(fields[SOURCE])
-#            flagreasonp.append('')  # 18th field not yet implemented
-        except ValueError:
-            logger.warn('Trouble parsing line of telcal file. Skipping.')
-            continue
+            try:
+                mjd.append(float(fields[MJD])); utc.append(fields[UTC]); lstd.append(float(fields[LSTD])); lsts.append(fields[LSTS])
+                ifid.append(fields[IFID]); skyfreq.append(float(fields[SKYFREQ])); antname.append(fields[ANT])
+                amp.append(float(fields[AMP])); phase.append(float(fields[PHASE])); residual.append(float(fields[RESIDUAL]))
+                delay.append(float(fields[DELAY])); flagged.append('true' == (fields[FLAGGED]))
+                zeroed.append('true' == (fields[ZEROED])); ha.append(float(fields[HA])); az.append(float(fields[AZ]))
+                el.append(float(fields[EL])); source.append(fields[SOURCE])
+#                flagreasonp.append('')  # 18th field not yet implemented
+            except ValueError:
+                logger.warn('Trouble parsing line of telcal file. Skipping.')
+                continue
 
     mjd = np.array(mjd); utc = np.array(utc); lstd = np.array(lstd); lsts = np.array(lsts)
     ifid = np.array(ifid); skyfreq = np.array(skyfreq); antname = np.array(antname); amp = np.array(amp) 
