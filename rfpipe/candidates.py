@@ -12,6 +12,10 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from rfpipe import util, version, fileLock, state
+from bokeh.plotting import ColumnDataSource, Figure, save
+from bokeh.models import HoverTool
+from bokeh.models import Row
+from collections import OrderedDict
 
 import logging
 logger = logging.getLogger(__name__)
@@ -278,6 +282,154 @@ def iter_cands(candsfile):
             except EOFError:
                 logger.info('No more CandCollections.')
                 break
+
+### bokeh summary plot 
+
+def makesummaryplot(candsfile):
+    """ Given a scan's candsfile, read all candcollections and create bokeh summary plot
+    """
+
+    # TODO: compile over all iterations over segments
+    for cc in iter_cands(candsfile):
+        time = cc.candmjd - cc.candmjd.min()
+        segment = cc.array['segment']
+        integration = cc.array['integration']
+        dmind = cc.array['dmind']
+        dtind = cc.array['dtind']
+        snr = cc.array['snr1']
+        dm = cc.canddm
+        dt = cc.canddt
+        l1 = cc.array['l1']
+        m1 = cc.array['m1']
+
+    keys = ['seg{1}-i{2}-dm{3}-dt{4}'.format(segment[i], integration[i],
+                                             dmind[i], dtind[i])
+            for i in range(len(segment))]
+    sizes = calcsize(snr)
+    colors = colorsat(l1, m1)
+    data = dict(snrs=snr, dm=dm, l1=l1, m1=m1, time=time, sizes=sizes,
+                colors=colors, keys=keys)
+
+    dmt = plotdmt(data)
+    loc = plotloc(data)
+    combined = Row(dmt, loc, width=950)
+
+    htmlfile = candsfile.rstrip('.pkl')+'.html'
+    save(combined, filename=htmlfile)
+
+
+def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
+            tools="hover,tap,pan,box_select,wheel_zoom,reset", plot_width=450,
+            plot_height=400):
+    """ Make a light-weight dm-time figure """
+
+    fields = ['dm', 'time', 'sizes', 'colors', 'snrs', 'key']
+
+    if not circleinds: circleinds = range(len(data['snrs']))
+
+    # set ranges
+    datalen = len(data['dm'])
+    inds = circleinds + crossinds + edgeinds
+    dm = [data['dm'][i] for i in inds]
+    dm_min = min(min(dm), max(dm)/1.2)
+    dm_max = max(max(dm), min(dm)*1.2)
+    time = [data['time'][i] for i in inds]
+    time_min = min(time)
+    time_max = max(time)
+
+    source = ColumnDataSource(data = dict({(key, tuple([value[i] for i in circleinds if i not in edgeinds])) 
+                                           for (key, value) in data.iteritems() if key in fields}))
+    dmt = Figure(plot_width=plot_width, plot_height=plot_height, toolbar_location="left", x_axis_label='Time (s; relative)',
+                 y_axis_label='DM (pc/cm3)', x_range=(time_min, time_max), y_range=(dm_min, dm_max), 
+                 output_backend='webgl', tools=tools)
+    dmt.circle('time', 'dm', size='sizes', fill_color='colors', line_color=None, fill_alpha=0.2, source=source)
+
+    if crossinds:
+        sourceneg = ColumnDataSource(data = dict({(key, tuple([value[i] for i in crossinds]))
+                                                  for (key, value) in data.iteritems() if key in fields}))
+        dmt.cross('time', 'dm', size='sizes', fill_color='colors', line_alpha=0.3, source=sourceneg)
+
+    if edgeinds:
+        sourceedge = ColumnDataSource(data = dict({(key, tuple([value[i] for i in edgeinds]))
+                                                   for (key, value) in data.iteritems() if key in fields}))
+        dmt.circle('time', 'dm', size='sizes', line_color='colors', fill_color='colors', line_alpha=0.5, fill_alpha=0.2, source=sourceedge)
+    hover = dmt.select(dict(type=HoverTool))
+    hover.tooltips = OrderedDict([('SNR', '@snrs'), ('key', '@key')])
+
+    return dmt
+
+
+def plotloc(data, circleinds=[], crossinds=[], edgeinds=[],
+            tools="hover,tap,pan,box_select,wheel_zoom,reset", plot_width=450, plot_height=400):
+    """ Make a light-weight loc figure """
+
+    fields = ['l1', 'm1', 'sizes', 'colors', 'snrs', 'key']
+
+    if not circleinds: circleinds = range(len(data['snrs']))
+
+    # set ranges
+    datalen = len(data['dm'])
+    inds = circleinds + crossinds + edgeinds
+    l1 = [data['l1'][i] for i in inds]
+    l1_min = min(l1)
+    l1_max = max(l1)
+    m1 = [data['m1'][i] for i in inds]
+    m1_min = min(m1)
+    m1_max = max(m1)
+
+    source = ColumnDataSource(data = dict({(key, tuple([value[i] for i in circleinds if i not in edgeinds])) 
+                                           for (key, value) in data.iteritems() if key in fields}))
+    loc = Figure(plot_width=plot_width, plot_height=plot_height, toolbar_location="left", x_axis_label='l1 (rad)', y_axis_label='m1 (rad)',
+                 x_range=(l1_min, l1_max), y_range=(m1_min,m1_max), tools=tools, output_backend='webgl')
+    loc.circle('l1', 'm1', size='sizes', line_color=None, fill_color='colors', fill_alpha=0.2, source=source)
+
+    if crossinds:
+        sourceneg = ColumnDataSource(data = dict({(key, tuple([value[i] for i in crossinds]))
+                                                  for (key, value) in data.iteritems() if key in fields}))
+        loc.cross('l1', 'm1', size='sizes', line_color='colors', line_alpha=0.3, source=sourceneg)
+
+    if edgeinds:
+        sourceedge = ColumnDataSource(data = dict({(key, tuple([value[i] for i in edgeinds]))
+                                                   for (key, value) in data.iteritems() if key in fields}))
+        loc.circle('l1', 'm1', size='sizes', line_color='colors', fill_color='colors', source=sourceedge, line_alpha=0.5, fill_alpha=0.2)
+
+    hover = loc.select(dict(type=HoverTool))
+    hover.tooltips = OrderedDict([('SNR', '@snrs'), ('key', '@key')])
+
+    return loc
+
+
+def calcsize(values, sizerange=(2, 70), inds=None, plaw=3):
+    """ Use set of values to calculate symbol size.
+
+    values is a list of floats for candidate significance.
+    inds is an optional list of indexes to use to calculate symbol size.
+    Scaling of symbol size min max set by sizerange tuple (min, max).
+    plaw is powerlaw scaling of symbol size from values
+    """
+
+    if inds:
+        smax = max([abs(values[i]) for i in inds])
+        smin = min([abs(values[i]) for i in inds])
+    else:
+        smax = max([abs(val) for val in values])
+        smin = min([abs(val) for val in values])
+    return [sizerange[0] + sizerange[1] * ((abs(val) - smin)/(smax - smin))**plaw for val in values]
+
+
+def colorsat(l, m):
+    """ Returns color for given l,m
+    Designed to look like a color wheel that is more saturated in middle.
+    """
+
+    lm = np.zeros(len(l), dtype='complex')
+    lm.real = l
+    lm.imag = m
+    red = 0.5*(1+np.cos(np.angle(lm)))
+    green = 0.5*(1+np.cos(np.angle(lm) + 2*3.14/3))
+    blue = 0.5*(1+np.cos(np.angle(lm) - 2*3.14/3))
+    amp = 256*np.abs(lm)/np.abs(lm).max()
+    return ["#%02x%02x%02x" % (np.floor(amp[i]*red[i]), np.floor(amp[i]*green[i]), np.floor(amp[i]*blue[i])) for i in range(len(l))]
 
 
 def candplot(canddatalist, snrs=[], outname=''):
