@@ -254,7 +254,7 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
                                          .split(' '))
                          if pol in ['XX', 'YY', 'XY', 'YX',
                                     'RR', 'LL', 'RL', 'LR',
-                                    'A*A', 'B*B', 'A*B', 'B*A']]
+                                    'A*A', 'A*B', 'B*A', 'B*B']]
     meta['spworder'] = sorted(zip(['{0}-{1}'.format(spw.swbb.rstrip('_8BIT'),
                                                     spw.sw-1)
                                    for spw in scanobj.bdf.spws],
@@ -324,7 +324,7 @@ def mock_metadata(t0, t1, nants, nspw, npol, inttime_micros,
                            3.256E9, 3.384E9][:nspw]
     meta['spw_chansize'] = [4000000]*8
     meta['spw_nchan'] = [32]*nspw
-    meta['pols_orig'] = ['A*A', 'B*B', 'A*B', 'B*A'][:npol]
+    meta['pols_orig'] = ['A*A', 'A*B', 'B*A', 'B*B'][:npol]
     meta['spworder'] = sorted([('{0}-{1}'.format('A1C1', sbid),
                                 meta['spw_reffreq'][sbid])
                                for sbid in range(nspw)], key=lambda x: x[1])
