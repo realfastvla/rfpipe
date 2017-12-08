@@ -10,6 +10,7 @@ from collections import OrderedDict
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_agg import FigureCanvasAgg
 from rfpipe import util, version, fileLock, state
 
 import logging
@@ -707,7 +708,6 @@ def candplot(canddatalist, snrs=[], outname=''):
                                            dmind, dtind))
 
         try:
-            from matplotlib.backends.backend_agg import FigureCanvasAgg
             canvas = FigureCanvasAgg(fig)
             canvas.print_figure(outname)
         except ValueError:
