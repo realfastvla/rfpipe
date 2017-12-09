@@ -302,7 +302,7 @@ def makesummaryplot(candsfile):
         l1 = cc.array['l1']
         m1 = cc.array['m1']
 
-    keys = ['seg{1}-i{2}-dm{3}-dt{4}'.format(segment[i], integration[i],
+    keys = ['seg{0}-i{1}-dm{2}-dt{3}'.format(segment[i], integration[i],
                                              dmind[i], dtind[i])
             for i in range(len(segment))]
     sizes = calcsize(snr)
@@ -310,22 +310,28 @@ def makesummaryplot(candsfile):
     data = dict(snrs=snr, dm=dm, l1=l1, m1=m1, time=time, sizes=sizes,
                 colors=colors, keys=keys)
 
-    dmt = plotdmt(data)
-    loc = plotloc(data)
+    circleinds = calcinds(data, cc.prefs.sigma_image1)
+    crossinds = calcinds(data, -1*cc.prefs.sigma_image1)
+    edgeinds = calcinds(data, cc.prefs.sigma_plot)
+
+    dmt = plotdmt(data, circleinds=circleinds, crossinds=crossinds,
+                  edgeinds=edgeinds)
+    loc = plotloc(data, circleinds=circleinds, crossinds=crossinds,
+                  edgeinds=edgeinds)
     combined = Row(dmt, loc, width=950)
 
-    htmlfile = candsfile.rstrip('.pkl')+'.html'
+    htmlfile = candsfile.replace('.pkl', '.html')
     save(combined, filename=htmlfile)
 
 
 def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
-            tools="hover,tap,pan,box_select,wheel_zoom,reset", plot_width=450,
+            tools="hover,pan,box_select,wheel_zoom,reset", plot_width=450,
             plot_height=400):
     """ Make a light-weight dm-time figure """
 
-    fields = ['dm', 'time', 'sizes', 'colors', 'snrs', 'key']
+    fields = ['dm', 'time', 'sizes', 'colors', 'snrs', 'keys']
 
-    if not circleinds: circleinds = range(len(data['snrs']))
+    if not circleinds: circleinds = list(range(len(data['snrs'])))
 
     # set ranges
     datalen = len(data['dm'])
@@ -337,35 +343,42 @@ def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
     time_min = min(time)
     time_max = max(time)
 
-    source = ColumnDataSource(data = dict({(key, tuple([value[i] for i in circleinds if i not in edgeinds])) 
-                                           for (key, value) in data.iteritems() if key in fields}))
-    dmt = Figure(plot_width=plot_width, plot_height=plot_height, toolbar_location="left", x_axis_label='Time (s; relative)',
-                 y_axis_label='DM (pc/cm3)', x_range=(time_min, time_max), y_range=(dm_min, dm_max), 
+    source = ColumnDataSource(data=dict({(key, tuple([value[i] for i in circleinds if i not in edgeinds]))
+                                        for (key, value) in data.iteritems() if key in fields}))
+    dmt = Figure(plot_width=plot_width, plot_height=plot_height,
+                 toolbar_location="left", x_axis_label='Time (s; relative)',
+                 y_axis_label='DM (pc/cm3)', x_range=(time_min, time_max),
+                 y_range=(dm_min, dm_max),
                  output_backend='webgl', tools=tools)
-    dmt.circle('time', 'dm', size='sizes', fill_color='colors', line_color=None, fill_alpha=0.2, source=source)
+    dmt.circle('time', 'dm', size='sizes', fill_color='colors',
+               line_color=None, fill_alpha=0.2, source=source)
 
     if crossinds:
         sourceneg = ColumnDataSource(data = dict({(key, tuple([value[i] for i in crossinds]))
                                                   for (key, value) in data.iteritems() if key in fields}))
-        dmt.cross('time', 'dm', size='sizes', fill_color='colors', line_alpha=0.3, source=sourceneg)
+        dmt.cross('time', 'dm', size='sizes', fill_color='colors',
+                  line_alpha=0.3, source=sourceneg)
 
     if edgeinds:
-        sourceedge = ColumnDataSource(data = dict({(key, tuple([value[i] for i in edgeinds]))
+        sourceedge = ColumnDataSource(data=dict({(key, tuple([value[i] for i in edgeinds]))
                                                    for (key, value) in data.iteritems() if key in fields}))
-        dmt.circle('time', 'dm', size='sizes', line_color='colors', fill_color='colors', line_alpha=0.5, fill_alpha=0.2, source=sourceedge)
+        dmt.circle('time', 'dm', size='sizes', line_color='colors',
+                   fill_color='colors', line_alpha=0.5, fill_alpha=0.2,
+                   source=sourceedge)
+
     hover = dmt.select(dict(type=HoverTool))
-    hover.tooltips = OrderedDict([('SNR', '@snrs'), ('key', '@key')])
+    hover.tooltips = OrderedDict([('SNR', '@snrs'), ('keys', '@keys')])
 
     return dmt
 
 
 def plotloc(data, circleinds=[], crossinds=[], edgeinds=[],
-            tools="hover,tap,pan,box_select,wheel_zoom,reset", plot_width=450, plot_height=400):
+            tools="hover,pan,box_select,wheel_zoom,reset", plot_width=450, plot_height=400):
     """ Make a light-weight loc figure """
 
-    fields = ['l1', 'm1', 'sizes', 'colors', 'snrs', 'key']
+    fields = ['l1', 'm1', 'sizes', 'colors', 'snrs', 'keys']
 
-    if not circleinds: circleinds = range(len(data['snrs']))
+    if not circleinds: circleinds = list(range(len(data['snrs'])))
 
     # set ranges
     datalen = len(data['dm'])
@@ -430,6 +443,33 @@ def colorsat(l, m):
     blue = 0.5*(1+np.cos(np.angle(lm) - 2*3.14/3))
     amp = 256*np.abs(lm)/np.abs(lm).max()
     return ["#%02x%02x%02x" % (np.floor(amp[i]*red[i]), np.floor(amp[i]*green[i]), np.floor(amp[i]*blue[i])) for i in range(len(l))]
+
+
+def calcinds(data, threshold, ignoret=None):
+    """ Find indexes for data above (or below) given threshold. """
+
+    inds = []
+    for i in range(len(data['time'])):
+        snr = data['snrs'][i]
+        time = data['time'][i]
+        if (threshold >= 0 and snr > threshold):
+            if ignoret:
+                incl = [t0 for (t0, t1) in ignoret if np.round(time).astype(int) in range(t0,t1)]
+                logger.debug('{} {} {} {}'.format(np.round(time).astype(int), t0, t1, incl))
+                if not incl:
+                    inds.append(i)
+            else:
+                inds.append(i)
+        elif threshold < 0 and snr < threshold:
+            if ignoret:
+                incl = [t0 for (t0, t1) in ignoret if np.round(time).astype(int) in range(t0,t1)]
+                logger.debug('{} {} {} {}'.format(np.round(time).astype(int), t0, t1, incl))
+                if not incl:
+                    inds.append(i)
+            else:
+                inds.append(i)
+
+    return inds
 
 
 def candplot(canddatalist, snrs=[], outname=''):
