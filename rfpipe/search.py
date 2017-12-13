@@ -482,7 +482,6 @@ def set_wisdom(npixx, npixy):
 
     logger.info('Calculating FFT wisdom...')
     arr = pyfftw.empty_aligned((npixx, npixy), dtype='complex64', n=16)
-    arr[:] = np.random.randn(*arr.shape) + 1j*np.random.randn(*arr.shape)
     fft_arr = pyfftw.interfaces.numpy_fft.ifft2(arr, auto_align_input=True,
                                                 auto_contiguous=True,
                                                 planner_effort='FFTW_MEASURE')
