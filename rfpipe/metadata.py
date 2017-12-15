@@ -320,9 +320,8 @@ def mock_metadata(t0, t1, nants, nspw, npol, inttime_micros,
     meta['radec'] = [0., 0.]
     meta['dishdiameter'] = 25
     meta['spw_orig'] = range(nspw)
-    meta['spw_reffreq'] = [2.488E9, 2.616E9, 2.744E9, 2.872E9, 3.0E9, 3.128E9,
-                           3.256E9, 3.384E9][:nspw]
-    meta['spw_chansize'] = [4000000]*8
+    meta['spw_reffreq'] = np.linspace(2e9, 4e9, 17)[:nspw]
+    meta['spw_chansize'] = [4000000]*nspw
     meta['spw_nchan'] = [32]*nspw
     meta['pols_orig'] = ['A*A', 'A*B', 'B*A', 'B*B'][:npol]
     meta['spworder'] = sorted([('{0}-{1}'.format('A1C1', sbid),
