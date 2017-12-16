@@ -175,15 +175,14 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout):
 
     # TODO: vysmaw currently pulls all data, but allocates buffer based on these.
     # buffer will be too small if taking subset of all data.
-    pollist = [polmap_standard.index(pol) for pol in st.metadata.pols_orig]  # TODO: use st.pols when vysmaw filter can too
-    antlist = [int(ant.lstrip('ea')) for ant in st.ants]
+    pollist = np.array([polmap_standard.index(pol) for pol in st.metadata.pols_orig], dtype=np.int32)  # TODO: use st.pols when vysmaw filter can too
+    antlist = np.array([int(ant.lstrip('ea')) for ant in st.ants], dtype=np.int32)
     spwlist = list(zip(*st.metadata.spworder)[0])  # list of strings ["bb-spw"] in increasing freq order
-    bbsplist = ['{0}-{1}'.format(bbmap_standard.index(spw.split('-')[0]), spw.split('-')[1]) for spw in spwlist]
+    bbsplist = np.array([(int(bbmap_standard.index(spw.split('-')[0])), int(spw.split('-')[1])) for spw in spwlist], dtype=np.int32)
 
-    with vysmaw_reader.Reader(t0, t1, antlist=antlist, bbsplist=bbsplist,
+    with vysmaw_reader.Reader(t0, t1, antlist, pollist, bbsplist,
+                              inttime_micros=long(st.metadata.inttime*1000000),
                               nchan=st.metadata.spw_nchan[0],
-                              pollist=pollist,
-                              inttime_micros=st.metadata.inttime*1e6,
                               cfile=cfile, timeout=timeout) as reader:
         data[:] = reader.readwindow()
 
