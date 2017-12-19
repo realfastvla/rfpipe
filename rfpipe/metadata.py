@@ -324,7 +324,7 @@ def mock_metadata(t0, t1, nants, nspw, npol, inttime_micros,
     meta['spw_chansize'] = [4000000]*nspw
     meta['spw_nchan'] = [32]*nspw
     meta['pols_orig'] = ['A*A', 'A*B', 'B*A', 'B*B'][:npol]
-    meta['spworder'] = sorted([('{0}-{1}'.format('A1C1', sbid),
+    meta['spworder'] = sorted([('{0}-{1}'.format('AC1', sbid),
                                 meta['spw_reffreq'][sbid])
                                for sbid in range(nspw)], key=lambda x: x[1])
 

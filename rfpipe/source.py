@@ -145,11 +145,12 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
     return data_read.take(st.chans, axis=2)
 
 
-def read_vys_segment(st, seg, cfile=None, timeout=default_timeout):
+def read_vys_segment(st, seg, cfile=None, timeout=default_timeout, offset=4):
     """ Read segment seg defined by state st from vys stream.
     Uses vysmaw application timefilter to receive multicast messages and pull
     spectra on the CBE.
     timeout is a multiple of read time in seconds to wait.
+    offset is extra time in seconds to keep vys reader open.
     """
 
     # TODO: support for time downsampling
@@ -171,7 +172,7 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout):
                 .format(st.metadata.inttime, st.datashape, t0, t1))
 
     polmap_standard = ['A*A', 'A*B', 'B*A', 'B*B']
-    bbmap_standard = ['A1C1', 'A2C2', 'AC', 'B1D1', 'B2D2', 'BD']
+    bbmap_standard = ['AC1', 'AC2', 'AC', 'BD1', 'BD2', 'BD']
 
     # TODO: vysmaw currently pulls all data, but allocates buffer based on these.
     # buffer will be too small if taking subset of all data.
@@ -183,7 +184,7 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout):
     with vysmaw_reader.Reader(t0, t1, antlist, pollist, bbsplist,
                               inttime_micros=long(st.metadata.inttime*1000000),
                               nchan=st.metadata.spw_nchan[0],
-                              cfile=cfile, timeout=timeout) as reader:
+                              cfile=cfile, timeout=timeout, offset=offset) as reader:
         data[:] = reader.readwindow()
 
     # TODO: move pol selection up and into vysmaw filter function
