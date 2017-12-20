@@ -74,7 +74,7 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
         return data_read
 
 
-def prep_standard(st, segment, data):
+def prep_standard(st, segment, data_read):
     """ Common first data prep stages, incl
     online flags, resampling, and mock transients.
     """
