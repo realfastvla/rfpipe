@@ -21,7 +21,7 @@ def mockstate(request):
 
 def mockdata(mockstate, segment):
     data = rfpipe.source.read_segment(mockstate, segment)
-    return rfpipe.source.data_prep(mockstate, data)
+    return rfpipe.source.data_prep(mockstate, segment, data)
 
 
 def test_dataprep(mockstate):

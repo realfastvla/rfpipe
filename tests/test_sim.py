@@ -25,7 +25,7 @@ def mockstate(request):
 def mockdata(mockstate):
     segment = 0
     data = rfpipe.source.read_segment(mockstate, segment)
-    return rfpipe.source.data_prep(mockstate, data)
+    return rfpipe.source.data_prep(mockstate, segment, data)
 
 
 @pytest.fixture(scope="module", params=[10, 100])
