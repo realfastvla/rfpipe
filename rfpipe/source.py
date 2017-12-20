@@ -71,7 +71,7 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
         logger.info('No data read.')
         return np.array([])
     else:
-        return data
+        return data_read
 
 
 def prep_standard(st, segment, data):
