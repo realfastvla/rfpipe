@@ -16,14 +16,16 @@ qa = casautil.tools.quanta()
 default_timeout = 10  # multiple of read time in seconds to wait
 
 
-def data_prep(st, data):
+def data_prep(st, segment, data):
     """ Applies calibration, flags, and subtracts time mean for data.
     """
 
     mode = 'single' if st.prefs.nthread == 1 else 'multi'
 
-    # TODO: allow parallel execution with apply_telcal2
     if np.any(data):
+        data = prep_standard(st, segment, data)
+
+        # TODO: allow parallel execution with apply_telcal2
         if st.metadata.datasource != 'sim':
             if os.path.exists(st.gainfile):
                 data = calibration.apply_telcal(st, np.require(data, requirements='W'))
@@ -68,6 +70,14 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
     if not np.any(data_read):
         logger.info('No data read.')
         return np.array([])
+    else:
+        return data
+
+
+def prep_standard(st, segment, data):
+    """ Common first data prep stages, incl
+    online flags, resampling, and mock transients.
+    """
 
     # read Flag.xml and apply flags for given ant/time range
     if st.prefs.applyonlineflags and st.metadata.datasource == 'sdm':

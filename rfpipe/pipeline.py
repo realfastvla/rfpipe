@@ -38,7 +38,7 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default):
     uvw = util.get_uvw_segment(st, segment)
 
     data = source.read_segment(st, segment, timeout=vys_timeout, cfile=cfile)
-    data_prep = source.data_prep(st, data)
+    data_prep = source.data_prep(st, segment, data)
 
     collections = []
     for dmind in range(len(st.dmarr)):
