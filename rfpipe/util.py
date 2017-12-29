@@ -39,14 +39,14 @@ def dataflag(st, data):
         for spw in st.spw:
             chans = np.arange(st.metadata.spw_nchan[spw]*spw, st.metadata.spw_nchan[spw]*(1+spw))
             for pol in range(st.npol):
-                spwpol[(spw, pol)] = np.abs(data[:,:,chans,pol]).std()
+                spwpol[(spw, pol)] = np.abs(data[:, :, chans, pol]).std()
         
         meanstd = np.mean(spwpol.values())
         for (spw,pol) in spwpol:
             if spwpol[(spw, pol)] > st.prefs.badspwpol*meanstd:
                 logger.info('Flagging all of (spw %d, pol %d) for excess noise.' % (spw, pol))
                 chans = np.arange(st.metadata.spw_nchan[spw]*spw, st.metadata.spw_nchan[spw]*(1+spw))
-                data[:,:,chans,pol] = 0j
+                data[:, :, chans, pol] = 0j
 
     return data
 

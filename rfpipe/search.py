@@ -298,35 +298,37 @@ def dedisperse_image_rfgpu(st, uvw, segment, dmind, dtind, data):
     upix = st.npixx
     vpix = st.npixy//2 + 1
 
-    grid = rfgpu.Grid(st.nbl, st.nchan, st.ni, upix, vpix)
+    grid = rfgpu.Grid(st.nbl, st.nchan, st.readints, upix, vpix)
     image = rfgpu.Image(st.npixx, st.npixy)
 
     # Data buffers on GPU
-    vis_raw = rfgpu.GPUArrayComplex(st.ni*st.nbl*st.nchan)
+    vis_raw = rfgpu.GPUArrayComplex(st.readints*st.nbl*st.nchan)
     vis_grid = rfgpu.GPUArrayComplex(upix*vpix)
     img_grid = rfgpu.GPUArrayReal(st.npixx*st.npixy)
 
     # Convert uv from lambda to us
-    u = u/(1e9*st.freq[0])/1e6
-    v = v/(1e9*st.freq[0])/1e6
+    u = u[:, 0]/(1e9*st.freq[0])/1e6
+    v = v[:, 0]/(1e9*st.freq[0])/1e6
 
     # Q: set input units to be uv (lambda), freq in GHz?
     grid.set_uv(u, v)  # u, v in us
     grid.set_freq(st.freq*1e3)  # freq in MHz
-    grid.set_shift(st.dmshifts[dmind])  # dispersion shift per chan in samples
+    delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
+                            st.inttime)
+    grid.set_shift(delay)  # dispersion shift per chan in samples
     grid.set_cell(st.uvres)  # uv cell size in wavelengths (== 1/FoV(radians))
 
     # Compute gridding transform
     grid.compute()
 
     # Generate some random visibility data
-    vis_data = np.array(vis_raw, copy=False)
+    vis_data = np.array(vis_raw, copy=False, order='C').reshape(st.datashape[:3])
     vis_data[:] = data[..., 0]  # TODO: make multipol
     vis_raw.h2d()  # Send it to GPU memory
 
     # Run gridding on time slice 0 of data array
     canddatalist = []
-    for i in range(st.ni):
+    for i in range(st.readints):
         grid.operate(vis_raw, vis_grid, i)
 
         # Do FFT
@@ -337,14 +339,16 @@ def dedisperse_image_rfgpu(st, uvw, segment, dmind, dtind, data):
         img_data = np.array(img_grid, copy=False).reshape((st.npixx, st.npixy))
         img_data = np.fft.fftshift(img_data)  # shift zero pixel in middle
 
-        peak_snr = img_data.max()/util.madtostd(img_data)
+#        peak_snr = img_data.max()/util.madtostd(img_data)
+        peak_snr = img_data.max()/img_data.std()
+        logger.info("{0} {1} {2}".format(i, img_data.max(), img_data.std()))
         if peak_snr > st.prefs.sigma_image1:
             candloc = (segment, i, dmind, dtind, beamnum)
             l, m = st.pixtolm(np.where(img_data == img_data.max()))
-            util.phase_shift(data, uvw, l, m)
+#            util.phase_shift(data, uvw, l, m)  # Q: why is complex128 being used?
             dataph = data[max(0, i-st.prefs.timewindow//2):
                           min(i+st.prefs.timewindow//2, len(data))].mean(axis=1)
-            util.phase_shift(data, uvw, -l, -m)
+#            util.phase_shift(data, uvw, -l, -m)
             canddatalist.append(candidates.CandData(state=st, loc=candloc,
                                                     image=img_data, data=dataph))
 
