@@ -7,6 +7,11 @@ import numpy as np
 from numba import jit, guvectorize, int64
 import pyfftw
 from rfpipe import util, candidates
+try:
+    import rfgpu
+    print('Imported rfgpu.')
+except ImportError:
+    print('Not using rfgpu.')
 
 import logging
 logger = logging.getLogger(__name__)
@@ -278,6 +283,70 @@ def search_thresh(st, data, uvw, segment, dmind, dtind, integrations=None,
                                          dtind))
 
     return canddatalist
+
+
+def dedisperse_image_rfgpu(st, uvw, segment, dmind, dtind, data):
+    """ Run dedispersion, grid, and imaging on GPU.
+    No resampling yet.
+    rfgpu is built from separate repo.
+    """
+
+    u, v, w = uvw
+    beamnum = 0
+
+    # Q: do these need to be the same?
+    upix = st.npixx
+    vpix = st.npixy//2 + 1
+
+    grid = rfgpu.Grid(st.nbl, st.nchan, st.ni, upix, vpix)
+    image = rfgpu.Image(st.npixx, st.npixy)
+
+    # Data buffers on GPU
+    vis_raw = rfgpu.GPUArrayComplex(st.ni*st.nbl*st.nchan)
+    vis_grid = rfgpu.GPUArrayComplex(upix*vpix)
+    img_grid = rfgpu.GPUArrayReal(st.npixx*st.npixy)
+
+    # Convert uv from lambda to us
+    u = u/(1e9*st.freq[0])/1e6
+    v = v/(1e9*st.freq[0])/1e6
+
+    # Q: set input units to be uv (lambda), freq in GHz?
+    grid.set_uv(u, v)  # u, v in us
+    grid.set_freq(st.freq*1e3)  # freq in MHz
+    grid.set_shift(st.dmshifts[dmind])  # dispersion shift per chan in samples
+    grid.set_cell(st.uvres)  # uv cell size in wavelengths (== 1/FoV(radians))
+
+    # Compute gridding transform
+    grid.compute()
+
+    # Generate some random visibility data
+    vis_data = np.array(vis_raw, copy=False)
+    vis_data[:] = data[..., 0]  # TODO: make multipol
+    vis_raw.h2d()  # Send it to GPU memory
+
+    # Run gridding on time slice 0 of data array
+    canddatalist = []
+    for i in range(st.ni):
+        grid.operate(vis_raw, vis_grid, i)
+
+        # Do FFT
+        image.operate(vis_grid, img_grid)
+
+        # Get image back from GPU
+        img_grid.d2h()
+        img_data = np.array(img_grid, copy=False).reshape((st.npixx, st.npixy))
+        img_data = np.fft.fftshift(img_data)  # shift zero pixel in middle
+
+        peak_snr = img_data.max()/util.madtostd(img_data)
+        if peak_snr > st.prefs.sigma_image1:
+            candloc = (segment, i, dmind, dtind, beamnum)
+            l, m = st.pixtolm(np.where(img_data == img_data.max()))
+            util.phase_shift(data, uvw, l, m)
+            dataph = data[max(0, i-st.prefs.timewindow//2):
+                          min(i+st.prefs.timewindow//2, len(data))].mean(axis=1)
+            util.phase_shift(data, uvw, -l, -m)
+            canddatalist.append(candidates.CandData(state=st, loc=candloc,
+                                                    image=img_data, data=dataph))
 
 
 def correct_search_thresh(st, segment, data, dmind, dtind, mode='single',
