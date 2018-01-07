@@ -11,7 +11,7 @@ try:
     import rfgpu
     print('Imported rfgpu.')
 except ImportError:
-    print('Not using rfgpu.')
+    print('rfgpu not available.')
 
 import logging
 logger = logging.getLogger(__name__)
@@ -302,13 +302,13 @@ def dedisperse_image_rfgpu(st, uvw, segment, dmind, dtind, data):
     image = rfgpu.Image(st.npixx, st.npixy)
 
     # Data buffers on GPU
-    vis_raw = rfgpu.GPUArrayComplex(st.readints*st.nbl*st.nchan)
-    vis_grid = rfgpu.GPUArrayComplex(upix*vpix)
-    img_grid = rfgpu.GPUArrayReal(st.npixx*st.npixy)
+    vis_raw = rfgpu.GPUArrayComplex((st.nbl, st.nchan, st.readints))
+    vis_grid = rfgpu.GPUArrayComplex((upix, vpix))
+    img_grid = rfgpu.GPUArrayReal((st.npixx, st.npixy))
 
     # Convert uv from lambda to us
-    u = u[:, 0]/(1e9*st.freq[0])/1e6
-    v = v[:, 0]/(1e9*st.freq[0])/1e6
+    u = 1e6*u[:, 0]/(1e9*st.freq[0])
+    v = 1e6*v[:, 0]/(1e9*st.freq[0])
 
     # Q: set input units to be uv (lambda), freq in GHz?
     grid.set_uv(u, v)  # u, v in us
@@ -322,11 +322,11 @@ def dedisperse_image_rfgpu(st, uvw, segment, dmind, dtind, data):
     grid.compute()
 
     # Generate some random visibility data
-    vis_data = np.array(vis_raw, copy=False, order='C').reshape(st.datashape[:3])
-    vis_data[:] = data[..., 0]  # TODO: make multipol
+    vis_raw.data[:] = data[..., 0].reshape((st.nbl, st.nchan, st.readints))  # TODO: make multipol
     vis_raw.h2d()  # Send it to GPU memory
 
-    # Run gridding on time slice 0 of data array
+    grid.conjugate(vis_raw)
+
     canddatalist = []
     for i in range(st.readints):
         grid.operate(vis_raw, vis_grid, i)
@@ -336,12 +336,12 @@ def dedisperse_image_rfgpu(st, uvw, segment, dmind, dtind, data):
 
         # Get image back from GPU
         img_grid.d2h()
-        img_data = np.array(img_grid, copy=False).reshape((st.npixx, st.npixy))
-        img_data = np.fft.fftshift(img_data)  # shift zero pixel in middle
+        img_data = np.fft.fftshift(img_grid.data)  # shift zero pixel in middle
 
-#        peak_snr = img_data.max()/util.madtostd(img_data)
-        peak_snr = img_data.max()/img_data.std()
-        logger.info("{0} {1} {2}".format(i, img_data.max(), img_data.std()))
+        peak_snr = img_data.max()/util.madtostd(img_data)
+        logger.info("{0} {1} {2} {3}".format(i, img_data.max(), img_data.std(), peak_snr))
+#        yield img_data
+
         if peak_snr > st.prefs.sigma_image1:
             candloc = (segment, i, dmind, dtind, beamnum)
             l, m = st.pixtolm(np.where(img_data == img_data.max()))

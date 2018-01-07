@@ -252,9 +252,11 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
     assert '/' in datetime, 'datetime must be in yyyy/mm/dd/hh:mm:ss.sss format'
     assert len(radec) == 2, 'radec must be (ra,dec) tuple in units of degrees'
 
-    direction = me.direction('J2000', str(np.degrees(radec[0]))+'deg', str(np.degrees(radec[1]))+'deg')
+    direction = me.direction('J2000', str(np.degrees(radec[0]))+'deg',
+                             str(np.degrees(radec[1]))+'deg')
 
-    logger.debug('Calculating uvw at %s for (RA, Dec) = %s' % (datetime, radec))
+    logger.debug('Calculating uvw at {0} for (RA, Dec) = {1}'
+                 .format(datetime, radec))
     me.doframe(me.observatory(telescope))
     me.doframe(me.epoch('utc', datetime))
     me.doframe(direction)
