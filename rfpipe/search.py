@@ -294,7 +294,6 @@ def dedisperse_image_rfgpu(st, uvw, segment, dmind, dtind, data):
     u, v, w = uvw
     beamnum = 0
 
-    # Q: do these need to be the same?
     upix = st.npixx
     vpix = st.npixy//2 + 1
 
@@ -321,28 +320,33 @@ def dedisperse_image_rfgpu(st, uvw, segment, dmind, dtind, data):
     # Compute gridding transform
     grid.compute()
 
-    # Generate some random visibility data
-    vis_raw.data[:] = data[..., 0].reshape((st.nbl, st.nchan, st.readints))  # TODO: make multipol
+    # move Stokes I data in (assumes dual pol data)
+    vis_raw.data[:] = (data
+                       .sum(axis=3)
+                       .ravel((st.readints, st.nbl, st.nchan))
+                       .reshape((st.nbl, st.nchan, st.readints)))
     vis_raw.h2d()  # Send it to GPU memory
 
     grid.conjugate(vis_raw)
 
     canddatalist = []
     for i in range(st.readints):
-        grid.operate(vis_raw, vis_grid, i)
 
-        # Do FFT
+        # grid and FFT
+        grid.operate(vis_raw, vis_grid, i)
         image.operate(vis_grid, img_grid)
 
-        # Get image back from GPU
-        img_grid.d2h()
-        img_data = np.fft.fftshift(img_grid.data)  # shift zero pixel in middle
+        # get snr
+        stats = image.stats(img_grid)
+        img_rms = np.sqrt(stats[0]/(st.npixx*st.npixy))
+        img_max = stats[1]
+        peak_snr = img_max/img_rms
 
-        peak_snr = img_data.max()/util.madtostd(img_data)
-        logger.info("{0} {1} {2} {3}".format(i, img_data.max(), img_data.std(), peak_snr))
-#        yield img_data
-
+        # optionally get image back from GPU
         if peak_snr > st.prefs.sigma_image1:
+            img_grid.d2h()
+            img_data = np.fft.fftshift(img_grid.data)  # shift zero pixel in middle
+
             candloc = (segment, i, dmind, dtind, beamnum)
             l, m = st.pixtolm(np.where(img_data == img_data.max()))
 #            util.phase_shift(data, uvw, l, m)  # Q: why is complex128 being used?
@@ -351,6 +355,8 @@ def dedisperse_image_rfgpu(st, uvw, segment, dmind, dtind, data):
 #            util.phase_shift(data, uvw, -l, -m)
             canddatalist.append(candidates.CandData(state=st, loc=candloc,
                                                     image=img_data, data=dataph))
+
+    return canddatalist
 
 
 def correct_search_thresh(st, segment, data, dmind, dtind, mode='single',
@@ -363,7 +369,9 @@ def correct_search_thresh(st, segment, data, dmind, dtind, mode='single',
 
     data_corr = dedisperseresample(data, delay, st.dtarr[dtind], mode=mode)
 
-    canddatalist = search_thresh(st, data_corr, segment, dmind, dtind,
+    uvw = util.get_uvw_segment(st, segment)
+
+    canddatalist = search_thresh(st, data_corr, uvw, segment, dmind, dtind,
                                  wisdom=wisdom, integrations=integrations)
 
     return canddatalist
@@ -425,7 +433,7 @@ def image_cuda(grids):
     grids = grid_gpu.get()
 
     context.pop()
-    return recenter(grids.real, (npixx//2, npixy//2))
+    return np.fft.fftshift(grids.real)
 
 
 def image_fftw(grids, nthread=1, wisdom=None):
@@ -446,7 +454,7 @@ def image_fftw(grids, nthread=1, wisdom=None):
 #                                               threads=nthread)
 #    nints, npixx, npixy = images.shape
 #
-#   return recenter(images.real, (npixx//2, npixy//2))
+#   return np.fft.fftshift(images.real, (npixx//2, npixy//2))
 
     fft_obj = pyfftw.FFTW(grids, grids, axes=(1, 2), direction="FFTW_BACKWARD")
     fft_obj.execute()
@@ -454,7 +462,7 @@ def image_fftw(grids, nthread=1, wisdom=None):
 
     logger.debug('Recentering fft\'d images...')
 
-    return recenter(grids.real, (npixx//2, npixy//2))
+    return np.fft.fftshift(grids.real)
 
 
 def grid_visibilities(data, uvw, npixx, npixy, uvres, mode='single'):
@@ -528,6 +536,7 @@ def _grid_visibilities_gu(data, us, vs, ws, npixx, npixy, uvres, grid):
 def recenter(array, center):
     """ Recenters images in array to location center (x, y)
     Array can be either 2d (x, y) or 3d array (time, x, y).
+    REPLACED WITH numpy.fft.fftshift.
     """
 
     assert len(center) == 2
