@@ -285,12 +285,13 @@ def search_thresh(st, data, uvw, segment, dmind, dtind, integrations=None,
     return canddatalist
 
 
-def dedisperse_image_rfgpu(st, uvw, segment, dmind, dtind, data):
+def dedisperse_image_rfgpu(st, segment, data, dmind, dtind):
     """ Run dedispersion, grid, and imaging on GPU.
     No resampling yet.
     rfgpu is built from separate repo.
     """
 
+    uvw = util.get_uvw_segment(st, segment)
     u, v, w = uvw
     beamnum = 0
 
@@ -462,7 +463,7 @@ def image_fftw(grids, nthread=1, wisdom=None):
 
     logger.debug('Recentering fft\'d images...')
 
-    return np.fft.fftshift(grids.real)
+    return np.fft.fftshift(grids.real, axes=(1,2))
 
 
 def grid_visibilities(data, uvw, npixx, npixy, uvres, mode='single'):
