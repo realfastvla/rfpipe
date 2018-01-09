@@ -285,11 +285,17 @@ def search_thresh(st, data, uvw, segment, dmind, dtind, integrations=None,
     return canddatalist
 
 
-def dedisperse_image_rfgpu(st, segment, data, dmind, dtind):
+def dedisperse_image_rfgpu(st, segment, data, dmind, dtind, integrations=None):
     """ Run dedispersion, grid, and imaging on GPU.
     No resampling yet.
     rfgpu is built from separate repo.
     """
+
+# to be implemented
+#    if integrations is None:
+#        integrations = st.get_search_ints(segment, dmind, dtind)
+#    elif isinstance(integrations, int):
+#        integrations = [integrations]
 
     uvw = util.get_uvw_segment(st, segment)
     u, v, w = uvw
@@ -360,8 +366,8 @@ def dedisperse_image_rfgpu(st, segment, data, dmind, dtind):
     return canddatalist
 
 
-def correct_search_thresh(st, segment, data, dmind, dtind, mode='single',
-                          wisdom=None, integrations=None):
+def dedisperse_image_cpu(st, segment, data, dmind, dtind, mode='single',
+                         wisdom=None, integrations=None):
     """ Fuse the dediserpse, resample, search, threshold functions.
     """
 

@@ -58,11 +58,11 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default):
                                                     wisdom=wisdom,
                                                     integrations=integrations)
 
-#                canddatalist = search.correct_search_thresh(st, segment,
-#                                                            data_prep, dmind,
-#                                                            dtind,
-#                                                            integrations=integrations,
-#                                                            wisdom=wisdom)
+#                canddatalist = search.dedisperse_image_cpu(st, segment,
+#                                                           data_prep, dmind,
+#                                                           dtind,
+#                                                           integrations=integrations,
+#                                                           wisdom=wisdom)
 
                 collection = candidates.calc_features(canddatalist)
                 collections.append(collection)
