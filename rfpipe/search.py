@@ -291,11 +291,22 @@ def dedisperse_image_rfgpu(st, segment, data, dmind, dtind, integrations=None):
     rfgpu is built from separate repo.
     """
 
-# to be implemented
-#    if integrations is None:
-#        integrations = st.get_search_ints(segment, dmind, dtind)
-#    elif isinstance(integrations, int):
-#        integrations = [integrations]
+    if integrations is None:
+        if dtind:
+            logger.warn("resampling not yet supported here")
+        integrations = st.get_search_ints(segment, dmind, dtind)
+    elif isinstance(integrations, int):
+        integrations = [integrations]
+
+    assert isinstance(integrations, list), "integrations should be int, list of ints, or None."
+    minint = min(integrations)
+    maxint = max(integrations)
+
+    logger.info('Imaging {0} ints ({1}-{2}) in seg {3} at DM/dt {4}/{5} with '
+                'image {6}x{7} (uvres {8}) with rfgpu'
+                .format(len(integrations), minint, maxint, segment,
+                        st.dmarr[dmind], st.dtarr[dtind], st.npixx, st.npixy,
+                        st.uvres))
 
     uvw = util.get_uvw_segment(st, segment)
     u, v, w = uvw
@@ -306,6 +317,8 @@ def dedisperse_image_rfgpu(st, segment, data, dmind, dtind, integrations=None):
 
     grid = rfgpu.Grid(st.nbl, st.nchan, st.readints, upix, vpix)
     image = rfgpu.Image(st.npixx, st.npixy)
+    image.add_stat('rms')
+    image.add_stat('max')
 
     # Data buffers on GPU
     vis_raw = rfgpu.GPUArrayComplex((st.nbl, st.nchan, st.readints))
@@ -328,16 +341,13 @@ def dedisperse_image_rfgpu(st, segment, data, dmind, dtind, integrations=None):
     grid.compute()
 
     # move Stokes I data in (assumes dual pol data)
-    vis_raw.data[:] = (data
-                       .sum(axis=3)
-                       .ravel((st.readints, st.nbl, st.nchan))
-                       .reshape((st.nbl, st.nchan, st.readints)))
+    vis_raw.data[:] = np.rollaxis(data.mean(axis=3), 0, 3)
     vis_raw.h2d()  # Send it to GPU memory
 
     grid.conjugate(vis_raw)
 
     canddatalist = []
-    for i in range(st.readints):
+    for i in integrations:
 
         # grid and FFT
         grid.operate(vis_raw, vis_grid, i)
@@ -345,9 +355,7 @@ def dedisperse_image_rfgpu(st, segment, data, dmind, dtind, integrations=None):
 
         # get snr
         stats = image.stats(img_grid)
-        img_rms = np.sqrt(stats[0]/(st.npixx*st.npixy))
-        img_max = stats[1]
-        peak_snr = img_max/img_rms
+        peak_snr = stats['max']/stats['rms']
 
         # optionally get image back from GPU
         if peak_snr > st.prefs.sigma_image1:
@@ -356,12 +364,14 @@ def dedisperse_image_rfgpu(st, segment, data, dmind, dtind, integrations=None):
 
             candloc = (segment, i, dmind, dtind, beamnum)
             l, m = st.pixtolm(np.where(img_data == img_data.max()))
-#            util.phase_shift(data, uvw, l, m)  # Q: why is complex128 being used?
+#            util.phase_shift(data, uvw, l, m)
+            # TODO: add dedispersion before phasing
             dataph = data[max(0, i-st.prefs.timewindow//2):
                           min(i+st.prefs.timewindow//2, len(data))].mean(axis=1)
 #            util.phase_shift(data, uvw, -l, -m)
             canddatalist.append(candidates.CandData(state=st, loc=candloc,
-                                                    image=img_data, data=dataph))
+                                                    image=img_data,
+                                                    data=dataph))
 
     return canddatalist
 
@@ -440,7 +450,7 @@ def image_cuda(grids):
     grids = grid_gpu.get()
 
     context.pop()
-    return np.fft.fftshift(grids.real)
+    return np.fft.fftshift(grids.real, axes=(1, 2))
 
 
 def image_fftw(grids, nthread=1, wisdom=None):
@@ -469,7 +479,7 @@ def image_fftw(grids, nthread=1, wisdom=None):
 
     logger.debug('Recentering fft\'d images...')
 
-    return np.fft.fftshift(grids.real, axes=(1,2))
+    return np.fft.fftshift(grids.real, axes=(1, 2))
 
 
 def grid_visibilities(data, uvw, npixx, npixy, uvres, mode='single'):

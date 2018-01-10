@@ -119,11 +119,13 @@ def prep_standard(st, segment, data_read):
 
     # optionally add transients
     if st.prefs.simulated_transient is not None:
-        assert isinstance(st.prefs.simulated_transient, list)
+        assert isinstance(st.prefs.simulated_transient, list), "Simulated transient must be list of tuples."
 
         uvw = util.get_uvw_segment(st, segment)
         for params in st.prefs.simulated_transient:
-            assert len(params) == 7
+            assert len(params) == 7, ("Transient requires 7 parameters: "
+                                      "(segment, i0/int, dm/pc/cm3, dt/s, "
+                                      "amp/sys, dl/rad, dm/rad)")
             (mock_segment, i0, dm, dt, amp, l, m) = params
             if segment == mock_segment:
                 logger.info("Adding transient to segment {0} at int {1}, DM {2}, "
@@ -139,6 +141,7 @@ def prep_standard(st, segment, data_read):
                     continue
 
                 if os.path.exists(st.gainfile):  # corrupt by -gain
+                    logger.warn("simulated transient with gain file not working yet")
                     model = calibration.apply_telcal(st, model, sign=-1)
                 else:
                     logger.warn("No gainfile {0} found. Not applying inverse "
@@ -309,7 +312,8 @@ def generate_transient(st, amp, i0, dm, dt):
     model = np.zeros((st.metadata.nchan_orig, st.readints), dtype='complex64')
     chans = np.arange(st.nchan)
 
-    i = i0 + (4.1488e-3 * dm * (1/st.freq**2 - 1/st.freq.max()**2))/st.inttime
+    i = i0 + util.calc_delay2(st.freq, st.freq.max(), dm)/st.inttime
+#    print(i)
     i_f = np.floor(i).astype(int)
     imax = np.ceil(i + dt/st.inttime).astype(int)
     imin = i_f
