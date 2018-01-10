@@ -381,7 +381,10 @@ def dedisperse_image_rfgpu(st, segment, data, dmind, dtind, integrations=None,
 
         # calc snr
         stats = image.stats(img_grid)
-        peak_snr = stats['max']/stats['rms']
+        try:
+            peak_snr = stats['max']/stats['rms']
+        except ZeroDivisionError:
+            peak_snr = 0.
 
         # threshold image on GPU and optionally save it
         if peak_snr > st.prefs.sigma_image1:
@@ -390,14 +393,14 @@ def dedisperse_image_rfgpu(st, segment, data, dmind, dtind, integrations=None,
 
             candloc = (segment, i, dmind, dtind, beamnum)
             l, m = st.pixtolm(np.where(img_data == img_data.max()))
-#            util.phase_shift(data, uvw, l, m)
-            # TODO: add dedispersion before phasing
-            dataph = data[max(0, i-st.prefs.timewindow//2):
-                          min(i+st.prefs.timewindow//2, len(data))].mean(axis=1)
-#            util.phase_shift(data, uvw, -l, -m)
+            data_corr = dedisperseresample(data, delay, st.dtarr[dtind],
+                                           mode='multi')[max(0, i-st.prefs.timewindow//2):
+                                                         min(i+st.prefs.timewindow//2, len(data))]
+            util.phase_shift(data_corr, uvw, l, m)
+            data_corr = data_corr.mean(axis=1)
             canddatalist.append(candidates.CandData(state=st, loc=candloc,
                                                     image=img_data,
-                                                    data=dataph))
+                                                    data=data_corr))
 
     logger.info("{0} candidates returned for (seg, dmind, dtind) = "
                 "({1}, {2}, {3})".format(len(canddatalist), segment, dmind,
