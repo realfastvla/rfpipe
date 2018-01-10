@@ -50,9 +50,8 @@ def test_search(mockstate):
                 data_dmdt = rfpipe.search.resample(data_dm,
                                                    mockstate.dtarr[dtind])
 
-                canddatalist = rfpipe.search.search_thresh(mockstate,
-                                                           data_dmdt, uvw,
-                                                           segment, dmind,
+                canddatalist = rfpipe.search.search_thresh(mockstate, segment,
+                                                           data_dmdt, dmind,
                                                            dtind,
                                                            wisdom=wisdom)
 

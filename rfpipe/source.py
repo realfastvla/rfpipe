@@ -23,7 +23,7 @@ def data_prep(st, segment, data):
     mode = 'single' if st.prefs.nthread == 1 else 'multi'
 
     if np.any(data):
-        data = prep_standard(st, segment, data)
+        data = prep_standard(st, segment, np.require(data, requirements='W'))
 
         # TODO: allow parallel execution with apply_telcal2
         if st.metadata.datasource != 'sim':
@@ -94,7 +94,7 @@ def prep_standard(st, segment, data_read):
             logger.info('Found antennas to flag in time range {0}-{1} '
                         .format(t0, t1))
             data_read = np.where(flags[None, :, None, None] == 1,
-                                 data_read, 0j)
+                                 np.require(data_read, requirements='W'), 0j)
         else:
             logger.info('No flagged antennas in time range {0}-{1} '
                         .format(t0, t1))

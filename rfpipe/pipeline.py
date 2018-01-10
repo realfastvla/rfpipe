@@ -68,3 +68,24 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default):
                 collections.append(collection)
 
     return collections
+
+
+def pipeline_seg2(st, segment, cfile=None, vys_timeout=vys_timeout_default):
+    """ Submit pipeline processing of a single segment on a single node.
+    Uses rfgpu function.
+    """
+
+    uvw = util.get_uvw_segment(st, segment)
+    data = source.read_segment(st, segment, timeout=vys_timeout, cfile=cfile)
+    data_prep = source.data_prep(st, segment, data)
+
+    collections = []
+    dtind = 0
+    for dmind in range(len(st.dmarr)):
+        canddatalist = search.dedisperse_image_rfgpu(st, segment, data_prep,
+                                                     dmind, dtind)
+
+        collection = candidates.calc_features(canddatalist)
+        collections.append(collection)
+
+    return collections

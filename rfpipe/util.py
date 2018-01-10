@@ -224,7 +224,7 @@ def get_uvw_segment(st, segment):
     If available, uses a lock to control multithreaded casa measures call.
     """
 
-    logger.info("Getting uvw for segment {0}".format(segment))
+    logger.debug("Getting uvw for segment {0}".format(segment))
     mjdstr = st.get_segmenttime_string(segment)
 
     if st.lock is not None:

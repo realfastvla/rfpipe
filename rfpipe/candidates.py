@@ -199,7 +199,7 @@ def calc_features(canddatalist):
         for feat in st.features:
             if feat == 'snr1':
                 imstd = util.madtostd(image)
-                logger.info('{0} {1}'.format(image.shape, imstd))
+                logger.debug('{0} {1}'.format(image.shape, imstd))
                 snrmax = image.max()/imstd
                 snrmin = image.min()/imstd
                 snr = snrmax if snrmax >= snrmin else snrmin
@@ -495,8 +495,8 @@ def candplot(canddatalist, snrs=[], outname=''):
         im = canddata.image
         data = canddata.data
 
-        logger.info('Plotting for (image, data) shapes: ({0}, {1})'
-                    .format(str(im.shape), str(data.shape)))
+        logger.info('Plotting candloc {0} with image/data shapes: {1}/{2}'
+                    .format(str(candloc), str(im.shape), str(data.shape)))
 
         scan = st.metadata.scan
         segment, candint, dmind, dtind, beamnum = candloc
@@ -895,8 +895,8 @@ def candplot(canddatalist, snrs=[], outname=''):
 
         if not outname:
             outname = os.path.join(st.prefs.workdir,
-                                   'cands_{}_seg{}-i{}-dm{}-dt{}.png'
-                                   .format(st.fileroot, scan, segment, candint,
+                                   'cands_{0}_seg{1}-i{2}-dm{3}-dt{4}.png'
+                                   .format(st.fileroot, segment, candint,
                                            dmind, dtind))
 
         try:

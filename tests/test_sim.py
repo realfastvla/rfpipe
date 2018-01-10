@@ -50,7 +50,7 @@ def test_search(mockstate, mockdm, wisdom):
     dtind = 0
     uvw = rfpipe.util.get_uvw_segment(mockstate, segment)
 
-    canddatalist = rfpipe.search.search_thresh(mockstate, mockdm, uvw, segment,
+    canddatalist = rfpipe.search.search_thresh(mockstate, segment, mockdm,
                                                dmind, dtind, wisdom=wisdom)
 
     candcollection = rfpipe.candidates.calc_features(canddatalist)

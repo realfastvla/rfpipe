@@ -7,11 +7,6 @@ import numpy as np
 from numba import jit, guvectorize, int64
 import pyfftw
 from rfpipe import util, candidates
-try:
-    import rfgpu
-    print('Imported rfgpu.')
-except ImportError:
-    print('rfgpu not available.')
 
 import logging
 logger = logging.getLogger(__name__)
@@ -213,7 +208,7 @@ def _dedisperseresample_gu(data, delay, dt):
 # searching, imaging, thresholding
 #
 
-def search_thresh(st, data, uvw, segment, dmind, dtind, integrations=None,
+def search_thresh(st, segment, data, dmind, dtind, integrations=None,
                   beamnum=0, wisdom=None):
     """ High-level wrapper for search algorithms.
     Expects dedispersed, resampled data as input and data state.
@@ -244,6 +239,8 @@ def search_thresh(st, data, uvw, segment, dmind, dtind, integrations=None,
                 .format(len(integrations), minint, maxint, segment,
                         st.dmarr[dmind], st.dtarr[dtind], st.npixx, st.npixy,
                         st.uvres, st.fftmode))
+
+    uvw = util.get_uvw_segment(st, segment)
 
     if 'image1' in st.prefs.searchtype:
         images = image(data, uvw, st.npixx, st.npixy, st.uvres, st.fftmode,
@@ -285,11 +282,40 @@ def search_thresh(st, data, uvw, segment, dmind, dtind, integrations=None,
     return canddatalist
 
 
-def dedisperse_image_rfgpu(st, segment, data, dmind, dtind, integrations=None):
+def dedisperse_image_rfgpu(st, segment, data, dmind, dtind, integrations=None,
+                           devicenum=None):
     """ Run dedispersion, grid, and imaging on GPU.
     No resampling yet.
     rfgpu is built from separate repo.
+    devicenum can force the gpu to use, but can be inferred via distributed.
     """
+
+    try:
+        import rfgpu
+    except ImportError:
+        logger.warn("rfgpu not available. Exiting")
+        return
+
+    if devicenum is None:
+        # assume first gpu, but try to infer from worker name
+        devicenum = 0
+        try:
+            from distributed import get_worker
+            name = get_worker().name
+            devicenum = int(name.split('gpu')[1])
+            logger.debug("Using name {0} to set GPU devicenum to {1}"
+                         .format(name, devicenum))
+        except IndexError:
+            logger.warn("Could not parse worker name {0}. Using default GPU devicenum {1}"
+                        .format(name, devicenum))
+        except ValueError:
+            logger.warn("No worker found. Using default GPU devicenum {0}"
+                        .format(devicenum))
+        except ImportError:
+            logger.warn("distributed not available. Using default GPU devicenum {0}"
+                        .format(devicenum))
+
+    rfgpu.cudaSetDevice(devicenum)
 
     if integrations is None:
         if dtind:
@@ -303,10 +329,10 @@ def dedisperse_image_rfgpu(st, segment, data, dmind, dtind, integrations=None):
     maxint = max(integrations)
 
     logger.info('Imaging {0} ints ({1}-{2}) in seg {3} at DM/dt {4}/{5} with '
-                'image {6}x{7} (uvres {8}) with rfgpu'
+                'image {6}x{7} (uvres {8}) with gpu {9}'
                 .format(len(integrations), minint, maxint, segment,
                         st.dmarr[dmind], st.dtarr[dtind], st.npixx, st.npixy,
-                        st.uvres))
+                        st.uvres, devicenum))
 
     uvw = util.get_uvw_segment(st, segment)
     u, v, w = uvw
@@ -353,11 +379,11 @@ def dedisperse_image_rfgpu(st, segment, data, dmind, dtind, integrations=None):
         grid.operate(vis_raw, vis_grid, i)
         image.operate(vis_grid, img_grid)
 
-        # get snr
+        # calc snr
         stats = image.stats(img_grid)
         peak_snr = stats['max']/stats['rms']
 
-        # optionally get image back from GPU
+        # threshold image on GPU and optionally save it
         if peak_snr > st.prefs.sigma_image1:
             img_grid.d2h()
             img_data = np.fft.fftshift(img_grid.data)  # shift zero pixel in middle
@@ -372,6 +398,10 @@ def dedisperse_image_rfgpu(st, segment, data, dmind, dtind, integrations=None):
             canddatalist.append(candidates.CandData(state=st, loc=candloc,
                                                     image=img_data,
                                                     data=dataph))
+
+    logger.info("{0} candidates returned for (seg, dmind, dtind) = "
+                "({1}, {2}, {3})".format(len(canddatalist), segment, dmind,
+                                         dtind))
 
     return canddatalist
 
@@ -388,7 +418,7 @@ def dedisperse_image_cpu(st, segment, data, dmind, dtind, mode='single',
 
     uvw = util.get_uvw_segment(st, segment)
 
-    canddatalist = search_thresh(st, data_corr, uvw, segment, dmind, dtind,
+    canddatalist = search_thresh(st, segment, data_corr, dmind, dtind,
                                  wisdom=wisdom, integrations=integrations)
 
     return canddatalist
