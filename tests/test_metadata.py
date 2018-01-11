@@ -24,7 +24,7 @@ def test_sdm():
 
 def test_state():
     t0 = time.Time.now().mjd
-    meta = rfpipe.metadata.mock_metadata(t0, t0+0.5/(24*3600), 27, 4, 2, 5e3,
+    meta = rfpipe.metadata.mock_metadata(t0, t0+0.5/(24*3600), 27, 4, 32*4, 4, 5e3,
                                          datasource='sim')
     preffile = os.path.join(_install_dir, 'data/realfast.yml')
     st = rfpipe.state.State(preffile=preffile, inmeta=meta,

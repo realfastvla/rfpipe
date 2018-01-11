@@ -264,13 +264,14 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     return meta
 
 
-def mock_metadata(t0, t1, nants, nspw, npol, inttime_micros,
+def mock_metadata(t0, t1, nants, nspw, chans, npol, inttime_micros,
                   datasource='vys', **kwargs):
     """ Wraps Metadata call to provide immutable, attribute-filled class instance.
     Parallel structure to sdm_metadata, so this inherits some of its
     nomenclature. t0, t1 are times in mjd. Supports up to nant=27, npol=4, and
-    nspw=8. datasource is expected source of data (typically vys when mocking).
-    Assumes 32 channels per spw of width 4 MHz.
+    nspw=8. chans is total number of channels over all spw (equal per spw).
+    datasource is expected source of data (typically vys when mocking).
+    
     """
 
     logger.info('Generating mock metadata')
@@ -322,7 +323,8 @@ def mock_metadata(t0, t1, nants, nspw, npol, inttime_micros,
     meta['spw_orig'] = range(nspw)
     meta['spw_reffreq'] = np.linspace(2e9, 4e9, 17)[:nspw]
     meta['spw_chansize'] = [4000000]*nspw
-    meta['spw_nchan'] = [32]*nspw
+    chanperspw = chans//nspw
+    meta['spw_nchan'] = [chanperspw]*nspw
     meta['pols_orig'] = ['A*A', 'A*B', 'B*A', 'B*B'][:npol]
     meta['spworder'] = sorted([('{0}-{1}'.format('AC1', sbid),
                                 meta['spw_reffreq'][sbid])

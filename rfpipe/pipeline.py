@@ -10,8 +10,11 @@ logger = logging.getLogger(__name__)
 vys_timeout_default = 10
 
 
-def pipeline_scan(st, segments=None, cfile=None, vys_timeout=vys_timeout_default):
-    """ Given rfpipe state run search pipline on all segments in a scan. """
+def pipeline_scan(st, segments=None, cfile=None,
+                  vys_timeout=vys_timeout_default):
+    """ Given rfpipe state run search pipline on all segments in a scan.
+        state/preference has fftmode that will determine functions used here.
+    """
 
     featurelists = []
     if not isinstance(segments, list):
@@ -26,66 +29,51 @@ def pipeline_scan(st, segments=None, cfile=None, vys_timeout=vys_timeout_default
 
 def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default):
     """ Submit pipeline processing of a single segment on a single node.
+    state/preference has fftmode that will determine functions used here.
     """
 
-    imgranges = [[(min(st.get_search_ints(segment, dmind, dtind)),
-                  max(st.get_search_ints(segment, dmind, dtind)))
-                  for dtind in range(len(st.dtarr))]
-                 for dmind in range(len(st.dmarr))]
-
-    # plan fft
-    wisdom = search.set_wisdom(st.npixx, st.npixy)
     uvw = util.get_uvw_segment(st, segment)
 
     data = source.read_segment(st, segment, timeout=vys_timeout, cfile=cfile)
     data_prep = source.data_prep(st, segment, data)
 
     collections = []
-    for dmind in range(len(st.dmarr)):
-        delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
-                                st.inttime)
+    if st.fftmode == "fftw":
+        imgranges = [[(min(st.get_search_ints(segment, dmind, dtind)),
+                      max(st.get_search_ints(segment, dmind, dtind)))
+                      for dtind in range(len(st.dtarr))]
+                     for dmind in range(len(st.dmarr))]
 
-        for dtind in range(len(st.dtarr)):
-            data_dmdt = search.dedisperseresample(data_prep, delay,
-                                                  st.dtarr[dtind])
+        # plan fft
+        wisdom = search.set_wisdom(st.npixx, st.npixy)
 
-            im0, im1 = imgranges[dmind][dtind]
-            integrationlist = [list(range(im0, im1)[i:i+st.chunksize])
-                               for i in range(0, im1-im0, st.chunksize)]
-            for integrations in integrationlist:
-                canddatalist = search.search_thresh(st, segment, data_dmdt,
-                                                    dmind, dtind,
-                                                    wisdom=wisdom,
-                                                    integrations=integrations)
+        for dmind in range(len(st.dmarr)):
+            delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
+                                    st.inttime)
 
-#                canddatalist = search.dedisperse_image_cpu(st, segment,
-#                                                           data_prep, dmind,
-#                                                           dtind,
-#                                                           integrations=integrations,
-#                                                           wisdom=wisdom)
+            for dtind in range(len(st.dtarr)):
+                data_dmdt = search.dedisperseresample(data_prep, delay,
+                                                      st.dtarr[dtind])
 
-                collection = candidates.calc_features(canddatalist)
-                collections.append(collection)
+                im0, im1 = imgranges[dmind][dtind]
+                integrationlist = [list(range(im0, im1)[i:i+st.chunksize])
+                                   for i in range(0, im1-im0, st.chunksize)]
+                for integrations in integrationlist:
+                    canddatalist = search.search_thresh(st, segment, data_dmdt,
+                                                        dmind, dtind,
+                                                        wisdom=wisdom,
+                                                        integrations=integrations)
 
-    return collections
+                    collection = candidates.calc_features(canddatalist)
+                    collections.append(collection)
 
+    elif st.fftmode == "cuda":
+        dtind = 0
+        for dmind in range(len(st.dmarr)):
+            canddatalist = search.dedisperse_image_cuda(st, segment, data_prep,
+                                                        dmind, dtind)
 
-def pipeline_seg2(st, segment, cfile=None, vys_timeout=vys_timeout_default):
-    """ Submit pipeline processing of a single segment on a single node.
-    Uses rfgpu function.
-    """
-
-    uvw = util.get_uvw_segment(st, segment)
-    data = source.read_segment(st, segment, timeout=vys_timeout, cfile=cfile)
-    data_prep = source.data_prep(st, segment, data)
-
-    collections = []
-    dtind = 0
-    for dmind in range(len(st.dmarr)):
-        canddatalist = search.dedisperse_image_cuda(st, segment, data_prep,
-                                                     dmind, dtind)
-
-        collection = candidates.calc_features(canddatalist)
-        collections.append(collection)
+            collection = candidates.calc_features(canddatalist)
+            collections.append(collection)
 
     return collections
