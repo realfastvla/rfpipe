@@ -512,7 +512,7 @@ def image_fftw(grids, nthread=1, wisdom=None):
 
     logger.debug('Recentering fft\'d images...')
 
-    return np.fft.fftshift(images, axes=(1, 2))
+    return np.fft.fftshift(images.real, axes=(1, 2))
 
 
 def grid_visibilities(data, uvw, npixx, npixy, uvres, mode='single'):
