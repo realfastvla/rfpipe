@@ -583,26 +583,6 @@ def _grid_visibilities_gu(data, us, vs, ws, npixx, npixy, uvres, grid):
                     grid[u, v] += data[j, k, l]
 
 
-def recenter(array, center):
-    """ Recenters images in array to location center (x, y)
-    Array can be either 2d (x, y) or 3d array (time, x, y).
-    REPLACED WITH numpy.fft.fftshift.
-    """
-
-    assert len(center) == 2
-
-    if len(array.shape) == 2:
-        return np.roll(np.roll(array, center[0], axis=0), center[1], axis=1)
-    elif len(array.shape) == 3:
-        return np.roll(np.roll(array, center[0], axis=1), center[1], axis=2)
-
-#    s = a[1:].shape
-#    c = (c[0] % s[0], c[1] % s[1])
-#    a1 = np.concatenate([a[:, c[0]:], a[:, :c[0]]], axis=1)
-#    a2 = np.concatenate([a1[:, :,c[1]:], a1[:, :,:c[1]]], axis=2)
-#    return a2
-
-
 def image_arm():
     """ Takes visibilities and images arms of VLA """
 

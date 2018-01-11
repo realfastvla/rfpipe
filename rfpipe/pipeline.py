@@ -53,8 +53,8 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default):
             integrationlist = [list(range(im0, im1)[i:i+st.chunksize])
                                for i in range(0, im1-im0, st.chunksize)]
             for integrations in integrationlist:
-                canddatalist = search.search_thresh(st, data_dmdt, uvw,
-                                                    segment, dmind, dtind,
+                canddatalist = search.search_thresh(st, segment, data_dmdt,
+                                                    dmind, dtind,
                                                     wisdom=wisdom,
                                                     integrations=integrations)
 
