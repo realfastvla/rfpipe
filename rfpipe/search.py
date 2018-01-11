@@ -208,81 +208,7 @@ def _dedisperseresample_gu(data, delay, dt):
 # searching, imaging, thresholding
 #
 
-def search_thresh(st, segment, data, dmind, dtind, integrations=None,
-                  beamnum=0, wisdom=None):
-    """ High-level wrapper for search algorithms.
-    Expects dedispersed, resampled data as input and data state.
-    Returns list of CandData objects that define candidates with
-    candloc, image, and phased visibility data.
-    Integrations can define subset of all available in data to search.
-    Default will take integrations not searched in neighboring segments.
-
-    ** only supports threshold > image max (no min)
-    ** dmind, dtind, beamnum assumed to represent current state of data
-    """
-
-    if not np.any(data):
-        return []
-
-    # assumes dedispersed/resampled data has only back end trimmed off
-    if integrations is None:
-        integrations = st.get_search_ints(segment, dmind, dtind)
-    elif isinstance(integrations, int):
-        integrations = [integrations]
-
-    assert isinstance(integrations, list), "integrations should be int, list of ints, or None."
-    minint = min(integrations)
-    maxint = max(integrations)
-
-    logger.info('Imaging {0} ints ({1}-{2}) in seg {3} at DM/dt {4}/{5} with '
-                'image {6}x{7} (uvres {8}) with mode {9}'
-                .format(len(integrations), minint, maxint, segment,
-                        st.dmarr[dmind], st.dtarr[dtind], st.npixx, st.npixy,
-                        st.uvres, st.fftmode))
-
-    uvw = util.get_uvw_segment(st, segment)
-
-    if 'image1' in st.prefs.searchtype:
-        images = grid_image(data, uvw, st.npixx, st.npixy, st.uvres,
-                            st.fftmode, st.prefs.nthread, wisdom=wisdom,
-                            integrations=integrations)
-
-        logger.debug('Thresholding at {0} sigma.'
-                     .format(st.prefs.sigma_image1))
-
-        # TODO: the following is really slow
-        canddatalist = []
-        for i in range(len(images)):
-            peak_snr = images[i].max()/util.madtostd(images[i])
-            if peak_snr > st.prefs.sigma_image1:
-                candloc = (segment, integrations[i], dmind, dtind, beamnum)
-                candim = images[i]
-#                logger.info("i {0} shape {1}, loc {2}".format(i, candim.shape, candloc))
-#                logger.info("max {0}".format(np.where(candim == candim.max())))
-                l, m = st.pixtolm(np.where(candim == candim.max()))
-#                logger.info("image peak at l, m: {0}, {1}".format(l, m))
-                util.phase_shift(data, uvw, l, m)
-#                logger.info("phasing data from: {0}, {1}"
-#                            .format(max(0, i-st.prefs.timewindow//2),
-#                                    min(i+st.prefs.timewindow//2, len(data))))
-                dataph = data[max(0, integrations[i]-st.prefs.timewindow//2):
-                              min(integrations[i]+st.prefs.timewindow//2, len(data))].mean(axis=1)
-                util.phase_shift(data, uvw, -l, -m)
-                canddatalist.append(candidates.CandData(state=st, loc=candloc,
-                                                        image=candim, data=dataph))
-    else:
-        raise NotImplemented("only searchtype=image1 implemented")
-
-    # tuple(list(int), list(ndarray), list(ndarray))
-#    return (ints, images_thresh, dataph)
-    logger.info("{0} candidates returned for (seg, dmind, dtind) = "
-                "({1}, {2}, {3})".format(len(canddatalist), segment, dmind,
-                                         dtind))
-
-    return canddatalist
-
-
-def dedisperse_image_rfgpu(st, segment, data, dmind, dtind, integrations=None,
+def dedisperse_image_cuda(st, segment, data, dmind, dtind, integrations=None,
                            devicenum=None):
     """ Run dedispersion, grid, and imaging on GPU.
     No resampling yet.
@@ -409,8 +335,8 @@ def dedisperse_image_rfgpu(st, segment, data, dmind, dtind, integrations=None,
     return canddatalist
 
 
-def dedisperse_image_cpu(st, segment, data, dmind, dtind, mode='single',
-                         wisdom=None, integrations=None):
+def dedisperse_image_fftw(st, segment, data, dmind, dtind, mode='single',
+                          wisdom=None, integrations=None):
     """ Fuse the dediserpse, resample, search, threshold functions.
     """
 
@@ -423,6 +349,80 @@ def dedisperse_image_cpu(st, segment, data, dmind, dtind, mode='single',
 
     canddatalist = search_thresh(st, segment, data_corr, dmind, dtind,
                                  wisdom=wisdom, integrations=integrations)
+
+    return canddatalist
+
+
+def search_thresh(st, segment, data, dmind, dtind, integrations=None,
+                  beamnum=0, wisdom=None):
+    """ High-level wrapper for search algorithms.
+    Expects dedispersed, resampled data as input and data state.
+    Returns list of CandData objects that define candidates with
+    candloc, image, and phased visibility data.
+    Integrations can define subset of all available in data to search.
+    Default will take integrations not searched in neighboring segments.
+
+    ** only supports threshold > image max (no min)
+    ** dmind, dtind, beamnum assumed to represent current state of data
+    """
+
+    if not np.any(data):
+        return []
+
+    # assumes dedispersed/resampled data has only back end trimmed off
+    if integrations is None:
+        integrations = st.get_search_ints(segment, dmind, dtind)
+    elif isinstance(integrations, int):
+        integrations = [integrations]
+
+    assert isinstance(integrations, list), "integrations should be int, list of ints, or None."
+    minint = min(integrations)
+    maxint = max(integrations)
+
+    logger.info('Imaging {0} ints ({1}-{2}) in seg {3} at DM/dt {4}/{5} with '
+                'image {6}x{7} (uvres {8}) with mode {9}'
+                .format(len(integrations), minint, maxint, segment,
+                        st.dmarr[dmind], st.dtarr[dtind], st.npixx, st.npixy,
+                        st.uvres, st.fftmode))
+
+    uvw = util.get_uvw_segment(st, segment)
+
+    if 'image1' in st.prefs.searchtype:
+        images = grid_image(data, uvw, st.npixx, st.npixy, st.uvres,
+                            st.fftmode, st.prefs.nthread, wisdom=wisdom,
+                            integrations=integrations)
+
+        logger.debug('Thresholding at {0} sigma.'
+                     .format(st.prefs.sigma_image1))
+
+        # TODO: the following is really slow
+        canddatalist = []
+        for i in range(len(images)):
+            peak_snr = images[i].max()/util.madtostd(images[i])
+            if peak_snr > st.prefs.sigma_image1:
+                candloc = (segment, integrations[i], dmind, dtind, beamnum)
+                candim = images[i]
+#                logger.info("i {0} shape {1}, loc {2}".format(i, candim.shape, candloc))
+#                logger.info("max {0}".format(np.where(candim == candim.max())))
+                l, m = st.pixtolm(np.where(candim == candim.max()))
+#                logger.info("image peak at l, m: {0}, {1}".format(l, m))
+                util.phase_shift(data, uvw, l, m)
+#                logger.info("phasing data from: {0}, {1}"
+#                            .format(max(0, i-st.prefs.timewindow//2),
+#                                    min(i+st.prefs.timewindow//2, len(data))))
+                dataph = data[max(0, integrations[i]-st.prefs.timewindow//2):
+                              min(integrations[i]+st.prefs.timewindow//2, len(data))].mean(axis=1)
+                util.phase_shift(data, uvw, -l, -m)
+                canddatalist.append(candidates.CandData(state=st, loc=candloc,
+                                                        image=candim, data=dataph))
+    else:
+        raise NotImplemented("only searchtype=image1 implemented")
+
+    # tuple(list(int), list(ndarray), list(ndarray))
+#    return (ints, images_thresh, dataph)
+    logger.info("{0} candidates returned for (seg, dmind, dtind) = "
+                "({1}, {2}, {3})".format(len(canddatalist), segment, dmind,
+                                         dtind))
 
     return canddatalist
 

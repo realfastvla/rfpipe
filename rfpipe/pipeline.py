@@ -82,7 +82,7 @@ def pipeline_seg2(st, segment, cfile=None, vys_timeout=vys_timeout_default):
     collections = []
     dtind = 0
     for dmind in range(len(st.dmarr)):
-        canddatalist = search.dedisperse_image_rfgpu(st, segment, data_prep,
+        canddatalist = search.dedisperse_image_cuda(st, segment, data_prep,
                                                      dmind, dtind)
 
         collection = candidates.calc_features(canddatalist)
