@@ -243,9 +243,9 @@ def search_thresh(st, segment, data, dmind, dtind, integrations=None,
     uvw = util.get_uvw_segment(st, segment)
 
     if 'image1' in st.prefs.searchtype:
-        images = image(data, uvw, st.npixx, st.npixy, st.uvres, st.fftmode,
-                       st.prefs.nthread, wisdom=wisdom,
-                       integrations=integrations)
+        images = grid_image(data, uvw, st.npixx, st.npixy, st.uvres,
+                            st.fftmode, st.prefs.nthread, wisdom=wisdom,
+                            integrations=integrations)
 
         logger.debug('Thresholding at {0} sigma.'
                      .format(st.prefs.sigma_image1))
@@ -427,8 +427,8 @@ def dedisperse_image_cpu(st, segment, data, dmind, dtind, mode='single',
     return canddatalist
 
 
-def image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,
-          integrations=None):
+def grid_image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,
+               integrations=None):
     """ Grid and image data.
     Optionally image integrations in list i.
     fftmode can be fftw or cuda.
@@ -442,48 +442,26 @@ def image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,
     elif isinstance(integrations, int):
         integrations = [integrations]
 
-    grids = grid_visibilities(data.take(integrations, axis=0), uvw, npixx,
-                              npixy, uvres, mode=mode)
-
     if fftmode == 'fftw':
         logger.debug("Imaging with fftw on {0} threads".format(nthread))
+        grids = grid_visibilities(data.take(integrations, axis=0), uvw, npixx,
+                                  npixy, uvres, mode=mode)
         images = image_fftw(grids, nthread=nthread, wisdom=wisdom)
     elif fftmode == 'cuda':
         logger.debug("Imaging with cuda.")
-        images = image_cuda(grids)
+        images = image_cuda()
     else:
         logger.warn("Imaging fftmode {0} not supported.".format(fftmode))
 
     return images
 
 
-def image_cuda(grids):
-    """ Run 2d FFT to image each plane of grid array
+def image_cuda():
+    """ Run grid and image with rfgpu
+    TODO: update to use rfgpu
     """
 
-    try:
-        from pyfft.cuda import Plan
-        from pycuda.tools import make_default_context
-        import pycuda.gpuarray as gpuarray
-        import pycuda.driver as cuda
-    except ImportError:
-        logger.error('ImportError for pycuda or pyfft. Use pyfftw instead.')
-
-    nints, npixx, npixy = grids.shape
-
-    cuda.init()
-    context = make_default_context()
-    stream = cuda.Stream()
-
-    plan = Plan((npixx, npixy), stream=stream)
-
-    grid_gpu = gpuarray.to_gpu(grids)
-    for i in range(0, nints):
-        plan.execute(grid_gpu[i], inverse=True)
-    grids = grid_gpu.get()
-
-    context.pop()
-    return np.fft.fftshift(grids.real, axes=(1, 2))
+    pass
 
 
 def image_fftw(grids, nthread=1, wisdom=None):
