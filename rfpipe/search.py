@@ -496,6 +496,7 @@ def image_fftw(grids, nthread=1, wisdom=None):
         pyfftw.import_wisdom(wisdom)
 
     logger.debug("Starting pyfftw ifft2")
+    images = np.zeros_like(grids)
 
 #    images = pyfftw.interfaces.numpy_fft.ifft2(grids, auto_align_input=True,
 #                                               auto_contiguous=True,
@@ -506,13 +507,12 @@ def image_fftw(grids, nthread=1, wisdom=None):
 #
 #   return np.fft.fftshift(images.real, (npixx//2, npixy//2))
 
-    fft_obj = pyfftw.FFTW(grids, grids, axes=(1, 2), direction="FFTW_BACKWARD")
+    fft_obj = pyfftw.FFTW(grids, images, axes=(1, 2), direction="FFTW_BACKWARD")
     fft_obj.execute()
-    nints, npixx, npixy = grids.shape
 
     logger.debug('Recentering fft\'d images...')
 
-    return np.fft.fftshift(grids.real, axes=(1, 2))
+    return np.fft.fftshift(images, axes=(1, 2))
 
 
 def grid_visibilities(data, uvw, npixx, npixy, uvres, mode='single'):

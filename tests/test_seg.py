@@ -14,7 +14,7 @@ inprefs = [{'flaglist': [], 'npix_max': 32, 'sigma_image1': -999,
 @pytest.fixture(scope="module", params=inprefs)
 def mockstate(request):
     t0 = time.Time.now().mjd
-    meta = rfpipe.metadata.mock_metadata(t0, t0+1./(24*3600), 27, 4, 2, 10e3,
+    meta = rfpipe.metadata.mock_metadata(t0, t0+1./(24*3600), 27, 4, 4, 10e3,
                                          datasource='sim')
     return rfpipe.state.State(inmeta=meta, inprefs=request.param)
 
@@ -58,7 +58,7 @@ def test_search(mockstate):
                 candcollection = rfpipe.candidates.calc_features(canddatalist)
                 candcollections.append(candcollection)
                 times += [canddata.time_top for canddata in canddatalist]
-                assert len(canddatalist) == (mockstate.readints-mockstate.dmshifts[dmind])//mockstate.dtarr[dtind]
+                assert len(canddatalist) == len(mockstate.get_search_ints(segment, dmind, dtind))
 
     times = np.sort(times)
     deltat = np.array([times[i+1] - times[i] for i in range(len(times)-1)])
@@ -80,5 +80,13 @@ def test_search(mockstate):
 
     assert mockstate.searchints == len(integs0_0)
     if 2 in mockstate.dtarr:
-        assert mockstate.nsegment*(mockstate.readints//2) == len(integs1_0)
-        assert mockstate.nsegment*(mockstate.readints-mockstate.dmshifts[1]) == len(integs0_1)
+        rr = 0
+        for segment in range(mockstate.nsegment):
+            integs = mockstate.get_search_ints(segment, 0, 1)
+            rr += max(integs) - min(integs) + 1
+        assert rr == len(integs1_0)
+        rr = 0
+        for segment in range(mockstate.nsegment):
+            integs = mockstate.get_search_ints(segment, 1, 0)
+            rr += max(integs) - min(integs) + 1
+        assert rr == len(integs0_1)

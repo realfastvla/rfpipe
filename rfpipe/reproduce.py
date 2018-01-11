@@ -132,7 +132,7 @@ def pipeline_dataprep(st, candloc):
 
     # prep data
     data = source.read_segment(st, segment)
-    data_prep = source.data_prep(st, data)
+    data_prep = source.data_prep(st, segment, data)
 
     return data_prep
 
@@ -155,8 +155,8 @@ def pipeline_datacorrect(st, candloc, data_prep=None):
     delay = util.calc_delay(st.freq, st.freq.max(), dm, st.inttime,
                             scale=scale)
 
-    data_dm = search.dedisperse(data_prep, delay)
-    data_dmdt = search.resample(data_dm, dt)
+    data_dmdt = search.dedisperseresample(data_prep, delay, dt)
+#    data_dmdt = search.resample(data_dm, dt)
 
     return data_dmdt
 
