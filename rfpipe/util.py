@@ -333,7 +333,7 @@ def find_segment_times(state):
 
     if state.memory_total > state.prefs.memory_limit:
         logger.info('Total memory of {0} is over limit of {1} with {2} '
-                    'segmetns. Searching to vis/im limits of {3}/{4} GB...'
+                    'segments. Searching to vis/im limits of {3}/{4} GB...'
                     .format(state.memory_total, state.prefs.memory_limit,
                             state.nsegment, state.vismem_limit,
                             state.immem_limit))

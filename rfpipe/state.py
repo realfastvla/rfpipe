@@ -195,8 +195,14 @@ class State(object):
                         .format(self.nfalse))
 
             logger.info('')
-            logger.info('\t Visibility/image memory usage is {0}/{1} GB/segment'
-                        .format(self.vismem, self.immem))
+            if self.fftmode == "fftw":
+                logger.info('\t Visibility/image memory usage is {0}/{1} '
+                            'GB/segment when using fftw imaging.'
+                            .format(self.vismem, self.immem))
+            elif self.fftmode == "cuda":
+                logger.info('\t Visibility memory usage is {0} '
+                            'GB/segment when using cuda imaging.'
+                            .format(self.vismem))
 
     def clearcache(self):
         cached = ['_dmarr', '_t_overlap', '_dmshifts', '_npol', '_blarr',
@@ -728,9 +734,9 @@ class State(object):
         Depends on data source and search algorithm.
         """
 
-        if self.prefs.fftmode == "fftw":
+        if self.fftmode == "fftw":
             return self.immem + self.vismem
-        elif self.prefs.fftmode == "cuda":
+        elif self.fftmode == "cuda":
             return self.vismem
 
     @property
@@ -739,9 +745,9 @@ class State(object):
         Depends on data source and search algorithm.
         """
 
-        if self.prefs.fftmode == "fftw":
+        if self.fftmode == "fftw":
             return self.immem_limit + self.vismem_limit
-        elif self.prefs.fftmode == "cuda":
+        elif self.fftmode == "cuda":
             return self.vismem_limit
 
     @property
