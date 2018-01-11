@@ -676,6 +676,14 @@ class State(object):
         return self.candsfile.replace('cands_', 'mock_')
 
     @property
+    def vysmem(self):
+        """ Memory needed by vysmaw reader (in GB).
+        Empirically measured and should be confirmed periodically.
+        """
+
+        return self.vismem*8
+
+    @property
     def vismem(self):
         """ Memory required to store read data (in GB)
         """
@@ -698,17 +706,6 @@ class State(object):
                           self.prefs.read_fdownsample))
 
     @property
-    def chunksize(self):
-        toGB = 8/1000**3   # number of complex64s to GB
-
-        if self.prefs.maximmem is not None:
-            return min(max(1,
-                           int(self.prefs.maximmem/(self.npixx*self.npixy*toGB))),
-                       self.readints)
-        else:
-            return self.readints
-
-    @property
     def immem(self):
         """ Memory required to create all images in a chunk of read integrations
         """
@@ -724,6 +721,39 @@ class State(object):
 
         toGB = 8/1000**3   # number of complex64s to GB
         return (min(self.chunksize, (self.t_overlap/self.inttime)) * self.npixx * self.npixy) * toGB
+
+    @property
+    def memory_total(self):
+        """ Total memory (in GB) required to read and process.
+        Depends on data source and search algorithm.
+        """
+
+        if self.prefs.fftmode == "fftw":
+            return self.immem + self.vismem
+        elif self.prefs.fftmode == "cuda":
+            return self.vismem
+
+    @property
+    def memory_total_limit(self):
+        """ Minimum memory (in GB) required to read and process.
+        Depends on data source and search algorithm.
+        """
+
+        if self.prefs.fftmode == "fftw":
+            return self.immem_limit + self.vismem_limit
+        elif self.prefs.fftmode == "cuda":
+            return self.vismem_limit
+
+    @property
+    def chunksize(self):
+        toGB = 8/1000**3   # number of complex64s to GB
+
+        if self.prefs.maximmem is not None:
+            return min(max(1,
+                           int(self.prefs.maximmem/(self.npixx*self.npixy*toGB))),
+                       self.readints)
+        else:
+            return self.readints
 
     @property
     def defined(self):

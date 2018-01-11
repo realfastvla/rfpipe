@@ -327,6 +327,7 @@ def dedisperse_image_cuda(st, segment, data, dmind, dtind, integrations=None,
             canddatalist.append(candidates.CandData(state=st, loc=candloc,
                                                     image=img_data,
                                                     data=data_corr))
+            # TODO: add safety against triggering return of all images
 
     logger.info("{0} candidates returned for (seg, dmind, dtind) = "
                 "({1}, {2}, {3})".format(len(canddatalist), segment, dmind,

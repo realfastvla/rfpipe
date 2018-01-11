@@ -329,22 +329,21 @@ def find_segment_times(state):
     state._segmenttimes = calc_segment_times(state, scale_nsegment)
 
     # calculate memory limit to stop iteration
-    assert state.immem_limit+state.vismem_limit < state.prefs.memory_limit, 'memory_limit of {0} is smaller than best solution of {1}. Try setting maxdm/npix_max lower.'.format(state.prefs.memory_limit, state.immem_limit+state.vismem_limit)
+    assert state.memory_total_limit < state.prefs.memory_limit, 'memory_limit of {0} is smaller than best solution of {1}. Try setting maxdm/npix_max lower.'.format(state.prefs.memory_limit, state.immem_limit+state.vismem_limit)
 
-    if state.vismem+state.immem > state.prefs.memory_limit:
-        logger.info('Over memory limit of {0} when reading {1} segments '
-                    '({2}/{3} GB for visibilities/imaging). Searching for '
-                    'solution down to {4}/{5} GB...'
-                    .format(state.prefs.memory_limit, state.nsegment,
-                            state.vismem, state.immem, state.vismem_limit,
+    if state.memory_total > state.prefs.memory_limit:
+        logger.info('Total memory of {0} is over limit of {1} with {2} '
+                    'segmetns. Searching to vis/im limits of {3}/{4} GB...'
+                    .format(state.memory_total, state.prefs.memory_limit,
+                            state.nsegment, state.vismem_limit,
                             state.immem_limit))
 
-        while state.vismem+state.immem > state.prefs.memory_limit:
+        while state.memory_total > state.prefs.memory_limit:
             logger.debug('Using {0} segments requires {1}/{2} GB for '
                          'visibilities/images. Searching for better solution.'
                          .format(state.nsegment, state.vismem, state.immem))
 
-            scale_nsegment *= (state.vismem+state.immem)/float(state.prefs.memory_limit)
+            scale_nsegment *= state.memory_total/float(state.prefs.memory_limit)
             state._segmenttimes = calc_segment_times(state, scale_nsegment)
 
 
