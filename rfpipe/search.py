@@ -312,11 +312,13 @@ def dedisperse_image_cuda(st, segment, data, dmind, dtind, integrations=None,
 
         # threshold image on GPU and optionally save it
         if peak_snr > st.prefs.sigma_image1:
+            candloc = (segment, i, dmind, dtind, beamnum)
+            l, m = st.pixtolm(np.where(img_data == img_data.max()))
+            logger.info("Got one! SNR {0} candidate at {1} and (l,m) = ({2},{3})"
+                        .format(peak_snr, candloc, l, m))
             img_grid.d2h()
             img_data = np.fft.fftshift(img_grid.data)  # shift zero pixel in middle
 
-            candloc = (segment, i, dmind, dtind, beamnum)
-            l, m = st.pixtolm(np.where(img_data == img_data.max()))
             data_corr = dedisperseresample(data, delay, st.dtarr[dtind],
                                            parallel=st.prefs.nthread > 1)[max(0,
                                                                             i-st.prefs.timewindow//2):
@@ -404,14 +406,10 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
             if peak_snr > st.prefs.sigma_image1:
                 candloc = (segment, integrations[i], dmind, dtind, beamnum)
                 candim = images[i]
-#                logger.info("i {0} shape {1}, loc {2}".format(i, candim.shape, candloc))
-#                logger.info("max {0}".format(np.where(candim == candim.max())))
                 l, m = st.pixtolm(np.where(candim == candim.max()))
-#                logger.info("image peak at l, m: {0}, {1}".format(l, m))
+                logger.info("Got one! SNR {0} candidate at {1} and (l,m) = ({2},{3})"
+                            .format(peak_snr, candloc, l, m))
                 util.phase_shift(data, uvw, l, m)
-#                logger.info("phasing data from: {0}, {1}"
-#                            .format(max(0, i-st.prefs.timewindow//2),
-#                                    min(i+st.prefs.timewindow//2, len(data))))
                 dataph = data[max(0, integrations[i]-st.prefs.timewindow//2):
                               min(integrations[i]+st.prefs.timewindow//2, len(data))].mean(axis=1)
                 util.phase_shift(data, uvw, -l, -m)

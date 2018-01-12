@@ -182,8 +182,8 @@ class State(object):
 
             logger.info('')
 
-            logger.info('\t Search with {0} with threshold {1} using {2} thread{3}.'
-                        .format(self.prefs.searchtype,
+            logger.info('\t Using {0} for {1} search at {2} sigma using {3} thread{4}.'
+                        .format(self.fftmode, self.prefs.searchtype,
                                 self.prefs.sigma_image1, self.prefs.nthread,
                                 's'[not self.prefs.nthread-1:]))
             logger.info('\t Using {0} DMs from {1} to {2} and dts {3}.'
