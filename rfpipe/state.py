@@ -682,14 +682,6 @@ class State(object):
         return self.candsfile.replace('cands_', 'mock_')
 
     @property
-    def vysmem(self):
-        """ Memory needed by vysmaw reader (in GB).
-        Empirically measured and should be confirmed periodically.
-        """
-
-        return self.vismem*8
-
-    @property
     def vismem(self):
         """ Memory required to store read data (in GB)
         """

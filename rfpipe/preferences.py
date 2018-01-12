@@ -53,26 +53,26 @@ class Preferences(object):
     nthread = attr.ib(default=1)
 #    nsegment = attr.ib(default=0)
     segmenttimes = attr.ib(default=None)
-    memory_limit = attr.ib(default=16)
-    maximmem = attr.ib(default=None)
+    memory_limit = attr.ib(default=16)  # in GB; includes typical freqs/configs
+    maximmem = attr.ib(default=16)  # in GB; defines chunk for fftw imaging
 
     # search
-    dmarr = attr.ib(default=None)
-    dtarr = attr.ib(default=None)
+    fftmode = attr.ib(default='fftw')  # either 'fftw' or 'cuda'. defines segment size and algorithm used.
+    dmarr = attr.ib(default=None)  # in pc/cm3
+    dtarr = attr.ib(default=None)  # in samples
     dm_maxloss = attr.ib(default=0.05)  # fractional sensitivity loss
-    mindm = attr.ib(default=0)
+    mindm = attr.ib(default=0)  # in pc/cm3
     maxdm = attr.ib(default=0)  # in pc/cm3
     dm_pulsewidth = attr.ib(default=3000)   # in microsec
     searchtype = attr.ib(default='image1')  # supported: image1, image1stat
-    sigma_image1 = attr.ib(default=7.)
-    sigma_image2 = attr.ib(default=7.)
+    sigma_image1 = attr.ib(default=7.)  # threshold for image1 algorithm
+    sigma_image2 = attr.ib(default=7.)  # second threshold (no algo yet)
     sigma_plot = attr.ib(default=7.)
-    uvres = attr.ib(default=0)
-    npixx = attr.ib(default=0)
-    npixy = attr.ib(default=0)
-    npix_max = attr.ib(default=0)
-    uvoversample = attr.ib(default=1.)
-    fftmode = attr.ib(default='fftw')  # either 'fftw' or 'cuda'
+    uvres = attr.ib(default=0)  # in lambda
+    npixx = attr.ib(default=0)  # set number of x pixels in image
+    npixy = attr.ib(default=0)  # set number of y pixels in image
+    npix_max = attr.ib(default=0)  # set max number of pixels in image
+    uvoversample = attr.ib(default=1.)  # scale factor for to overresolve grid
 
     savenoise = attr.ib(default=False)
     savecands = attr.ib(default=False)
