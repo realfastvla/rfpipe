@@ -312,12 +312,13 @@ def dedisperse_image_cuda(st, segment, data, dmind, dtind, integrations=None,
 
         # threshold image on GPU and optionally save it
         if peak_snr > st.prefs.sigma_image1:
-            candloc = (segment, i, dmind, dtind, beamnum)
-            l, m = st.pixtolm(np.where(img_data == img_data.max()))
-            logger.info("Got one! SNR {0} candidate at {1} and (l,m) = ({2},{3})"
-                        .format(peak_snr, candloc, l, m))
             img_grid.d2h()
             img_data = np.fft.fftshift(img_grid.data)  # shift zero pixel in middle
+            l, m = st.pixtolm(np.where(img_data == img_data.max()))
+            candloc = (segment, i, dmind, dtind, beamnum)
+
+            logger.info("Got one! SNR {0} candidate at {1} and (l,m) = ({2},{3})"
+                        .format(peak_snr, candloc, l, m))
 
             data_corr = dedisperseresample(data, delay, st.dtarr[dtind],
                                            parallel=st.prefs.nthread > 1)[max(0,
