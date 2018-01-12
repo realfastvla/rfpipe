@@ -571,7 +571,10 @@ class State(object):
 
         peakx, peaky = pix
         # if np.where output
-        if isinstance(peaky, np.ndarray) and len(peaky) == 1:
+        if isinstance(peaky, np.ndarray):
+            if len(peakx) > 1 or len(peaky) > 1:
+                logger.warn("More than one peak pixel ({0}, {1}). Using first."
+                            .format(peakx, peaky))
             peaky = peaky[0]
             peakx = peakx[0]
 
