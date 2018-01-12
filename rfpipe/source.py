@@ -26,7 +26,8 @@ def data_prep(st, segment, data):
         # TODO: allow parallel execution with apply_telcal2
         if st.metadata.datasource != 'sim':
             if os.path.exists(st.gainfile):
-                data = calibration.apply_telcal(st, np.require(data, requirements='W'))
+                data = calibration.apply_telcal(st, np.require(data,
+                                                               requirements='W'))
             else:
                 logger.warn('Telcal file not found. No calibration to apply.')
         else:

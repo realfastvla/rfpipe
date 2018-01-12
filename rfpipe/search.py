@@ -207,7 +207,7 @@ def _dedisperseresample_gu(data, delay, dt):
 #
 
 def dedisperse_image_cuda(st, segment, data, dmind, dtind, integrations=None,
-                           devicenum=None):
+                          devicenum=None):
     """ Run dedispersion, grid, and imaging on GPU.
     No resampling yet.
     rfgpu is built from separate repo.
@@ -217,8 +217,12 @@ def dedisperse_image_cuda(st, segment, data, dmind, dtind, integrations=None,
     try:
         import rfgpu
     except ImportError:
-        logger.warn("rfgpu not available. Exiting")
+        logger.error('ImportError for rfgpu. Exiting.')
         return
+
+    if not np.any(data):
+        logger.info("Data is all zeros. Skipping search.")
+        return []
 
     if devicenum is None:
         # assume first gpu, but try to infer from worker name
@@ -371,6 +375,7 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
     """
 
     if not np.any(data):
+        logger.info("Data is all zeros. Skipping search.")
         return []
 
     # assumes dedispersed/resampled data has only back end trimmed off
