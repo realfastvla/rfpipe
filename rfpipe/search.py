@@ -12,7 +12,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def dedisperse(data, delay, mode='single'):
+def dedisperse(data, delay, parallel=False):
     """ Shift data in time (axis=0) by channel-dependent value given in
     delay. Returns new array with time length shortened by max delay in
     integrations. wraps _dedisperse to add logging.
@@ -31,14 +31,14 @@ def dedisperse(data, delay, mode='single'):
         newsh = (nint-delay.max(), nbl, nchan, npol)
         result = np.zeros(shape=newsh, dtype=data.dtype)
 
-        if mode == 'single':
-            _dedisperse_jit(np.require(data, requirements='W'), delay, result)
-            return result
-        elif mode == 'multi':
-            _ = _dedisperse_gu(np.swapaxes(np.require(data, requirements='W'), 0, 1), delay)
+        if parallel:
+            _ = _dedisperse_gu(np.swapaxes(np.require(data,
+                                                      requirements='W'), 0, 1),
+                               delay)
             return data[0:len(data)-delay.max()]
         else:
-            logger.error('No such dedispersion mode.')
+            _dedisperse_jit(np.require(data, requirements='W'), delay, result)
+            return result
     else:
         return data
 
@@ -70,7 +70,7 @@ def _dedisperse_gu(data, delay):
                 data[i, j, k] = data[iprime, j, k]
 
 
-def resample(data, dt, mode='single'):
+def resample(data, dt, parallel=False):
     """ Resample (integrate) by factor dt and return new data structure
     wraps _resample to add logging.
     Can set mode to "single" or "multi" to use different functions.
@@ -89,14 +89,12 @@ def resample(data, dt, mode='single'):
         newsh = (int64(nint//dt), nbl, nchan, npol)
         result = np.zeros(shape=newsh, dtype=data.dtype)
 
-        if mode == 'single':
-            _resample_jit(np.require(data, requirements='W'), dt, result)
-            return result
-        elif mode == 'multi':
+        if parallel:
             _ = _resample_gu(np.swapaxes(np.require(data, requirements='W'), 0, 3), dt)
             return data[:len0//dt]
         else:
-            logger.error('No such resample mode.')
+            _resample_jit(np.require(data, requirements='W'), dt, result)
+            return result
     else:
         return data
 
@@ -134,31 +132,31 @@ def _resample_gu(data, dt):
             data[i] = data[i]/dt
 
 
-def dedisperseresample(data, delay, dt, mode='single'):
+def dedisperseresample(data, delay, dt, parallel=False):
     """ Dedisperse and resample in single function.
-    Can set mode to "single" or "multi" to use different functions.
-    Changes memory in place, so forces writability
+    parallel controls use of multicore versions of algorithms.
+    Changes memory in place, so enforces writability
     """
 
     if not np.any(data):
         return np.array([])
 
-    logger.info('Correcting by delay/resampling {0}/{1} ints in mode {2}'
-                .format(delay.max(), dt, mode))
+    logger.info('Correcting by delay/resampling {0}/{1} ints in {2} mode'
+                .format(delay.max(), dt, ['single', 'parallel'][parallel]))
 
     if delay.max() > 0 or dt > 1:
         nint, nbl, nchan, npol = data.shape
         newsh = (int64(nint-delay.max())//dt, nbl, nchan, npol)
         result = np.zeros(shape=newsh, dtype=data.dtype)
 
-        if mode == 'single':
-            _dedisperseresample_jit(data, delay, dt, result)
-            return result
-        elif mode == 'multi':
-            _ = _dedisperseresample_gu(np.swapaxes(np.require(data, requirements='W'), 0, 1), delay, dt)
+        if parallel:
+            _ = _dedisperseresample_gu(np.swapaxes(np.require(data,
+                                                              requirements='W'), 0, 1),
+                                       delay, dt)
             return data[0:(len(data)-delay.max())//dt]
         else:
-            logger.error('No such dedispersion mode.')
+            _dedisperseresample_jit(data, delay, dt, result)
+            return result
     else:
         return data
 
@@ -320,8 +318,10 @@ def dedisperse_image_cuda(st, segment, data, dmind, dtind, integrations=None,
             candloc = (segment, i, dmind, dtind, beamnum)
             l, m = st.pixtolm(np.where(img_data == img_data.max()))
             data_corr = dedisperseresample(data, delay, st.dtarr[dtind],
-                                           mode='multi')[max(0, i-st.prefs.timewindow//2):
-                                                         min(i+st.prefs.timewindow//2, len(data))]
+                                           parallel=st.prefs.nthread > 1)[max(0,
+                                                                            i-st.prefs.timewindow//2):
+                                                                        min(i+st.prefs.timewindow//2,
+                                                                            len(data))]
             util.phase_shift(data_corr, uvw, l, m)
             data_corr = data_corr.mean(axis=1)
             canddatalist.append(candidates.CandData(state=st, loc=candloc,
@@ -336,28 +336,28 @@ def dedisperse_image_cuda(st, segment, data, dmind, dtind, integrations=None,
     return canddatalist
 
 
-def dedisperse_image_fftw(st, segment, data, dmind, dtind, mode='single',
-                          wisdom=None, integrations=None):
+def dedisperse_image_fftw(st, segment, data, dmind, dtind, wisdom=None,
+                          integrations=None):
     """ Fuse the dediserpse, resample, search, threshold functions.
     """
 
     delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
                             st.inttime)
 
-    data_corr = dedisperseresample(data, delay, st.dtarr[dtind], mode=mode)
+    data_corr = dedisperseresample(data, delay, st.dtarr[dtind],
+                                   parallel=st.prefs.nthread > 1)
 
     uvw = util.get_uvw_segment(st, segment)
 
-    canddatalist = search_thresh(st, segment, data_corr, dmind, dtind,
-                                 wisdom=wisdom, integrations=integrations)
+    canddatalist = search_thresh_fftw(st, segment, data_corr, dmind, dtind,
+                                      wisdom=wisdom, integrations=integrations)
 
     return canddatalist
 
 
-def search_thresh(st, segment, data, dmind, dtind, integrations=None,
-                  beamnum=0, wisdom=None):
-    """ High-level wrapper for search algorithms.
-    Expects dedispersed, resampled data as input and data state.
+def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
+                       beamnum=0, wisdom=None):
+    """ Take dedispersed, resampled data, image with fftw and threshold.
     Returns list of CandData objects that define candidates with
     candloc, image, and phased visibility data.
     Integrations can define subset of all available in data to search.
@@ -376,21 +376,22 @@ def search_thresh(st, segment, data, dmind, dtind, integrations=None,
     elif isinstance(integrations, int):
         integrations = [integrations]
 
-    assert isinstance(integrations, list), "integrations should be int, list of ints, or None."
+    assert isinstance(integrations, list), ("integrations should be int, list "
+                                            "of ints, or None.")
     minint = min(integrations)
     maxint = max(integrations)
 
     logger.info('Imaging {0} ints ({1}-{2}) in seg {3} at DM/dt {4}/{5} with '
-                'image {6}x{7} (uvres {8}) with mode {9}'
+                'image {6}x{7} (uvres {8}) with fftw'
                 .format(len(integrations), minint, maxint, segment,
                         st.dmarr[dmind], st.dtarr[dtind], st.npixx, st.npixy,
-                        st.uvres, st.fftmode))
+                        st.uvres))
 
     uvw = util.get_uvw_segment(st, segment)
 
     if 'image1' in st.prefs.searchtype:
         images = grid_image(data, uvw, st.npixx, st.npixy, st.uvres,
-                            st.fftmode, st.prefs.nthread, wisdom=wisdom,
+                            'fftw', st.prefs.nthread, wisdom=wisdom,
                             integrations=integrations)
 
         logger.debug('Thresholding at {0} sigma.'
@@ -436,8 +437,6 @@ def grid_image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,
     nthread is number of threads to use
     """
 
-    mode = 'single' if nthread == 1 else 'multi'
-
     if integrations is None:
         integrations = list(range(len(data)))
     elif isinstance(integrations, int):
@@ -446,7 +445,7 @@ def grid_image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,
     if fftmode == 'fftw':
         logger.debug("Imaging with fftw on {0} threads".format(nthread))
         grids = grid_visibilities(data.take(integrations, axis=0), uvw, npixx,
-                                  npixy, uvres, mode=mode)
+                                  npixy, uvres, parallel=nthread > 1)
         images = image_fftw(grids, nthread=nthread, wisdom=wisdom)
     elif fftmode == 'cuda':
         logger.debug("Imaging with cuda.")
@@ -494,22 +493,21 @@ def image_fftw(grids, nthread=1, wisdom=None):
     return np.fft.fftshift(images.real, axes=(1, 2))
 
 
-def grid_visibilities(data, uvw, npixx, npixy, uvres, mode='single'):
+def grid_visibilities(data, uvw, npixx, npixy, uvres, parallel=False):
     """ Grid visibilities into rounded uv coordinates """
 
     logger.debug('Gridding {0} ints at ({1}, {2}) pix and {3} '
-                 'resolution with mode {4}.'.format(len(data), npixx, npixy,
-                                                    uvres, mode))
+                 'resolution in {4} mode.'.format(len(data), npixx, npixy,
+                                                  uvres,
+                                                  ['single', 'parallel'][parallel]))
     u, v, w = uvw
     grids = np.zeros(shape=(data.shape[0], npixx, npixy),
                      dtype=np.complex64)
 
-    if mode == 'single':
-        _grid_visibilities_jit(data, u, v, w, npixx, npixy, uvres, grids)
-    elif mode == 'multi':
+    if parallel:
         _ = _grid_visibilities_gu(data, u, v, w, npixx, npixy, uvres, grids)
     else:
-        logger.error('No such resample mode.')
+        _grid_visibilities_jit(data, u, v, w, npixx, npixy, uvres, grids)
 
     return grids
 

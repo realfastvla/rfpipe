@@ -48,9 +48,9 @@ def test_search(mockstate, mockdata, wisdom, params=[0, 1]):
                                    mockstate.inttime)
     datadm = rfpipe.search.dedisperse(mockdata, delay)
 
-    canddatalist = rfpipe.search.search_thresh(mockstate, segment, datadm,
-                                               request.param, dtind,
-                                               wisdom=wisdom)
+    canddatalist = rfpipe.search.search_thresh_fftw(mockstate, segment, datadm,
+                                                    request.param, dtind,
+                                                    wisdom=wisdom)
 
     candcollection = rfpipe.candidates.calc_features(canddatalist)
     assert type(candcollection.array) == ndarray

@@ -20,8 +20,6 @@ def data_prep(st, segment, data):
     """ Applies calibration, flags, and subtracts time mean for data.
     """
 
-    mode = 'single' if st.prefs.nthread == 1 else 'multi'
-
     if np.any(data):
         data = prep_standard(st, segment, np.require(data, requirements='W'))
 
@@ -39,7 +37,7 @@ def data_prep(st, segment, data):
 
         if st.prefs.timesub == 'mean':
             logger.info('Subtracting mean visibility in time.')
-            data = util.meantsub(data, mode=mode)
+            data = util.meantsub(data, parallel=st.prefs.nthread > 1)
         else:
             logger.info('No visibility subtraction done.')
 

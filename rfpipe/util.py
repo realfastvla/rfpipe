@@ -75,19 +75,16 @@ def _phaseshift_jit(data, uvw, dl, dm):
                         data[i, j, k, l] = data[i, j, k, l] * frot
 
 
-def meantsub(data, mode='single'):
+def meantsub(data, parallel=False):
     """ Subtract mean visibility in time.
-    Option to use single or multi threaded version of algorithm.
+    Parallel controls use of multithreaded algorithm.
     """
 
-    if mode == 'single':
-        _meantsub_jit(np.require(data, requirements='W'))
-        return data
-    elif mode == 'multi':
+    if parallel:
         _ = _meantsub_gu(np.require(np.swapaxes(data, 0, 3), requirements='W'))
-        return data
     else:
-        logger.error('No such dedispersion mode.')
+        _meantsub_jit(np.require(data, requirements='W'))
+    return data
 
 
 @jit(nogil=True, nopython=True)
