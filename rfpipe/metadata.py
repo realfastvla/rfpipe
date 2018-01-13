@@ -265,7 +265,7 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
 
 
 def mock_metadata(t0, t1, nants, nspw, chans, npol, inttime_micros,
-                  datasource='vys', **kwargs):
+                  datasource='vys', datasetid='test', **kwargs):
     """ Wraps Metadata call to provide immutable, attribute-filled class instance.
     Parallel structure to sdm_metadata, so this inherits some of its
     nomenclature. t0, t1 are times in mjd. Supports up to nant=27, npol=4, and
@@ -278,7 +278,7 @@ def mock_metadata(t0, t1, nants, nspw, chans, npol, inttime_micros,
 
     meta = {}
     meta['datasource'] = datasource
-    meta['datasetId'] = 'test'
+    meta['datasetId'] = datasetid
     meta['scan'] = 1
     meta['subscan'] = 1
     meta['bdfdir'] = ''

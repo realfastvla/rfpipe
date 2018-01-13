@@ -72,7 +72,7 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default):
         dtind = 0
         for dmind in range(len(st.dmarr)):
             canddatalist = search.dedisperse_image_cuda(st, segment, data_prep,
-                                                        dmind, dtind)
+                                                        dmind)
 
             collection = candidates.calc_features(canddatalist)
             collections.append(collection)
