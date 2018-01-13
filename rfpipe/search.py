@@ -213,10 +213,10 @@ def dedisperse_image_cuda(st, segment, data, dmind, devicenum=None):
     devicenum can force the gpu to use, but can be inferred via distributed.
     """
 
-    assert dtarr[0] == 1, "dtarr[0] assumed to be 1"
-    assert all([dtarr[dti] == dtarr[dti+1] >> 1
-                for dti in range(len(dtarr)-1)]), ("dtarr must increase by "
-                                                   "factors of 2")
+    assert st.dtarr[0] == 1, "st.dtarr[0] assumed to be 1"
+    assert all([st.dtarr[dtind]*2 == st.dtarr[dtind+1]
+                for dtind in range(len(st.dtarr)-1)]), ("dtarr must increase "
+                                                        "by factors of 2")
 
     try:
         import rfgpu
