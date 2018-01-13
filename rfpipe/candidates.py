@@ -12,7 +12,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from rfpipe import util, version, fileLock, state
-from bokeh.plotting import ColumnDataSource, Figure, save
+from bokeh.plotting import ColumnDataSource, Figure, save, output_file
 from bokeh.models import HoverTool
 from bokeh.models import Row
 from collections import OrderedDict
@@ -283,7 +283,7 @@ def iter_cands(candsfile):
                 logger.info('No more CandCollections.')
                 break
 
-### bokeh summary plot 
+### bokeh summary plot
 
 def makesummaryplot(candsfile):
     """ Given a scan's candsfile, read all candcollections and create bokeh summary plot
@@ -320,8 +320,8 @@ def makesummaryplot(candsfile):
                   edgeinds=edgeinds)
     combined = Row(dmt, loc, width=950)
 
-    htmlfile = candsfile.replace('.pkl', '.html')
-    save(combined, filename=htmlfile)
+    output_file(candsfile.replace('.pkl', '.html'))
+    save(combined)
 
 
 def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
