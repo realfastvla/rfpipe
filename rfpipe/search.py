@@ -324,10 +324,9 @@ def dedisperse_image_cuda(st, segment, data, dmind, devicenum=None):
                             .format(peak_snr, candloc, l, m))
 
                 data_corr = dedisperseresample(data, delay, st.dtarr[dtind],
-                                               parallel=st.prefs.nthread > 1)[max(0,
-                                                                                  i-st.prefs.timewindow//2):
-                                                                              min(i+st.prefs.timewindow//2,
-                                                                              len(data))]
+                                               parallel=st.prefs.nthread > 1)
+                data_corr = data_corr[max(0, i-st.prefs.timewindow//2):
+                                      min(i+st.prefs.timewindow//2, len(data))]
                 util.phase_shift(data_corr, uvw, l, m)
                 data_corr = data_corr.mean(axis=1)
                 canddatalist.append(candidates.CandData(state=st, loc=candloc,
