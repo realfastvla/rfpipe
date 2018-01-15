@@ -197,7 +197,7 @@ def calc_dmarr(state):
     # width functions and loss factor
     dt0 = lambda dm: np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2)
     dt1 = lambda dm, ddm: np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2 + ((k*ddm*bw)/(freq**3.))**2)
-    loss = lambda dm, ddm: 1 - np.sqrt(dt0(dm)/dt1(dm,ddm))
+    loss = lambda dm, ddm: 1 - np.sqrt(dt0(dm)/dt1(dm, ddm))
     loss_cordes = lambda ddm, dfreq, dm_pulsewidth, freq: 1 - (np.sqrt(np.pi) / (2 * 6.91e-3 * ddm * dfreq / (dm_pulsewidth*freq**3))) * erf(6.91e-3 * ddm * dfreq / (dm_pulsewidth*freq**3))  # not quite right for underresolved pulses
 
     if maxdm == 0:

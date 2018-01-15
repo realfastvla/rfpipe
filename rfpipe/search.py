@@ -287,6 +287,9 @@ def dedisperse_image_cuda(st, segment, data, dmind, devicenum=None):
     grid.conjugate(vis_raw)
 
     for dtind in range(len(st.dtarr)):
+        if dtind > 0:
+            grid.downsample(vis_raw)
+
         grid.set_shift(delay >> dtind)  # dispersion shift per chan in samples
 
         integrations = st.get_search_ints(segment, dmind, dtind)
@@ -337,7 +340,6 @@ def dedisperse_image_cuda(st, segment, data, dmind, devicenum=None):
         logger.info("{0} candidates returned for (seg, dmind, dtind) = "
                     "({1}, {2}, {3})".format(len(canddatalist), segment, dmind,
                                              dtind))
-        grid.downsample(vis_raw)
 
     return canddatalist
 
