@@ -24,8 +24,9 @@ def apply_telcal(st, data, calname=None, sign=+1):
 
     return data
 
+### Functional form
 
-def apply_telcal2(st, data, calname=None, sign=+1):
+def apply_telcal2(st, data, threshold=50, onlycomplete=True, sign=+1):
     """ Wrap all telcal functions to parse telcal file and apply it to data
     sign defines if calibration is applied (+1) or backed out (-1).
     """
@@ -33,29 +34,35 @@ def apply_telcal2(st, data, calname=None, sign=+1):
     assert sign in [-1, +1], 'sign must be +1 or -1'
 
     sols = parseGN(st.gainfile)
-    set_selection(sols, st.segmenttimes.mean(), st.freq*1e9, st.blarr,
-                  calname=calname)
+    sols = flagants(sols, threshold=threshold, onlycomplete=onlycomplete)
+    sols = select(sols, time=st.segmenttimes.mean())
+
     apply(sols, data, sign=sign)
 
     return data
 
-### Functional form
 
-def parseGN(telcalfile, onlycomplete=True, threshold=50):
+def parseGN(telcalfile):
     """Takes .GN telcal file and places values in numpy arrays.
-    onlycomplete defines whether to toss times with less than full set of solutions (one per spw, pol, ant).
+    threshold and onlycomplete define flagging of low gains and incomplete
+    solutions.
     """
 
+    # Define telcal file formatting
     skip = 3   # skip first three header lines
     MJD = 0; UTC = 1; LSTD = 2; LSTS = 3; IFID = 4; SKYFREQ = 5; ANT = 6; AMP = 7; PHASE = 8
     RESIDUAL = 9; DELAY = 10; FLAGGED = 11; ZEROED = 12; HA = 13; AZ = 14; EL = 15
-    SOURCE = 16
-    #FLAGREASON = 17
+    SOURCE = 16; FLAGREASON = 17
 
-    mjd = []; utc = []; lstd = []; lsts = []; ifid = []; skyfreq = []; 
-    antname = []; amp = []; phase = []; residual = []; delay = []; 
-    flagged = []; zeroed = []; ha = []; az = []; el = []; source = []
-    #flagreason = []
+    mjd = []
+    ifid = []
+    skyfreq = []
+    antnum = []
+    amp = []
+    phase = []
+    delay = []
+    flagged = []
+    source = []
 
     i = 0
     with open(telcalfile, 'r') as fp:
@@ -67,104 +74,125 @@ def parseGN(telcalfile, onlycomplete=True, threshold=50):
                 continue
 
             try:
-                mjd.append(float(fields[MJD])); utc.append(fields[UTC]); lstd.append(float(fields[LSTD])); lsts.append(fields[LSTS])
-                ifid.append(fields[IFID]); skyfreq.append(float(fields[SKYFREQ])); antname.append(fields[ANT])
-                amp.append(float(fields[AMP])); phase.append(float(fields[PHASE])); residual.append(float(fields[RESIDUAL]))
-                delay.append(float(fields[DELAY])); flagged.append('true' == (fields[FLAGGED]))
-                zeroed.append('true' == (fields[ZEROED])); ha.append(float(fields[HA])); az.append(float(fields[AZ]))
-                el.append(float(fields[EL])); source.append(fields[SOURCE])
-#                flagreasonp.append('')  # 18th field not yet implemented
+                mjd.append(float(fields[MJD]))
+                ifid.append(fields[IFID])
+                skyfreq.append(float(fields[SKYFREQ]))
+                antnum.append(int(fields[ANT].lstrip('ea')))
+                amp.append(float(fields[AMP]))
+                phase.append(float(fields[PHASE]))
+                delay.append(float(fields[DELAY]))
+                flagged.append('true' == (fields[FLAGGED]))
+                source.append(fields[SOURCE])
             except ValueError:
                 logger.warn('Trouble parsing line of telcal file. Skipping.')
                 continue
 
-    mjd = np.array(mjd); utc = np.array(utc); lstd = np.array(lstd); lsts = np.array(lsts)
-    ifid = np.array(ifid); skyfreq = np.array(skyfreq); antname = np.array(antname); amp = np.array(amp) 
-    phase = np.array(phase); residual = np.array(residual); delay = np.array(delay)
-    flagged = np.array(flagged); zeroed = np.array(zeroed); ha = np.array(ha); az = np.array(az)
-    el = np.array(el); source = np.array(source); 
-    #flagreason = np.array(flagreason)
+    # TODO: assumes dual pol. update to full pol
+    polarization = [('C' in i0 or 'D' in i0) for i0 in ifid]
 
-    # purify list to keep only complete solution sets
-    if onlycomplete:
-        completecount = len(np.unique(ifid)) * len(np.unique(antname))
-        complete = []
-        for mjd0 in np.unique(mjd):
-            mjdselect = list(np.where(mjd0 == mjd)[0])
-            if len(mjdselect) == completecount:
-                complete = complete + mjdselect
-        complete = np.array(complete)
-    else:
-        complete = np.arange(len(mjd))
+    dtype = zip(['mjd', 'ifid', 'skyfreq', 'antnum', 'polarization', 'source',
+                 'amp', 'phase', 'delay', 'flagged'],
+                ['<f4', 'U4', '<f4', 'i8', 'i8', 'U20', '<f4', '<f4', '<f4',
+                 '?'])
+    sols = np.zeros(len(mjd), dtype=dtype)
 
-    sols = {'mjd': mjd, 'utc': utc, 'lstd': lstd, 'lsts': lsts, 'ifid': ifid, 'skyfreq': skyfreq,
-            'antname': antname, 'amp': amp, 'phase': phase, 'residual': residual, 'delay': delay,
-            'flagged': flagged, 'zeroed': zeroed, 'ha': ha, 'az': az, 'el': el, 'source': source,
-            'complete': complete}
-
-    sols['antnum'] = np.array([int(aa.lstrip('ea')) for aa in antname]) # cut the 'ea' from start of antenna string to get integer
-
-    flagants(sols, threshold=threshold)
+    for i in range(len(mjd)):
+        sols[i] = (mjd[i], ifid[i], skyfreq[i], antnum[i], polarization[i],
+                   source[i], amp[i], phase[i], delay[i], flagged[i])
 
     return sols
 
 
-def set_selection(sols, time, freqs, blarr, calname=None):
-    """ Set select parameter that defines spectral window, time, or any other selection.
-    time (in mjd) defines the time to find solutions near for given calname.
-    freqs (in Hz) is frequencies in data.
-    blarr is array of size 2xnbl that gives pairs of antennas in each baseline (a la tpipe.blarr).
-    calname defines the name of the calibrator to use. if blank, uses only the time selection.
+def flagants(solsin, threshold, onlycomplete):
+    """ Flags solutions with amplitude more than threshold larger than median.
+    onlycomplete defines whether to flag times with incomplete solutions.
     """
 
-    sols['freqs'] = freqs
-    sols['chansize'] = freqs[1]-freqs[0]
-    sols['select'] = sols['complete']   # use only complete solution sets (set during parse)
-    sols['blarr'] = blarr
+    sols = solsin.copy()
 
-    # assumes dual pol
-    sols['polind'] = [0, 1]
+    # identify very low gain amps not already flagged
+    badsols = np.where((np.median(sols['amp'])/sols['amp'] > threshold) &
+                       (sols['flagged'] is False))[0]
+    if len(badsols):
+        logger.info('Flagging {0} solutions at MJD {1}, ant {2}, and freqs '
+                    '{3}) for low gain amplitude.'
+                    .format(len(badsols), np.unique(sols[badsols]['mjd']),
+                            np.unique(sols[badsols]['antnum']),
+                            np.unique(sols[badsols]['ifid'])))
+        for sol in badsols:
+            sols['flagged'][sol] = True
 
-    sols['polarization'] = np.empty(len(sols['ifid']))
-    for i in range(len(sols['ifid'])):
-        if ('A' in sols['ifid'][i]) or ('B' in sols['ifid'][i]):
-            sols['polarization'][i] = 0
-        elif ('C' in sols['ifid'][i]) or ('D' in sols['ifid'][i]):
-            sols['polarization'][i] = 1
+    if onlycomplete:
+        ifids = np.unique(sols['ifid'])
+        antnums = np.unique(sols['antnum'])
+        mjds = np.unique(sols['mjd'])
 
-    if calname:
-        nameselect = []
-        for ss in np.unique(sols['source'][sols['select']]):
-            if calname in ss:
-                nameselect = np.where(sols['source'][sols['select']] == ss)   # define selection for name
-                sols['select'] = sols['select'][nameselect]       # update overall selection
-                logger.debug('Selection down to %d solutions with %s' % (len(sols['select']), calname))
-        if not nameselect:
-            logger.warn('Calibrator name %s not found. Ignoring.' % (calname))
+        completecount = len(ifids) * len(antnums)
+        for mjd0 in mjds:
+            sols0 = np.where(mjd0 == mjds)[0]
+            if len(sols0) < completecount:
+                logger.info("Solution set at MJD {0} has only {1} of {2} "
+                            "solutions. Flagging..."
+                            .format(mjd0, len(sols0), completecount))
+                sols[sols0]['flagged'] = True
 
-    # select freq
-    freqselect = np.where([ff in np.around(sols['freqs'], -6) for ff in np.around(1e6*sols['skyfreq'][sols['select']], -6)])   # takes solution if band center is in (rounded) array of chan freqs
-    if len(freqselect[0]) == 0:
-        raise StandardError('No complete set of telcal solutions at that frequency.')
-    sols['select'] = sols['select'][freqselect[0]]    # update overall selection
-    logger.info('Frequency selection cut down to %d solutions' % (len(sols['select'])))
+    return sols
+
+
+def select(sols, time=None, freqs=None, polarization=None):
+    """ Selects a solution set based on given time and freqs.
+    time (in mjd) defines the time to find solutions near for given calname.
+    freqs (in Hz) is frequencies in data.
+    TODO: add polarization
+    """
+
+    # select freq if solution band center is in (rounded) array of chan freqs
+    if freqs is not None:
+        freqselect = [ff in np.around(freqs, -6)
+                      for ff in np.around(1e6*sols['skyfreq'], -6)]
+    else:
+        freqselect = np.ones(len(sols), dtype=bool)
 
     # select by smallest time distance for source
-    mjddist = np.abs(time - np.unique(sols['mjd'][sols['select']]))
-    closest = np.where(mjddist == mjddist.min())
-    if len(closest[0]) > 1:
-        logger.info('Multiple closest solutions in time (%s). Taking first.' % (str(closest[0])))
-        closest = closest[0][0]
-    timeselect = np.where(sols['mjd'][sols['select']] == np.unique(sols['mjd'][sols['select']])[closest])   # define selection for time
-    sols['select'] = sols['select'][timeselect[0]]    # update overall selection
-    logger.info('Selection down to %d solutions separated from given time by %d minutes' % (len(sols['select']), mjddist[closest]*24*60))
+    if time is not None:
+        mjddist = np.abs(time - sols['mjd'])
+        mjdselect = mjddist == mjddist.min()
+        logger.info('Solution found within {0} minutes of given time.'
+                    .format(mjddist[np.where(mjdselect)][0]*24*60))
+    else:
+        mjdselect = np.ones(len(sols), dtype=bool)
 
-    logger.debug('Selected solutions: %s' % str(sols['select']))
-    logger.info('MJD: %s' % str(np.unique(sols['mjd'][sols['select']])))
-    logger.debug('Mid frequency (MHz): %s' % str(np.unique(sols['skyfreq'][sols['select']])))
-    logger.debug('IFID: %s' % str(np.unique(sols['ifid'][sols['select']])))
-    logger.info('Source: %s' % str(np.unique(sols['source'][sols['select']])))
-    logger.debug('Ants: %s' % str(np.unique(sols['antname'][sols['select']])))
+    if polarization is not None:
+        polselect = sols['polarization'] == polarization
+    else:
+        polselect = np.ones(len(sols), dtype=bool)
+
+    selection = np.where(freqselect*mjdselect*polselect)
+
+    logger.debug('Selected {0} solutions'.format(len(selection)))
+    logger.info('MJD: {0}'.format(np.unique(sols['mjd'][selection])))
+    logger.debug('Mid frequency (MHz): {0}'
+                 .format(np.unique(sols['skyfreq'][selection])))
+    logger.debug('IFID: {0}'.format(np.unique(sols['ifid'][selection])))
+    logger.info('Source: {0}'.format(np.unique(sols['source'][selection])))
+    logger.debug('Ants: {0}'.format(np.unique(sols['antnum'][selection])))
+
+    return sols[selection]
+
+
+def spwarr(solsin, bls, freqs, pols):
+    """ Build gain calibraion array with shape to project into data
+    """
+
+    gains = np.zeros((len(bls), len(freqs), len(pols)), dtype=np.complex64)
+    for fi in range(len(freqs)):
+        for pi in range(len(pols)):
+            sols = select(solsin, freqs=[freqs[fi]], polarization=pols[pi])
+            for bi in range(len(bls)):
+                ant1, ant2 = bls[bi]
+                gains[bi, fi, pi] = calcgain(sols, ant1, ant2, freqs[fi], pols[pi])
+
+    return gains
 
 
 def apply(sols, data, sign=1):
@@ -173,6 +201,7 @@ def apply(sols, data, sign=1):
     """
 
     # find best skyfreq for each channel
+    chansize = freqs[1]-freqs[0]
     skyfreqs = np.unique(sols['skyfreq'][sols['select']])    # one per spw
     nch_tot = len(sols['freqs'])
     chan_bandnum = [range(nch_tot*i/len(skyfreqs), nch_tot*(i+1)/len(skyfreqs)) for i in range(len(skyfreqs))]  # divide chans by number of spw in solution
@@ -201,32 +230,22 @@ def apply(sols, data, sign=1):
                 data[:,i,chans,pol-sols['polind'][0]] = data[:,i,chans,pol-sols['polind'][0]] * np.exp(-1j*delayrot[None, None, :])     # do rotation
 
 
-def flagants(sols, threshold=50):
-    """ Flags solutions with amplitude more than threshold larger than median.
-    """
-
-    # identify very low gain amps not already flagged
-    badsols = np.where( (np.median(sols['amp'])/sols['amp'] > threshold) & (sols['flagged'] == False))[0]
-    if len(badsols):
-        logger.info('Solutions %s flagged (times %s, ants %s, freqs %s) for low gain amplitude.' % (str(badsols), sols['mjd'][badsols], sols['antname'][badsols], sols['ifid'][badsols]))
-        for sol in badsols:
-            sols['flagged'][sol] = True
-
-
-def calcgain(sols, ant1, ant2, skyfreq, pol):
+def calcgain(sols, ant1, ant2, skyfreq, polarization):
     """ Calculates the complex gain product (g1*g2) for a pair of antennas.
+    skyfreq in Hz must match value in sols per spw.
+    ant1, ant2, and polarization is an index.
     """
 
-    select = sols['select'][np.where( (sols['skyfreq'][sols['select']] == skyfreq) & (sols['polarization'][sols['select']] == pol) )[0]]
+    select1 = np.where((sols['skyfreq']*1e6 == skyfreq) &
+                       (sols['polarization'] == polarization) &
+                       (sols['antnum'] == ant1))[0]
 
-    if len(select):  # for when telcal solutions don't exist
-        ind1 = np.where(ant1 == sols['antnum'][select])
-        ind2 = np.where(ant2 == sols['antnum'][select])
-        g1 = sols['amp'][select][ind1]*np.exp(1j*np.radians(sols['phase'][select][ind1])) * (not sols['flagged'].astype(int)[select][ind1][0])
-        g2 = sols['amp'][select][ind2]*np.exp(-1j*np.radians(sols['phase'][select][ind2])) * (not sols['flagged'].astype(int)[select][ind2][0])
-    else:
-        g1 = [0]
-        g2 = [0]
+    select2 = np.where((sols['skyfreq']*1e6 == skyfreq) &
+                       (sols['polarization'] == polarization) &
+                       (sols['antnum'] == ant2))[0]
+
+    g1 = sols['amp'][select1]*np.exp(1j*np.radians(sols['phase'][select1])) * (not sols['flagged'].astype(int)[select1][0])
+    g2 = sols['amp'][select2]*np.exp(-1j*np.radians(sols['phase'][select2])) * (not sols['flagged'].astype(int)[select2][0])
 
     try:
         assert (g1[0] != 0j) and (g2[0] != 0j)
@@ -237,20 +256,62 @@ def calcgain(sols, ant1, ant2, skyfreq, pol):
     return invg1g2
 
 
-def calcdelay(sols, ant1, ant2, skyfreq, pol):
+def calcdelay(sols, ant1, ant2, skyfreq, polarization):
     """ Calculates the relative delay (d1-d2) for a pair of antennas in ns.
     """
 
-    select = sols['select'][np.where( (sols['skyfreq'][sols['select']] == skyfreq) & (sols['polarization'][sols['select']] == pol) )[0]]
+    select1 = np.where((sols['skyfreq'] == skyfreq) &
+                       (sols['polarization'] == polarization) &
+                       (sols['antnum'] == ant1))[0]
 
-    ind1 = np.where(ant1 == sols['antnum'][select])
-    ind2 = np.where(ant2 == sols['antnum'][select])
-    d1 = sols['delay'][select][ind1]
-    d2 = sols['delay'][select][ind2]
+    select2 = np.where((sols['skyfreq'] == skyfreq) &
+                       (sols['polarization'] == polarization) &
+                       (sols['antnum'] == ant2))[0]
+
+    d1 = sols['delay'][select1]
+    d2 = sols['delay'][select2]
     if len(d1-d2) > 0:
         return d1-d2
     else:
         return np.array([0])
+
+
+def calcgaindelay(sols, ant1, ant2, freqs, polarization):
+    """ Calculates the complex gain product (g1*g2) for a pair of antennas.
+    freqs is range of freq in spw.
+    ant1, ant2, and polarization is an index.
+    """
+
+    select1 = np.where(([np.around(ff*1e6, -6) in np.around(freqs, -6) for ff in sols['skyfreq']])&
+                       (sols['polarization'] == polarization) &
+                       (sols['antnum'] == ant1))[0]
+
+    select2 = np.where(([np.around(ff*1e6, -6) in np.around(freqs, -6) for ff in sols['skyfreq']])&
+                       (sols['polarization'] == polarization) &
+                       (sols['antnum'] == ant2))[0]
+
+    g1 = sols['amp'][select1]*np.exp(1j*np.radians(sols['phase'][select1])) * (not sols['flagged'].astype(int)[select1][0])
+    g2 = sols['amp'][select2]*np.exp(-1j*np.radians(sols['phase'][select2])) * (not sols['flagged'].astype(int)[select2][0])
+    d1 = sols['delay'][select1]
+    d2 = sols['delay'][select2]
+
+    try:
+        assert (g1[0] != 0j) and (g2[0] != 0j)
+        invg1g2 = 1./(g1[0]*g2[0])
+    except (AssertionError, IndexError):
+        invg1g2 = 0
+
+    chansize = freqs[1]-freqs[0]
+    nch = len(freqs)
+    chanref = len(freqs)/2    # reference channel at center
+    relfreq = chansize*(np.arange(nch) - chanref)   # relative frequency
+
+    if len(d1-d2) > 0:
+        d1d2 = 2*np.pi*(d1-d2 * 1e-9) * relfreq
+    else:
+        d1d2 = np.array([0])
+
+    return invg1g2*np.exp(-1j*d1d2)
 
 ### Class form
 
