@@ -180,17 +180,20 @@ def select(sols, time=None, freqs=None, polarization=None):
     return sols[selection]
 
 
-def spwarr(solsin, bls, freqs, pols):
+def spwarr(solsin, bls, freqarr, pols):
     """ Build gain calibraion array with shape to project into data
+    freqarr is a list of arrays for each spw (in Hz).
     """
 
-    gains = np.zeros((len(bls), len(freqs), len(pols)), dtype=np.complex64)
-    for fi in range(len(freqs)):
+    nspw, nch = freqarr.shape
+    gains = np.zeros((len(bls), nspw, nch, len(pols)), dtype=np.complex64)
+    for fi in range(nspw):
         for pi in range(len(pols)):
-            sols = select(solsin, freqs=[freqs[fi]], polarization=pols[pi])
+            sols = select(solsin, freqs=freqarr[fi], polarization=pols[pi])
             for bi in range(len(bls)):
                 ant1, ant2 = bls[bi]
-                gains[bi, fi, pi] = calcgain(sols, ant1, ant2, freqs[fi], pols[pi])
+                gains[bi, fi, :, pi] = calcgaindelay(sols, ant1, ant2,
+                                                     freqarr[fi], pols[pi])
 
     return gains
 
@@ -230,76 +233,33 @@ def apply(sols, data, sign=1):
                 data[:,i,chans,pol-sols['polind'][0]] = data[:,i,chans,pol-sols['polind'][0]] * np.exp(-1j*delayrot[None, None, :])     # do rotation
 
 
-def calcgain(sols, ant1, ant2, skyfreq, polarization):
-    """ Calculates the complex gain product (g1*g2) for a pair of antennas.
-    skyfreq in Hz must match value in sols per spw.
-    ant1, ant2, and polarization is an index.
-    """
-
-    select1 = np.where((sols['skyfreq']*1e6 == skyfreq) &
-                       (sols['polarization'] == polarization) &
-                       (sols['antnum'] == ant1))[0]
-
-    select2 = np.where((sols['skyfreq']*1e6 == skyfreq) &
-                       (sols['polarization'] == polarization) &
-                       (sols['antnum'] == ant2))[0]
-
-    g1 = sols['amp'][select1]*np.exp(1j*np.radians(sols['phase'][select1])) * (not sols['flagged'].astype(int)[select1][0])
-    g2 = sols['amp'][select2]*np.exp(-1j*np.radians(sols['phase'][select2])) * (not sols['flagged'].astype(int)[select2][0])
-
-    try:
-        assert (g1[0] != 0j) and (g2[0] != 0j)
-        invg1g2 = 1./(g1[0]*g2[0])
-    except (AssertionError, IndexError):
-        invg1g2 = 0
-
-    return invg1g2
-
-
-def calcdelay(sols, ant1, ant2, skyfreq, polarization):
-    """ Calculates the relative delay (d1-d2) for a pair of antennas in ns.
-    """
-
-    select1 = np.where((sols['skyfreq'] == skyfreq) &
-                       (sols['polarization'] == polarization) &
-                       (sols['antnum'] == ant1))[0]
-
-    select2 = np.where((sols['skyfreq'] == skyfreq) &
-                       (sols['polarization'] == polarization) &
-                       (sols['antnum'] == ant2))[0]
-
-    d1 = sols['delay'][select1]
-    d2 = sols['delay'][select2]
-    if len(d1-d2) > 0:
-        return d1-d2
-    else:
-        return np.array([0])
-
-
 def calcgaindelay(sols, ant1, ant2, freqs, polarization):
     """ Calculates the complex gain product (g1*g2) for a pair of antennas.
     freqs is range of freq in spw.
     ant1, ant2, and polarization is an index.
     """
 
-    select1 = np.where(([np.around(ff*1e6, -6) in np.around(freqs, -6) for ff in sols['skyfreq']])&
+    select1 = np.where(([np.around(ff*1e6, -6) in np.around(freqs, -6)
+                         for ff in sols['skyfreq']]) &
                        (sols['polarization'] == polarization) &
                        (sols['antnum'] == ant1))[0]
 
-    select2 = np.where(([np.around(ff*1e6, -6) in np.around(freqs, -6) for ff in sols['skyfreq']])&
+    select2 = np.where(([np.around(ff*1e6, -6) in np.around(freqs, -6)
+                         for ff in sols['skyfreq']]) &
                        (sols['polarization'] == polarization) &
                        (sols['antnum'] == ant2))[0]
 
     g1 = sols['amp'][select1]*np.exp(1j*np.radians(sols['phase'][select1])) * (not sols['flagged'].astype(int)[select1][0])
     g2 = sols['amp'][select2]*np.exp(-1j*np.radians(sols['phase'][select2])) * (not sols['flagged'].astype(int)[select2][0])
-    d1 = sols['delay'][select1]
-    d2 = sols['delay'][select2]
 
     try:
         assert (g1[0] != 0j) and (g2[0] != 0j)
         invg1g2 = 1./(g1[0]*g2[0])
     except (AssertionError, IndexError):
         invg1g2 = 0
+
+    d1 = sols['delay'][select1]
+    d2 = sols['delay'][select2]
 
     chansize = freqs[1]-freqs[0]
     nch = len(freqs)
