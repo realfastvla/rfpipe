@@ -280,10 +280,12 @@ def iter_cands(candsfile):
                 yield candcollection
 
             except EOFError:
-                logger.info('No more CandCollections.')
+                logger.debug('No more CandCollections.')
                 break
 
+
 ### bokeh summary plot
+
 
 def makesummaryplot(candsfile):
     """ Given a scan's candsfile, read all candcollections and create bokeh summary plot
@@ -427,7 +429,11 @@ def calcsize(values, sizerange=(2, 70), inds=None, plaw=3):
     else:
         smax = max([abs(val) for val in values])
         smin = min([abs(val) for val in values])
-    return [sizerange[0] + sizerange[1] * ((abs(val) - smin)/(smax - smin))**plaw for val in values]
+
+    if smax == smin:
+        return [sizerange[1]]*len(values)
+    else:
+        return [sizerange[0] + sizerange[1] * ((abs(val) - smin)/(smax - smin))**plaw for val in values]
 
 
 def colorsat(l, m):
@@ -441,8 +447,11 @@ def colorsat(l, m):
     red = 0.5*(1+np.cos(np.angle(lm)))
     green = 0.5*(1+np.cos(np.angle(lm) + 2*3.14/3))
     blue = 0.5*(1+np.cos(np.angle(lm) - 2*3.14/3))
-    amp = 256*np.abs(lm)/np.abs(lm).max()
-    return ["#%02x%02x%02x" % (np.floor(amp[i]*red[i]), np.floor(amp[i]*green[i]), np.floor(amp[i]*blue[i])) for i in range(len(l))]
+    amp = np.where(lm == 0, 256, 256*np.abs(lm)/np.abs(lm).max())
+    return ["#%02x%02x%02x" % (np.floor(amp[i]*red[i]),
+            np.floor(amp[i]*green[i]),
+            np.floor(amp[i]*blue[i]))
+            for i in range(len(l))]
 
 
 def calcinds(data, threshold, ignoret=None):
