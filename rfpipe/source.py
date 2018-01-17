@@ -197,7 +197,8 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout, offset=4):
                               inttime_micros=long(st.metadata.inttime*1000000),
                               nchan=st.metadata.spw_nchan[0],
                               cfile=cfile, timeout=timeout, offset=offset) as reader:
-        data[:] = reader.readwindow()
+        if reader is not None:
+            data[:] = reader.readwindow()
 
     # TODO: move pol selection up and into vysmaw filter function
     return data.take(st.chans, axis=2).take([polmap_standard.index(pol) for pol in st.pols], axis=3)
