@@ -54,7 +54,7 @@ class Metadata(object):
     spworder = attr.ib(default=None)
     spw_orig = attr.ib(default=None)  # indexes for spw
     spw_nchan = attr.ib(default=None)  # channels per spw
-    spw_reffreq = attr.ib(default=None)  # reference frequency in Hz
+    spw_reffreq = attr.ib(default=None)  # reference frequency (ch0) in Hz
     spw_chansize = attr.ib(default=None)  # channel size in Hz
     pols_orig = attr.ib(default=None)
 
@@ -190,11 +190,11 @@ def config_metadata(config, datasource='vys'):
     meta['inttime'] = subband0.hw_time_res  # assumes vys stream post-hw-integ
     meta['pols_orig'] = subband0.pp
     meta['spw_nchan'] = [sb.spectralChannels for sb in subbands]
-    meta['spw_chansize'] = [sb.bw/subband0.spectralChannels for sb in subbands]
-    meta['spw_orig'] = [sb.sbid for sb in subbands]
-    meta['spw_reffreq'] = [sb.sky_center_freq*1e6 for sb in subbands]
+    meta['spw_chansize'] = [1e6*sb.bw/subband0.spectralChannels for sb in subbands]
+    meta['spw_orig'] = ['{0}-{1}'.format(sb.IFid, sb.sbid) for sb in subbands]
+    meta['spw_reffreq'] = [(sb.sky_center_freq-sb.bw/subband0.spectralChannels*(sb.spectralChannels/2))*1e6 for sb in subbands]
     meta['spworder'] = sorted([('{0}-{1}'.format(sb.IFid, sb.sbid),
-                                sb.sky_center_freq)
+                                meta['spw_reffreq'][subbands.index(sb)])
                                for sb in subbands], key=lambda x: x[1])
 
     return meta
