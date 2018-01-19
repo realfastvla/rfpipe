@@ -29,17 +29,26 @@ def apply_telcal(st, data, calname=None, sign=+1):
 def apply_telcal2(st, data, threshold=50, onlycomplete=True, sign=+1):
     """ Wrap all telcal functions to parse telcal file and apply it to data
     sign defines if calibration is applied (+1) or backed out (-1).
+    assumes dual pol and that each spw has same nch and chansize.
     """
 
     assert sign in [-1, +1], 'sign must be +1 or -1'
 
+    pols = [0, 1]
+    reffreq = np.array(st.metadata.spw_reffreq)
+    chansize = np.array(st.metadata.spw_chansize)
+    nchan = np.array(st.metadata.spw_nchan)
+
     sols = parseGN(st.gainfile)
     sols = flagants(sols, threshold=threshold, onlycomplete=onlycomplete)
     sols = select(sols, time=st.segmenttimes.mean())
+    skyfreqs = np.around(reffreq + (chansize*nchan/2), -6)/1e6
+    gaindelay = calcgaindelay(sols, st.blarr, skyfreqs, pols, chansize[0], nchan[0])
 
-    apply(sols, data, sign=sign)
-
-    return data
+    # data should have nchan_orig because no selection done yet
+    # TODO: make nchan, npol, nbl selection consistent for all data types
+    return data*sign*gaindelay.reshape((st.nbl, st.metadata.nchan_orig,
+                                        len(pols)))
 
 
 def parseGN(telcalfile):
@@ -125,10 +134,10 @@ def flagants(solsin, threshold, onlycomplete):
     if onlycomplete:
         ifids = np.unique(sols['ifid'])
         antnums = np.unique(sols['antnum'])
-        mjds = np.unique(sols['mjd'])
+        mjds = sols['mjd']
 
         completecount = len(ifids) * len(antnums)
-        for mjd0 in mjds:
+        for mjd0 in np.unique(mjds):
             sols0 = np.where(mjd0 == mjds)[0]
             if len(sols0) < completecount:
                 logger.info("Solution set at MJD {0} has only {1} of {2} "
@@ -157,7 +166,7 @@ def select(sols, time=None, freqs=None, polarization=None):
     if time is not None:
         mjddist = np.abs(time - sols['mjd'])
         mjdselect = mjddist == mjddist.min()
-        logger.info('Solution found within {0} minutes of given time.'
+        logger.info('Solution set found within {0} minutes of given time.'
                     .format(mjddist[np.where(mjdselect)][0]*24*60))
     else:
         mjdselect = np.ones(len(sols), dtype=bool)
@@ -180,22 +189,41 @@ def select(sols, time=None, freqs=None, polarization=None):
     return sols[selection]
 
 
-def spwarr(solsin, bls, freqarr, pols):
+def calcgaindelay(sols, bls, freqarr, pols, chansize, nch):
     """ Build gain calibraion array with shape to project into data
-    freqarr is a list of arrays for each spw (in Hz).
+    freqarr is a list of reffreqs in MHz.
     """
 
-    nspw, nch = freqarr.shape
-    gains = np.zeros((len(bls), nspw, nch, len(pols)), dtype=np.complex64)
-    for fi in range(nspw):
-        for pi in range(len(pols)):
-            sols = select(solsin, freqs=freqarr[fi], polarization=pols[pi])
-            for bi in range(len(bls)):
-                ant1, ant2 = bls[bi]
-                gains[bi, fi, :, pi] = calcgaindelay(sols, ant1, ant2,
-                                                     freqarr[fi], pols[pi])
+    nspw = len(freqarr)
 
-    return gains
+    gaindelay = np.zeros((len(bls), nspw, nch, len(pols)), dtype=np.complex64)
+    for bi in range(len(bls)):
+        ant1, ant2 = bls[bi]
+        for fi in range(len(freqarr)):
+            relfreq = chansize*(np.arange(nch) - nch//2)
+
+            for pi in range(len(pols)):
+                g1 = None
+                g2 = None
+                d1 = 0.
+                d2 = 0.
+                for sol in sols:
+                    if (sol['polarization'] == pols[pi]) and (sol['skyfreq'] == freqarr[fi]):
+                        if sol['antnum'] == ant1:
+                            g1 = sol['amp']*np.exp(1j*np.radians(sol['phase'])) * (not sol['flagged'].astype(int))
+                            d1 = sol['delay']
+                        if sol['antnum'] == ant2:
+                            g2 = sol['amp']*np.exp(-1j*np.radians(sol['phase'])) * (not sol['flagged'].astype(int))
+                            d2 = sol['delay']
+
+                if (g1 is not None) and (g2 is not None):
+                    invg1g2 = 1./(g1*g2)
+                else:
+                    invg1g2 = 0.
+                d1d2 = 2*np.pi*((d1-d2) * 1e-9) * relfreq
+                gaindelay[bi, fi, :, pi] = invg1g2*np.exp(-1j*d1d2)
+
+    return gaindelay
 
 
 def apply(sols, data, sign=1):
@@ -233,45 +261,6 @@ def apply(sols, data, sign=1):
                 data[:,i,chans,pol-sols['polind'][0]] = data[:,i,chans,pol-sols['polind'][0]] * np.exp(-1j*delayrot[None, None, :])     # do rotation
 
 
-def calcgaindelay(sols, ant1, ant2, freqs, polarization):
-    """ Calculates the complex gain product (g1*g2) for a pair of antennas.
-    freqs is range of freq in spw.
-    ant1, ant2, and polarization is an index.
-    """
-
-    select1 = np.where(([np.around(ff*1e6, -6) in np.around(freqs, -6)
-                         for ff in sols['skyfreq']]) &
-                       (sols['polarization'] == polarization) &
-                       (sols['antnum'] == ant1))[0]
-
-    select2 = np.where(([np.around(ff*1e6, -6) in np.around(freqs, -6)
-                         for ff in sols['skyfreq']]) &
-                       (sols['polarization'] == polarization) &
-                       (sols['antnum'] == ant2))[0]
-
-    g1 = sols['amp'][select1]*np.exp(1j*np.radians(sols['phase'][select1])) * (not sols['flagged'].astype(int)[select1][0])
-    g2 = sols['amp'][select2]*np.exp(-1j*np.radians(sols['phase'][select2])) * (not sols['flagged'].astype(int)[select2][0])
-
-    try:
-        assert (g1[0] != 0j) and (g2[0] != 0j)
-        invg1g2 = 1./(g1[0]*g2[0])
-    except (AssertionError, IndexError):
-        invg1g2 = 0
-
-    d1 = sols['delay'][select1]
-    d2 = sols['delay'][select2]
-
-    chansize = freqs[1]-freqs[0]
-    nch = len(freqs)
-    chanref = len(freqs)/2    # reference channel at center
-    relfreq = chansize*(np.arange(nch) - chanref)   # relative frequency
-
-    if len(d1-d2) > 0:
-        d1d2 = 2*np.pi*(d1-d2 * 1e-9) * relfreq
-    else:
-        d1d2 = np.array([0])
-
-    return invg1g2*np.exp(-1j*d1d2)
 
 ### Class form
 

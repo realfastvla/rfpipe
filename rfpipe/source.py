@@ -45,7 +45,11 @@ def data_prep(st, segment, data):
         if st.prefs.savenoise:
             logger.warn("Saving of noise properties not implemented yet.")
 
-    return data
+#    takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
+#    logger.debug('Selecting pols {0}'.format(st.pols))
+#    return data.take(st.chans, axis=2).take(takepol, axis=3)
+
+    return data.take(st.chans, axis=2)
 
 
 def read_segment(st, segment, cfile=None, timeout=default_timeout):
@@ -150,11 +154,7 @@ def prep_standard(st, segment, data_read):
                 data_read += model
                 util.phase_shift(data_read, uvw, -l, -m)
 
-#    takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
-#    logger.debug('Selecting pols {0}'.format(st.pols))
-#    return data.take(st.chans, axis=2).take(takepol, axis=3)
-
-    return data_read.take(st.chans, axis=2)
+    return data_read
 
 
 def read_vys_segment(st, seg, cfile=None, timeout=default_timeout, offset=4):
@@ -210,8 +210,7 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout, offset=4):
 
     # TODO: move pol selection up and into vysmaw filter function
     if data is not None:
-        return data.take(st.chans, axis=2).take([polmap_standard.index(pol)
-                                                 for pol in st.pols], axis=3)
+        return data
     else:
         return np.array([])
 

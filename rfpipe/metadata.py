@@ -53,7 +53,7 @@ class Metadata(object):
     # spectral info
     spworder = attr.ib(default=None)
     spw_orig = attr.ib(default=None)  # indexes for spw
-    spw_nchan = attr.ib(default=None)  # channesl per spw
+    spw_nchan = attr.ib(default=None)  # channels per spw
     spw_reffreq = attr.ib(default=None)  # reference frequency in Hz
     spw_chansize = attr.ib(default=None)  # channel size in Hz
     pols_orig = attr.ib(default=None)
