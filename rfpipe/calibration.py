@@ -10,23 +10,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def apply_telcal(st, data, calname=None, sign=+1):
-    """ Wrap all telcal functions to parse telcal file and apply it to data
-    sign defines if calibration is applied (+1) or backed out (-1).
-    """
-
-    assert sign in [-1, +1], 'sign must be +1 or -1'
-
-    sols = telcal_sol(st.gainfile)
-    sols.set_selection(st.segmenttimes.mean(), st.freq*1e9, st.blarr,
-                       calname=calname)
-    sols.apply(data, sign=sign)
-
-    return data
-
 ### Functional form
 
-def apply_telcal2(st, data, threshold=50, onlycomplete=True, sign=+1):
+def apply_telcal(st, data, threshold=50, onlycomplete=True, sign=+1):
     """ Wrap all telcal functions to parse telcal file and apply it to data
     sign defines if calibration is applied (+1) or backed out (-1).
     assumes dual pol and that each spw has same nch and chansize.
@@ -42,8 +28,9 @@ def apply_telcal2(st, data, threshold=50, onlycomplete=True, sign=+1):
     sols = parseGN(st.gainfile)
     sols = flagants(sols, threshold=threshold, onlycomplete=onlycomplete)
     sols = select(sols, time=st.segmenttimes.mean())
-    skyfreqs = np.around(reffreq + (chansize*nchan/2), -6)/1e6
-    gaindelay = calcgaindelay(sols, st.blarr, skyfreqs, pols, chansize[0], nchan[0])
+    skyfreqs = np.around(reffreq + (chansize*nchan/2), -6)/1e6  # GN skyfreq is band center
+    gaindelay = calcgaindelay(sols, st.blarr, skyfreqs, pols, chansize[0],
+                              nchan[0])
 
     # data should have nchan_orig because no selection done yet
     # TODO: make nchan, npol, nbl selection consistent for all data types
@@ -195,8 +182,8 @@ def calcgaindelay(sols, bls, freqarr, pols, chansize, nch):
     """
 
     nspw = len(freqarr)
-
     gaindelay = np.zeros((len(bls), nspw, nch, len(pols)), dtype=np.complex64)
+
     for bi in range(len(bls)):
         ant1, ant2 = bls[bi]
         for fi in range(len(freqarr)):
@@ -225,44 +212,21 @@ def calcgaindelay(sols, bls, freqarr, pols, chansize, nch):
 
     return gaindelay
 
+### Class form
 
-def apply(sols, data, sign=1):
-    """ Applies calibration solution to data array. Assumes structure of (nint, nbl, nch, npol).
-        Sign defines direction of calibration solution. +1 is correcting, -1 will corrupt.
+def apply_telcal_class(st, data, calname=None, sign=+1):
+    """ Wrap all telcal functions to parse telcal file and apply it to data
+    sign defines if calibration is applied (+1) or backed out (-1).
     """
 
-    # find best skyfreq for each channel
-    chansize = freqs[1]-freqs[0]
-    skyfreqs = np.unique(sols['skyfreq'][sols['select']])    # one per spw
-    nch_tot = len(sols['freqs'])
-    chan_bandnum = [range(nch_tot*i/len(skyfreqs), nch_tot*(i+1)/len(skyfreqs)) for i in range(len(skyfreqs))]  # divide chans by number of spw in solution
-    logger.info('Solutions for %d spw: (%s)' % (len(skyfreqs), skyfreqs))
+    assert sign in [-1, +1], 'sign must be +1 or -1'
 
-    for j in range(len(skyfreqs)):
-        skyfreq = skyfreqs[j]
-        chans = chan_bandnum[j]
-        logger.info('Applying gain solution for chans from %d-%d' % (chans[0], chans[-1]))
+    sols = telcal_sol(st.gainfile)
+    sols.set_selection(st.segmenttimes.mean(), st.freq*1e9, st.blarr,
+                       calname=calname)
+    sols.apply(data, sign=sign)
 
-        # define freq structure to apply delay solution
-        nch = len(chans)
-        chanref = nch/2    # reference channel at center
-        relfreq = sols['chansize']*(np.arange(nch) - chanref)   # relative frequency
-
-        for i in range(len(sols['blarr'])):
-            ant1, ant2 = sols['blarr'][i]  # ant numbers (1-based)
-            for pol in sols['polind']:
-                # apply gain correction
-                invg1g2 = sign*calcgain(sols, ant1, ant2, skyfreq, pol)
-                data[:,i,chans,pol-sols['polind'][0]] = data[:,i,chans,pol-sols['polind'][0]] * invg1g2    # hack: lousy data pol indexing
-
-                # apply delay correction
-                d1d2 = sign*calcdelay(sols, ant1, ant2, skyfreq, pol)
-                delayrot = 2*np.pi*(d1d2[0] * 1e-9) * relfreq      # phase to rotate across band
-                data[:,i,chans,pol-sols['polind'][0]] = data[:,i,chans,pol-sols['polind'][0]] * np.exp(-1j*delayrot[None, None, :])     # do rotation
-
-
-
-### Class form
+    return data
 
 class telcal_sol():
     """ Instantiated with on telcalfile.
