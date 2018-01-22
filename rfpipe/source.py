@@ -20,30 +20,32 @@ def data_prep(st, segment, data):
     """ Applies calibration, flags, and subtracts time mean for data.
     """
 
-    if np.any(data):
-        data = prep_standard(st, segment, np.require(data, requirements='W'))
+    if not np.any(data):
+        return data
 
-        # TODO: allow parallel execution with apply_telcal2
-        if st.metadata.datasource != 'sim':
-            if os.path.exists(st.gainfile):
-                data = calibration.apply_telcal(st, np.require(data,
-                                                               requirements='W'))
-            else:
-                logger.warn('Telcal file not found. No calibration to apply.')
+    data = prep_standard(st, segment, np.require(data, requirements='W'))
+
+    # TODO: allow parallel execution with apply_telcal2
+    if st.metadata.datasource != 'sim':
+        if os.path.exists(st.gainfile):
+            data = calibration.apply_telcal(st, np.require(data,
+                                                           requirements='W'))
         else:
-            logger.info('Not applying telcal solutions for simulated data')
+            logger.warn('Telcal file not found. No calibration to apply.')
+    else:
+        logger.info('Not applying telcal solutions for simulated data')
 
-        # TODO: update flagging from rtpipe dataflag
-        data = util.dataflag(st, np.require(data, requirements='W'))
+    # TODO: update flagging from rtpipe dataflag
+    data = util.dataflag(st, np.require(data, requirements='W'))
 
-        if st.prefs.timesub == 'mean':
-            logger.info('Subtracting mean visibility in time.')
-            data = util.meantsub(data, parallel=st.prefs.nthread > 1)
-        else:
-            logger.info('No visibility subtraction done.')
+    if st.prefs.timesub == 'mean':
+        logger.info('Subtracting mean visibility in time.')
+        data = util.meantsub(data, parallel=st.prefs.nthread > 1)
+    else:
+        logger.info('No visibility subtraction done.')
 
-        if st.prefs.savenoise:
-            logger.warn("Saving of noise properties not implemented yet.")
+    if st.prefs.savenoise:
+        logger.warn("Saving of noise properties not implemented yet.")
 
 #    takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
 #    logger.debug('Selecting pols {0}'.format(st.pols))
@@ -77,10 +79,13 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
         return data_read
 
 
-def prep_standard(st, segment, data_read):
+def prep_standard(st, segment, data):
     """ Common first data prep stages, incl
     online flags, resampling, and mock transients.
     """
+
+    if not np.any(data):
+        return data
 
     # read Flag.xml and apply flags for given ant/time range
     if st.prefs.applyonlineflags and st.metadata.datasource == 'sdm':
@@ -96,8 +101,8 @@ def prep_standard(st, segment, data_read):
         if not flags.all():
             logger.info('Found antennas to flag in time range {0}-{1} '
                         .format(t0, t1))
-            data_read = np.where(flags[None, :, None, None] == 1,
-                                 np.require(data_read, requirements='W'), 0j)
+            data = np.where(flags[None, :, None, None] == 1,
+                            np.require(data, requirements='W'), 0j)
         else:
             logger.info('No flagged antennas in time range {0}-{1} '
                         .format(t0, t1))
@@ -106,19 +111,19 @@ def prep_standard(st, segment, data_read):
 
     # optionally integrate (downsample)
     if ((st.prefs.read_tdownsample > 1) or (st.prefs.read_fdownsample > 1)):
-        data_read2 = np.zeros(st.datashape, dtype='complex64')
+        data2 = np.zeros(st.datashape, dtype='complex64')
         if st.prefs.read_tdownsample > 1:
             logger.info('Downsampling in time by {0}'
                         .format(st.prefs.read_tdownsample))
             for i in range(st.datashape[0]):
-                data_read2[i] = data_read[
+                data2[i] = data[
                     i*st.prefs.read_tdownsample:(i+1)*st.prefs.read_tdownsample].mean(axis=0)
         if st.prefs.read_fdownsample > 1:
             logger.info('Downsampling in frequency by {0}'
                         .format(st.prefs.read_fdownsample))
             for i in range(st.datashape[2]):
-                data_read2[:, :, i, :] = data_read[:, :, i*st.prefs.read_fdownsample:(i+1)*st.prefs.read_fdownsample].mean(axis=2)
-        data_read = data_read2
+                data2[:, :, i, :] = data[:, :, i*st.prefs.read_fdownsample:(i+1)*st.prefs.read_fdownsample].mean(axis=2)
+        data = data2
 
     # optionally add transients
     if st.prefs.simulated_transient is not None:
@@ -137,7 +142,7 @@ def prep_standard(st, segment, data_read):
                 try:
                     model = np.require(np.broadcast_to(generate_transient(st, amp, i0, dm, dt)
                                                        .transpose()[:, None, :, None],
-                                                       data_read.shape),
+                                                       data.shape),
                                        requirements='W')
                 except IndexError:
                     logger.warn("IndexError while adding transient. Skipping...")
@@ -150,11 +155,11 @@ def prep_standard(st, segment, data_read):
                     logger.warn("No gainfile {0} found. Not applying inverse "
                                 "gain.".format(st.gainfile))
 
-                util.phase_shift(data_read, uvw, l, m)
-                data_read += model
-                util.phase_shift(data_read, uvw, -l, -m)
+                util.phase_shift(data, uvw, l, m)
+                data += model
+                util.phase_shift(data, uvw, -l, -m)
 
-    return data_read
+    return data
 
 
 def read_vys_segment(st, seg, cfile=None, timeout=default_timeout, offset=4):
