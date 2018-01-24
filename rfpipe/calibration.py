@@ -30,12 +30,12 @@ def apply_telcal(st, data, threshold=50, onlycomplete=True, sign=+1):
     sols = select(sols, time=st.segmenttimes.mean())
     skyfreqs = np.around(reffreq + (chansize*nchan/2), -6)/1e6  # GN skyfreq is band center
     gaindelay = calcgaindelay(sols, st.blarr, skyfreqs, pols, chansize[0],
-                              nchan[0])
+                              nchan[0], sign=sign)
 
     # data should have nchan_orig because no selection done yet
     # TODO: make nchan, npol, nbl selection consistent for all data types
-    return data*sign*gaindelay.reshape((st.nbl, st.metadata.nchan_orig,
-                                        len(pols)))
+    return data*gaindelay.reshape((st.nbl, st.metadata.nchan_orig,
+                                   len(pols)))
 
 
 def parseGN(telcalfile):
@@ -176,10 +176,12 @@ def select(sols, time=None, freqs=None, polarization=None):
     return sols[selection]
 
 
-def calcgaindelay(sols, bls, freqarr, pols, chansize, nch):
+def calcgaindelay(sols, bls, freqarr, pols, chansize, nch, sign=1):
     """ Build gain calibraion array with shape to project into data
     freqarr is a list of reffreqs in MHz.
     """
+
+    assert sign in [-1, +1], 'sign must be +1 or -1'
 
     nspw = len(freqarr)
     gaindelay = np.zeros((len(bls), nspw, nch, len(pols)), dtype=np.complex64)
@@ -204,11 +206,15 @@ def calcgaindelay(sols, bls, freqarr, pols, chansize, nch):
                             d2 = sol['delay']
 
                 if (g1 is not None) and (g2 is not None):
-                    invg1g2 = 1./(g1*g2)
+                    if sign == 1:
+                        g1g2 = 1./(g1*g2)
+                    elif sign == -1:
+                        g1g2 = (g1*g2)
                 else:
-                    invg1g2 = 0.
-                d1d2 = 2*np.pi*((d1-d2) * 1e-9) * relfreq
-                gaindelay[bi, fi, :, pi] = invg1g2*np.exp(-1j*d1d2)
+                    g1g2 = 0.
+
+                d1d2 = sign*2*np.pi*((d1-d2) * 1e-9) * relfreq
+                gaindelay[bi, fi, :, pi] = g1g2*np.exp(-1j*d1d2)
 
     return gaindelay
 

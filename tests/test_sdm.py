@@ -1,7 +1,6 @@
 import rfpipe
 import pytest
 import os.path
-from astropy import time
 import numpy as np
 
 _install_dir = os.path.abspath(os.path.dirname(__file__))
@@ -30,5 +29,5 @@ def test_cal(mockstate):
     segment = 0
     data = rfpipe.source.read_segment(mockstate, segment)
     datacal = rfpipe.calibration.apply_telcal(mockstate, data, sign=1)
-    datauncal = rfpipe.calibration.apply_telcal(mockstate, data, sign=-1)
-    assert np.all(datauncal == data)
+    datauncal = rfpipe.calibration.apply_telcal(mockstate, datacal, sign=-1)
+    assert np.allclose(datauncal, data)
