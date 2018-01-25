@@ -4,8 +4,9 @@ from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 
 import os.path
 import numpy as np
-import sdmpy
+from numba import jit
 from astropy import time
+import sdmpy
 import pwkit.environments.casa.util as casautil
 from rfpipe import util, calibration
 
@@ -36,7 +37,7 @@ def data_prep(st, segment, data):
         logger.info('Not applying telcal solutions for simulated data')
 
     # TODO: update flagging from rtpipe dataflag
-    data = util.dataflag(st, np.require(data, requirements='W'))
+    data = flag_data(st, np.require(data, requirements='W'))
 
     if st.prefs.timesub == 'mean':
         logger.info('Subtracting mean visibility in time.')
@@ -270,6 +271,97 @@ def read_bdf(st, nskip=0):
 #    data[:] = scan.bdf.get_data(trange=[nskip, nskip+st.readints]).reshape(data.shape)
 
     return data
+
+
+def flag_data(st, data):
+    """ Identifies bad data and flags it to 0.
+    """
+
+    # implemented flagging functions
+    flagmodes = {'blstd': flag_blstd, 'badchtslide': flag_badchtslide}
+
+#    data = np.ma.masked_equal(data, 0j)  # TODO remove this and ignore zeros manually
+    flags = np.ones_like(data, dtype=bool)
+
+    for flag in st.prefs.flaglist:
+        mode, arg0, arg1 = flag
+        if mode in flagmodes.keys():
+            flags *= flagmodes[mode](data, arg0, arg1)
+        else:
+            logger.warn("Flaging mode {0} not yet implemented.".format(mode))
+
+    return data*flags
+
+
+def flag_blstd(data, sigma, convergence):
+    """ Use data (4d) to calculate (int, chan, pol) to be flagged.
+    """
+
+    sh = data.shape
+    flags = np.ones((sh[0], sh[2], sh[3]), dtype=bool)
+
+    blstd = data.std(axis=1)
+
+    # iterate to good median and std values
+    blstdmednew = np.ma.median(blstd)
+    blstdstdnew = blstd.std()
+    blstdstd = blstdstdnew*2  # TODO: is this initialization used?
+    while (blstdstd-blstdstdnew)/blstdstd > convergence:
+        blstdstd = blstdstdnew
+        blstdmed = blstdmednew
+        blstd = np.ma.masked_where(blstd > blstdmed + sigma*blstdstd, blstd, copy=False)
+        blstdmednew = np.ma.median(blstd)
+        blstdstdnew = blstd.std()
+
+    # flag blstd too high
+    badt, badch, badpol = np.where(blstd > blstdmednew + sigma*blstdstdnew)
+    for i in range(len(badt)):
+        flags[badt[i], badch[i], badpol[i]] = 0
+
+    return flags
+
+
+def flag_badchtslide(data, sigma, win):
+    """ Use data (4d) to calculate (int, chan, pol) to be flagged
+    """
+
+    sh = data.shape
+    flags = np.ones((sh[0], sh[2], sh[3]), dtype=bool)
+
+    meanamp = np.abs(data).mean(axis=1)
+    spec = meanamp.mean(axis=0)
+    lc = meanamp.mean(axis=1)
+
+    # calc badch as deviation from median of window
+    specmed = slidedev(spec, win)
+    badch = np.where(specmed > sigma*specmed.std(axis=0))
+
+    # calc badt as deviation from median of window
+    lcmed = slidedev(lc, win)
+    badt = np.where(lcmed > sigma*lcmed.std(axis=0))
+
+    for i in range(len(badch[0])):
+        flags[:, badch[0][i], badch[1][i]] = 0
+
+    for i in range(len(badt[0])):
+        flags[badt[0][i], :, badt[1][i]] = 0
+
+    return flags
+
+
+@jit
+def slidedev(arr, win):
+    """ Given a (len x 2) array, calculate the deviation from the median per pol.
+    Calculates median over a window, win.
+    """
+
+    med = np.zeros((len(arr), 2))
+    for i in range(len(arr)):
+        inds = list(range(max(0, i-win/2), i)) + list(range(i+1, min(i+win/2, len(arr))))
+        for j in inds:
+            med[j] = np.ma.median(arr.take(inds, axis=0), axis=0)
+
+    return arr-med
 
 
 def simulate_segment(st, loc=0., scale=1.):

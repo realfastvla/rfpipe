@@ -5,6 +5,7 @@ from io import open
 
 import numpy as np
 import os.path
+from numba import jit
 
 import logging
 logger = logging.getLogger(__name__)
@@ -137,9 +138,8 @@ def flagants(solsin, threshold, onlycomplete):
 
 def select(sols, time=None, freqs=None, polarization=None):
     """ Selects a solution set based on given time and freqs.
-    time (in mjd) defines the time to find solutions near for given calname.
+    time (in mjd) defines the time to find solutions.
     freqs (in Hz) is frequencies in data.
-    TODO: add polarization
     """
 
     # select freq if solution band center is in (rounded) array of chan freqs
@@ -153,8 +153,6 @@ def select(sols, time=None, freqs=None, polarization=None):
     if time is not None:
         mjddist = np.abs(time - sols['mjd'])
         mjdselect = mjddist == mjddist.min()
-        logger.info('Solution set found within {0} minutes of given time.'
-                    .format(mjddist[np.where(mjdselect)][0]*24*60))
     else:
         mjdselect = np.ones(len(sols), dtype=bool)
 
@@ -165,17 +163,23 @@ def select(sols, time=None, freqs=None, polarization=None):
 
     selection = np.where(freqselect*mjdselect*polselect)
 
-    logger.debug('Selected {0} solutions'.format(len(selection)))
-    logger.info('MJD: {0}'.format(np.unique(sols['mjd'][selection])))
+    sources = np.unique(sols['source'][selection])
+    times = np.unique(sols['mjd'][selection])
+    if (len(sources) == 1) and (len(times) == 1):
+        logger.info('Using calibrator {0} with {1} solutions separated by {2} min.'
+                    .format(sources[0], len(selection[0]),
+                            mjddist[np.where(mjdselect)][0]*24*60))
+    else:
+        logger.info('Existing calibration selection includes multiple solutions.')
+
     logger.debug('Mid frequency (MHz): {0}'
                  .format(np.unique(sols['skyfreq'][selection])))
     logger.debug('IFID: {0}'.format(np.unique(sols['ifid'][selection])))
-    logger.info('Source: {0}'.format(np.unique(sols['source'][selection])))
     logger.debug('Ants: {0}'.format(np.unique(sols['antnum'][selection])))
 
     return sols[selection]
 
-
+@jit
 def calcgaindelay(sols, bls, freqarr, pols, chansize, nch, sign=1):
     """ Build gain calibraion array with shape to project into data
     freqarr is a list of reffreqs in MHz.
@@ -197,12 +201,12 @@ def calcgaindelay(sols, bls, freqarr, pols, chansize, nch, sign=1):
                 d1 = 0.
                 d2 = 0.
                 for sol in sols:
-                    if (sol['polarization'] == pols[pi]) and (sol['skyfreq'] == freqarr[fi]):
+                    if ((sol['polarization'] == pols[pi]) and (sol['skyfreq'] == freqarr[fi]) and (not sol['flagged'])):
                         if sol['antnum'] == ant1:
-                            g1 = sol['amp']*np.exp(1j*np.radians(sol['phase'])) * (not sol['flagged'].astype(int))
+                            g1 = sol['amp']*np.exp(1j*np.radians(sol['phase']))
                             d1 = sol['delay']
                         if sol['antnum'] == ant2:
-                            g2 = sol['amp']*np.exp(-1j*np.radians(sol['phase'])) * (not sol['flagged'].astype(int))
+                            g2 = sol['amp']*np.exp(-1j*np.radians(sol['phase']))
                             d2 = sol['delay']
 
                 if (g1 is not None) and (g2 is not None):
