@@ -36,7 +36,6 @@ def data_prep(st, segment, data):
     else:
         logger.info('Not applying telcal solutions for simulated data')
 
-    # TODO: update flagging from rtpipe dataflag
     data = flag_data(st, np.require(data, requirements='W'))
 
     if st.prefs.timesub == 'mean':
@@ -277,18 +276,17 @@ def flag_data(st, data):
     """ Identifies bad data and flags it to 0.
     """
 
-    # implemented flagging functions
-    flagmodes = {'blstd': flag_blstd, 'badchtslide': flag_badchtslide}
-
 #    data = np.ma.masked_equal(data, 0j)  # TODO remove this and ignore zeros manually
     flags = np.ones_like(data, dtype=bool)
 
-    for flag in st.prefs.flaglist:
-        mode, arg0, arg1 = flag
-        if mode in flagmodes.keys():
-            flags *= flagmodes[mode](data, arg0, arg1)
+    for flagparams in st.prefs.flaglist:
+        mode, arg0, arg1 = flagparams
+        if mode == 'blstd':
+            flags *= flag_blstd(data, arg0, arg1)[:,None,:,:]
+        elif mode == 'badchtslide':
+            flags *= flag_badchtslide(data, arg0, arg1)[:,None,:,:]
         else:
-            logger.warn("Flaging mode {0} not yet implemented.".format(mode))
+            logger.warn("Flaging mode {0} not available.".format(mode))
 
     return data*flags
 
@@ -315,6 +313,11 @@ def flag_blstd(data, sigma, convergence):
 
     # flag blstd too high
     badt, badch, badpol = np.where(blstd > blstdmednew + sigma*blstdstdnew)
+    badtcnt = len(np.unique(badt))
+    badchcnt = len(np.unique(badt))
+    logger.info("flag by blstd: {0} channel/time/pol values with {1}/{2} unique times/channels"
+                .format(len(badt), badtcnt, badchcnt))
+
     for i in range(len(badt)):
         flags[badt[i], badch[i], badpol[i]] = 0
 
@@ -339,6 +342,11 @@ def flag_badchtslide(data, sigma, win):
     # calc badt as deviation from median of window
     lcmed = slidedev(lc, win)
     badt = np.where(lcmed > sigma*lcmed.std(axis=0))
+
+    badtcnt = len(np.unique(badt))
+    badchcnt = len(np.unique(badch))
+    logger.info("flag by badchtslide: {0}/{1} unique times/channels"
+                .format(badtcnt, badchcnt))
 
     for i in range(len(badch[0])):
         flags[:, badch[0][i], badch[1][i]] = 0

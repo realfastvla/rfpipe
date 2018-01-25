@@ -319,7 +319,7 @@ def dataflag(st, data):
     try:
         import rtlib_cython as rtlib
     except ImportError:
-        logger.raise("rtpipe not installed. Cannot import rtlib for flagging.")
+        logger.error("rtpipe not installed. Cannot import rtlib for flagging.")
 
     # **hack!**
     d = {'dataformat': 'sdm', 'ants': [int(ant.lstrip('ea')) for ant in st.ants], 'excludeants': st.prefs.excludeants, 'nants': len(st.ants)}
