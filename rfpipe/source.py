@@ -154,15 +154,13 @@ def prep_standard(st, segment, data):
                     continue
 
                 if os.path.exists(st.gainfile):  # corrupt by -gain
-                    logger.warn("simulated transient with gain file not working yet")
                     model = calibration.apply_telcal(st, model, sign=-1)
                 else:
                     logger.warn("No gainfile {0} found. Not applying inverse "
                                 "gain.".format(st.gainfile))
 
-                util.phase_shift(data, uvw, l, m)
+                util.phase_shift(model, uvw, -l, -m)
                 data += model
-                util.phase_shift(data, uvw, -l, -m)
 
     return data
 
