@@ -132,7 +132,8 @@ def pipeline_dataprep(st, candloc):
 
     # prep data
     data = source.read_segment(st, segment)
-    data_prep = source.data_prep(st, segment, data)
+    flagversion = "rtpipe" if hasattr(st, "rtpipe_version") else "latest"
+    data_prep = source.data_prep(st, segment, data, flagversion=flagversion)
 
     return data_prep
 

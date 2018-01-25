@@ -17,8 +17,9 @@ qa = casautil.tools.quanta()
 default_timeout = 10  # multiple of read time in seconds to wait
 
 
-def data_prep(st, segment, data):
+def data_prep(st, segment, data, flagversion="latest"):
     """ Applies calibration, flags, and subtracts time mean for data.
+    flagversion can be "latest" or "rtpipe".
     """
 
     if not np.any(data):
@@ -36,7 +37,11 @@ def data_prep(st, segment, data):
     else:
         logger.info('Not applying telcal solutions for simulated data')
 
-    data = flag_data(st, np.require(data, requirements='W'))
+    # support backwards compatibility for reproducible flagging
+    if flagversion == "latest":
+        data = flag_data(st, np.require(data, requirements='W'))
+    elif flagversion == "rtpipe":
+        data = flag_data_rtpipe(st, np.require(data, requirements='W'))
 
     if st.prefs.timesub == 'mean':
         logger.info('Subtracting mean visibility in time.')
@@ -282,9 +287,9 @@ def flag_data(st, data):
     for flagparams in st.prefs.flaglist:
         mode, arg0, arg1 = flagparams
         if mode == 'blstd':
-            flags *= flag_blstd(data, arg0, arg1)[:,None,:,:]
+            flags *= flag_blstd(data, arg0, arg1)[:, None, :, :]
         elif mode == 'badchtslide':
-            flags *= flag_badchtslide(data, arg0, arg1)[:,None,:,:]
+            flags *= flag_badchtslide(data, arg0, arg1)[:, None, :, :]
         else:
             logger.warn("Flaging mode {0} not available.".format(mode))
 
@@ -313,13 +318,11 @@ def flag_blstd(data, sigma, convergence):
 
     # flag blstd too high
     badt, badch, badpol = np.where(blstd > blstdmednew + sigma*blstdstdnew)
-    badtcnt = len(np.unique(badt))
-    badchcnt = len(np.unique(badt))
-    logger.info("flag by blstd: {0} channel/time/pol values with {1}/{2} unique times/channels"
-                .format(len(badt), badtcnt, badchcnt))
+    logger.info("flag by blstd: {0} of {1} total channel/time/pol cells flagged."
+                .format(len(badt), sh[0]*sh[2]*sh[3]))
 
     for i in range(len(badt)):
-        flags[badt[i], badch[i], badpol[i]] = 0
+        flags[badt[i], badch[i], badpol[i]] = False
 
     return flags
 
@@ -345,14 +348,14 @@ def flag_badchtslide(data, sigma, win):
 
     badtcnt = len(np.unique(badt))
     badchcnt = len(np.unique(badch))
-    logger.info("flag by badchtslide: {0}/{1} unique times/channels"
-                .format(badtcnt, badchcnt))
+    logger.info("flag by badchtslide: {0}/{1} times and {2}/{3} channels flagged."
+                .format(badtcnt, sh[0], badchcnt, sh[2]))
 
     for i in range(len(badch[0])):
-        flags[:, badch[0][i], badch[1][i]] = 0
+        flags[:, badch[0][i], badch[1][i]] = False
 
     for i in range(len(badt[0])):
-        flags[badt[0][i], :, badt[1][i]] = 0
+        flags[badt[0][i], :, badt[1][i]] = False
 
     return flags
 
@@ -370,6 +373,45 @@ def slidedev(arr, win):
             med[j] = np.ma.median(arr.take(inds, axis=0), axis=0)
 
     return arr-med
+
+
+def flag_data_rtpipe(st, data):
+    """ Flagging data in single process
+    Deprecated.
+    """
+    try:
+        import rtlib_cython as rtlib
+    except ImportError:
+        logger.error("rtpipe not installed. Cannot import rtlib for flagging.")
+
+    # **hack!**
+    d = {'dataformat': 'sdm', 'ants': [int(ant.lstrip('ea')) for ant in st.ants], 'excludeants': st.prefs.excludeants, 'nants': len(st.ants)}
+
+    for flag in st.prefs.flaglist:
+        mode, sig, conv = flag
+        for spw in st.spw:
+            chans = np.arange(st.metadata.spw_nchan[spw]*spw, st.metadata.spw_nchan[spw]*(1+spw))
+            for pol in range(st.npol):
+                status = rtlib.dataflag(data, chans, pol, d, sig, mode, conv)
+                logger.info(status)
+
+    # hack to get rid of bad spw/pol combos whacked by rfi
+    if st.prefs.badspwpol:
+        logger.info('Comparing overall power between spw/pol. Removing those with {0} times typical value'.format(st.prefs.badspwpol))
+        spwpol = {}
+        for spw in st.spw:
+            chans = np.arange(st.metadata.spw_nchan[spw]*spw, st.metadata.spw_nchan[spw]*(1+spw))
+            for pol in range(st.npol):
+                spwpol[(spw, pol)] = np.abs(data[:, :, chans, pol]).std()
+        
+        meanstd = np.mean(spwpol.values())
+        for (spw,pol) in spwpol:
+            if spwpol[(spw, pol)] > st.prefs.badspwpol*meanstd:
+                logger.info('Flagging all of (spw %d, pol %d) for excess noise.' % (spw, pol))
+                chans = np.arange(st.metadata.spw_nchan[spw]*spw, st.metadata.spw_nchan[spw]*(1+spw))
+                data[:, :, chans, pol] = 0j
+
+    return data
 
 
 def simulate_segment(st, loc=0., scale=1.):
