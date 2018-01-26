@@ -21,6 +21,11 @@ def apply_telcal(st, data, threshold=50, onlycomplete=True, sign=+1):
 
     assert sign in [-1, +1], 'sign must be +1 or -1'
 
+    if not os.path.exists(st.gainfile):
+        logger.warn('Telcal file {0} not found. No {1} calibration to apply.'
+                    .format(st.gainfile, ['', 'forward', 'inverse'][sign]))
+        return data
+
     pols = [0, 1]
     reffreq = np.array(st.metadata.spw_reffreq)
     chansize = np.array(st.metadata.spw_chansize)
@@ -97,6 +102,8 @@ def parseGN(telcalfile):
         sols[i] = (mjd[i], ifid[i], skyfreq[i], antnum[i], polarization[i],
                    source[i], amp[i], phase[i], delay[i], flagged[i])
 
+    logger.info('Read telcalfile {0}'.format(telcalfile))
+
     return sols
 
 
@@ -109,7 +116,7 @@ def flagants(solsin, threshold, onlycomplete):
 
     # identify very low gain amps not already flagged
     badsols = np.where((np.median(sols['amp'])/sols['amp'] > threshold) &
-                       (sols['flagged'] is False))[0]
+                       (sols['flagged'] == False))[0]
     if len(badsols):
         logger.info('Flagging {0} solutions at MJD {1}, ant {2}, and freqs '
                     '{3}) for low gain amplitude.'
@@ -166,8 +173,8 @@ def select(sols, time=None, freqs=None, polarization=None):
     sources = np.unique(sols['source'][selection])
     times = np.unique(sols['mjd'][selection])
     if (len(sources) == 1) and (len(times) == 1):
-        logger.info('Using calibrator {0} with {1} solutions separated by {2} min.'
-                    .format(sources[0], len(selection[0]),
+        logger.info('Selecting {0} solutions from calibrator {1} separated by {2} min.'
+                    .format(len(selection[0]), sources[0],
                             mjddist[np.where(mjdselect)][0]*24*60))
     else:
         logger.info('Existing calibration selection includes multiple solutions.')
@@ -178,6 +185,7 @@ def select(sols, time=None, freqs=None, polarization=None):
     logger.debug('Ants: {0}'.format(np.unique(sols['antnum'][selection])))
 
     return sols[selection]
+
 
 @jit
 def calcgaindelay(sols, bls, freqarr, pols, chansize, nch, sign=1):
@@ -237,6 +245,7 @@ def apply_telcal_class(st, data, calname=None, sign=+1):
     sols.apply(data, sign=sign)
 
     return data
+
 
 class telcal_sol():
     """ Instantiated with on telcalfile.
@@ -480,4 +489,3 @@ class telcal_sol():
                     d1d2 = sign*self.calcdelay(ant1, ant2, skyfreq, pol)
                     delayrot = 2*np.pi*(d1d2[0] * 1e-9) * relfreq      # phase to rotate across band
                     data[:,i,chans,pol-self.polind[0]] = data[:,i,chans,pol-self.polind[0]] * np.exp(-1j*delayrot[None, None, :])     # do rotation
-

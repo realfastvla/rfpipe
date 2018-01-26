@@ -29,11 +29,8 @@ def data_prep(st, segment, data, flagversion="latest"):
 
     # TODO: allow parallel execution with apply_telcal2
     if st.metadata.datasource != 'sim':
-        if os.path.exists(st.gainfile):
-            data = calibration.apply_telcal(st, np.require(data,
-                                                           requirements='W'))
-        else:
-            logger.warn('Telcal file not found. No calibration to apply.')
+        data = calibration.apply_telcal(st, np.require(data,
+                                                       requirements='W'))
     else:
         logger.info('Not applying telcal solutions for simulated data')
 
@@ -153,12 +150,7 @@ def prep_standard(st, segment, data):
                     logger.warn("IndexError while adding transient. Skipping...")
                     continue
 
-                if os.path.exists(st.gainfile):  # corrupt by -gain
-                    model = calibration.apply_telcal(st, model, sign=-1)
-                else:
-                    logger.warn("No gainfile {0} found. Not applying inverse "
-                                "gain.".format(st.gainfile))
-
+                model = calibration.apply_telcal(st, model, sign=-1)
                 util.phase_shift(model, uvw, -l, -m)
                 data += model
 
