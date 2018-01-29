@@ -49,9 +49,7 @@ def data_prep(st, segment, data, flagversion="latest"):
     if st.prefs.savenoise:
         logger.warn("Saving of noise properties not implemented yet.")
 
-#    takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
-#    logger.debug('Selecting pols {0}'.format(st.pols))
-#    return data.take(st.chans, axis=2).take(takepol, axis=3)
+    logger.debug('Selecting chans {0}'.format(st.chans))
 
     return data.take(st.chans, axis=2)
 
@@ -78,7 +76,9 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
         logger.info('No data read.')
         return np.array([])
     else:
-        return data_read
+        takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
+        logger.debug('Selecting pols {0}'.format(st.pols))
+        return data_read.take(takepol, axis=3)
 
 
 def prep_standard(st, segment, data):
