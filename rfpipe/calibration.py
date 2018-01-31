@@ -13,10 +13,11 @@ logger = logging.getLogger(__name__)
 
 ### Functional form
 
-def apply_telcal(st, data, threshold=50, onlycomplete=True, sign=+1):
+def apply_telcal(st, data, threshold=1/50., onlycomplete=True, sign=+1):
     """ Wrap all telcal functions to parse telcal file and apply it to data
     sign defines if calibration is applied (+1) or backed out (-1).
     assumes dual pol and that each spw has same nch and chansize.
+    Threshold is minimum ratio of gain amp to median gain amp.
     """
 
     assert sign in [-1, +1], 'sign must be +1 or -1'
@@ -115,7 +116,7 @@ def flagants(solsin, threshold, onlycomplete):
     sols = solsin.copy()
 
     # identify very low gain amps not already flagged
-    badsols = np.where((np.median(sols['amp'])/sols['amp'] > threshold) &
+    badsols = np.where((sols['amp']/np.median(sols['amp']) < threshold) &
                        (sols['flagged'] == False))[0]
     if len(badsols):
         logger.info('Flagging {0} solutions at MJD {1}, ant {2}, and freqs '
@@ -204,8 +205,8 @@ def calcgaindelay(sols, bls, freqarr, pols, chansize, nch, sign=1):
             relfreq = chansize*(np.arange(nch) - nch//2)
 
             for pi in range(len(pols)):
-                g1 = None
-                g2 = None
+                g1 = 0.
+                g2 = 0.
                 d1 = 0.
                 d2 = 0.
                 for sol in sols:
@@ -217,7 +218,7 @@ def calcgaindelay(sols, bls, freqarr, pols, chansize, nch, sign=1):
                             g2 = sol['amp']*np.exp(-1j*np.radians(sol['phase']))
                             d2 = sol['delay']
 
-                if (g1 is not None) and (g2 is not None):
+                if (g1 > 0.) and (g2 > 0.):
                     if sign == 1:
                         g1g2 = 1./(g1*g2)
                     elif sign == -1:
