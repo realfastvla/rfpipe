@@ -338,8 +338,8 @@ def flag_badchtslide(data, sigma, win):
 
     badtcnt = len(np.unique(badt))
     badchcnt = len(np.unique(badch))
-    logger.info("flag by badchtslide: {0}/{1} times and {2}/{3} channels flagged."
-                .format(badtcnt, sh[0], badchcnt, sh[2]))
+    logger.info("flag by badchtslide: {0}/{1} pol-times and {2}/{3} pol-chans flagged."
+                .format(badtcnt, sh[0]*sh[3], badchcnt, sh[2]*sh[3]))
 
     for i in range(len(badch[0])):
         flags[:, badch[0][i], badch[1][i]] = False
