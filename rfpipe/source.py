@@ -408,7 +408,7 @@ def simulate_segment(st, loc=0., scale=1.):
     """ Simulates visibilities for a segment.
     """
 
-    shape = (st.readints, st.nbl, st.metadata.nchan_orig, st.npol)
+    shape = (st.readints, st.nbl, st.metadata.nchan_orig, st.metadata.npol_orig)
     logger.info('Simulating data with shape {0}'.format(shape))
     data_read = np.empty(shape, dtype='complex64', order='C')
     data_read.real = np.random.normal(loc=loc, scale=scale, size=shape)
