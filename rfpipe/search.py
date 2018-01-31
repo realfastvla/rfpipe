@@ -234,7 +234,7 @@ def dedisperse_image_cuda(st, segment, data, dmind, devicenum=None):
         try:
             from distributed import get_worker
             name = get_worker().name
-            devicenum = int(name.split('gpu')[1])
+            devicenum = int(name.split('g')[1])
             logger.debug("Using name {0} to set GPU devicenum to {1}"
                          .format(name, devicenum))
         except IndexError:

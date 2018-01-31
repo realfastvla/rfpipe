@@ -264,7 +264,7 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     return meta
 
 
-def mock_metadata(t0, t1, nants, nspw, chans, npol, inttime_micros, scan=1
+def mock_metadata(t0, t1, nants, nspw, chans, npol, inttime_micros, scan=1,
                   subscan=1, datasource='vys', datasetid='test', **kwargs):
     """ Wraps Metadata call to provide immutable, attribute-filled class instance.
     Parallel structure to sdm_metadata, so this inherits some of its
