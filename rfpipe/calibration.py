@@ -218,7 +218,7 @@ def calcgaindelay(sols, bls, freqarr, pols, chansize, nch, sign=1):
                             g2 = sol['amp']*np.exp(-1j*np.radians(sol['phase']))
                             d2 = sol['delay']
 
-                if (g1 > 0.) and (g2 > 0.):
+                if (g1 != 0.) and (g2 != 0.):
                     if sign == 1:
                         g1g2 = 1./(g1*g2)
                     elif sign == -1:
