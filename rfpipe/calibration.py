@@ -36,13 +36,16 @@ def apply_telcal(st, data, threshold=1/50., onlycomplete=True, sign=+1):
     sols = flagants(sols, threshold=threshold, onlycomplete=onlycomplete)
     sols = select(sols, time=st.segmenttimes.mean())
     skyfreqs = np.around(reffreq + (chansize*nchan/2), -6)/1e6  # GN skyfreq is band center
-    gaindelay = calcgaindelay(sols, st.blarr, skyfreqs, pols, chansize[0],
-                              nchan[0], sign=sign)
+    if len(sols):
+        gaindelay = calcgaindelay(sols, st.blarr, skyfreqs, pols, chansize[0],
+                                  nchan[0], sign=sign)
 
-    # data should have nchan_orig because no selection done yet
-    # TODO: make nchan, npol, nbl selection consistent for all data types
-    return data*gaindelay.reshape((st.nbl, st.metadata.nchan_orig,
-                                   len(pols)))
+        # data should have nchan_orig because no selection done yet
+        # TODO: make nchan, npol, nbl selection consistent for all data types
+        return data*gaindelay.reshape((st.nbl, st.metadata.nchan_orig,
+                                       len(pols)))
+    else:
+        return data
 
 
 def parseGN(telcalfile):
@@ -92,18 +95,21 @@ def parseGN(telcalfile):
 
     # TODO: assumes dual pol. update to full pol
     polarization = [('C' in i0 or 'D' in i0) for i0 in ifid]
-
     dtype = zip(['mjd', 'ifid', 'skyfreq', 'antnum', 'polarization', 'source',
                  'amp', 'phase', 'delay', 'flagged'],
                 ['<f4', 'U4', '<f4', 'i8', 'i8', 'U20', '<f4', '<f4', '<f4',
                  '?'])
-    sols = np.zeros(len(mjd), dtype=dtype)
+    if (len(mjd) == len(phase)) and (len(phase) > 0):
+        sols = np.zeros(len(mjd), dtype=dtype)
 
-    for i in range(len(mjd)):
-        sols[i] = (mjd[i], ifid[i], skyfreq[i], antnum[i], polarization[i],
-                   source[i], amp[i], phase[i], delay[i], flagged[i])
+        for i in range(len(mjd)):
+            sols[i] = (mjd[i], ifid[i], skyfreq[i], antnum[i], polarization[i],
+                       source[i], amp[i], phase[i], delay[i], flagged[i])
 
-    logger.info('Read telcalfile {0}'.format(telcalfile))
+        logger.info('Read telcalfile {0}'.format(telcalfile))
+    else:
+        logger.warn('Bad telcalfile {0}. Not parsed properly'.format(telcalfile))
+        sols = np.array([])
 
     return sols
 
@@ -112,6 +118,9 @@ def flagants(solsin, threshold, onlycomplete):
     """ Flags solutions with amplitude more than threshold larger than median.
     onlycomplete defines whether to flag times with incomplete solutions.
     """
+
+    if not len(solsin):
+        return solsin
 
     sols = solsin.copy()
 
@@ -149,6 +158,9 @@ def select(sols, time=None, freqs=None, polarization=None):
     time (in mjd) defines the time to find solutions.
     freqs (in Hz) is frequencies in data.
     """
+
+    if not len(sols):
+        return sols
 
     # select freq if solution band center is in (rounded) array of chan freqs
     if freqs is not None:
