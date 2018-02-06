@@ -507,9 +507,6 @@ def candplot(canddatalist, snrs=[], outname=''):
         im = canddata.image
         data = canddata.data
 
-        logger.info('Plotting candloc {0} with image/data shapes: {1}/{2}'
-                    .format(str(candloc), str(im.shape), str(data.shape)))
-
         scan = st.metadata.scan
         segment, candint, dmind, dtind, beamnum = candloc
 
@@ -523,6 +520,10 @@ def candplot(canddatalist, snrs=[], outname=''):
         else:
             l1, m1 = st.pixtolm(np.where(im == im.min()))
             snrobs = snrmin
+
+        logger.info('Plotting candloc {0} with SNR {1} and image/data shapes: {2}/{3}'
+                    .format(str(candloc), snrobs, str(im.shape), str(data.shape)))
+
         pt_ra, pt_dec = st.metadata.radec
         src_ra, src_dec = source_location(pt_ra, pt_dec, l1, m1)
         logger.info('Peak (RA, Dec): %s, %s' % (src_ra, src_dec))
