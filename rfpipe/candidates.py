@@ -82,11 +82,14 @@ class CandCollection(object):
 
     def __repr__(self):
         if self.metadata is not None:
-            return ('CandCollection for {0}, scan {1} with {2} rows'
+            return ('CandCollection for {0}, scan {1} with {2} candidates'
                     .format(self.metadata.datasetId, self.metadata.scan,
-                            len(self.array)))
+                            len(len(self))))
         else:
             return ('CandCollection with {0} rows'.format(len(self.array)))
+
+    def __len__(self):
+        return len(self.array)
 
     @property
     def scan(self):

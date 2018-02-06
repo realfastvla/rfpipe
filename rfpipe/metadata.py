@@ -81,6 +81,10 @@ class Metadata(object):
                         for ii in range(len((self.spw_reffreq)))], dtype='float32').flatten()/1e9
 
     @property
+    def nspw_orig(self):
+        return len(self.spworder)
+
+    @property
     def nchan_orig(self):
         return len(self.freq_orig)
 
