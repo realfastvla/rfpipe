@@ -26,13 +26,8 @@ def data_prep(st, segment, data, flagversion="latest"):
         return data
 
     data = prep_standard(st, segment, np.require(data, requirements='W'))
-
-    # TODO: allow parallel execution with apply_telcal2
-    if st.metadata.datasource != 'sim':
-        data = calibration.apply_telcal(st, np.require(data,
-                                                       requirements='W'))
-    else:
-        logger.info('Not applying telcal solutions for simulated data')
+    data = calibration.apply_telcal(st, np.require(data,
+                                                   requirements='W'))
 
     # support backwards compatibility for reproducible flagging
     if flagversion == "latest":
