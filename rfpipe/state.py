@@ -174,10 +174,10 @@ class State(object):
                             .format(self.prefs.excludeants))
 
             logger.info('\t Using pols {0}'.format(self.pols))
-            if os.path.exists(self.gainfile):
+            if os.path.exists(self.gainfile) and os.path.isfile(self.gainfile):
                 logger.info('\t Found telcal file {0}'.format(self.gainfile))
             else:
-                logger.warn('\t No telcal file found at {0}'
+                logger.warn('\t Gainfile preference ({0}) is not a telcal file'
                             .format(self.gainfile))
 
             logger.info('')

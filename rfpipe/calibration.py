@@ -22,8 +22,8 @@ def apply_telcal(st, data, threshold=1/50., onlycomplete=True, sign=+1):
 
     assert sign in [-1, +1], 'sign must be +1 or -1'
 
-    if not os.path.exists(st.gainfile):
-        logger.warn('Telcal file {0} not found. No {1} calibration to apply.'
+    if (not os.path.exists(st.gainfile)) and (not os.path.isfile(st.gainfile)):
+        logger.warn('{0} is not a telcal file. No {1} calibration to apply.'
                     .format(st.gainfile, ['', 'forward', 'inverse'][sign]))
         return data
 
@@ -33,8 +33,10 @@ def apply_telcal(st, data, threshold=1/50., onlycomplete=True, sign=+1):
     nchan = np.array(st.metadata.spw_nchan)
 
     sols = parseGN(st.gainfile)
-    sols = flagants(sols, threshold=threshold, onlycomplete=onlycomplete)
+    # must run time select before flagants for complete solutions
     sols = select(sols, time=st.segmenttimes.mean())
+    sols = flagants(sols, threshold=threshold, onlycomplete=onlycomplete)  
+
     skyfreqs = np.around(reffreq + (chansize*nchan/2), -6)/1e6  # GN skyfreq is band center
     if len(sols):
         gaindelay = calcgaindelay(sols, st.blarr, skyfreqs, pols, chansize[0],
