@@ -258,6 +258,14 @@ def dedisperse_image_cuda(st, segment, data, dmind, devicenum=None):
     upix = st.npixx
     vpix = st.npixy//2 + 1
 
+    # select data on grid (not working)
+#    ww = np.where((u[:, 0] > -st.uvres*st.npixx//2) &
+#                  (u[:, 0] < st.uvres*st.npixx//2) &
+#                  (v[:, 0] > -st.uvres*st.npixy//2) &
+#                  (v[:, 0] < st.uvres*st.npixy//2))[0]
+
+ #   nbl = len(ww)
+
     grid = rfgpu.Grid(st.nbl, st.nchan, st.readints, upix, vpix)
     image = rfgpu.Image(st.npixx, st.npixy)
     image.add_stat('rms')
@@ -453,7 +461,7 @@ def grid_image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,
                                   npixy, uvres, parallel=nthread > 1)
         images = image_fftw(grids, nthread=nthread, wisdom=wisdom)
     elif fftmode == 'cuda':
-        logger.debug("Imaging with cuda.")
+        logger.warn("Imaging with cuda not yet supported.")
         images = image_cuda()
     else:
         logger.warn("Imaging fftmode {0} not supported.".format(fftmode))
