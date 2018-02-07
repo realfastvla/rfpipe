@@ -97,7 +97,7 @@ def parseGN(telcalfile):
     polarization = [('C' in i0 or 'D' in i0) for i0 in ifid]
     dtype = zip(['mjd', 'ifid', 'skyfreq', 'antnum', 'polarization', 'source',
                  'amp', 'phase', 'delay', 'flagged'],
-                ['<f4', 'U4', '<f4', 'i8', 'i8', 'U20', '<f4', '<f4', '<f4',
+                ['<f8', 'U4', '<f8', 'i8', 'i8', 'U20', '<f8', '<f8', '<f8',
                  '?'])
     if (len(mjd) == len(phase)) and (len(phase) > 0):
         sols = np.zeros(len(mjd), dtype=dtype)
@@ -106,7 +106,13 @@ def parseGN(telcalfile):
             sols[i] = (mjd[i], ifid[i], skyfreq[i], antnum[i], polarization[i],
                        source[i], amp[i], phase[i], delay[i], flagged[i])
 
-        logger.info('Read telcalfile {0}'.format(telcalfile))
+        logger.info('Read telcalfile {0} with {1} sources, {2} times, {3} '
+                    'IFIDs, and {4} antennas'
+                    .format(telcalfile,
+                            len(np.unique(sols['source'])),
+                            len(np.unique(sols['mjd'])),
+                            len(np.unique(sols['ifid'])),
+                            len(np.unique(sols['antnum']))))
     else:
         logger.warn('Bad telcalfile {0}. Not parsed properly'.format(telcalfile))
         sols = np.array([])
