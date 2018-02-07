@@ -127,7 +127,7 @@ class State(object):
 
             spworder = np.argsort(self.metadata.spw_reffreq)
             if np.any(spworder != np.sort(spworder)):
-                logger.warn('Sorting spw frequencies to increasing order from order {0}'
+                logger.warn('BDF spw sorted to increasing order from {0}'
                             .format(spworder))
 
             logger.info('\t Freq range: {0:.3f} -- {1:.3f}'
