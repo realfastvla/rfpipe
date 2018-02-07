@@ -22,7 +22,7 @@ def apply_telcal(st, data, threshold=1/50., onlycomplete=True, sign=+1):
 
     assert sign in [-1, +1], 'sign must be +1 or -1'
 
-    if (not os.path.exists(st.gainfile)) and (not os.path.isfile(st.gainfile)):
+    if (not os.path.exists(st.gainfile)) or (not os.path.isfile(st.gainfile)):
         logger.warn('{0} is not a telcal file. No {1} calibration to apply.'
                     .format(st.gainfile, ['', 'forward', 'inverse'][sign]))
         return data
