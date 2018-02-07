@@ -25,19 +25,18 @@ def data_prep(st, segment, data, flagversion="latest"):
     if not np.any(data):
         return data
 
-    data = prep_standard(st, segment, np.require(data, requirements='W'))
-    data = calibration.apply_telcal(st, np.require(data,
-                                                   requirements='W'))
+    data_prep = prep_standard(st, segment, np.require(data, requirements='W'))
+    data_prep = calibration.apply_telcal(st, data_prep)
 
     # support backwards compatibility for reproducible flagging
     if flagversion == "latest":
-        data = flag_data(st, np.require(data, requirements='W'))
+        data_prep = flag_data(st, data_prep)
     elif flagversion == "rtpipe":
-        data = flag_data_rtpipe(st, np.require(data, requirements='W'))
+        data_prep = flag_data_rtpipe(st, data_prep)
 
     if st.prefs.timesub == 'mean':
         logger.info('Subtracting mean visibility in time.')
-        data = util.meantsub(data, parallel=st.prefs.nthread > 1)
+        data_prep = util.meantsub(data_prep, parallel=st.prefs.nthread > 1)
     else:
         logger.info('No visibility subtraction done.')
 
@@ -46,7 +45,7 @@ def data_prep(st, segment, data, flagversion="latest"):
 
     logger.debug('Selecting chans {0}'.format(st.chans))
 
-    return data.take(st.chans, axis=2)
+    return data_prep.take(st.chans, axis=2)
 
 
 def read_segment(st, segment, cfile=None, timeout=default_timeout):
