@@ -156,6 +156,7 @@ class Metadata(object):
 
     @property
     def scanId(self):
+        assert self.datasetId is not None
         return '{0}.{1}.{2}'.format(self.datasetId, self.scan, self.subscan)
 
 
@@ -215,7 +216,7 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
 
     meta = {}
     meta['datasource'] = 'sdm'
-    meta['datasetId'] = os.path.basename(sdmfile)
+    meta['datasetId'] = os.path.basename(sdmfile.rstrip('/'))
     meta['filename'] = sdmfile
     meta['scan'] = scan
     meta['subscan'] = 1  # TODO: update for more than one subscan per scan
