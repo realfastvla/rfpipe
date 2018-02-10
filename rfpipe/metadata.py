@@ -82,7 +82,7 @@ class Metadata(object):
 
     @property
     def nspw_orig(self):
-        return len(self.spworder)
+        return len(self.spw_reffreq)
 
     @property
     def nchan_orig(self):
