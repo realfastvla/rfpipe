@@ -69,11 +69,9 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default):
                     collections.append(collection)
 
     elif st.fftmode == "cuda":
-        for dmind in range(len(st.dmarr)):
-            canddatalist = search.dedisperse_image_cuda(st, segment, data_prep,
-                                                        dmind)
+        canddatalist = search.dedisperse_image_cuda(st, segment, data_prep)
 
-            collection = candidates.calc_features(canddatalist)
-            collections.append(collection)
+        collection = candidates.calc_features(canddatalist)
+        collections.append(collection)
 
     return collections

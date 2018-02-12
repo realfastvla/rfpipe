@@ -98,19 +98,14 @@ def test_fftw_sim(stsim, data_prep):
 
 def test_cuda_sim_rfi(stsim, data_prep_rfi):
     rfgpu = pytest.importorskip('rfgpu')
-    for dmind in range(len(stsim.dmarr)):
-        canddatalist = rfpipe.search.dedisperse_image_cuda(stsim, 0,
-                                                           data_prep_rfi,
-                                                           dmind)
-        assert len(canddatalist)
+    canddatalist = rfpipe.search.dedisperse_image_cuda(stsim, 0, data_prep_rfi)
+    assert len(canddatalist)
 
 
 def test_cuda_sim(stsim, data_prep):
     rfgpu = pytest.importorskip('rfgpu')
-    for dmind in range(len(stsim.dmarr)):
-        canddatalist = rfpipe.search.dedisperse_image_cuda(stsim, 0, data_prep,
-                                                           dmind)
-        assert len(canddatalist)
+    canddatalist = rfpipe.search.dedisperse_image_cuda(stsim, 0, data_prep)
+    assert len(canddatalist)
 
 
 # (2) known FRB data
@@ -147,11 +142,8 @@ def test_fftw_data(stdata, data_prep_data):
 def test_cuda_data(stdata, data_prep_data):
     rfgpu = pytest.importorskip('rfgpu')
 
-    canddatalist = []
-    for dmind in range(len(stdata.dmarr)):
-        canddatalist += rfpipe.search.dedisperse_image_cuda(stdata, 0,
-                                                            data_prep_data,
-                                                            dmind)
+    canddatalist = rfpipe.search.dedisperse_image_cuda(stdata, 0,
+                                                        data_prep_data)
     cc = rfpipe.candidates.calc_features(canddatalist)
     snrmax = cc.array['snr1'].max()
     assert snrmax >= 0.7*snrs[stdata.metadata.datasetId]

@@ -347,7 +347,7 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
                                                             data=data_corr))
                     # TODO: add safety against triggering return of all images
 
-    logger.info("{0} candidates returned for seg {1})"
+    logger.info("{0} candidates returned for seg {1}"
                 .format(len(canddatalist), segment))
 
     return canddatalist
