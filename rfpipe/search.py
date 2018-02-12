@@ -206,8 +206,9 @@ def _dedisperseresample_gu(data, delay, dt):
 # searching, imaging, thresholding
 #
 
-def dedisperse_image_cuda(st, segment, data, dmind, devicenum=None):
-    """ Run dedispersion, resample for all dt, grid, and image on GPU.
+def dedisperse_image_cuda(st, segment, data, devicenum=None):
+    """ Run dedispersion, resample for all dm and dt.
+    Grid and image on GPU.
     rfgpu is built from separate repo.
     Uses state to define integrations to image based on segment, dm, and dt.
     devicenum can force the gpu to use, but can be inferred via distributed.
@@ -252,8 +253,6 @@ def dedisperse_image_cuda(st, segment, data, dmind, devicenum=None):
     beamnum = 0
     uvw = util.get_uvw_segment(st, segment)
     u, v, w = uvw
-    delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
-                            st.inttime)
 
     upix = st.npixx
     vpix = st.npixy//2 + 1
@@ -294,60 +293,62 @@ def dedisperse_image_cuda(st, segment, data, dmind, devicenum=None):
 
     grid.conjugate(vis_raw)
 
+    canddatalist = []
     for dtind in range(len(st.dtarr)):
-        if dtind > 0:
-            grid.downsample(vis_raw)
+        for dmind in range(len(st.dmarr)):
+            delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
+                                    st.inttime)
 
-        grid.set_shift(delay >> dtind)  # dispersion shift per chan in samples
+            if dtind > 0:
+                grid.downsample(vis_raw)
 
-        integrations = st.get_search_ints(segment, dmind, dtind)
-        minint = min(integrations)
-        maxint = max(integrations)
+            grid.set_shift(delay >> dtind)  # dispersion shift per chan in samples
 
-        logger.info('Imaging {0} ints ({1}-{2}) in seg {3} at DM/dt {4}/{5} with '
-                    'image {6}x{7} (uvres {8}) with gpu {9}'
-                    .format(len(integrations), minint, maxint, segment,
-                            st.dmarr[dmind], st.dtarr[dtind], st.npixx, st.npixy,
-                            st.uvres, devicenum))
+            integrations = st.get_search_ints(segment, dmind, dtind)
+            minint = min(integrations)
+            maxint = max(integrations)
 
-        canddatalist = []
-        for i in integrations:
+            logger.info('Imaging {0} ints ({1}-{2}) in seg {3} at DM/dt {4}/{5}'
+                        ' with image {6}x{7} (uvres {8}) with gpu {9}'
+                        .format(len(integrations), minint, maxint, segment,
+                                st.dmarr[dmind], st.dtarr[dtind], st.npixx,
+                                st.npixy, st.uvres, devicenum))
 
-            # grid and FFT
-            grid.operate(vis_raw, vis_grid, i)
-            image.operate(vis_grid, img_grid)
+            for i in integrations:
+                # grid and FFT
+                grid.operate(vis_raw, vis_grid, i)
+                image.operate(vis_grid, img_grid)
 
-            # calc snr
-            stats = image.stats(img_grid)
-            try:
-                peak_snr = stats['max']/stats['rms']
-            except ZeroDivisionError:
-                peak_snr = 0.
+                # calc snr
+                stats = image.stats(img_grid)
+                try:
+                    peak_snr = stats['max']/stats['rms']
+                except ZeroDivisionError:
+                    peak_snr = 0.
 
-            # threshold image on GPU and optionally save it
-            if peak_snr > st.prefs.sigma_image1:
-                img_grid.d2h()
-                img_data = np.fft.fftshift(img_grid.data)  # shift zero pixel in middle
-                l, m = st.pixtolm(np.where(img_data == img_data.max()))
-                candloc = (segment, i, dmind, dtind, beamnum)
+                # threshold image on GPU and optionally save it
+                if peak_snr > st.prefs.sigma_image1:
+                    img_grid.d2h()
+                    img_data = np.fft.fftshift(img_grid.data)  # shift zero pixel in middle
+                    l, m = st.pixtolm(np.where(img_data == img_data.max()))
+                    candloc = (segment, i, dmind, dtind, beamnum)
 
-                logger.info("Got one! SNR {0} candidate at {1} and (l,m) = ({2},{3})"
-                            .format(peak_snr, candloc, l, m))
+                    logger.info("Got one! SNR {0} candidate at {1} and (l,m) = ({2},{3})"
+                                .format(peak_snr, candloc, l, m))
 
-                data_corr = dedisperseresample(data, delay, st.dtarr[dtind],
-                                               parallel=st.prefs.nthread > 1)
-                data_corr = data_corr[max(0, i-st.prefs.timewindow//2):
-                                      min(i+st.prefs.timewindow//2, len(data))]
-                util.phase_shift(data_corr, uvw, l, m)
-                data_corr = data_corr.mean(axis=1)
-                canddatalist.append(candidates.CandData(state=st, loc=candloc,
-                                                        image=img_data,
-                                                        data=data_corr))
-                # TODO: add safety against triggering return of all images
+                    data_corr = dedisperseresample(data, delay, st.dtarr[dtind],
+                                                   parallel=st.prefs.nthread > 1)
+                    data_corr = data_corr[max(0, i-st.prefs.timewindow//2):
+                                          min(i+st.prefs.timewindow//2, len(data))]
+                    util.phase_shift(data_corr, uvw, l, m)
+                    data_corr = data_corr.mean(axis=1)
+                    canddatalist.append(candidates.CandData(state=st, loc=candloc,
+                                                            image=img_data,
+                                                            data=data_corr))
+                    # TODO: add safety against triggering return of all images
 
-        logger.info("{0} candidates returned for (seg, dmind, dtind) = "
-                    "({1}, {2}, {3})".format(len(canddatalist), segment, dmind,
-                                             dtind))
+    logger.info("{0} candidates returned for seg {1})"
+                .format(len(canddatalist), segment))
 
     return canddatalist
 
