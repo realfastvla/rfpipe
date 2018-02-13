@@ -76,9 +76,12 @@ class Metadata(object):
         """Spacing of channel centers in GHz.
         Out of order metadata order is sorted in state/data reading"""
 
-        return np.array([np.linspace(self.spw_reffreq[ii], self.spw_reffreq[ii] +
-                                     (self.spw_nchan[ii]-1) * self.spw_chansize[ii], self.spw_nchan[ii])
-                        for ii in range(len((self.spw_reffreq)))], dtype='float32').flatten()/1e9
+        return np.concatenate([np.linspace(self.spw_reffreq[ii],
+                                           self.spw_reffreq[ii] +
+                                           (self.spw_nchan[ii]-1) *
+                                           self.spw_chansize[ii],
+                                           self.spw_nchan[ii])
+                              for ii in range(len((self.spw_reffreq)))]).astype('float32')/1e9
 
     @property
     def nspw_orig(self):

@@ -60,7 +60,10 @@ class State(object):
         self.sdmfile = sdmfile
         self.lock = lock
 
-        if isinstance(inprefs, dict):
+        if isinstance(inprefs, dict) or inprefs is None:
+            if inprefs is None:
+                inprefs = {}
+
             # get pipeline preferences as dict
             prefs = preferences.parsepreffile(preffile)
 
