@@ -218,7 +218,7 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     meta['datasource'] = 'sdm'
     meta['datasetId'] = os.path.basename(sdmfile.rstrip('/'))
     meta['filename'] = sdmfile
-    meta['scan'] = scan
+    meta['scan'] = int(scan)
     meta['subscan'] = 1  # TODO: update for more than one subscan per scan
     meta['bdfdir'] = bdfdir
 #    meta['configid'] = scanobj.configDescriptionId
@@ -228,16 +228,30 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     else:
         meta['bdfstr'] = bdfstr
 
-    starttime_mjd = scanobj.bdf.startTime
+    try:
+        starttime_mjd = scanobj.bdf.startTime
+    except AttributeError:
+        logger.warn("No BDF found. Inferring starttime_mjd from...")
+        starttime_mjd = list(sdm['Scan'])[scan].startTime/86400.0e9
     meta['starttime_mjd'] = starttime_mjd
-    nints = scanobj.bdf.numIntegration
-    inttime = scanobj.bdf.get_integration(0).interval
-    meta['inttime'] = inttime
+
+    try:
+        nints = scanobj.bdf.numIntegration
+    except AttributeError:
+        logger.warn("No BDF found. Using Main table to infer nints.")
+        nints = list(sdm['Main'])[scan].numIntegration
     meta['nints_'] = nints
+
+    try:
+        inttime = scanobj.bdf.get_integration(0).interval
+        meta['inttime'] = inttime
+    except AttributeError:
+        logger.warn("No BDF found. inttime not set.")
+
     meta['source'] = str(scanobj.source)
     meta['intent'] = ' '.join(scanobj.intents)
     meta['telescope'] = str(sdm['ExecBlock'][0]['telescopeName']).strip()
-    meta['antids'] = [str(ant) for ant in scanobj.antennas]  # ** test that these are the same as what we expected with rtpipe **
+    meta['antids'] = [str(ant) for ant in scanobj.antennas]
 #    meta['stationids'] = scanobj.stations
     meta['xyz'] = np.array(scanobj.positions)
 
@@ -260,11 +274,14 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
                          if pol in ['XX', 'YY', 'XY', 'YX',
                                     'RR', 'LL', 'RL', 'LR',
                                     'A*A', 'A*B', 'B*A', 'B*B']]
-    meta['spworder'] = sorted(zip(['{0}-{1}'.format(spw.swbb.rstrip('_8BIT'),
-                                                    spw.sw-1)
-                                   for spw in scanobj.bdf.spws],
-                                  np.array(scanobj.reffreqs)/1e6),
-                              key=lambda x: x[1])
+    try:
+        meta['spworder'] = sorted(zip(['{0}-{1}'.format(spw.swbb.rstrip('_8BIT'),
+                                                        spw.sw-1)
+                                       for spw in scanobj.bdf.spws],
+                                      np.array(scanobj.reffreqs)/1e6),
+                                  key=lambda x: x[1])
+    except AttributeError:
+        logger.warn("No BDF found. spworder not defined.")
 
     return meta
 
