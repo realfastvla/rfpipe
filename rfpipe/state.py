@@ -39,7 +39,7 @@ class State(object):
     """
 
     def __init__(self, config=None, sdmfile=None, sdmscan=None, bdfdir=None,
-                 inprefs={}, inmeta={}, preffile=None, name=None,
+                 inprefs=None, inmeta={}, preffile=None, name=None,
                  showsummary=True, lock=None):
         """ Initialize preference attributes with text file, preffile.
         name can select preference set from within yaml file.
@@ -60,23 +60,14 @@ class State(object):
         self.sdmfile = sdmfile
         self.lock = lock
 
-        if isinstance(inprefs, dict) or inprefs is None:
-            if inprefs is None:
-                inprefs = {}
-
-            # get pipeline preferences as dict
-            prefs = preferences.parsepreffile(preffile)
-
-            # optionally overload preferences
-            for key in inprefs:
-                prefs[key] = inprefs[key]
-
-            self.prefs = preferences.Preferences(**prefs)
-        elif isinstance(inprefs, preferences.Preferences):
+        # set prefs according to inprefs type
+        if isinstance(inprefs, preferences.Preferences):
             self.prefs = inprefs
         else:
-            logger.warn('inprefs should be either a dictionary or \
-                         preferences.Preferences object')
+            # default values will result in empty dict
+            prefs = preferences.parsepreffile(preffile, inprefs=inprefs,
+                                              name=name)
+            self.prefs = preferences.Preferences(**prefs)
 
         # TODO: not working
         logger.parent.setLevel(getattr(logging, self.prefs.loglevel))

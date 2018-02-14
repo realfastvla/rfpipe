@@ -113,25 +113,34 @@ def parsejson(jsonstring):
     return Preferences(**inprefs)
 
 
-def parsepreffile(preffile=None, name=None):
+def parsepreffile(preffile=None, name=None, inprefs=None):
     """ Read preference file and set parameter values.
     File should have python-like syntax. Full file name needed.
     name can be used to select a parameter set if multiple are defined in the
     yaml file.
     """
 
+    # define baseline dicts
+    prefs = {}
+    if inprefs is None:
+        inprefs = {}
+
+    # optionally overload
     if preffile:
         ptype = preffiletype(preffile)
 
         if ptype == 'yaml':
-            return _parsepref_yaml(preffile, name=name)
+            prefs = _parsepref_yaml(preffile, name=name)
         elif ptype == 'old':
-            return _parsepref_old(preffile)
+            prefs = _parsepref_old(preffile)
         else:
             logger.warn('Preffile type ({0}) not recognized.'.format(preffile))
-            return {}
-    else:
-        return {}
+
+    # optionall overload
+    for key in inprefs:
+        prefs[key] = inprefs[key]
+
+    return prefs
 
 
 def _parsepref_old(preffile):
@@ -160,6 +169,7 @@ def _parsepref_yaml(preffile, name=None):
     """
 
     name = 'default' if not name else name
+    logger.info("Parsing preffile for preference set {0}".format(name))
 
     with open(preffile, 'r') as fp:
         yamlpars = yaml.load(fp)
