@@ -284,7 +284,7 @@ def save_noise(st, segment, data, chunk=200):
             imstd = grid_image(data, uvw, st.npixx, st.npixy, st.uvres,
                                'fftw', 1, integrations=imid).std()
             zerofrac = float(len(np.where(data[r0:r1] == 0j)[0]))/data[r0:r1].size
-            results.append((segment, noiseperbl, zerofrac, imstd))
+            results.append((segment, imid, noiseperbl, zerofrac, imstd))
 
         try:
             noisefile = st.noisefile
