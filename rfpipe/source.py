@@ -8,7 +8,8 @@ from numba import jit
 from astropy import time
 import sdmpy
 import pwkit.environments.casa.util as casautil
-from rfpipe import util, calibration
+from rfpipe import util, calibration, fileLock
+import pickle
 
 import logging
 logger = logging.getLogger(__name__)
@@ -41,7 +42,7 @@ def data_prep(st, segment, data, flagversion="latest"):
         logger.info('No visibility subtraction done.')
 
     if st.prefs.savenoise:
-        logger.warn("Saving of noise properties not implemented yet.")
+        save_noise(st, segment, data_prep.take(st.chans, axis=2))
 
     logger.debug('Selecting chans {0}'.format(st.chans))
 
@@ -266,21 +267,23 @@ def save_noise(st, segment, data, chunk=200):
     chunk defines window for measurement. at least one measurement always made.
     """
 
+    from rfpipe.search import grid_image
+
     if os.path.exists(st.noisefile):
         logger.warn('noisefile {0} already exists'.format(st.noisefile))
     else:
         uvw = util.get_uvw_segment(st, segment)
-        chunk = min(chunk, nints)  # ensure at least one measurement
-        results = []
+        chunk = min(chunk, st.readints-1)  # ensure at least one measurement
+        ranges = zip(range(0, st.readints-chunk, chunk),
+                     range(chunk, st.readints, chunk))
 
-        rr = range(0, nints, chunk)
-        if len(rr) == 1: rr.append(1)   # hack. need to make sure it iterates for nints=1 case
-        for i in range(len(rr)-1):
-            imid = (rr[i]+rr[i+1])/2
-            noiseperbl = estimate_noiseperbl(data[rr[i]:rr[i+1]])
+        results = []
+        for (r0, r1) in ranges:
+            imid = (r0+r1)//2
+            noiseperbl = estimate_noiseperbl(data[r0:r1])
             imstd = grid_image(data, uvw, st.npixx, st.npixy, st.uvres,
                                'fftw', 1, integrations=imid).std()
-            zerofrac = float(len(n.where(data[rr[i]:rr[i+1]] == 0j)[0]))/data[rr[i]:rr[i+1]].size
+            zerofrac = float(len(np.where(data[r0:r1] == 0j)[0]))/data[r0:r1].size
             results.append((segment, noiseperbl, zerofrac, imstd))
 
         try:
