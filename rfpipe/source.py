@@ -261,6 +261,58 @@ def read_bdf(st, nskip=0):
     return data
 
 
+def save_noise(st, segment, data, chunk=200):
+    """ Calculates noise properties and save values to pickle.
+    chunk defines window for measurement. at least one measurement always made.
+    """
+
+    if os.path.exists(st.noisefile):
+        logger.warn('noisefile {0} already exists'.format(st.noisefile))
+    else:
+        uvw = util.get_uvw_segment(st, segment)
+        chunk = min(chunk, nints)  # ensure at least one measurement
+        results = []
+
+        rr = range(0, nints, chunk)
+        if len(rr) == 1: rr.append(1)   # hack. need to make sure it iterates for nints=1 case
+        for i in range(len(rr)-1):
+            imid = (rr[i]+rr[i+1])/2
+            noiseperbl = estimate_noiseperbl(data[rr[i]:rr[i+1]])
+            imstd = grid_image(data, uvw, st.npixx, st.npixy, st.uvres,
+                               'fftw', 1, integrations=imid).std()
+            zerofrac = float(len(n.where(data[rr[i]:rr[i+1]] == 0j)[0]))/data[rr[i]:rr[i+1]].size
+            results.append((segment, noiseperbl, zerofrac, imstd))
+
+        try:
+            noisefile = st.noisefile
+            with fileLock.FileLock(noisefile+'.lock', timeout=10):
+                with open(noisefile, 'ab+') as pkl:
+                    pickle.dump(results, pkl)
+        except fileLock.FileLock.FileLockException:
+            noisefile = ('{0}_seg{1}.pkl'
+                         .format(st.noisefile.rstrip('.pkl'), segment))
+            logger.warn('Noise file writing timeout. '
+                        'Spilling to new file {0}.'.format(noisefile))
+            with open(noisefile, 'ab+') as pkl:
+                pickle.dump(results, pkl)
+
+        logger.info('Wrote {0} noise measurement{1} to {2}'
+                    .format(len(results), 's'[:len(results)-1], noisefile))
+
+
+def estimate_noiseperbl(data):
+    """ Takes large data array and sigma clips it to find noise per bl for
+    input to detect_bispectra.
+    Takes mean across pols and channels for now, as in detect_bispectra.
+    """
+
+    # define noise per baseline for data seen by detect_bispectra or image
+    datamean = data.mean(axis=2).imag  # use imaginary part to estimate noise without calibrated, on-axis signal
+    noiseperbl = datamean.std()  # measure single noise for input to detect_bispectra
+    logger.debug('Measured noise per baseline of {0:.3f}'.format(noiseperbl))
+    return noiseperbl
+
+
 def flag_data(st, data):
     """ Identifies bad data and flags it to 0.
     """
