@@ -273,7 +273,7 @@ def save_noise(st, segment, data, chunk=200):
         logger.warn('noisefile {0} already exists'.format(st.noisefile))
     else:
         uvw = util.get_uvw_segment(st, segment)
-        chunk = min(chunk, st.readints-1)  # ensure at least one measurement
+        chunk = min(chunk, max(1, st.readints-1))  # ensure at least one measurement
         ranges = zip(range(0, st.readints-chunk, chunk),
                      range(chunk, st.readints, chunk))
 
