@@ -4,20 +4,22 @@ from astropy import time
 from numpy import ndarray
 
 # simulate no flag, transient/no flag, transient/flag
-inprefs = [{'flaglist': [], 'npix_max': 512, 'chans': range(32), 'spw': [0]},
-           {'simulated_transient': [(0, 30, 25, 10e-3, 1., 0.001, 0.001)],
-            'dmarr': [0, 100], 'dtarr': [1, 2], 'npix_max': 512, 'savecands': True,
-            'savenoise': True, 'timesub': 'mean'}]
+inprefs = [({'flaglist': [], 'npix_max': 512, 'chans': range(32), 'spw': [0],
+            'savenoise': True}, 1),
+           ({'simulated_transient': [(0, 30, 25, 10e-3, 1., 0.001, 0.001)],
+            'dmarr': [0, 100], 'dtarr': [1, 2], 'npix_max': 512,
+            'savecands': True, 'savenoise': True, 'timesub': 'mean'}, 2)]
 #TODO:      support arbitrary channel selection and
 #           {'read_tdownsample': 2, 'read_fdownsample': 2, 'npix_max': 512},
 
 
 @pytest.fixture(scope="module", params=inprefs)
 def mockstate(request):
+    inprefs, scan = request.param
     t0 = time.Time.now().mjd
-    meta = rfpipe.metadata.mock_metadata(t0, t0+0.5/(24*3600), 27, 4, 32*4, 4, 5e3,
-                                         datasource='sim')
-    return rfpipe.state.State(inmeta=meta, inprefs=request.param)
+    meta = rfpipe.metadata.mock_metadata(t0, t0+0.5/(24*3600), 27, 4, 32*4, 4,
+                                         5e3, scan=scan, datasource='sim')
+    return rfpipe.state.State(inmeta=meta, inprefs=inprefs)
 
 
 # simulate two DMs
@@ -57,6 +59,11 @@ def test_search(mockstate, mockdata, wisdom, params=[0, 1]):
 
     if mockstate.prefs.simulated_transient:
         assert len(candcollection.array)
+
+
+def test_noise(mockstate, mockdata):
+    for noises in rfpipe.candidates.iter_noise(mockstate.noisefile):
+        assert len(noises)
 
 
 def test_pipeline(mockstate):

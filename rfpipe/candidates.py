@@ -287,6 +287,22 @@ def iter_cands(candsfile):
                 break
 
 
+def iter_noise(noisefile):
+    """ Iterate through (new style) noisefile and return a list of tuples
+    for each segment.
+    """
+
+    with open(noisefile, 'rb') as pkl:
+        while True:  # step through all possible segments
+            try:
+                noises = pickle.load(pkl)
+                yield noises
+
+            except EOFError:
+                logger.debug('No more CandCollections.')
+                break
+
+
 ### bokeh summary plot
 
 
