@@ -193,7 +193,7 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout, offset=4):
                         dtype=np.int32)
 
     with vysmaw_reader.Reader(t0, t1, antlist, pollist, bbsplist,
-                              inttime_micros=long(st.metadata.inttime*1000000),
+                              inttime_micros=st.metadata.inttime*1000000.,
                               nchan=st.metadata.spw_nchan[0],
                               cfile=cfile,
                               timeout=timeout,
