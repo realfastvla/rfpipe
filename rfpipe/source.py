@@ -269,38 +269,36 @@ def save_noise(st, segment, data, chunk=200):
 
     from rfpipe.search import grid_image
 
-    if os.path.exists(st.noisefile):
-        logger.warn('noisefile {0} already exists'.format(st.noisefile))
-    else:
-        uvw = util.get_uvw_segment(st, segment)
-        chunk = min(chunk, max(1, st.readints-1))  # ensure at least one measurement
-        ranges = zip(range(0, st.readints-chunk, chunk),
-                     range(chunk, st.readints, chunk))
+    uvw = util.get_uvw_segment(st, segment)
+    chunk = min(chunk, max(1, st.readints-1))  # ensure at least one measurement
+    ranges = zip(range(0, st.readints-chunk, chunk),
+                 range(chunk, st.readints, chunk))
 
-        results = []
-        for (r0, r1) in ranges:
-            imid = (r0+r1)//2
-            noiseperbl = estimate_noiseperbl(data[r0:r1])
-            imstd = grid_image(data, uvw, st.npixx, st.npixy, st.uvres,
-                               'fftw', 1, integrations=imid).std()
-            zerofrac = float(len(np.where(data[r0:r1] == 0j)[0]))/data[r0:r1].size
-            results.append((segment, imid, noiseperbl, zerofrac, imstd))
+    results = []
+    for (r0, r1) in ranges:
+        imid = (r0+r1)//2
+        noiseperbl = estimate_noiseperbl(data[r0:r1])
+        imstd = grid_image(data, uvw, st.npixx, st.npixy, st.uvres,
+                           'fftw', 1, integrations=imid).std()
+        zerofrac = float(len(np.where(data[r0:r1] == 0j)[0]))/data[r0:r1].size
+        results.append((segment, imid, noiseperbl, zerofrac, imstd))
 
-        try:
-            noisefile = st.noisefile
-            with fileLock.FileLock(noisefile+'.lock', timeout=10):
-                with open(noisefile, 'ab+') as pkl:
-                    pickle.dump(results, pkl)
-        except fileLock.FileLock.FileLockException:
-            noisefile = ('{0}_seg{1}.pkl'
-                         .format(st.noisefile.rstrip('.pkl'), segment))
-            logger.warn('Noise file writing timeout. '
-                        'Spilling to new file {0}.'.format(noisefile))
+    try:
+        noisefile = st.noisefile
+        with fileLock.FileLock(noisefile+'.lock', timeout=10):
             with open(noisefile, 'ab+') as pkl:
                 pickle.dump(results, pkl)
+    except fileLock.FileLock.FileLockException:
+        noisefile = ('{0}_seg{1}.pkl'
+                     .format(st.noisefile.rstrip('.pkl'), segment))
+        logger.warn('Noise file writing timeout. '
+                    'Spilling to new file {0}.'.format(noisefile))
+        with open(noisefile, 'ab+') as pkl:
+            pickle.dump(results, pkl)
 
-        logger.info('Wrote {0} noise measurement{1} to {2}'
-                    .format(len(results), 's'[:len(results)-1], noisefile))
+    if len(results):
+        logger.info('Wrote {0} noise measurement{1} from segment {2} to {3}'
+                    .format(len(results), 's'[:len(results)-1], segment, noisefile))
 
 
 def estimate_noiseperbl(data):
