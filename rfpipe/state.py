@@ -619,6 +619,11 @@ class State(object):
                 self.nchan//self.prefs.read_fdownsample, self.npol)
 
     @property
+    def datashape_orig(self):
+        return (self.readints, self.metadata.nbl_orig,
+                self.metadata.nchan_orig, self.metadata.npol_orig)
+
+    @property
     def datasize(self):
         return long(self.readints*self.nbl*self.nchan*self.npol /
                     (self.prefs.read_tdownsample*self.prefs.read_fdownsample))

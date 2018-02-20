@@ -21,6 +21,8 @@ default_timeout = 10  # multiple of read time in seconds to wait
 def data_prep(st, segment, data, flagversion="latest"):
     """ Applies calibration, flags, and subtracts time mean for data.
     flagversion can be "latest" or "rtpipe".
+    Optionally prepares data with antenna flags, fixing out of order data,
+    calibration, downsampling, etc..
     """
 
     if not np.any(data):
@@ -56,9 +58,7 @@ def data_prep(st, segment, data, flagversion="latest"):
 
 
 def read_segment(st, segment, cfile=None, timeout=default_timeout):
-    """ Read a segment of data and do low-level data preparation.
-    Optionally applies antenna flags, rolls out of order data, and can
-    downsample data in time or frequency.
+    """ Read a segment of data.
     cfile and timeout are specific to vys data.
     """
 
@@ -180,7 +180,7 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout, offset=4):
 #                    dtype='complex64', order='C')
 
     logger.info('Reading {0} s ints into shape {1} from {2} - {3} unix seconds'
-                .format(st.metadata.inttime, st.datashape, t0, t1))
+                .format(st.metadata.inttime, st.datashape_orig, t0, t1))
 
     polmap_standard = ['A*A', 'A*B', 'B*A', 'B*B']
     bbmap_standard = ['AC1', 'AC2', 'AC', 'BD1', 'BD2', 'BD']
