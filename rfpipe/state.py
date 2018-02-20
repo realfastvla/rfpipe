@@ -39,7 +39,7 @@ class State(object):
     """
 
     def __init__(self, config=None, sdmfile=None, sdmscan=None, bdfdir=None,
-                 inprefs=None, inmeta={}, preffile=None, name=None,
+                 inprefs=None, inmeta=None, preffile=None, name=None,
                  showsummary=True, lock=None):
         """ Initialize preference attributes with text file, preffile.
         name can select preference set from within yaml file.
@@ -72,7 +72,9 @@ class State(object):
         # TODO: not working
         logger.parent.setLevel(getattr(logging, self.prefs.loglevel))
 
-        if isinstance(inmeta, dict):
+        if isinstance(inmeta, metadata.Metadata):
+            self.metadata = inmeta
+        else:
             # get metadata
             if (self.sdmfile and self.sdmscan) and not self.config:
                 meta = metadata.sdm_metadata(sdmfile, sdmscan, bdfdir=bdfdir)
@@ -84,18 +86,18 @@ class State(object):
                 meta = {}
 
             # optionally overload metadata
-            for key in inmeta:
-                meta[key] = inmeta[key]
+            if isinstance(inmeta, dict):
+                for key in inmeta:
+                    meta[key] = inmeta[key]
 
-            for key in meta:
-                logger.debug(key, meta[key], type(meta[key]))
+                for key in meta:
+                    logger.debug(key, meta[key], type(meta[key]))
+            elif inmeta is None:
+                pass
+            else:
+                logger.warn("inmeta not dict, Metadata, or None. Not parsed.")
 
             self.metadata = metadata.Metadata(**meta)
-        elif isinstance(inmeta, metadata.Metadata):
-            self.metadata = inmeta
-        else:
-            logger.warn('inmeta should be either a dictionary or '
-                         'metadata.Metadata object')
 
         if showsummary:
             self.summarize()
