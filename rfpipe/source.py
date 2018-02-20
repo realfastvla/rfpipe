@@ -26,7 +26,13 @@ def data_prep(st, segment, data, flagversion="latest"):
     if not np.any(data):
         return data
 
-    data_prep = prep_standard(st, segment, np.require(data, requirements='W'))
+    # take pols of interest
+    takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
+    logger.debug('Selecting pols {0}'.format(st.pols))
+
+    data_prep = prep_standard(st, segment, np.require(data.take(takepol,
+                                                                axis=3),
+                                                      requirements='W'))
     data_prep = calibration.apply_telcal(st, data_prep)
 
     # support backwards compatibility for reproducible flagging
@@ -71,9 +77,7 @@ def read_segment(st, segment, cfile=None, timeout=default_timeout):
         logger.info('No data read.')
         return np.array([])
     else:
-        takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
-        logger.debug('Selecting pols {0}'.format(st.pols))
-        return data_read.take(takepol, axis=3)
+        return data_read
 
 
 def prep_standard(st, segment, data):
