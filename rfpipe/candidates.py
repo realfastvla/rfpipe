@@ -296,7 +296,8 @@ def iter_noise(noisefile):
         while True:  # step through all possible segments
             try:
                 noises = pickle.load(pkl)
-                yield noises
+                for noise in noises:
+                    yield noise
 
             except EOFError:
                 logger.debug('No more CandCollections.')
