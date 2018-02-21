@@ -409,7 +409,7 @@ def slidedev(arr, win):
 
     med = np.zeros((len(arr), 2))
     for i in range(len(arr)):
-        inds = list(range(max(0, i-win/2), i)) + list(range(i+1, min(i+win/2, len(arr))))
+        inds = list(range(max(0, i-win//2), i)) + list(range(i+1, min(i+win//2, len(arr))))
         for j in inds:
             med[j] = np.ma.median(arr.take(inds, axis=0), axis=0)
 
