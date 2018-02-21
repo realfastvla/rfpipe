@@ -94,7 +94,7 @@ class Preferences(object):
         """ json string that can be loaded into elasticsearch or hashed.
         """
 
-        return json.dumps(self.ordered)
+        return json.dumps(self.ordered).encode('utf-8')
 
     @property
     def name(self):
