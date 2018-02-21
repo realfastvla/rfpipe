@@ -260,7 +260,7 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
 
     sources = source.sdm_sources(sdmfile)
     meta['radec'] = [(prop['ra'], prop['dec'])
-                     for (sr, prop) in sources.iteritems()
+                     for (sr, prop) in list(sources.items())
                      if str(prop['source']) == str(scanobj.source)][0]
     meta['dishdiameter'] = float(str(sdm['Antenna'][0].dishDiameter).strip())
     meta['spw_orig'] = [int(str(row.spectralWindowId).split('_')[1])
@@ -345,7 +345,7 @@ def mock_metadata(t0, t1, nants, nspw, chans, npol, inttime_micros, scan=1,
                             [-1600781.0607, -5039347.4391,  3558761.5271]])[:nants]
     meta['radec'] = [0., 0.]
     meta['dishdiameter'] = 25
-    meta['spw_orig'] = range(nspw)
+    meta['spw_orig'] = list(range(nspw))
     meta['spw_reffreq'] = np.linspace(2e9, 4e9, 17)[:nspw]
     meta['spw_chansize'] = [4000000]*nspw
     chanperspw = chans//nspw

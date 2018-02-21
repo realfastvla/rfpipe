@@ -274,7 +274,7 @@ class State(object):
         if self.prefs.chans:
             return self.prefs.chans
         else:
-            return range(sum(self.metadata.spw_nchan))
+            return list(range(sum(self.metadata.spw_nchan)))
 
     @property
     def inttime(self):
@@ -627,8 +627,8 @@ class State(object):
 
     @property
     def datasize(self):
-        return long(self.readints*self.nbl*self.nchan*self.npol /
-                    (self.prefs.read_tdownsample*self.prefs.read_fdownsample))
+        return np.int32(self.readints*self.nbl*self.nchan*self.npol /
+                        (self.prefs.read_tdownsample*self.prefs.read_fdownsample))
 
     @property
     def nfalse(self):
@@ -702,10 +702,10 @@ class State(object):
         """
 
         toGB = 8/1000**3   # number of complex64s to GB
-        return toGB*long(self.t_overlap /
-                         self.inttime*self.nbl*self.nchan*self.npol /
-                         (self.prefs.read_tdownsample *
-                          self.prefs.read_fdownsample))
+        return toGB*np.int32(self.t_overlap /
+                             self.inttime*self.nbl*self.nchan*self.npol /
+                             (self.prefs.read_tdownsample *
+                              self.prefs.read_fdownsample))
 
     @property
     def immem(self):
@@ -759,7 +759,7 @@ class State(object):
 
     @property
     def defined(self):
-        return [key for key in self.__dict__.keys() if key[0] != '_']
+        return [key for key in list(self.__dict__.keys()) if key[0] != '_']
 
 # **not sure we need this
 #

@@ -547,7 +547,7 @@ def _grid_visibilities_jit(data, u, v, w, npixx, npixy, uvres, grids):
                 umod = int64(np.mod(ubl, npixx))
                 vmod = int64(np.mod(vbl, npixy))
                 for i in range(nint):
-                    for l in xrange(npol):
+                    for l in range(npol):
                         grids[i, umod, vmod] += data[i, j, k, l]
 
     return grids

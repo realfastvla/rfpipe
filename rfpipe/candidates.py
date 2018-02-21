@@ -185,11 +185,11 @@ def calc_features(canddatalist):
 
     # TODO: generate dtype from st.features
     st = canddatalist[0].state
-    dtype = zip(st.search_dimensions + st.features,
-                len(st.search_dimensions)*['<i4'] + len(st.features)*['<f4'])
+    dtype = list(zip(st.search_dimensions + st.features,
+                    len(st.search_dimensions)*['<i4'] + len(st.features)*['<f4']))
     features = np.zeros(len(canddatalist), dtype=dtype)
 
-    for i in xrange(len(canddatalist)):
+    for i in range(len(canddatalist)):
         canddata = canddatalist[i]
         st = canddata.state
         image = canddata.image
@@ -366,7 +366,7 @@ def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
     time_max = max(time)
 
     source = ColumnDataSource(data=dict({(key, tuple([value[i] for i in circleinds if i not in edgeinds]))
-                                        for (key, value) in data.iteritems() if key in fields}))
+                                        for (key, value) in list(data.items()) if key in fields}))
     dmt = Figure(plot_width=plot_width, plot_height=plot_height,
                  toolbar_location="left", x_axis_label='Time (s; relative)',
                  y_axis_label='DM (pc/cm3)', x_range=(time_min, time_max),
@@ -377,13 +377,13 @@ def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
 
     if crossinds:
         sourceneg = ColumnDataSource(data = dict({(key, tuple([value[i] for i in crossinds]))
-                                                  for (key, value) in data.iteritems() if key in fields}))
+                                                  for (key, value) in list(data.items()) if key in fields}))
         dmt.cross('time', 'dm', size='sizes', fill_color='colors',
                   line_alpha=0.3, source=sourceneg)
 
     if edgeinds:
         sourceedge = ColumnDataSource(data=dict({(key, tuple([value[i] for i in edgeinds]))
-                                                   for (key, value) in data.iteritems() if key in fields}))
+                                                   for (key, value) in list(data.items()) if key in fields}))
         dmt.circle('time', 'dm', size='sizes', line_color='colors',
                    fill_color='colors', line_alpha=0.5, fill_alpha=0.2,
                    source=sourceedge)
@@ -413,19 +413,19 @@ def plotloc(data, circleinds=[], crossinds=[], edgeinds=[],
     m1_max = max(m1)
 
     source = ColumnDataSource(data = dict({(key, tuple([value[i] for i in circleinds if i not in edgeinds])) 
-                                           for (key, value) in data.iteritems() if key in fields}))
+                                           for (key, value) in list(data.items()) if key in fields}))
     loc = Figure(plot_width=plot_width, plot_height=plot_height, toolbar_location="left", x_axis_label='l1 (rad)', y_axis_label='m1 (rad)',
                  x_range=(l1_min, l1_max), y_range=(m1_min,m1_max), tools=tools, output_backend='webgl')
     loc.circle('l1', 'm1', size='sizes', line_color=None, fill_color='colors', fill_alpha=0.2, source=source)
 
     if crossinds:
         sourceneg = ColumnDataSource(data = dict({(key, tuple([value[i] for i in crossinds]))
-                                                  for (key, value) in data.iteritems() if key in fields}))
+                                                  for (key, value) in list(data.items()) if key in fields}))
         loc.cross('l1', 'm1', size='sizes', line_color='colors', line_alpha=0.3, source=sourceneg)
 
     if edgeinds:
         sourceedge = ColumnDataSource(data = dict({(key, tuple([value[i] for i in edgeinds]))
-                                                   for (key, value) in data.iteritems() if key in fields}))
+                                                   for (key, value) in list(data.items()) if key in fields}))
         loc.circle('l1', 'm1', size='sizes', line_color='colors', fill_color='colors', source=sourceedge, line_alpha=0.5, fill_alpha=0.2)
 
     hover = loc.select(dict(type=HoverTool))
@@ -517,7 +517,7 @@ def candplot(canddatalist, snrs=[], outname=''):
 
     logger.info('Making {0} candidate plots.'.format(len(canddatalist)))
 
-    for i in xrange(len(canddatalist)):
+    for i in range(len(canddatalist)):
         canddata = canddatalist[i]
         st = canddata.state
         candloc = canddata.loc
@@ -658,7 +658,7 @@ def candplot(canddatalist, snrs=[], outname=''):
                              aspect='auto', cmap=plt.get_cmap(colormap))
         _ = ax_dynsp3.imshow(dd3, origin='lower', interpolation='nearest',
                              aspect='auto', cmap=plt.get_cmap(colormap))
-        ax_dynsp1.set_yticks(range(0, len(st.freq), 30))
+        ax_dynsp1.set_yticks(list(range(0, len(st.freq), 30)))
         ax_dynsp1.set_yticklabels(st.freq[::30])
         ax_dynsp1.set_ylabel('Freq (GHz)')
         ax_dynsp1.set_xlabel('RR')
@@ -674,9 +674,9 @@ def candplot(canddatalist, snrs=[], outname=''):
         # plot stokes I spectrum of the candidate pulse (assume middle bin)
         # select stokes I middle bin
         spectrum = spectra[:, len(spectra[0])//2].mean(axis=1)
-        ax_sp.plot(spectrum, range(len(spectrum)), 'k.')
+        ax_sp.plot(spectrum, list(range(len(spectrum))), 'k.')
         # plot 0 Jy dotted line
-        ax_sp.plot(np.zeros(len(spectrum)), range(len(spectrum)), 'r:')
+        ax_sp.plot(np.zeros(len(spectrum)), list(range(len(spectrum))), 'r:')
         xmin, xmax = ax_sp.get_xlim()
         ax_sp.set_xticks(np.linspace(xmin, xmax, 3).round(2))
         ax_sp.set_xlabel('Flux (Jy)')
@@ -686,13 +686,13 @@ def candplot(canddatalist, snrs=[], outname=''):
         lc2 = dd2.mean(axis=0)
         lc3 = dd3.mean(axis=0)
         lenlc = len(data)
-        ax_lc1.plot(range(0, lenlc), list(lc1)[:lenlc], 'k.')
-        ax_lc2.plot(range(0, lenlc), list(lc2)[:lenlc], 'k.')
-        ax_lc3.plot(range(0, lenlc), list(lc3)[:lenlc], 'k.')
+        ax_lc1.plot(list(range(0, lenlc)), list(lc1)[:lenlc], 'k.')
+        ax_lc2.plot(list(range(0, lenlc)), list(lc2)[:lenlc], 'k.')
+        ax_lc3.plot(list(range(0, lenlc)), list(lc3)[:lenlc], 'k.')
         # plot 0 Jy dotted line for each plot
-        ax_lc1.plot(range(0, lenlc), list(np.zeros(lenlc)), 'r:')
-        ax_lc2.plot(range(0, lenlc), list(np.zeros(lenlc)), 'r:')
-        ax_lc3.plot(range(0, lenlc), list(np.zeros(lenlc)), 'r:')
+        ax_lc1.plot(list(range(0, lenlc)), list(np.zeros(lenlc)), 'r:')
+        ax_lc2.plot(list(range(0, lenlc)), list(np.zeros(lenlc)), 'r:')
+        ax_lc3.plot(list(range(0, lenlc)), list(np.zeros(lenlc)), 'r:')
         ax_lc2.set_xlabel('Integration (rel)')
         ax_lc1.set_ylabel('Flux (Jy)')
         ax_lc1.set_xticks([0, 0.5*lenlc, lenlc])
@@ -790,7 +790,7 @@ def candplot(canddatalist, snrs=[], outname=''):
         _ = ax_dynsp3.imshow(dd3avgcrop, origin='lower',
                              interpolation='nearest', aspect='auto',
                              cmap=plt.get_cmap(colormap))
-        ax_dynsp1.set_yticks(range(0, len(st.freq), 30))
+        ax_dynsp1.set_yticks(list(range(0, len(st.freq), 30)))
         ax_dynsp1.set_yticklabels(st.freq[::30])
         ax_dynsp1.set_ylabel('Freq (GHz)')
         ax_dynsp1.set_xlabel('RR')
@@ -804,8 +804,9 @@ def candplot(canddatalist, snrs=[], outname=''):
 
         # plot stokes I spectrum of the candidate pulse from middle integration
         ax_sp.plot(dd2avgcrop[:, len(dd2avgcrop[0])//2]/2.,
-                   range(len(dd2avgcrop)), 'k.')
-        ax_sp.plot(np.zeros(len(dd2avgcrop)), range(len(dd2avgcrop)), 'r:')
+                   list(range(len(dd2avgcrop))), 'k.')
+        ax_sp.plot(np.zeros(len(dd2avgcrop)), list(range(len(dd2avgcrop))),
+                   'r:')
         xmin, xmax = ax_sp.get_xlim()
         ax_sp.set_xticks(np.linspace(xmin, xmax, 3).round(2))
         ax_sp.get_xticklabels()[0].set_visible(False)

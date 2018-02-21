@@ -23,8 +23,8 @@ def oldcands_read(candsfile, sdmscan=None):
         if isinstance(ret, tuple):
             loc, prop = ret
         elif isinstance(ret, dict):
-            loc = np.array(ret.keys())
-            prop = np.array(ret.values())
+            loc = np.array(list(ret.keys()))
+            prop = np.array(list(ret.values()))
         else:
             logger.warn("Not sure what we've got in this here cands pkl file...")
 
@@ -61,8 +61,8 @@ def oldcands_readone(candsfile, scan=None):
         if isinstance(ret, tuple):
             loc, prop = ret
         elif isinstance(ret, dict):
-            loc = np.array(ret.keys())
-            prop = np.array(ret.values())
+            loc = np.array(list(ret.keys()))
+            prop = np.array(list(ret.values()))
         else:
             logger.warn("Not sure what we've got in this here cands pkl file...")
 
@@ -105,8 +105,9 @@ def oldcands_readone(candsfile, scan=None):
     if locind0 == 1:
         loc = loc[np.where(loc[:, 0] == scan)][:, locind0:]
 
-    dtype = zip(st.search_dimensions + st.features,
-                len(st.search_dimensions)*['<i4'] + len(st.features)*['<f4'])
+    dtype = list(zip(st.search_dimensions + st.features,
+                     len(st.search_dimensions)*['<i4'] +
+                     len(st.features)*['<f4']))
     features = np.zeros(len(loc), dtype=dtype)
     for i in range(len(loc)):
         features[i] = tuple(list(loc[i]) + list(prop[i]))

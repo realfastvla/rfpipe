@@ -18,7 +18,7 @@ def pipeline_scan(st, segments=None, cfile=None,
 
     featurelists = []
     if not isinstance(segments, list):
-        segments = range(st.nsegment)
+        segments = list(range(st.nsegment))
 
     for segment in segments:
         featurelists.append(pipeline_seg(st, segment, cfile=cfile,

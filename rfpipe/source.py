@@ -275,8 +275,8 @@ def save_noise(st, segment, data, chunk=200):
 
     uvw = util.get_uvw_segment(st, segment)
     chunk = min(chunk, max(1, st.readints-1))  # ensure at least one measurement
-    ranges = zip(range(0, st.readints-chunk, chunk),
-                 range(chunk, st.readints, chunk))
+    ranges = list(zip(list(range(0, st.readints-chunk, chunk)),
+                      list(range(chunk, st.readints, chunk))))
 
     results = []
     for (r0, r1) in ranges:
@@ -445,7 +445,7 @@ def flag_data_rtpipe(st, data):
             for pol in range(st.npol):
                 spwpol[(spw, pol)] = np.abs(data[:, :, chans, pol]).std()
         
-        meanstd = np.mean(spwpol.values())
+        meanstd = np.mean(list(spwpol.values()))
         for (spw,pol) in spwpol:
             if spwpol[(spw, pol)] > st.prefs.badspwpol*meanstd:
                 logger.info('Flagging all of (spw %d, pol %d) for excess noise.' % (spw, pol))

@@ -97,10 +97,10 @@ def parseGN(telcalfile):
 
     # TODO: assumes dual pol. update to full pol
     polarization = [('C' in i0 or 'D' in i0) for i0 in ifid]
-    dtype = zip(['mjd', 'ifid', 'skyfreq', 'antnum', 'polarization', 'source',
-                 'amp', 'phase', 'delay', 'flagged'],
-                ['<f8', 'U4', '<f8', 'i8', 'i8', 'U20', '<f8', '<f8', '<f8',
-                 '?'])
+    dtype = list(zip(['mjd', 'ifid', 'skyfreq', 'antnum', 'polarization',
+                      'source', 'amp', 'phase', 'delay', 'flagged'],
+                     ['<f8', 'U4', '<f8', 'i8', 'i8', 'U20', '<f8', '<f8',
+                      '<f8', '?']))
     if (len(mjd) == len(phase)) and (len(phase) > 0):
         sols = np.zeros(len(mjd), dtype=dtype)
 
@@ -338,7 +338,7 @@ class telcal_sol():
         # select freq
         freqselect = np.where([ff in np.around(self.freqs, -6) for ff in np.around(1e6*self.skyfreq[self.select], -6)])   # takes solution if band center is in (rounded) array of chan freqs
         if len(freqselect[0]) == 0:
-            raise StandardError('No complete set of telcal solutions at that frequency.')
+            raise Exception('No complete set of telcal solutions at that frequency.')
         self.select = self.select[freqselect[0]]    # update overall selection
         self.logger.info('Frequency selection cut down to %d solutions' % (len(self.select)))
 
@@ -485,7 +485,7 @@ class telcal_sol():
         # find best skyfreq for each channel
         skyfreqs = np.unique(self.skyfreq[self.select])    # one per spw
         nch_tot = len(self.freqs)
-        chan_bandnum = [range(nch_tot*i/len(skyfreqs), nch_tot*(i+1)/len(skyfreqs)) for i in range(len(skyfreqs))]  # divide chans by number of spw in solution
+        chan_bandnum = [list(range(nch_tot*i/len(skyfreqs), nch_tot*(i+1)/len(skyfreqs)) for i in range(len(skyfreqs)))]  # divide chans by number of spw in solution
         self.logger.info('Solutions for %d spw: (%s)' % (len(skyfreqs), skyfreqs))
 
         for j in range(len(skyfreqs)):
