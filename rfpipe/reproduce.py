@@ -84,9 +84,9 @@ def oldcands_readone(candsfile, scan=None):
         assert locind0 == 0, "Set scan if candsfile has multiple scans."
 
     inprefs = preferences.oldstate_preferences(d, scan=scan)
-    inprefs.pop('gainfile')
-    inprefs.pop('workdir')
-    inprefs.pop('fileroot')
+    inprefs.pop(b'gainfile')
+    inprefs.pop(b'workdir')
+    inprefs.pop(b'fileroot')
     sdmfile = os.path.basename(d[b'filename'])
 
     try:
@@ -159,7 +159,7 @@ def pipeline_datacorrect(st, candloc, data_prep=None):
     dm = st.dmarr[dmind]
 
     scale = None
-    if hasattr(st, "rtpipe_version"):
+    if hasattr(st, b"rtpipe_version"):
         scale = 4.2e-3 if st.rtpipe_version <= 1.54 else None
     delay = util.calc_delay(st.freq, st.freq.max(), dm, st.inttime,
                             scale=scale)
