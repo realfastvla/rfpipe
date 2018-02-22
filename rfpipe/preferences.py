@@ -202,11 +202,10 @@ def oldstate_preferences(d, scan=None):
     """
 
     prefs = {}
-    allowed = list(attr.asdict(Preferences()).keys())
-
+    allowed = [kk.encode('utf-8') for kk in attr.asdict(Preferences()).keys()]
     for key in list(d.keys()):
-        if key in allowed:
-            if key == 'segmenttimes':
+        if key in allowed.encode('utf-8'):
+            if key == b'segmenttimes':
                 prefs[key] = d[key].tolist()
             else:
                 prefs[key] = d[key]

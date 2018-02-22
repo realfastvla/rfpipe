@@ -32,9 +32,8 @@ def oldcands_read(candsfile, sdmscan=None):
         else:
             logger.warn("Not sure what we've got in this here cands pkl file...")
 
-
-    if not sdmscan and 'scan' in d['featureind']:
-        scanind = d['featureind'].index('scan')
+    if not sdmscan and 'scan' in d[b'featureind']:
+        scanind = d[b'featureind'].index('scan')
         scans = np.unique(loc[:, scanind])
     elif sdmscan is not None:
         scans = [sdmscan]
@@ -75,7 +74,7 @@ def oldcands_readone(candsfile, scan=None):
             logger.warn("Not sure what we've got in this here cands pkl file...")
 
     # detect merged vs nonmerged
-    if 'scan' in d['featureind']:
+    if 'scan' in d[b'featureind']:
         locind0 = 1
     else:
         locind0 = 0
@@ -88,7 +87,7 @@ def oldcands_readone(candsfile, scan=None):
     inprefs.pop('gainfile')
     inprefs.pop('workdir')
     inprefs.pop('fileroot')
-    sdmfile = os.path.basename(d['filename'])
+    sdmfile = os.path.basename(d[b'filename'])
 
     try:
         assert scan is not None
@@ -98,7 +97,7 @@ def oldcands_readone(candsfile, scan=None):
         st = state.State(inmeta=meta, inprefs=inprefs, showsummary=False)
 
     if 'rtpipe_version' in d:
-        st.rtpipe_version = float(d['rtpipe_version'])  # TODO test this
+        st.rtpipe_version = float(d[b'rtpipe_version'])  # TODO test this
         if st.rtpipe_version <= 1.54:
             logger.info('Candidates detected with rtpipe version {0}. All '
                         'versions <=1.54 used incorrect DM scaling.'
@@ -106,7 +105,7 @@ def oldcands_readone(candsfile, scan=None):
 
     if scan is None:
         assert locind0 == 0, "Set scan if candsfile has multiple scans."
-        scan = d['scan']
+        scan = d[b'scan']
 
     logger.info('Calculating candidate properties for scan {0}'.format(scan))
 
@@ -197,7 +196,7 @@ def pipeline_imdata(st, candloc, data_dmdt=None):
     util.phase_shift(data_dmdt, uvw, -dl, -dm)
 
     canddata = candidates.CandData(state=st, loc=tuple(candloc), image=image,
-                               data=dataph)
+                                   data=dataph)
 
     # output is as from search.image_thresh
     return [canddata]
