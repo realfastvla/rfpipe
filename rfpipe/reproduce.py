@@ -18,8 +18,12 @@ def oldcands_read(candsfile, sdmscan=None):
     """
 
     with open(candsfile, 'rb') as pkl:
-        d = pickle.load(pkl)
-        ret = pickle.load(pkl)
+        try:
+            d = pickle.load(pkl)
+            ret = pickle.load(pkl)
+        except UnicodeDecodeError:
+            d = pickle.load(pkl, encoding='bytes')
+            ret = pickle.load(pkl, encoding='bytes')
         if isinstance(ret, tuple):
             loc, prop = ret
         elif isinstance(ret, dict):
@@ -56,8 +60,12 @@ def oldcands_readone(candsfile, scan=None):
     """
 
     with open(candsfile, 'rb') as pkl:
-        d = pickle.load(pkl)
-        ret = pickle.load(pkl)
+        try:
+            d = pickle.load(pkl)
+            ret = pickle.load(pkl)
+        except UnicodeDecodeError:
+            d = pickle.load(pkl, encoding='bytes')
+            ret = pickle.load(pkl, encoding='bytes')
         if isinstance(ret, tuple):
             loc, prop = ret
         elif isinstance(ret, dict):
