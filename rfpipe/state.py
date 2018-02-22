@@ -75,6 +75,9 @@ class State(object):
         if isinstance(inmeta, metadata.Metadata):
             self.metadata = inmeta
         else:
+            if inmeta is None:
+                inmeta = {}
+
             # get metadata
             if (self.sdmfile and self.sdmscan) and not self.config:
                 meta = metadata.sdm_metadata(sdmfile, sdmscan, bdfdir=bdfdir)
@@ -92,8 +95,6 @@ class State(object):
 
                 for key in meta:
                     logger.debug(key, meta[key], type(meta[key]))
-            elif inmeta is None:
-                pass
             else:
                 logger.warn("inmeta not dict, Metadata, or None. Not parsed.")
 
