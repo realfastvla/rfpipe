@@ -168,12 +168,12 @@ def _parsepref_yaml(preffile, name=None):
     """ Parse parameter file from yaml format.
     """
 
-    name = 'default' if not name else name
+    name = b'default' if not name else name
     logger.info("Parsing preffile for preference set {0}".format(name))
 
     with open(preffile, 'r') as fp:
         yamlpars = yaml.load(fp)
-        pars = yamlpars['rfpipe'][name]
+        pars = yamlpars[b'rfpipe'][name]
 
     return pars
 
@@ -189,9 +189,9 @@ def preffiletype(preffile):
                 break
 
     if '=' in line:
-        return 'old'
+        return b'old'
     elif ':' in line:
-        return 'yaml'
+        return b'yaml'
     else:
         return None
 
@@ -204,15 +204,15 @@ def oldstate_preferences(d, scan=None):
     prefs = {}
     allowed = [kk.encode('utf-8') for kk in attr.asdict(Preferences()).keys()]
     for key in list(d.keys()):
-        if key in allowed.encode('utf-8'):
+        if key in allowed:
             if key == b'segmenttimes':
                 prefs[key] = d[key].tolist()
             else:
                 prefs[key] = d[key]
 
 #    prefs['nsegment'] = d['nsegments']
-    prefs['selectpol'] = 'auto'
+    prefs[b'selectpol'] = b'auto'
     if scan is not None:
-        prefs['segmenttimes'] = d['segmenttimesdict'][scan].tolist()
+        prefs[b'segmenttimes'] = d[b'segmenttimesdict'][scan].tolist()
 
     return prefs

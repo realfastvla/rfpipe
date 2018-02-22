@@ -32,8 +32,8 @@ def oldcands_read(candsfile, sdmscan=None):
         else:
             logger.warn("Not sure what we've got in this here cands pkl file...")
 
-    if not sdmscan and 'scan' in d[b'featureind']:
-        scanind = d[b'featureind'].index('scan')
+    if (sdmscan is None) and (b'scan' in d[b'featureind']):
+        scanind = d[b'featureind'].index(b'scan')
         scans = np.unique(loc[:, scanind])
     elif sdmscan is not None:
         scans = [sdmscan]
@@ -74,7 +74,7 @@ def oldcands_readone(candsfile, scan=None):
             logger.warn("Not sure what we've got in this here cands pkl file...")
 
     # detect merged vs nonmerged
-    if 'scan' in d[b'featureind']:
+    if b'scan' in d[b'featureind']:
         locind0 = 1
     else:
         locind0 = 0

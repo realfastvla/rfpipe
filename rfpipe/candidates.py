@@ -84,7 +84,7 @@ class CandCollection(object):
         if self.metadata is not None:
             return ('CandCollection for {0}, scan {1} with {2} candidates'
                     .format(self.metadata.datasetId, self.metadata.scan,
-                            len(len(self))))
+                            len(self)))
         else:
             return ('CandCollection with {0} rows'.format(len(self.array)))
 
