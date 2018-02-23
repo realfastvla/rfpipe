@@ -1,5 +1,5 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
-from builtins import bytes, dict, object, range, map, input#, str # not casa compatible
+from builtins import bytes, dict, object, range, map, input, str
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
@@ -649,7 +649,7 @@ class State(object):
         Actual algorithm defined in pipeline iteration.
         """
 
-        return ('segment', 'integration', 'dmind', 'dtind', 'beamnum')
+        return (b'segment', b'integration', b'dmind', b'dtind', b'beamnum')
 
     @property
     def features(self):
@@ -658,11 +658,11 @@ class State(object):
         """
 
         if self.prefs.searchtype == 'image1':
-            return ('snr1', 'immax1', 'l1', 'm1')
+            return (b'snr1', b'immax1', b'l1', b'm1')
         elif self.prefs.searchtype == 'image1stats':
             # note: spec statistics are all or nothing.
-            return ('snr1', 'immax1', 'l1', 'm1', 'specstd', 'specskew',
-                    'speckurtosis', 'imskew', 'imkurtosis')
+            return (b'snr1', b'immax1', b'l1', b'm1', b'specstd', b'specskew',
+                    b'speckurtosis', b'imskew', b'imkurtosis')
 
     @property
     def candsfile(self):

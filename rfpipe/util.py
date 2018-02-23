@@ -1,5 +1,5 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
-from builtins import bytes, dict, object, range, map, input#, str # not casa compatible
+from builtins import bytes, dict, object, range, map, input, str
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
@@ -80,7 +80,7 @@ def _meantsub_jit(data):
                             data[l, i, j, k] -= mean
 
 
-@guvectorize([str("void(complex64[:])")], str("(m)"), target='parallel',
+@guvectorize([b"void(complex64[:])"], b"(m)", target='parallel',
              nopython=True)
 def _meantsub_gu(data):
     b""" Subtract time mean while ignoring zeros.

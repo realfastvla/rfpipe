@@ -1,5 +1,5 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
-from builtins import bytes, dict, object, range, map, input#, str # not casa compatible
+from builtins import bytes, dict, object, range, map, input, str
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
@@ -39,6 +39,8 @@ def apply_telcal(st, data, threshold=1/50., onlycomplete=True, sign=+1):
 
     skyfreqs = np.around(reffreq + (chansize*nchan/2), -6)/1e6  # GN skyfreq is band center
     if len(sols):
+#        print(sols, st.blarr, skyfreqs, pols, chansize[0], nchan[0], sign)
+#        print(type(sols), type(st.blarr), type(skyfreqs), type(pols), type(chansize[0]), type(nchan[0]), type(sign))
         gaindelay = calcgaindelay(sols, st.blarr, skyfreqs, pols, chansize[0],
                                   nchan[0], sign=sign)
 
@@ -83,14 +85,14 @@ def parseGN(telcalfile):
 
             try:
                 mjd.append(float(fields[MJD]))
-                ifid.append(fields[IFID])
+                ifid.append(str(fields[IFID]))
                 skyfreq.append(float(fields[SKYFREQ]))
                 antnum.append(int(fields[ANT].lstrip('ea')))
                 amp.append(float(fields[AMP]))
                 phase.append(float(fields[PHASE]))
                 delay.append(float(fields[DELAY]))
                 flagged.append('true' == (fields[FLAGGED]))
-                source.append(fields[SOURCE])
+                source.append(str(fields[SOURCE]))
             except ValueError:
                 logger.warn('Trouble parsing line of telcal file. Skipping.')
                 continue
@@ -208,7 +210,7 @@ def select(sols, time=None, freqs=None, polarization=None):
     return sols[selection]
 
 
-@jit
+# @jit  # this fails after unicode_literals change
 def calcgaindelay(sols, bls, freqarr, pols, chansize, nch, sign=1):
     """ Build gain calibraion array with shape to project into data
     freqarr is a list of reffreqs in MHz.
