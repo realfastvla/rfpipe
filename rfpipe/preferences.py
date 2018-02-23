@@ -1,4 +1,4 @@
-from __future__ import print_function, division, absolute_import #, unicode_literals # not casa compatible
+from __future__ import print_function, division, absolute_import, unicode_literals
 from builtins import bytes, dict, object, range, map, input#, str # not casa compatible
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
@@ -168,12 +168,12 @@ def _parsepref_yaml(preffile, name=None):
     """ Parse parameter file from yaml format.
     """
 
-    name = b'default' if not name else name
+    name = 'default' if not name else name
     logger.info("Parsing preffile for preference set {0}".format(name))
 
     with open(preffile, 'r') as fp:
         yamlpars = yaml.load(fp)
-        pars = yamlpars[b'rfpipe'][name]
+        pars = yamlpars['rfpipe'][name]
 
     return pars
 
@@ -189,9 +189,9 @@ def preffiletype(preffile):
                 break
 
     if '=' in line:
-        return b'old'
+        return 'old'
     elif ':' in line:
-        return b'yaml'
+        return 'yaml'
     else:
         return None
 
@@ -205,14 +205,14 @@ def oldstate_preferences(d, scan=None):
     allowed = [kk.encode('utf-8') for kk in attr.asdict(Preferences()).keys()]
     for key in list(d.keys()):
         if key in allowed:
-            if key == b'segmenttimes':
+            if key == 'segmenttimes':
                 prefs[key] = d[key].tolist()
             else:
                 prefs[key] = d[key]
 
 #    prefs['nsegment'] = d['nsegments']
-    prefs[b'selectpol'] = b'auto'
+    prefs['selectpol'] = 'auto'
     if scan is not None:
-        prefs[b'segmenttimes'] = d[b'segmenttimesdict'][scan].tolist()
+        prefs['segmenttimes'] = d['segmenttimesdict'][scan].tolist()
 
     return prefs

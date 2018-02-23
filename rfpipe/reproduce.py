@@ -1,4 +1,4 @@
-from __future__ import print_function, division, absolute_import #, unicode_literals # not casa compatible
+from __future__ import print_function, division, absolute_import, unicode_literals
 from builtins import bytes, dict, object, range, map, input#, str # not casa compatible
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
@@ -32,8 +32,8 @@ def oldcands_read(candsfile, sdmscan=None):
         else:
             logger.warn("Not sure what we've got in this here cands pkl file...")
 
-    if (sdmscan is None) and (b'scan' in d[b'featureind']):
-        scanind = d[b'featureind'].index(b'scan')
+    if (sdmscan is None) and ('scan' in d['featureind']):
+        scanind = d['featureind'].index('scan')
         scans = np.unique(loc[:, scanind])
     elif sdmscan is not None:
         scans = [sdmscan]
@@ -74,7 +74,7 @@ def oldcands_readone(candsfile, scan=None):
             logger.warn("Not sure what we've got in this here cands pkl file...")
 
     # detect merged vs nonmerged
-    if b'scan' in d[b'featureind']:
+    if 'scan' in d['featureind']:
         locind0 = 1
     else:
         locind0 = 0
@@ -84,10 +84,10 @@ def oldcands_readone(candsfile, scan=None):
         assert locind0 == 0, "Set scan if candsfile has multiple scans."
 
     inprefs = preferences.oldstate_preferences(d, scan=scan)
-    inprefs.pop(b'gainfile')
-    inprefs.pop(b'workdir')
-    inprefs.pop(b'fileroot')
-    sdmfile = os.path.basename(d[b'filename'])
+    inprefs.pop('gainfile')
+    inprefs.pop('workdir')
+    inprefs.pop('fileroot')
+    sdmfile = os.path.basename(d['filename'])
 
     try:
         assert scan is not None
@@ -97,7 +97,7 @@ def oldcands_readone(candsfile, scan=None):
         st = state.State(inmeta=meta, inprefs=inprefs, showsummary=False)
 
     if 'rtpipe_version' in d:
-        st.rtpipe_version = float(d[b'rtpipe_version'])  # TODO test this
+        st.rtpipe_version = float(d['rtpipe_version'])  # TODO test this
         if st.rtpipe_version <= 1.54:
             logger.info('Candidates detected with rtpipe version {0}. All '
                         'versions <=1.54 used incorrect DM scaling.'
@@ -105,7 +105,7 @@ def oldcands_readone(candsfile, scan=None):
 
     if scan is None:
         assert locind0 == 0, "Set scan if candsfile has multiple scans."
-        scan = d[b'scan']
+        scan = d['scan']
 
     logger.info('Calculating candidate properties for scan {0}'.format(scan))
 

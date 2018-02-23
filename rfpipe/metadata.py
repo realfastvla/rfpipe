@@ -1,4 +1,4 @@
-from __future__ import print_function, division, absolute_import #, unicode_literals # not casa compatible
+from __future__ import print_function, division, absolute_import, unicode_literals
 from builtins import bytes, dict, object, range, map, input#, str # not casa compatible
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
@@ -366,34 +366,34 @@ def oldstate_metadata(d, scan=None, bdfdir=None):
     """
 
     meta = {}
-    meta[b'datasource'] = b'sdm'
-    meta[b'datasetId'] = d[b'fileroot']
-    meta[b'subscan'] = 1
-    meta[b'bdfdir'] = bdfdir
+    meta['datasource'] = 'sdm'
+    meta['datasetId'] = d['fileroot']
+    meta['subscan'] = 1
+    meta['bdfdir'] = bdfdir
 
     if scan is not None:
-        meta[b'starttime_mjd'] = d[b'starttime_mjddict'][scan]
-        meta[b'scan'] = scan
+        meta['starttime_mjd'] = d['starttime_mjddict'][scan]
+        meta['scan'] = scan
     else:
-        meta[b'starttime_mjd'] = d[b'starttime_mjd']
-        meta[b'scan'] = d[b'scan']
+        meta['starttime_mjd'] = d['starttime_mjd']
+        meta['scan'] = d['scan']
 
-    meta[b'inttime'] = d[b'inttime']
-    meta[b'nints_'] = d[b'nints']
+    meta['inttime'] = d['inttime']
+    meta['nints_'] = d['nints']
 
-    meta[b'source'] = str(d[b'source'])
-    meta[b'telescope'] = b'VLA'
-    meta[b'antids'] = [b'ea'+bytes(ant) for ant in d[b'ants']]  # ** test that these are the same as what we expected with rtpipe **
+    meta['source'] = str(d['source'])
+    meta['telescope'] = 'VLA'
+    meta['antids'] = ['ea'+bytes(ant) for ant in d['ants']]  # ** test that these are the same as what we expected with rtpipe **
 #    meta['xyz'] = #
 
-    meta[b'radec'] = d[b'radec']  # ** for last scan! **
-    meta[b'dishdiameter'] = d[b'dishdiameter']
-    meta[b'spw_orig'] = d[b'spw_orig']
-    meta[b'spw_nchan'] = d[b'spw_nchan']
-    meta[b'spw_reffreq'] = d[b'spw_reffreq']
-    meta[b'spw_chansize'] = d[b'spw_chansize']
+    meta['radec'] = d['radec']  # ** for last scan! **
+    meta['dishdiameter'] = d['dishdiameter']
+    meta['spw_orig'] = d['spw_orig']
+    meta['spw_nchan'] = d['spw_nchan']
+    meta['spw_reffreq'] = d['spw_reffreq']
+    meta['spw_chansize'] = d['spw_chansize']
 
-    meta[b'pols_orig'] = d[b'pols_orig']
+    meta['pols_orig'] = d['pols_orig']
 
     logger.info('Read metadata from old state dictionary for scan {0}'
                 .format(scan))

@@ -73,7 +73,7 @@ of the authors and should not be interpreted as representing official policies,
 either expressed or implied, of the FreeBSD Project.
 """
 
-from __future__ import print_function, division, absolute_import #, unicode_literals # not casa compatible
+from __future__ import print_function, division, absolute_import, unicode_literals
 from builtins import bytes, dict, object, range, map, input#, str # not casa compatible
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 
@@ -82,16 +82,19 @@ import sys
 import time
 import errno
 
+
 class FileLock(object):
-    """ A file locking mechanism that has context-manager support so 
+    """ A file locking mechanism that has context-manager support so
         you can use it in a ``with`` statement. This should be relatively cross
-        compatible as it doesn't rely on ``msvcrt`` or ``fcntl`` for the locking.
+        compatible as it doesn't rely on ``msvcrt`` or ``fcntl`` for the
+        locking.
     """
- 
+
     class FileLockException(Exception):
         pass
- 
-    def __init__(self, protected_file_path, timeout=None, delay=1, lock_file_contents=None):
+
+    def __init__(self, protected_file_path, timeout=None, delay=1,
+                 lock_file_contents=None):
         """ Prepare the file locker. Specify the file to lock and optionally
             the maximum timeout and the delay between each attempt to lock.
         """
@@ -104,38 +107,42 @@ class FileLock(object):
             self._lock_file_contents = "Owning process args:\n"
             for arg in sys.argv:
                 self._lock_file_contents += arg + "\n"
-            
+
     def locked(self):
         """
         Returns True iff the file is owned by THIS FileLock instance.
-        (Even if this returns false, the file could be owned by another FileLock instance, possibly in a different thread or process).
+        (Even if this returns false, the file could be owned by another
+        FileLock instance, possibly in a different thread or process).
         """
         return self.is_locked
-    
+
     def available(self):
         """
         Returns True iff the file is currently available to be locked.
         """
         return not os.path.exists(self.lockfile)
- 
+
     def acquire(self, blocking=True):
-        """ Acquire the lock, if possible. If the lock is in use, and `blocking` is False, return False.
-            Otherwise, check again every `self.delay` seconds until it either gets the lock or
-            exceeds `timeout` number of seconds, in which case it raises an exception.
+        """ Acquire the lock, if possible. If the lock is in use, and
+        `blocking` is False, return False.
+        Otherwise, check again every `self.delay` seconds until it either
+        gets the lock or exceeds `timeout` number of seconds, in which case
+        it raises an exception.
         """
+
         start_time = time.time()
         while True:
             try:
                 # Attempt to create the lockfile.
-                # These flags cause os.open to raise an OSError if the file already exists.
-                fd = os.open( self.lockfile, os.O_CREAT | os.O_EXCL | os.O_RDWR )
-                with os.fdopen( fd, 'a' ) as f:
-                    # Print some info about the current process as debug info for anyone who bothers to look.
-                    f.write( self._lock_file_contents )
-                break;
+                # These flags cause os.open to OSError if file exists.
+                fd = os.open(self.lockfile, os.O_CREAT | os.O_EXCL | os.O_RDWR)
+                with os.fdopen(fd, 'a') as f:
+                    # Print some info about the current process as debug info
+                    f.write(self._lock_file_contents)
+                break
             except OSError as e:
                 if e.errno != errno.EEXIST:
-                    raise 
+                    raise
                 if self.timeout is not None and (time.time() - start_time) >= self.timeout:
                     raise FileLock.FileLockException("Timeout occurred.")
                 if not blocking:
@@ -143,38 +150,35 @@ class FileLock(object):
                 time.sleep(self.delay)
         self.is_locked = True
         return True
- 
+
     def release(self):
-        """ Get rid of the lock by deleting the lockfile. 
-            When working in a `with` statement, this gets automatically 
+        """ Get rid of the lock by deleting the lockfile.
+            When working in a `with` statement, this gets automatically
             called at the end.
         """
         self.is_locked = False
         os.unlink(self.lockfile)
 
- 
     def __enter__(self):
-        """ Activated when used in the with statement. 
+        """ Activated when used in the with statement.
             Should automatically acquire a lock to be used in the with block.
         """
         self.acquire()
         return self
- 
- 
+
     def __exit__(self, type, value, traceback):
         """ Activated at the end of the with statement.
             It automatically releases the lock if it isn't locked.
         """
         self.release()
- 
- 
+
     def __del__(self):
         """ Make sure this ``FileLock`` instance doesn't leave a .lock file
             lying around.
         """
         if self.is_locked:
             self.release()
-    
+
     def purge(self):
         """
         For debug purposes only.  Removes the lock file from the hard disk.
