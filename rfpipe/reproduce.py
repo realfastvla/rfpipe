@@ -113,8 +113,8 @@ def oldcands_readone(candsfile, scan=None):
         loc = loc[np.where(loc[:, 0] == scan)][:, locind0:]
 
     dtype = list(zip(st.search_dimensions + st.features,
-                     len(st.search_dimensions)*['<i4'] +
-                     len(st.features)*['<f4']))
+                     len(st.search_dimensions)*[b'<i4'] +
+                     len(st.features)*[b'<f4']))
     features = np.zeros(len(loc), dtype=dtype)
     for i in range(len(loc)):
         features[i] = tuple(list(loc[i]) + list(prop[i]))

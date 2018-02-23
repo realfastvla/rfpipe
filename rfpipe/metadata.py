@@ -1,5 +1,5 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
-from builtins import bytes, dict, object, range, map, input#, str # not casa compatible
+from builtins import bytes, dict, object, range, map, input, str
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
@@ -383,7 +383,7 @@ def oldstate_metadata(d, scan=None, bdfdir=None):
 
     meta['source'] = str(d['source'])
     meta['telescope'] = 'VLA'
-    meta['antids'] = ['ea'+bytes(ant) for ant in d['ants']]  # ** test that these are the same as what we expected with rtpipe **
+    meta['antids'] = ['ea'+str(ant) for ant in d['ants']]  # ** test that these are the same as what we expected with rtpipe **
 #    meta['xyz'] = #
 
     meta['radec'] = d['radec']  # ** for last scan! **

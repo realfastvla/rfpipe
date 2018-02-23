@@ -1,5 +1,5 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
-from builtins import bytes, dict, object, range, map, input#, str # not casa compatible
+from builtins import bytes, dict, object, range, map, input, str
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
@@ -55,10 +55,10 @@ def _dedisperse_jit(data, delay, result):
                     result[i, j, k, l] = data[iprime, j, k, l]
 
 
-@guvectorize(["void(complex64[:,:,:], int64[:])"], '(n,m,l),(m)',
+@guvectorize([b"void(complex64[:,:,:], int64[:])"], b"(n,m,l),(m)",
              target='parallel', nopython=True)
 def _dedisperse_gu(data, delay):
-    """ Multicore dedispersion via numpy broadcasting.
+    b""" Multicore dedispersion via numpy broadcasting.
     Requires that data be in axis order (nbl, nint, nchan, npol), so typical
     input visibility array must have view from "np.swapaxis(data, 0, 1)".
     """
@@ -114,10 +114,10 @@ def _resample_jit(data, dt, result):
                     result[i, j, k, l] = result[i, j, k, l]/dt
 
 
-@guvectorize(["void(complex64[:], int64)"], '(n),()', target='parallel',
-             nopython=True)
+@guvectorize([b"void(complex64[:], int64)"], b"(n),()",
+             target="parallel", nopython=True)
 def _resample_gu(data, dt):
-    """ Multicore resampling via numpy broadcasting.
+    b""" Multicore resampling via numpy broadcasting.
     Requires that data be in nint axisto be last, so input
     visibility array must have view from "np.swapaxis(data, 0, 3)".
     *modifies original memory space* (unlike _resample_jit)
@@ -187,8 +187,8 @@ def _dedisperseresample_jit(data, delay, dt, result):
     return result
 
 
-@guvectorize(["void(complex64[:,:,:], int64[:], int64)"], '(n,m,l),(m),()',
-             target='parallel', nopython=True)
+@guvectorize([b"void(complex64[:,:,:], int64[:], int64)"],
+             b"(n,m,l),(m),()", target="parallel", nopython=True)
 def _dedisperseresample_gu(data, delay, dt):
     if delay.max() > 0 or dt > 1:
         nint, nchan, npol = data.shape
@@ -528,7 +528,7 @@ def grid_visibilities(data, uvw, npixx, npixy, uvres, parallel=False):
 
 @jit(nogil=True, nopython=True)
 def _grid_visibilities_jit(data, u, v, w, npixx, npixy, uvres, grids):
-    """ Grid visibilities into rounded uv coordinates using jit on single core.
+    b""" Grid visibilities into rounded uv coordinates using jit on single core.
     Rounding not working here, so minor differences with original and
     guvectorized versions.
     """
@@ -553,11 +553,11 @@ def _grid_visibilities_jit(data, u, v, w, npixx, npixy, uvres, grids):
     return grids
 
 
-@guvectorize(["void(complex64[:,:,:], float32[:,:], float32[:,:], float32[:,:], int64, int64, int64, complex64[:,:])"],
-             '(n,m,l),(n,m),(n,m),(n,m),(),(),(),(o,p)', target='parallel',
-             nopython=True)
+@guvectorize([b"void(complex64[:,:,:], float32[:,:], float32[:,:], float32[:,:], int64, int64, int64, complex64[:,:])"],
+             b"(n,m,l),(n,m),(n,m),(n,m),(),(),(),(o,p)",
+             target='parallel', nopython=True)
 def _grid_visibilities_gu(data, us, vs, ws, npixx, npixy, uvres, grid):
-    """ Grid visibilities into rounded uv coordinates for multiple cores"""
+    b""" Grid visibilities into rounded uv coordinates for multiple cores"""
 
     ubl = np.zeros(us.shape, dtype=int64)
     vbl = np.zeros(vs.shape, dtype=int64)

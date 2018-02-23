@@ -97,10 +97,10 @@ def parseGN(telcalfile):
 
     # TODO: assumes dual pol. update to full pol
     polarization = [('C' in i0 or 'D' in i0) for i0 in ifid]
-    dtype = list(zip(['mjd', 'ifid', 'skyfreq', 'antnum', 'polarization',
-                      'source', 'amp', 'phase', 'delay', 'flagged'],
-                     ['<f8', 'U4', '<f8', 'i8', 'i8', 'U20', '<f8', '<f8',
-                      '<f8', '?']))
+    dtype = list(zip([b'mjd', b'ifid', b'skyfreq', b'antnum', b'polarization',
+                      b'source', b'amp', b'phase', b'delay', b'flagged'],
+                     [b'<f8', b'U4', b'<f8', b'i8', b'i8', b'U20', b'<f8',
+                      b'<f8', b'<f8', b'?']))
     if (len(mjd) == len(phase)) and (len(phase) > 0):
         sols = np.zeros(len(mjd), dtype=dtype)
 

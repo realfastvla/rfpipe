@@ -80,11 +80,13 @@ def _meantsub_jit(data):
                             data[l, i, j, k] -= mean
 
 
-@guvectorize(["void(complex64[:])"], '(m)', target='parallel', nopython=True)
+@guvectorize([str("void(complex64[:])")], str("(m)"), target='parallel',
+             nopython=True)
 def _meantsub_gu(data):
-    """ Subtract time mean while ignoring zeros.
+    b""" Subtract time mean while ignoring zeros.
     Vectorizes over time axis.
-    Assumes time axis is last so use np.swapaxis(0,3) when passing visibility array in """
+    Assumes time axis is last so use np.swapaxis(0,3) when passing visibility array in
+    """
 
     ss = complex64(0)
     weight = int64(0)
