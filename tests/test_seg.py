@@ -1,5 +1,5 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
-from builtins import bytes, dict, object, range, map, input, str
+from builtins import bytes, dict, object, range, map, input#, str
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
@@ -76,7 +76,7 @@ def test_search(mockstate):
     integs0_1 = []
     for candcollection in candcollections:
         for i in range(len(candcollection.array)):
-            (seg, integ, dmind, dtind, beamnum) = candcollection.array[list(mockstate.search_dimensions)][i]
+            (seg, integ, dmind, dtind, beamnum) = candcollection.array[[str(ff) for ff in (mockstate.search_dimensions)]][i]
 
             if dtind == 0 and dmind == 0:
                 integs0_0.append(integ)
