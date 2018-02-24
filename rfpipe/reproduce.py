@@ -1,5 +1,5 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
-from builtins import bytes, dict, object, range, map, input, str
+from builtins import bytes, dict, object, range, map, input#, str # not numpy/python2 compatible
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
@@ -112,9 +112,9 @@ def oldcands_readone(candsfile, scan=None):
     if locind0 == 1:
         loc = loc[np.where(loc[:, 0] == scan)][:, locind0:]
 
-    dtype = list(zip(st.search_dimensions + st.features,
-                     len(st.search_dimensions)*[b'<i4'] +
-                     len(st.features)*[b'<f4']))
+    fields = [str(ff) for ff in st.search_dimensions + st.features]
+    types = [str(tt) for tt in len(st.search_dimensions)*['<i4'] + len(st.features)*['<f4']]
+    dtype = list(zip(fields, types))
     features = np.zeros(len(loc), dtype=dtype)
     for i in range(len(loc)):
         features[i] = tuple(list(loc[i]) + list(prop[i]))

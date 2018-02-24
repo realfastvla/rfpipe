@@ -1,5 +1,5 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
-from builtins import bytes, dict, object, range, map, input, str
+from builtins import bytes, dict, object, range, map, input#, str # not numpy/python2 compatible
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
@@ -185,8 +185,9 @@ def calc_features(canddatalist):
 
     # TODO: generate dtype from st.features
     st = canddatalist[0].state
-    dtype = list(zip(st.search_dimensions + st.features,
-                 len(st.search_dimensions)*['<i4'] + len(st.features)*['<f4']))
+    fields = [str(ff) for ff in st.search_dimensions + st.features]
+    types = [str(tt) for tt in len(st.search_dimensions)*['<i4'] + len(st.features)*['<f4']]
+    dtype = list(zip(fields, types))
     features = np.zeros(len(canddatalist), dtype=dtype)
 
     for i in range(len(canddatalist)):
