@@ -649,7 +649,7 @@ class State(object):
         Actual algorithm defined in pipeline iteration.
         """
 
-        return (b'segment', b'integration', b'dmind', b'dtind', b'beamnum')
+        return ('segment', 'integration', 'dmind', 'dtind', 'beamnum')
 
     @property
     def features(self):
@@ -658,11 +658,11 @@ class State(object):
         """
 
         if self.prefs.searchtype == 'image1':
-            return (b'snr1', b'immax1', b'l1', b'm1')
+            return ('snr1', 'immax1', 'l1', 'm1')
         elif self.prefs.searchtype == 'image1stats':
             # note: spec statistics are all or nothing.
-            return (b'snr1', b'immax1', b'l1', b'm1', b'specstd', b'specskew',
-                    b'speckurtosis', b'imskew', b'imkurtosis')
+            return ('snr1', 'immax1', 'l1', 'm1', 'specstd', 'specskew',
+                    'speckurtosis', 'imskew', 'imkurtosis')
 
     @property
     def candsfile(self):

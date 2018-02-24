@@ -202,7 +202,7 @@ def oldstate_preferences(d, scan=None):
     """
 
     prefs = {}
-    allowed = [kk.encode('utf-8') for kk in attr.asdict(Preferences()).keys()]
+    allowed = [kk for kk in attr.asdict(Preferences()).keys()]
     for key in list(d.keys()):
         if key in allowed:
             if key == 'segmenttimes':

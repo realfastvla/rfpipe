@@ -22,8 +22,8 @@ def oldcands_read(candsfile, sdmscan=None):
             d = pickle.load(pkl)
             ret = pickle.load(pkl)
         except UnicodeDecodeError:
-            d = pickle.load(pkl, encoding='bytes')
-            ret = pickle.load(pkl, encoding='bytes')
+            d = pickle.load(pkl, encoding='latin-1')
+            ret = pickle.load(pkl, encoding='latin-1')
         if isinstance(ret, tuple):
             loc, prop = ret
         elif isinstance(ret, dict):
@@ -63,8 +63,8 @@ def oldcands_readone(candsfile, scan=None):
             d = pickle.load(pkl)
             ret = pickle.load(pkl)
         except UnicodeDecodeError:
-            d = pickle.load(pkl, encoding='bytes')
-            ret = pickle.load(pkl, encoding='bytes')
+            d = pickle.load(pkl, encoding='latin-1')
+            ret = pickle.load(pkl, encoding='latin-1')
         if isinstance(ret, tuple):
             loc, prop = ret
         elif isinstance(ret, dict):
@@ -159,7 +159,7 @@ def pipeline_datacorrect(st, candloc, data_prep=None):
     dm = st.dmarr[dmind]
 
     scale = None
-    if hasattr(st, b"rtpipe_version"):
+    if hasattr(st, "rtpipe_version"):
         scale = 4.2e-3 if st.rtpipe_version <= 1.54 else None
     delay = util.calc_delay(st.freq, st.freq.max(), dm, st.inttime,
                             scale=scale)
