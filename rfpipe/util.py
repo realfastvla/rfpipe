@@ -80,7 +80,7 @@ def _meantsub_jit(data):
                             data[l, i, j, k] -= mean
 
 
-@guvectorize(["void(complex64[:])"], "(m)",
+@guvectorize([str("void(complex64[:])")], str("(m)"),
              target='parallel', nopython=True)
 def _meantsub_gu(data):
     b""" Subtract time mean while ignoring zeros.
