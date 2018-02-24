@@ -55,7 +55,7 @@ def _dedisperse_jit(data, delay, result):
                     result[i, j, k, l] = data[iprime, j, k, l]
 
 
-@guvectorize([b"void(complex64[:,:,:], int64[:])"], b"(n,m,l),(m)",
+@guvectorize(["void(complex64[:,:,:], int64[:])"], "(n,m,l),(m)",
              target='parallel', nopython=True)
 def _dedisperse_gu(data, delay):
     b""" Multicore dedispersion via numpy broadcasting.
@@ -114,7 +114,7 @@ def _resample_jit(data, dt, result):
                     result[i, j, k, l] = result[i, j, k, l]/dt
 
 
-@guvectorize([b"void(complex64[:], int64)"], b"(n),()",
+@guvectorize(["void(complex64[:], int64)"], "(n),()",
              target="parallel", nopython=True)
 def _resample_gu(data, dt):
     b""" Multicore resampling via numpy broadcasting.
@@ -187,8 +187,8 @@ def _dedisperseresample_jit(data, delay, dt, result):
     return result
 
 
-@guvectorize([b"void(complex64[:,:,:], int64[:], int64)"],
-             b"(n,m,l),(m),()", target="parallel", nopython=True)
+@guvectorize(["void(complex64[:,:,:], int64[:], int64)"],
+             "(n,m,l),(m),()", target="parallel", nopython=True)
 def _dedisperseresample_gu(data, delay, dt):
     if delay.max() > 0 or dt > 1:
         nint, nchan, npol = data.shape
@@ -553,8 +553,8 @@ def _grid_visibilities_jit(data, u, v, w, npixx, npixy, uvres, grids):
     return grids
 
 
-@guvectorize([b"void(complex64[:,:,:], float32[:,:], float32[:,:], float32[:,:], int64, int64, int64, complex64[:,:])"],
-             b"(n,m,l),(n,m),(n,m),(n,m),(),(),(),(o,p)",
+@guvectorize(["void(complex64[:,:,:], float32[:,:], float32[:,:], float32[:,:], int64, int64, int64, complex64[:,:])"],
+             "(n,m,l),(n,m),(n,m),(n,m),(),(),(),(o,p)",
              target='parallel', nopython=True)
 def _grid_visibilities_gu(data, us, vs, ws, npixx, npixy, uvres, grid):
     b""" Grid visibilities into rounded uv coordinates for multiple cores"""
