@@ -45,7 +45,8 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default):
                      for dmind in range(len(st.dmarr))]
 
         wisdom = search.set_wisdom(st.npixx, st.npixy)
-        collections += dedisperse_image_fftw(st, segment, data, wisdom=wisdom)
+        collections += search.dedisperse_image_fftw(st, segment, data,
+                                                    wisdom=wisdom)
 
     elif st.fftmode == "cuda":
         canddatalist = search.dedisperse_image_cuda(st, segment, data_prep)

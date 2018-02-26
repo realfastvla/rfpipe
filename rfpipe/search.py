@@ -357,9 +357,6 @@ def dedisperse_image_fftw(st, segment, data, wisdom=None, integrations=None):
     """ Fuse the dediserpse, resample, search, threshold functions.
     """
 
-    delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
-                            st.inttime)
-
     canddatalist = []
     for dtind in range(len(st.dtarr)):
         for dmind in range(len(st.dmarr)):
