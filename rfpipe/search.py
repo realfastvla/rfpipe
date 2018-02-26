@@ -353,21 +353,28 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
     return canddatalist
 
 
-def dedisperse_image_fftw(st, segment, data, dmind, dtind, wisdom=None,
-                          integrations=None):
+def dedisperse_image_fftw(st, segment, data, wisdom=None, integrations=None):
     """ Fuse the dediserpse, resample, search, threshold functions.
     """
 
     delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
                             st.inttime)
 
-    data_corr = dedisperseresample(data, delay, st.dtarr[dtind],
-                                   parallel=st.prefs.nthread > 1)
+    canddatalist = []
+    for dtind in range(len(st.dtarr)):
+        for dmind in range(len(st.dmarr)):
+            delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
+                                    st.inttime)
 
-    uvw = util.get_uvw_segment(st, segment)
+            data_corr = dedisperseresample(data, delay, st.dtarr[dtind],
+                                           parallel=st.prefs.nthread > 1)
 
-    canddatalist = search_thresh_fftw(st, segment, data_corr, dmind, dtind,
-                                      wisdom=wisdom, integrations=integrations)
+            canddatalist += search_thresh_fftw(st, segment, data_corr, dmind,
+                                               dtind, wisdom=wisdom,
+                                               integrations=integrations)
+
+    logger.info("{0} candidates returned for seg {1}"
+                .format(len(canddatalist), segment))
 
     return canddatalist
 
