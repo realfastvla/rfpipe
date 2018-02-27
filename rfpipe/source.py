@@ -191,7 +191,7 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout, offset=4):
                         for pol in st.metadata.pols_orig], dtype=np.int32)  # TODO: use st.pols when vysmaw filter can too
     antlist = np.array([int(ant.lstrip('ea'))
                         for ant in st.ants], dtype=np.int32)
-    spwlist = list(zip(*st.metadata.spworder)[0])  # list of strings ["bb-spw"] in increasing freq order
+    spwlist = list(zip(*st.metadata.spworder))[0]  # list of strings ["bb-spw"] in increasing freq order
     bbsplist = np.array([(int(bbmap_standard.index(spw.split('-')[0])),
                           int(spw.split('-')[1])) for spw in spwlist],
                         dtype=np.int32)
