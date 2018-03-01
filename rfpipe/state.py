@@ -555,7 +555,17 @@ class State(object):
 #            elif self.prefs.nsegment:
 #                self._segmenttimes = calc_segment_times(self, self.prefs.nsegment)
             else:
-                util.find_segment_times(self)
+                self._segmenttimes = util.calc_segment_times(self, 1.)
+                if self.memory_total > self.prefs.memory_limit:
+                    logger.info('Total memory of {0} is over limit of {1} '
+                                'with {2} segments. Searching to vis/im limits'
+                                ' of {3}/{4} GB...'
+                                .format(self.memory_total,
+                                        self.prefs.memory_limit,
+                                        self.nsegment, self.vismem_limit,
+                                        self.immem_limit))
+
+                    util.find_segment_times(self)
 
         return self._segmenttimes
 
