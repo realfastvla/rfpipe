@@ -320,7 +320,7 @@ def makesummaryplot(candsfile):
     dtind = []
     snr = []
     dm = []
-    dl = []
+    dt = []
     l1 = []
     m1 = []
     for cc in iter_cands(candsfile):
