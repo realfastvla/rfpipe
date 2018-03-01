@@ -309,21 +309,43 @@ def iter_noise(noisefile):
 
 
 def makesummaryplot(candsfile):
-    """ Given a scan's candsfile, read all candcollections and create bokeh summary plot
+    """ Given a scan's candsfile, read all candcollections and create
+    bokeh summary plot
     """
 
-    # TODO: compile over all iterations over segments
+    time = []
+    segment = []
+    integration = []
+    dmind = []
+    dtind = []
+    snr = []
+    dm = []
+    dl = []
+    l1 = []
+    m1 = []
     for cc in iter_cands(candsfile):
-        time = cc.candmjd - cc.candmjd.min()
-        segment = cc.array['segment']
-        integration = cc.array['integration']
-        dmind = cc.array['dmind']
-        dtind = cc.array['dtind']
-        snr = cc.array['snr1']
-        dm = cc.canddm
-        dt = cc.canddt
-        l1 = cc.array['l1']
-        m1 = cc.array['m1']
+        time.append(cc.candmjd)
+        segment.append(cc.array['segment'])
+        integration.append(cc.array['integration'])
+        dmind.append(cc.array['dmind'])
+        dtind.append(cc.array['dtind'])
+        snr.append(cc.array['snr1'])
+        dm.append(cc.canddm)
+        dt.append(cc.canddt)
+        l1.append(cc.array['l1'])
+        m1.append(cc.array['m1'])
+
+    time = np.concatenate(time)
+    time = time - time.min()
+    segment = np.concatenate(segment)
+    integration = np.concatenate(integration)
+    dmind = np.concatenate(dmind)
+    dtind = np.concatenate(dtind)
+    snr = np.concatenate(snr)
+    dm = np.concatenate(dm)
+    dt = np.concatenate(dt)
+    l1 = np.concatenate(l1)
+    m1 = np.concatenate(m1)
 
     keys = ['seg{0}-i{1}-dm{2}-dt{3}'.format(segment[i], integration[i],
                                              dmind[i], dtind[i])
@@ -343,8 +365,11 @@ def makesummaryplot(candsfile):
                   edgeinds=edgeinds)
     combined = Row(dmt, loc, width=950)
 
-    output_file(candsfile.replace('.pkl', '.html'))
+    htmlfile = candsfile.replace('.pkl', '.html')
+    output_file(htmlfile)
     save(combined)
+    logger.info("Saved summary plot {0} with {1} candidates"
+                .format(htmlfile, len(segment)))
 
 
 def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
@@ -470,8 +495,8 @@ def colorsat(l, m):
     blue = 0.5*(1+np.cos(np.angle(lm) - 2*3.14/3))
     amp = np.where(lm == 0, 256, 256*np.abs(lm)/np.abs(lm).max())
     return ["#%02x%02x%02x" % (np.floor(amp[i]*red[i]).astype(int),
-            np.floor(amp[i]*green[i])astype(int),
-            np.floor(amp[i]*blue[i])astype(int))
+            np.floor(amp[i]*green[i]).astype(int),
+            np.floor(amp[i]*blue[i]).astype(int))
             for i in range(len(l))]
 
 
