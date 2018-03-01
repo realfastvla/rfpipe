@@ -324,7 +324,7 @@ def makesummaryplot(candsfile):
     l1 = []
     m1 = []
     for cc in iter_cands(candsfile):
-        time.append(cc.candmjd)
+        time.append(cc.candmjd*(24*3600))
         segment.append(cc.array['segment'])
         integration.append(cc.array['integration'])
         dmind.append(cc.array['dmind'])
@@ -455,7 +455,7 @@ def plotloc(data, circleinds=[], crossinds=[], edgeinds=[],
         loc.circle('l1', 'm1', size='sizes', line_color='colors', fill_color='colors', source=sourceedge, line_alpha=0.5, fill_alpha=0.2)
 
     hover = loc.select(dict(type=HoverTool))
-    hover.tooltips = OrderedDict([('SNR', '@snrs'), ('key', '@key')])
+    hover.tooltips = OrderedDict([('SNR', '@snrs'), ('keys', '@keys')])
 
     return loc
 
