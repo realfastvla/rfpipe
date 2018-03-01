@@ -288,8 +288,7 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
     grid.compute()
 
     # move Stokes I data in (assumes dual pol data)
-    vis_raw.data[:] = np.rollaxis(np.require(data, requirements='W')
-                                  .mean(axis=3), 0, 3)
+    vis_raw.data[:] = np.rollaxis(data.mean(axis=3), 0, 3)
     vis_raw.h2d()  # Send it to GPU memory
 
     grid.conjugate(vis_raw)
@@ -337,6 +336,7 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
                     logger.info("Got one! SNR {0} candidate at {1} and (l,m) = ({2},{3})"
                                 .format(peak_snr, candloc, l, m))
 
+                    data = np.require(data, requirements='W')
                     data_corr = dedisperseresample(data, delay, st.dtarr[dtind],
                                                    parallel=st.prefs.nthread > 1)
                     data_corr = data_corr[max(0, i-st.prefs.timewindow//2):
