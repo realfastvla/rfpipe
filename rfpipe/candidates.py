@@ -355,14 +355,12 @@ def makesummaryplot(candsfile):
     data = dict(snrs=snr, dm=dm, l1=l1, m1=m1, time=time, sizes=sizes,
                 colors=colors, keys=keys)
 
-    circleinds = calcinds(data, cc.prefs.sigma_image1)
-    crossinds = calcinds(data, -1*cc.prefs.sigma_image1)
-    edgeinds = calcinds(data, cc.prefs.sigma_plot)
+#    circleinds = calcinds(data, cc.prefs.sigma_image1)
+#    crossinds = calcinds(data, -1*cc.prefs.sigma_image1)
+#    edgeinds = calcinds(data, cc.prefs.sigma_plot)
 
-    dmt = plotdmt(data, circleinds=circleinds, crossinds=crossinds,
-                  edgeinds=edgeinds)
-    loc = plotloc(data, circleinds=circleinds, crossinds=crossinds,
-                  edgeinds=edgeinds)
+    dmt = plotdmt(data)
+    loc = plotloc(data)
     combined = Row(dmt, loc, width=950)
 
     htmlfile = candsfile.replace('.pkl', '.html')
@@ -379,20 +377,21 @@ def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
 
     fields = ['dm', 'time', 'sizes', 'colors', 'snrs', 'keys']
 
-    if not circleinds: circleinds = list(range(len(data['snrs'])))
+    if not len(circleinds):
+        circleinds = list(range(len(data['snrs'])))
 
     # set ranges
-    datalen = len(data['dm'])
     inds = circleinds + crossinds + edgeinds
     dm = [data['dm'][i] for i in inds]
     dm_min = min(min(dm), max(dm)/1.2)
     dm_max = max(max(dm), min(dm)*1.2)
     time = [data['time'][i] for i in inds]
-    time_min = min(time)
-    time_max = max(time)
+    time_min = min(time)*0.95
+    time_max = max(time)*1.05
 
     source = ColumnDataSource(data=dict({(key, tuple([value[i] for i in circleinds if i not in edgeinds]))
-                                        for (key, value) in list(data.items()) if key in fields}))
+                                        for (key, value) in list(data.items())
+                                        if key in fields}))
     dmt = Figure(plot_width=plot_width, plot_height=plot_height,
                  toolbar_location="left", x_axis_label='Time (s; relative)',
                  y_axis_label='DM (pc/cm3)', x_range=(time_min, time_max),
@@ -401,18 +400,18 @@ def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
     dmt.circle('time', 'dm', size='sizes', fill_color='colors',
                line_color=None, fill_alpha=0.2, source=source)
 
-    if crossinds:
-        sourceneg = ColumnDataSource(data = dict({(key, tuple([value[i] for i in crossinds]))
-                                                  for (key, value) in list(data.items()) if key in fields}))
-        dmt.cross('time', 'dm', size='sizes', fill_color='colors',
-                  line_alpha=0.3, source=sourceneg)
-
-    if edgeinds:
-        sourceedge = ColumnDataSource(data=dict({(key, tuple([value[i] for i in edgeinds]))
-                                                   for (key, value) in list(data.items()) if key in fields}))
-        dmt.circle('time', 'dm', size='sizes', line_color='colors',
-                   fill_color='colors', line_alpha=0.5, fill_alpha=0.2,
-                   source=sourceedge)
+#    if crossinds:
+#        sourceneg = ColumnDataSource(data = dict({(key, tuple([value[i] for i in crossinds]))
+#                                                  for (key, value) in list(data.items()) if key in fields}))
+#        dmt.cross('time', 'dm', size='sizes', fill_color='colors',
+#                  line_alpha=0.3, source=sourceneg)
+#
+#    if edgeinds:
+#        sourceedge = ColumnDataSource(data=dict({(key, tuple([value[i] for i in edgeinds]))
+#                                                   for (key, value) in list(data.items()) if key in fields}))
+#        dmt.circle('time', 'dm', size='sizes', line_color='colors',
+#                   fill_color='colors', line_alpha=0.5, fill_alpha=0.2,
+#                   source=sourceedge)
 
     hover = dmt.select(dict(type=HoverTool))
     hover.tooltips = OrderedDict([('SNR', '@snrs'), ('keys', '@keys')])
@@ -421,41 +420,37 @@ def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
 
 
 def plotloc(data, circleinds=[], crossinds=[], edgeinds=[],
-            tools="hover,pan,box_select,wheel_zoom,reset", plot_width=450, plot_height=400):
+            tools="hover,pan,box_select,wheel_zoom,reset", plot_width=450,
+            plot_height=400):
     """ Make a light-weight loc figure """
 
     fields = ['l1', 'm1', 'sizes', 'colors', 'snrs', 'keys']
 
-    if not circleinds: circleinds = list(range(len(data['snrs'])))
+    if not len(circleinds):
+        circleinds = list(range(len(data['snrs'])))
 
     # set ranges
-    datalen = len(data['dm'])
     inds = circleinds + crossinds + edgeinds
     l1 = [data['l1'][i] for i in inds]
-    l1_min = min(l1)
-    l1_max = max(l1)
+    l1_min = min(l1)*0.95
+    l1_max = max(l1)*1.05
     m1 = [data['m1'][i] for i in inds]
-    m1_min = min(m1)
-    m1_max = max(m1)
+    m1_min = min(m1)*0.95
+    m1_max = max(m1)*1.05
 
-    source = ColumnDataSource(data = dict({(key, tuple([value[i] for i in circleinds if i not in edgeinds])) 
-                                           for (key, value) in list(data.items()) if key in fields}))
-    loc = Figure(plot_width=plot_width, plot_height=plot_height, toolbar_location="left", x_axis_label='l1 (rad)', y_axis_label='m1 (rad)',
-                 x_range=(l1_min, l1_max), y_range=(m1_min,m1_max), tools=tools, output_backend='webgl')
-    loc.circle('l1', 'm1', size='sizes', line_color=None, fill_color='colors', fill_alpha=0.2, source=source)
+    source = ColumnDataSource(data=dict({(key, tuple([value[i] for i in circleinds if i not in edgeinds]))
+                                        for (key, value) in list(data.items())
+                                        if key in fields}))
+    loc = Figure(plot_width=plot_width, plot_height=plot_height,
+                 toolbar_location="left", x_axis_label='l1 (rad)',
+                 y_axis_label='m1 (rad)', x_range=(l1_min, l1_max),
+                 y_range=(m1_min, m1_max),
+                 output_backend='webgl', tools=tools)
+    loc.circle('l1', 'm1', size='sizes', fill_color='colors',
+               line_color=None, fill_alpha=0.2, source=source)
 
-    if crossinds:
-        sourceneg = ColumnDataSource(data = dict({(key, tuple([value[i] for i in crossinds]))
-                                                  for (key, value) in list(data.items()) if key in fields}))
-        loc.cross('l1', 'm1', size='sizes', line_color='colors', line_alpha=0.3, source=sourceneg)
-
-    if edgeinds:
-        sourceedge = ColumnDataSource(data = dict({(key, tuple([value[i] for i in edgeinds]))
-                                                   for (key, value) in list(data.items()) if key in fields}))
-        loc.circle('l1', 'm1', size='sizes', line_color='colors', fill_color='colors', source=sourceedge, line_alpha=0.5, fill_alpha=0.2)
-
-    hover = loc.select(dict(type=HoverTool))
-    hover.tooltips = OrderedDict([('SNR', '@snrs'), ('keys', '@keys')])
+#    hover = loc.select(dict(type=HoverTool))
+#    hover.tooltips = OrderedDict([('SNR', '@snrs'), ('keys', '@keys')])
 
     return loc
 
