@@ -449,8 +449,8 @@ def plotloc(data, circleinds=[], crossinds=[], edgeinds=[],
     loc.circle('l1', 'm1', size='sizes', fill_color='colors',
                line_color=None, fill_alpha=0.2, source=source)
 
-#    hover = loc.select(dict(type=HoverTool))
-#    hover.tooltips = OrderedDict([('SNR', '@snrs'), ('keys', '@keys')])
+    hover = loc.select(dict(type=HoverTool))
+    hover.tooltips = OrderedDict([('SNR', '@snrs'), ('keys', '@keys')])
 
     return loc
 
