@@ -469,9 +469,9 @@ def colorsat(l, m):
     green = 0.5*(1+np.cos(np.angle(lm) + 2*3.14/3))
     blue = 0.5*(1+np.cos(np.angle(lm) - 2*3.14/3))
     amp = np.where(lm == 0, 256, 256*np.abs(lm)/np.abs(lm).max())
-    return ["#%02x%02x%02x" % (np.floor(amp[i]*red[i]),
-            np.floor(amp[i]*green[i]),
-            np.floor(amp[i]*blue[i]))
+    return ["#%02x%02x%02x" % (np.floor(amp[i]*red[i]).astype(int),
+            np.floor(amp[i]*green[i])astype(int),
+            np.floor(amp[i]*blue[i])astype(int))
             for i in range(len(l))]
 
 
