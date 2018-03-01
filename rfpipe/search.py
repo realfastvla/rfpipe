@@ -288,7 +288,8 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
     grid.compute()
 
     # move Stokes I data in (assumes dual pol data)
-    vis_raw.data[:] = np.rollaxis(data.mean(axis=3), 0, 3)
+    vis_raw.data[:] = np.rollaxis(np.require(data, requirements='W')
+                                  .mean(axis=3), 0, 3)
     vis_raw.h2d()  # Send it to GPU memory
 
     grid.conjugate(vis_raw)
