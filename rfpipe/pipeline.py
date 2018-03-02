@@ -35,14 +35,12 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default):
     data = source.read_segment(st, segment, timeout=vys_timeout, cfile=cfile)
     data_prep = source.data_prep(st, segment, data)
 
-    collections = []
     if st.fftmode == "fftw":
         wisdom = search.set_wisdom(st.npixx, st.npixy)
-        collections += search.dedisperse_image_fftw(st, segment, data_prep,
-                                                    wisdom=wisdom)
-
+        cdlist = search.dedisperse_image_fftw(st, segment, data_prep,
+                                              wisdom=wisdom)
     elif st.fftmode == "cuda":
-        canddatalist = search.dedisperse_image_cuda(st, segment, data_prep)
-        collections += candidates.calc_features(canddatalist)
+        cdlist = search.dedisperse_image_cuda(st, segment, data_prep)
 
-    return collections
+    collection = candidates.calc_features(cdlist)
+    return collection
