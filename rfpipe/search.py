@@ -336,11 +336,11 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
                     logger.info("Got one! SNR {0} candidate at {1} and (l,m) = ({2},{3})"
                                 .format(peak_snr, candloc, l, m))
 
-                    data = np.require(data, requirements='W')
                     data_corr = dedisperseresample(data, delay, st.dtarr[dtind],
                                                    parallel=st.prefs.nthread > 1)
                     data_corr = data_corr[max(0, i-st.prefs.timewindow//2):
-                                          min(i+st.prefs.timewindow//2, len(data))]
+                                          min(i+st.prefs.timewindow//2,
+                                          len(data))]
                     util.phase_shift(data_corr, uvw, l, m)
                     data_corr = data_corr.mean(axis=1)
                     canddatalist.append(candidates.CandData(state=st, loc=candloc,
