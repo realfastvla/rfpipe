@@ -29,14 +29,12 @@ def dedisperse(data, delay, parallel=False):
     if delay.max() > 0:
         nint, nbl, nchan, npol = data.shape
         newsh = (nint-delay.max(), nbl, nchan, npol)
-        result = np.zeros(shape=newsh, dtype=data.dtype)
-
         if parallel:
-            _ = _dedisperse_gu(np.swapaxes(np.require(data,
-                                                      requirements='W'), 0, 1),
-                               delay)
+            data = data.copy()
+            _ = _dedisperse_gu(np.swapaxes(data, 0, 1), delay)
             return data[0:len(data)-delay.max()]
         else:
+            result = np.zeros(shape=newsh, dtype=data.dtype)
             _dedisperse_jit(np.require(data, requirements='W'), delay, result)
             return result
     else:
@@ -87,12 +85,13 @@ def resample(data, dt, parallel=False):
     if dt > 1:
         nint, nbl, nchan, npol = data.shape
         newsh = (int64(nint//dt), nbl, nchan, npol)
-        result = np.zeros(shape=newsh, dtype=data.dtype)
 
         if parallel:
-            _ = _resample_gu(np.swapaxes(np.require(data, requirements='W'), 0, 3), dt)
+            data = data.copy()
+            _ = _resample_gu(np.swapaxes(data, 0, 3), dt)
             return data[:len0//dt]
         else:
+            result = np.zeros(shape=newsh, dtype=data.dtype)
             _resample_jit(np.require(data, requirements='W'), dt, result)
             return result
     else:
@@ -147,14 +146,14 @@ def dedisperseresample(data, delay, dt, parallel=False):
     if delay.max() > 0 or dt > 1:
         nint, nbl, nchan, npol = data.shape
         newsh = (int64(nint-delay.max())//dt, nbl, nchan, npol)
-        result = np.zeros(shape=newsh, dtype=data.dtype)
 
         if parallel:
-            _ = _dedisperseresample_gu(np.swapaxes(np.require(data,
-                                                              requirements='W'), 0, 1),
+            data = data.copy()
+            _ = _dedisperseresample_gu(np.swapaxes(data, 0, 1),
                                        delay, dt)
             return data[0:(len(data)-delay.max())//dt]
         else:
+            result = np.zeros(shape=newsh, dtype=data.dtype)
             _dedisperseresample_jit(data, delay, dt, result)
             return result
     else:
@@ -210,8 +209,7 @@ def prep_and_search(st, segment, data):
     """ Bundles prep and search functions to improve performance in distributed.
     """
 
-    data_prep = source.data_prep(st, segment, np.require(data,
-                                                         requirements='W'))
+    data_prep = source.data_prep(st, segment, data)
 
     if st.prefs.fftmode == "cuda":
         canddatalist = dedisperse_image_cuda(st, segment, data_prep)
