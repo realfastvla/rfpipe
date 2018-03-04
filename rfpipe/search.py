@@ -6,7 +6,7 @@ from io import open
 import numpy as np
 from numba import jit, guvectorize, int64
 import pyfftw
-from rfpipe import util, candidates
+from rfpipe import util, candidates, source
 
 import logging
 logger = logging.getLogger(__name__)
@@ -206,6 +206,26 @@ def _dedisperseresample_gu(data, delay, dt):
 # searching, imaging, thresholding
 #
 
+def prep_and_search(st, segment, data):
+    """ Bundles prep and search functions to improve performance in distributed.
+    """
+
+    data_prep = source.data_prep(st, segment, np.require(data,
+                                                         requirements='W'))
+
+    if st.prefs.fftmode == "cuda":
+        canddatalist = dedisperse_image_cuda(st, segment, data_prep)
+    elif st.prefs.fftmode == "fftw":
+        canddatalist = dedisperse_image_fftw(st, segment, data_prep)
+    else:
+        logger.warn("fftmode {0} not recognized (cuda, fftw allowed)"
+                    .format(st.prefs.fftmode))
+
+    candcollection = candidates.calc_features(canddatalist)
+
+    return candcollection
+
+
 def dedisperse_image_cuda(st, segment, data, devicenum=None):
     """ Run dedispersion, resample for all dm and dt.
     Grid and image on GPU.
@@ -222,8 +242,8 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
     try:
         import rfgpu
     except ImportError:
-        logger.error('ImportError for rfgpu. Exiting.')
-        return
+        logger.warn('ImportError for rfgpu. Exiting.')
+        return []
 
     if not np.any(data):
         logger.info("Data is all zeros. Skipping search.")
@@ -336,7 +356,8 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
                     logger.info("Got one! SNR {0} candidate at {1} and (l,m) = ({2},{3})"
                                 .format(peak_snr, candloc, l, m))
 
-                    data_corr = dedisperseresample(data, delay, st.dtarr[dtind],
+                    data_corr = dedisperseresample(data, delay,
+                                                   st.dtarr[dtind],
                                                    parallel=st.prefs.nthread > 1)
                     data_corr = data_corr[max(0, i-st.prefs.timewindow//2):
                                           min(i+st.prefs.timewindow//2,
