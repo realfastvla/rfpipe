@@ -284,14 +284,6 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
     upix = st.npixx
     vpix = st.npixy//2 + 1
 
-    # select data on grid (not working)
-#    ww = np.where((u[:, 0] > -st.uvres*st.npixx//2) &
-#                  (u[:, 0] < st.uvres*st.npixx//2) &
-#                  (v[:, 0] > -st.uvres*st.npixy//2) &
-#                  (v[:, 0] < st.uvres*st.npixy//2))[0]
-
- #   nbl = len(ww)
-
     grid = rfgpu.Grid(st.nbl, st.nchan, st.readints, upix, vpix)
     image = rfgpu.Image(st.npixx, st.npixy)
     image.add_stat('rms')
