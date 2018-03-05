@@ -60,7 +60,19 @@ def test_dmresample_single(st, data):
     assert np.allclose(data3, data2)
 
 
-def test_dmresample_multi(st, data):
+def test_dmresample_multi1(st, data):
+    dm = 100
+    dt = 1
+    delay = rfpipe.util.calc_delay(st.freq, st.freq.max(), dm,
+                                   st.inttime)
+
+    data1 = rfpipe.search.dedisperse(data, delay, parallel=True)
+    data2 = rfpipe.search.resample(data1, dt, parallel=True)
+    data3 = rfpipe.search.dedisperseresample(data, delay, dt, parallel=True)
+    assert np.allclose(data3, data2)
+
+
+def test_dmresample_multi2(st, data):
     dm = 100
     dt = 2
     delay = rfpipe.util.calc_delay(st.freq, st.freq.max(), dm,
@@ -72,7 +84,21 @@ def test_dmresample_multi(st, data):
     assert np.allclose(data3, data2)
 
 
-def test_dmresample_singlemulti(st, data):
+def test_dmresample_singlemulti1(st, data):
+    dm = 100
+    dt = 1
+    delay = rfpipe.util.calc_delay(st.freq, st.freq.max(), dm,
+                                   st.inttime)
+
+    data1 = rfpipe.search.dedisperseresample(data, delay, dt, parallel=False)
+    data2 = rfpipe.search.dedisperseresample(data, delay, dt, parallel=True)
+    data3 = rfpipe.search.dedisperseresample(data, delay, dt, parallel=False)
+
+    assert np.allclose(data1, data2)
+    assert np.allclose(data3, data2)
+
+
+def test_dmresample_singlemulti2(st, data):
     dm = 100
     dt = 2
     delay = rfpipe.util.calc_delay(st.freq, st.freq.max(), dm,

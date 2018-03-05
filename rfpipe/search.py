@@ -194,11 +194,20 @@ def _dedisperseresample_gu(data, delay, dt):
         for l in range(npol):
             for k in range(nchan):
                 for i in range((nint-delay.max())//dt):
-                    iprime = int64(i + delay[k])
-                    data[i, k, l] = data[iprime, k, l]
-                    for r in range(1, dt):
-                        data[i, k, l] += data[iprime+r, k, l]
-                    data[i, k, l] = data[i, k, l]/dt
+                    weight = int64(0)
+                    for r in range(dt):
+                        iprime = int64(i*dt + delay[k] + r)
+                        val = data[iprime, k, l]
+                        if r == 0:
+                            data[i, k, l] = val
+                        else:
+                            data[i, k, l] += val
+                        if val != 0j:
+                            weight += 1
+                    if weight > 0:
+                        data[i, k, l] = data[i, k, l]/weight
+                    else:
+                        data[i, k, l] = weight
 
 
 #
