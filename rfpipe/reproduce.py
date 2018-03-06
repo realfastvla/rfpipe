@@ -195,23 +195,23 @@ def pipeline_imdata(st, candloc, data_dmdt=None):
     dataph = data_dmdt[i-st.prefs.timewindow//2:i+st.prefs.timewindow//2].mean(axis=1)
     util.phase_shift(data_dmdt, uvw, -dl, -dm)
 
-    canddata = candidates.CandData(state=st, loc=tuple(candloc), image=image,
-                                   data=dataph)
+    candcollection = candidates.CandData(state=st, loc=tuple(candloc), image=image,
+                                         data=dataph)
 
     # output is as from search.image_thresh
-    return [canddata]
+    return candcollection
 
 
-def pipeline_candidate(st, candloc, canddata=None):
+def pipeline_candidate(st, candloc, candcollection=None):
     """ End-to-end pipeline to reproduce candidate plot and calculate features.
     Can optionally pass in image and corrected data, if available.
     """
 
     segment, candint, dmind, dtind, beamnum = candloc.astype(int)
 
-    if canddata is None:
-        canddatalist = pipeline_imdata(st, candloc)
+    if candcollection is None:
+        candcollection = pipeline_imdata(st, candloc)
 
-    candcollection = candidates.calc_features(canddatalist)
+    candidates.save_cands(candcollection)
 
     return candcollection

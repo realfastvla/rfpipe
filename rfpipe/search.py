@@ -277,6 +277,8 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
 
     rfgpu.cudaSetDevice(devicenum)
 
+    bytespercd = 8*(st.npixx*st.npixy + st.prefs.timewindow*st.nchan*st.npol)
+
     beamnum = 0
     uvw = util.get_uvw_segment(st, segment)
     u, v, w = uvw
@@ -312,9 +314,9 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
 
     grid.conjugate(vis_raw)
 
-    bytespercd = 8*(st.npixx*st.npixy + st.prefs.timewindow*st.nchan*st.npol)
-
     canddatalist = []
+    candcollection = candidates.CandCollection(prefs=st.prefs,
+                                               metadata=st.metadata)
     for dtind in range(len(st.dtarr)):
         for dmind in range(len(st.dmarr)):
             delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
@@ -372,22 +374,28 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
 
                     # TODO: add safety against triggering return of all images
                     if len(canddatalist)*bytespercd > st.prefs.memory_limit:
-                        logger.warn("Accumulated CandData size is {0:.1f} GB, "
-                                    "which exceeds memory limit of {1:.1f}"
+                        logger.info("Accumulated CandData size is {0:.1f} GB, "
+                                    "which exceeds memory limit of {1:.1f}. "
+                                    "Running calc_features..."
                                     .format(len(canddatalist)*bytespercd,
                                             st.prefs.memory_limit))
+                        candcollection += candidates.calc_features(canddatalist)
+                        canddatalist = []
+
+    candcollection += candidates.calc_features(canddatalist)
 
     logger.info("{0} candidates returned for seg {1}"
-                .format(len(canddatalist), segment))
+                .format(len(candcollection), segment))
 
-    return canddatalist
+    return candcollection
 
 
 def dedisperse_image_fftw(st, segment, data, wisdom=None, integrations=None):
     """ Fuse the dediserpse, resample, search, threshold functions.
     """
 
-    canddatalist = []
+    candcollection = candidates.CandCollection(prefs=st.prefs,
+                                               metadata=st.metadata)
     for dtind in range(len(st.dtarr)):
         for dmind in range(len(st.dmarr)):
             delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
@@ -396,14 +404,14 @@ def dedisperse_image_fftw(st, segment, data, wisdom=None, integrations=None):
             data_corr = dedisperseresample(data, delay, st.dtarr[dtind],
                                            parallel=st.prefs.nthread > 1)
 
-            canddatalist += search_thresh_fftw(st, segment, data_corr, dmind,
-                                               dtind, wisdom=wisdom,
-                                               integrations=integrations)
+            candcollection += search_thresh_fftw(st, segment, data_corr, dmind,
+                                                dtind, wisdom=wisdom,
+                                                integrations=integrations)
 
     logger.info("{0} candidates returned for seg {1}"
-                .format(len(canddatalist), segment))
+                .format(len(candcollection), segment))
 
-    return canddatalist
+    return candcollection
 
 
 def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
@@ -421,6 +429,8 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
     if not np.any(data):
         logger.info("Data is all zeros. Skipping search.")
         return []
+
+    bytespercd = 8*(st.npixx*st.npixy + st.prefs.timewindow*st.nchan*st.npol)
 
     # assumes dedispersed/resampled data has only back end trimmed off
     if integrations is None:
@@ -451,6 +461,8 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
 
         # TODO: the following is really slow
         canddatalist = []
+        candcollection = candidates.CandCollection(prefs=st.prefs,
+                                                   metadata=st.metadata)
         for i in range(len(images)):
             peak_snr = images[i].max()/util.madtostd(images[i])
             if peak_snr > st.prefs.sigma_image1:
@@ -465,16 +477,26 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
                 util.phase_shift(data, uvw, -l, -m)
                 canddatalist.append(candidates.CandData(state=st, loc=candloc,
                                                         image=candim, data=dataph))
+
+                if len(canddatalist)*bytespercd > st.prefs.memory_limit:
+                    logger.info("Accumulated CandData size is {0:.1f} GB, "
+                                "which exceeds memory limit of {1:.1f}. "
+                                "Running calc_features..."
+                                .format(len(canddatalist)*bytespercd,
+                                        st.prefs.memory_limit))
+                    candcollection += candidates.calc_features(canddatalist)
+                    canddatalist = []
+
+        candcollection += candidates.calc_features(canddatalist)
+
     else:
         raise NotImplemented("only searchtype=image1 implemented")
 
-    # tuple(list(int), list(ndarray), list(ndarray))
-#    return (ints, images_thresh, dataph)
     logger.info("{0} candidates returned for (seg, dmind, dtind) = "
-                "({1}, {2}, {3})".format(len(canddatalist), segment, dmind,
+                "({1}, {2}, {3})".format(len(candcollection), segment, dmind,
                                          dtind))
 
-    return canddatalist
+    return candcollection
 
 
 def grid_image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,

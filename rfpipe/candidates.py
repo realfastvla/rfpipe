@@ -91,6 +91,19 @@ class CandCollection(object):
     def __len__(self):
         return len(self.array)
 
+    def __add__(self, cc):
+        """ Allow candcollections to be added within a given scan.
+        (same dmarr, dtarr, segmenttimes)
+        """
+
+        if len(cc):
+            assert self.prefs.name == cc.prefs.name, "Cannot add collections with different preferences"
+            assert self.state.dmarr == cc.state.dmarr,  "Cannot add collections with different dmarr"
+            assert self.state.dtarr == cc.state.dtarr,  "Cannot add collections with different dmarr"
+            assert self.state.segmenttimes == cc.state.segmenttimes,  "Cannot add collections with different segmenttimes"
+            self.array = np.concatenate((self.array, cc.array))
+        return self
+
     @property
     def scan(self):
         if self.metadata is not None:
@@ -171,6 +184,7 @@ def calc_features(canddatalist):
     """ Calculates the candidate features for CandData instance(s).
     Returns structured numpy array of candidate features labels defined in
     st.search_dimensions.
+    Generates png plot for peak cands, if so defined in preferences.
     """
 
     if not len(canddatalist):
@@ -228,48 +242,52 @@ def calc_features(canddatalist):
 
     candcollection = CandCollection(features, st.prefs, st.metadata)
 
-    save_cands(st, candcollection, canddatalist)
+    # make plot for peak snr in collection
+    # TODO: think about candidate clustering
+    if st.prefs.savecands and len(candcollection.array):
+        snrs = candcollection.array['snr1'].flatten()
+        maxindex = np.argmax(snrs)
+        candplot(canddatalist[maxindex], snrs=snrs)
+        # TODO: save_cands(st, canddata=canddatalist[maxindex])?
 
     return candcollection  # return tuple as handle on pipeline
 
 
-def save_cands(st, candcollection, canddatalist):
-    """ Save candidate features in reproducible form.
-    Saves as array with metadata and preferences attached.
+def save_cands(st, candcollection=None, canddata=None):
+    """ Save candidate collection or cand data to pickle file.
+    Collection saved as array with metadata and preferences attached.
+    (CandData saving not yet supported.)
     Writes to location defined by state using a file lock to allow multiple
     writers.
     """
 
-    # TODO: find a way to save canddata (image, spectrum) to train classifier
+    if canddata is not None:
+        raise NotImplementedError("CandData saving not yet implemented")
 
-    if st.prefs.savecands and len(candcollection.array):
-        logger.info('Saving {0} candidates to {1}.'
-                    .format(len(candcollection.array), st.candsfile))
+    if candcollection is not None:
+        if st.prefs.savecands and len(candcollection.array):
+            logger.info('Saving {0} candidates to {1}.'
+                        .format(len(candcollection.array), st.candsfile))
 
-        try:
-            with fileLock.FileLock(st.candsfile+'.lock', timeout=10):
-                with open(st.candsfile, 'ab+') as pkl:
+            try:
+                with fileLock.FileLock(st.candsfile+'.lock', timeout=10):
+                    with open(st.candsfile, 'ab+') as pkl:
+                        pickle.dump(candcollection, pkl)
+            except fileLock.FileLock.FileLockException:
+                cand = candcollection.array[0]
+                segment = cand[0]
+                newcandsfile = ('{0}_seg{1}.pkl'
+                                .format(st.candsfile.rstrip('.pkl'), segment))
+                logger.warn('Candidate file writing timeout. '
+                            'Spilling to new file {0}.'.format(newcandsfile))
+                with open(newcandsfile, 'ab+') as pkl:
                     pickle.dump(candcollection, pkl)
-        except fileLock.FileLock.FileLockException:
-            cand = candcollection.array[0]
-            segment = cand[0]
-            newcandsfile = ('{0}_seg{1}.pkl'
-                            .format(st.candsfile.rstrip('.pkl'), segment))
-            logger.warn('Candidate file writing timeout. '
-                        'Spilling to new file {0}.'.format(newcandsfile))
-            with open(newcandsfile, 'ab+') as pkl:
-                pickle.dump(candcollection, pkl)
 
-        # make plot
-        snrs = candcollection.array['snr1'].flatten()
-        maxindex = np.argmax(snrs)
-        candplot(canddatalist[maxindex], snrs=snrs)
+        elif st.prefs.savecands and not len(candcollection.array):
+            logger.debug('No candidates to save to {0}.'.format(st.candsfile))
 
-    elif st.prefs.savecands and not len(candcollection.array):
-        logger.debug('No candidates to save to {0}.'.format(st.candsfile))
-
-    elif not st.prefs.savecands:
-        logger.info('Not saving candidates.')
+        elif not st.prefs.savecands:
+            logger.info('Not saving candidates.')
 
 
 def iter_cands(candsfile):
