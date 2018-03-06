@@ -312,6 +312,8 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
 
     grid.conjugate(vis_raw)
 
+    bytespercd = 8*(st.npixx*st.npixy + st.prefs.timewindow*st.nchan*st.npol)
+
     canddatalist = []
     for dtind in range(len(st.dtarr)):
         for dmind in range(len(st.dmarr)):
@@ -363,10 +365,17 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
                                           len(data))]
                     util.phase_shift(data_corr, uvw, l, m)
                     data_corr = data_corr.mean(axis=1)
-                    canddatalist.append(candidates.CandData(state=st, loc=candloc,
+                    canddatalist.append(candidates.CandData(state=st,
+                                                            loc=candloc,
                                                             image=img_data,
                                                             data=data_corr))
+
                     # TODO: add safety against triggering return of all images
+                    if len(canddatalist)*bytespercd > st.prefs.memory_limit:
+                        logger.warn("Accumulated CandData size is {0:.1f} GB, "
+                                    "which exceeds memory limit of {1:.1f}"
+                                    .format(len(canddatalist)*bytespercd,
+                                            st.prefs.memory_limit))
 
     logger.info("{0} candidates returned for seg {1}"
                 .format(len(canddatalist), segment))
