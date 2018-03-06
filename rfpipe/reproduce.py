@@ -195,10 +195,12 @@ def pipeline_imdata(st, candloc, data_dmdt=None):
     dataph = data_dmdt[i-st.prefs.timewindow//2:i+st.prefs.timewindow//2].mean(axis=1)
     util.phase_shift(data_dmdt, uvw, -dl, -dm)
 
-    candcollection = candidates.CandData(state=st, loc=tuple(candloc), image=image,
-                                         data=dataph)
+    canddata = candidates.CandData(state=st, loc=tuple(candloc), image=image,
+                                   data=dataph)
 
-    # output is as from search.image_thresh
+    candcollection = candidates.calc_features(canddata)
+
+    # output is as from searching functions
     return candcollection
 
 

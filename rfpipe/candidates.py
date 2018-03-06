@@ -94,14 +94,18 @@ class CandCollection(object):
     def __add__(self, cc):
         """ Allow candcollections to be added within a given scan.
         (same dmarr, dtarr, segmenttimes)
+        Adding empty cc ok, too.
         """
 
         if len(cc):
             assert self.prefs.name == cc.prefs.name, "Cannot add collections with different preferences"
             assert self.state.dmarr == cc.state.dmarr,  "Cannot add collections with different dmarr"
             assert self.state.dtarr == cc.state.dtarr,  "Cannot add collections with different dmarr"
-            assert self.state.segmenttimes == cc.state.segmenttimes,  "Cannot add collections with different segmenttimes"
-            self.array = np.concatenate((self.array, cc.array))
+            assert (self.state.segmenttimes == cc.state.segmenttimes).all(),  "Cannot add collections with different segmenttimes"
+            if len(self):
+                self.array = np.concatenate((self.array, cc.array))
+            else:
+                self.array = cc.array
         return self
 
     @property
@@ -187,12 +191,14 @@ def calc_features(canddatalist):
     Generates png plot for peak cands, if so defined in preferences.
     """
 
-    if not len(canddatalist):
-        return CandCollection()
-
-    if not isinstance(canddatalist, list):
+    if isinstance(canddatalist, CandData):
         logger.debug('Wrapping solo CandData object')
         canddatalist = [canddatalist]
+    elif isinstance(canddatalist, list):
+        if not len(canddatalist):
+            return CandCollection()
+    else:
+        logger.warn("argument must be list of CandData object")
 
     logger.info('Calculating features for {0} candidates.'
                 .format(len(canddatalist)))

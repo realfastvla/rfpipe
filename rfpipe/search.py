@@ -221,14 +221,14 @@ def prep_and_search(st, segment, data):
     data_prep = source.data_prep(st, segment, data)
 
     if st.prefs.fftmode == "cuda":
-        canddatalist = dedisperse_image_cuda(st, segment, data_prep)
+        candcollection = dedisperse_image_cuda(st, segment, data_prep)
     elif st.prefs.fftmode == "fftw":
-        canddatalist = dedisperse_image_fftw(st, segment, data_prep)
+        candcollection = dedisperse_image_fftw(st, segment, data_prep)
     else:
         logger.warn("fftmode {0} not recognized (cuda, fftw allowed)"
                     .format(st.prefs.fftmode))
 
-    candcollection = candidates.calc_features(canddatalist)
+    candidates.save_cands(st, candcollection)
 
     return candcollection
 
@@ -373,11 +373,11 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
                                                             data=data_corr))
 
                     # TODO: add safety against triggering return of all images
-                    if len(canddatalist)*bytespercd > st.prefs.memory_limit:
+                    if len(canddatalist)*bytespercd/1000**3 > st.prefs.memory_limit:
                         logger.info("Accumulated CandData size is {0:.1f} GB, "
                                     "which exceeds memory limit of {1:.1f}. "
                                     "Running calc_features..."
-                                    .format(len(canddatalist)*bytespercd,
+                                    .format(len(canddatalist)*bytespercd/1000**3,
                                             st.prefs.memory_limit))
                         candcollection += candidates.calc_features(canddatalist)
                         canddatalist = []
@@ -478,11 +478,11 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
                 canddatalist.append(candidates.CandData(state=st, loc=candloc,
                                                         image=candim, data=dataph))
 
-                if len(canddatalist)*bytespercd > st.prefs.memory_limit:
+                if len(canddatalist)*bytespercd/1000**3 > st.prefs.memory_limit:
                     logger.info("Accumulated CandData size is {0:.1f} GB, "
                                 "which exceeds memory limit of {1:.1f}. "
                                 "Running calc_features..."
-                                .format(len(canddatalist)*bytespercd,
+                                .format(len(canddatalist)*bytespercd/1000**3,
                                         st.prefs.memory_limit))
                     candcollection += candidates.calc_features(canddatalist)
                     canddatalist = []
