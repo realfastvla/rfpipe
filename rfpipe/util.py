@@ -32,10 +32,10 @@ def _phaseshift_jit(data, uvw, dl, dm):
     if (dl != 0.) or (dm != 0.):
         for j in range(sh[1]):
             for k in range(sh[2]):
+                frot = np.exp(-2j*np.pi*(dl*u[j, k] + dm*v[j, k]))
                 for i in range(sh[0]):    # iterate over pols
                     for l in range(sh[3]):
                         # phasor unwraps phase at (dl, dm) per (bl, chan)
-                        frot = np.exp(-2j*np.pi*(dl*u[j, k] + dm*v[j, k]))
                         data[i, j, k, l] = data[i, j, k, l] * frot
 
 

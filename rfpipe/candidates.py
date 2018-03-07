@@ -584,7 +584,7 @@ def candplot(canddatalist, snrs=[], outname=''):
             l1, m1 = st.pixtolm(np.where(im == im.min()))
             snrobs = snrmin
 
-        logger.info('Plotting candloc {0} with SNR {1} and image/data shapes: {2}/{3}'
+        logger.info('Plotting candloc {0} with SNR {1:.1f} and image/data shapes: {2}/{3}'
                     .format(str(candloc), snrobs, str(im.shape), str(data.shape)))
 
         pt_ra, pt_dec = st.metadata.radec
