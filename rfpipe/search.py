@@ -281,7 +281,6 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
 
     beamnum = 0
     uvw = util.get_uvw_segment(st, segment)
-    u, v, w = uvw
 
     upix = st.npixx
     vpix = st.npixy//2 + 1
@@ -297,11 +296,12 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
     img_grid = rfgpu.GPUArrayReal((st.npixx, st.npixy))
 
     # Convert uv from lambda to us
-    u = 1e6*u[:, 0]/(1e9*st.freq[0])
-    v = 1e6*v[:, 0]/(1e9*st.freq[0])
+    u, v, w = uvw
+    u_us = 1e6*u[:, 0]/(1e9*st.freq[0])
+    v_us = 1e6*v[:, 0]/(1e9*st.freq[0])
 
     # Q: set input units to be uv (lambda), freq in GHz?
-    grid.set_uv(u, v)  # u, v in us
+    grid.set_uv(u_us, v_us)  # u, v in us
     grid.set_freq(st.freq*1e3)  # freq in MHz
     grid.set_cell(st.uvres)  # uv cell size in wavelengths (== 1/FoV(radians))
 
@@ -331,7 +331,7 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
             minint = min(integrations)
             maxint = max(integrations)
 
-            logger.info('Imaging {0} ints ({1}-{2}) in seg {3} at DM/dt {4}/{5}'
+            logger.info('Imaging {0} ints ({1}-{2}) in seg {3} at DM/dt {4:.1f}/{5}'
                         ' with image {6}x{7} (uvres {8}) with gpu {9}'
                         .format(len(integrations), minint, maxint, segment,
                                 st.dmarr[dmind], st.dtarr[dtind], st.npixx,
@@ -356,7 +356,7 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
                     l, m = st.pixtolm(np.where(img_data == img_data.max()))
                     candloc = (segment, i, dmind, dtind, beamnum)
 
-                    logger.info("Got one! SNR {0} candidate at {1} and (l,m) = ({2},{3})"
+                    logger.info("Got one! SNR {0:.1f} candidate at {1} and (l,m) = ({2},{3})"
                                 .format(peak_snr, candloc, l, m))
 
                     data_corr = dedisperseresample(data, delay,
@@ -405,8 +405,8 @@ def dedisperse_image_fftw(st, segment, data, wisdom=None, integrations=None):
                                            parallel=st.prefs.nthread > 1)
 
             candcollection += search_thresh_fftw(st, segment, data_corr, dmind,
-                                                dtind, wisdom=wisdom,
-                                                integrations=integrations)
+                                                 dtind, wisdom=wisdom,
+                                                 integrations=integrations)
 
     logger.info("{0} candidates returned for seg {1}"
                 .format(len(candcollection), segment))
@@ -443,7 +443,7 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
     minint = min(integrations)
     maxint = max(integrations)
 
-    logger.info('Imaging {0} ints ({1}-{2}) in seg {3} at DM/dt {4}/{5} with '
+    logger.info('Imaging {0} ints ({1}-{2}) in seg {3} at DM/dt {4:.1f}/{5} with '
                 'image {6}x{7} (uvres {8}) with fftw'
                 .format(len(integrations), minint, maxint, segment,
                         st.dmarr[dmind], st.dtarr[dtind], st.npixx, st.npixy,
@@ -469,14 +469,15 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
                 candloc = (segment, integrations[i], dmind, dtind, beamnum)
                 candim = images[i]
                 l, m = st.pixtolm(np.where(candim == candim.max()))
-                logger.info("Got one! SNR {0} candidate at {1} and (l,m) = ({2},{3})"
+                logger.info("Got one! SNR {0:.1f} candidate at {1} and (l,m) = ({2},{3})"
                             .format(peak_snr, candloc, l, m))
                 util.phase_shift(data, uvw, l, m)
                 dataph = data[max(0, integrations[i]-st.prefs.timewindow//2):
                               min(integrations[i]+st.prefs.timewindow//2, len(data))].mean(axis=1)
                 util.phase_shift(data, uvw, -l, -m)
                 canddatalist.append(candidates.CandData(state=st, loc=candloc,
-                                                        image=candim, data=dataph))
+                                                        image=candim,
+                                                        data=dataph))
 
                 if len(canddatalist)*bytespercd/1000**3 > st.prefs.memory_limit:
                     logger.info("Accumulated CandData size is {0:.1f} GB, "

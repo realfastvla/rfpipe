@@ -573,7 +573,8 @@ def candplot(canddatalist, snrs=[], outname=''):
         segment, candint, dmind, dtind, beamnum = candloc
 
         # calc source location
-        imstd = util.madtostd(im)
+#        imstd = util.madtostd(im)  # outlier resistant
+        imstd = im.std()  # consistent with rfgpu
         snrmin = im.min()/imstd
         snrmax = im.max()/imstd
         if snrmax > -1*snrmin:
