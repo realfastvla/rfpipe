@@ -192,15 +192,15 @@ def get_uvw_segment(st, segment):
 
     if st.lock is not None:
         st.lock.acquire()
-    (u, v, w) = calc_uvw(datetime=mjdstr, radec=st.metadata.radec,
-                         antpos=st.metadata.antpos,
-                         telescope=st.metadata.telescope)
+    (ur, vr, wr) = calc_uvw(datetime=mjdstr, radec=st.metadata.radec,
+                            antpos=st.metadata.antpos,
+                            telescope=st.metadata.telescope)
     if st.lock is not None:
         st.lock.release()
 
-    u = np.outer(u, st.freq * (1e9/3e8) * (-1))
-    v = np.outer(v, st.freq * (1e9/3e8) * (-1))
-    w = np.outer(w, st.freq * (1e9/3e8) * (-1))
+    u = np.outer(ur, st.freq * (1e9/3e8) * (-1))
+    v = np.outer(vr, st.freq * (1e9/3e8) * (-1))
+    w = np.outer(wr, st.freq * (1e9/3e8) * (-1))
 
     return u.astype('float32'), v.astype('float32'), w.astype('float32')
 

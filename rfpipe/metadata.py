@@ -144,12 +144,12 @@ class Metadata(object):
 
     @property
     def uvrange_orig(self):
-        (u, v, w) = util.calc_uvw(datetime=self.starttime_string,
-                                  radec=self.radec,
-                                  antpos=self.antpos,
-                                  telescope=self.telescope)
-        u = u * self.freq_orig.min() * (1e9/3e8) * (-1)
-        v = v * self.freq_orig.min() * (1e9/3e8) * (-1)
+        (ur, vr, wr) = util.calc_uvw(datetime=self.starttime_string,
+                                     radec=self.radec,
+                                     antpos=self.antpos,
+                                     telescope=self.telescope)
+        u = ur * self.freq_orig.min() * (1e9/3e8) * (-1)
+        v = vr * self.freq_orig.min() * (1e9/3e8) * (-1)
 
         return (u.max() - u.min(), v.max() - v.min())
 
