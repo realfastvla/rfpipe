@@ -222,7 +222,8 @@ def calc_features(canddatalist):
         # TODO: fill out more features
         for feat in st.features:
             if feat == 'snr1':
-                imstd = util.madtostd(image)
+#                imstd = util.madtostd(image)  # outlier resistant
+                imstd = image.std()  # consistent with rfgpu
                 logger.debug('{0} {1}'.format(image.shape, imstd))
                 snrmax = image.max()/imstd
                 snrmin = image.min()/imstd
