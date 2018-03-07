@@ -91,6 +91,23 @@ class CandCollection(object):
     def __len__(self):
         return len(self.array)
 
+    def __add__(self, cc):
+        """ Allow candcollections to be added within a given scan.
+        (same dmarr, dtarr, segmenttimes)
+        Adding empty cc ok, too.
+        """
+
+        if len(cc):
+            assert self.prefs.name == cc.prefs.name, "Cannot add collections with different preferences"
+            assert self.state.dmarr == cc.state.dmarr,  "Cannot add collections with different dmarr"
+            assert self.state.dtarr == cc.state.dtarr,  "Cannot add collections with different dmarr"
+            assert (self.state.segmenttimes == cc.state.segmenttimes).all(),  "Cannot add collections with different segmenttimes"
+            if len(self):
+                self.array = np.concatenate((self.array, cc.array))
+            else:
+                self.array = cc.array
+        return self
+
     @property
     def scan(self):
         if self.metadata is not None:
@@ -171,14 +188,17 @@ def calc_features(canddatalist):
     """ Calculates the candidate features for CandData instance(s).
     Returns structured numpy array of candidate features labels defined in
     st.search_dimensions.
+    Generates png plot for peak cands, if so defined in preferences.
     """
 
-    if not len(canddatalist):
-        return CandCollection()
-
-    if not isinstance(canddatalist, list):
+    if isinstance(canddatalist, CandData):
         logger.debug('Wrapping solo CandData object')
         canddatalist = [canddatalist]
+    elif isinstance(canddatalist, list):
+        if not len(canddatalist):
+            return CandCollection()
+    else:
+        logger.warn("argument must be list of CandData object")
 
     logger.info('Calculating features for {0} candidates.'
                 .format(len(canddatalist)))
@@ -202,7 +222,8 @@ def calc_features(canddatalist):
         # TODO: fill out more features
         for feat in st.features:
             if feat == 'snr1':
-                imstd = util.madtostd(image)
+#                imstd = util.madtostd(image)  # outlier resistant
+                imstd = image.std()  # consistent with rfgpu
                 logger.debug('{0} {1}'.format(image.shape, imstd))
                 snrmax = image.max()/imstd
                 snrmin = image.min()/imstd
@@ -228,48 +249,52 @@ def calc_features(canddatalist):
 
     candcollection = CandCollection(features, st.prefs, st.metadata)
 
-    save_cands(st, candcollection, canddatalist)
+    # make plot for peak snr in collection
+    # TODO: think about candidate clustering
+    if st.prefs.savecands and len(candcollection.array):
+        snrs = candcollection.array['snr1'].flatten()
+        maxindex = np.argmax(snrs)
+        candplot(canddatalist[maxindex], snrs=snrs)
+        # TODO: save_cands(st, canddata=canddatalist[maxindex])?
 
     return candcollection  # return tuple as handle on pipeline
 
 
-def save_cands(st, candcollection, canddatalist):
-    """ Save candidate features in reproducible form.
-    Saves as array with metadata and preferences attached.
+def save_cands(st, candcollection=None, canddata=None):
+    """ Save candidate collection or cand data to pickle file.
+    Collection saved as array with metadata and preferences attached.
+    (CandData saving not yet supported.)
     Writes to location defined by state using a file lock to allow multiple
     writers.
     """
 
-    # TODO: find a way to save canddata (image, spectrum) to train classifier
+    if canddata is not None:
+        raise NotImplementedError("CandData saving not yet implemented")
 
-    if st.prefs.savecands and len(candcollection.array):
-        logger.info('Saving {0} candidates to {1}.'
-                    .format(len(candcollection.array), st.candsfile))
+    if candcollection is not None:
+        if st.prefs.savecands and len(candcollection.array):
+            logger.info('Saving {0} candidates to {1}.'
+                        .format(len(candcollection.array), st.candsfile))
 
-        try:
-            with fileLock.FileLock(st.candsfile+'.lock', timeout=10):
-                with open(st.candsfile, 'ab+') as pkl:
+            try:
+                with fileLock.FileLock(st.candsfile+'.lock', timeout=10):
+                    with open(st.candsfile, 'ab+') as pkl:
+                        pickle.dump(candcollection, pkl)
+            except fileLock.FileLock.FileLockException:
+                cand = candcollection.array[0]
+                segment = cand[0]
+                newcandsfile = ('{0}_seg{1}.pkl'
+                                .format(st.candsfile.rstrip('.pkl'), segment))
+                logger.warn('Candidate file writing timeout. '
+                            'Spilling to new file {0}.'.format(newcandsfile))
+                with open(newcandsfile, 'ab+') as pkl:
                     pickle.dump(candcollection, pkl)
-        except fileLock.FileLock.FileLockException:
-            cand = candcollection.array[0]
-            segment = cand[0]
-            newcandsfile = ('{0}_seg{1}.pkl'
-                            .format(st.candsfile.rstrip('.pkl'), segment))
-            logger.warn('Candidate file writing timeout. '
-                        'Spilling to new file {0}.'.format(newcandsfile))
-            with open(newcandsfile, 'ab+') as pkl:
-                pickle.dump(candcollection, pkl)
 
-        # make plot
-        snrs = candcollection.array['snr1'].flatten()
-        maxindex = np.argmax(snrs)
-        candplot(canddatalist[maxindex], snrs=snrs)
+        elif st.prefs.savecands and not len(candcollection.array):
+            logger.debug('No candidates to save to {0}.'.format(st.candsfile))
 
-    elif st.prefs.savecands and not len(candcollection.array):
-        logger.debug('No candidates to save to {0}.'.format(st.candsfile))
-
-    elif not st.prefs.savecands:
-        logger.info('Not saving candidates.')
+        elif not st.prefs.savecands:
+            logger.info('Not saving candidates.')
 
 
 def iter_cands(candsfile):
@@ -309,21 +334,43 @@ def iter_noise(noisefile):
 
 
 def makesummaryplot(candsfile):
-    """ Given a scan's candsfile, read all candcollections and create bokeh summary plot
+    """ Given a scan's candsfile, read all candcollections and create
+    bokeh summary plot
     """
 
-    # TODO: compile over all iterations over segments
+    time = []
+    segment = []
+    integration = []
+    dmind = []
+    dtind = []
+    snr = []
+    dm = []
+    dt = []
+    l1 = []
+    m1 = []
     for cc in iter_cands(candsfile):
-        time = cc.candmjd - cc.candmjd.min()
-        segment = cc.array['segment']
-        integration = cc.array['integration']
-        dmind = cc.array['dmind']
-        dtind = cc.array['dtind']
-        snr = cc.array['snr1']
-        dm = cc.canddm
-        dt = cc.canddt
-        l1 = cc.array['l1']
-        m1 = cc.array['m1']
+        time.append(cc.candmjd*(24*3600))
+        segment.append(cc.array['segment'])
+        integration.append(cc.array['integration'])
+        dmind.append(cc.array['dmind'])
+        dtind.append(cc.array['dtind'])
+        snr.append(cc.array['snr1'])
+        dm.append(cc.canddm)
+        dt.append(cc.canddt)
+        l1.append(cc.array['l1'])
+        m1.append(cc.array['m1'])
+
+    time = np.concatenate(time)
+    time = time - time.min()
+    segment = np.concatenate(segment)
+    integration = np.concatenate(integration)
+    dmind = np.concatenate(dmind)
+    dtind = np.concatenate(dtind)
+    snr = np.concatenate(snr)
+    dm = np.concatenate(dm)
+    dt = np.concatenate(dt)
+    l1 = np.concatenate(l1)
+    m1 = np.concatenate(m1)
 
     keys = ['seg{0}-i{1}-dm{2}-dt{3}'.format(segment[i], integration[i],
                                              dmind[i], dtind[i])
@@ -333,18 +380,19 @@ def makesummaryplot(candsfile):
     data = dict(snrs=snr, dm=dm, l1=l1, m1=m1, time=time, sizes=sizes,
                 colors=colors, keys=keys)
 
-    circleinds = calcinds(data, cc.prefs.sigma_image1)
-    crossinds = calcinds(data, -1*cc.prefs.sigma_image1)
-    edgeinds = calcinds(data, cc.prefs.sigma_plot)
+#    circleinds = calcinds(data, cc.prefs.sigma_image1)
+#    crossinds = calcinds(data, -1*cc.prefs.sigma_image1)
+#    edgeinds = calcinds(data, cc.prefs.sigma_plot)
 
-    dmt = plotdmt(data, circleinds=circleinds, crossinds=crossinds,
-                  edgeinds=edgeinds)
-    loc = plotloc(data, circleinds=circleinds, crossinds=crossinds,
-                  edgeinds=edgeinds)
+    dmt = plotdmt(data)
+    loc = plotloc(data)
     combined = Row(dmt, loc, width=950)
 
-    output_file(candsfile.replace('.pkl', '.html'))
+    htmlfile = candsfile.replace('.pkl', '.html')
+    output_file(htmlfile)
     save(combined)
+    logger.info("Saved summary plot {0} with {1} candidates"
+                .format(htmlfile, len(segment)))
 
 
 def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
@@ -354,20 +402,21 @@ def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
 
     fields = ['dm', 'time', 'sizes', 'colors', 'snrs', 'keys']
 
-    if not circleinds: circleinds = list(range(len(data['snrs'])))
+    if not len(circleinds):
+        circleinds = list(range(len(data['snrs'])))
 
     # set ranges
-    datalen = len(data['dm'])
     inds = circleinds + crossinds + edgeinds
     dm = [data['dm'][i] for i in inds]
     dm_min = min(min(dm), max(dm)/1.2)
     dm_max = max(max(dm), min(dm)*1.2)
     time = [data['time'][i] for i in inds]
-    time_min = min(time)
-    time_max = max(time)
+    time_min = min(time)*0.95
+    time_max = max(time)*1.05
 
     source = ColumnDataSource(data=dict({(key, tuple([value[i] for i in circleinds if i not in edgeinds]))
-                                        for (key, value) in list(data.items()) if key in fields}))
+                                        for (key, value) in list(data.items())
+                                        if key in fields}))
     dmt = Figure(plot_width=plot_width, plot_height=plot_height,
                  toolbar_location="left", x_axis_label='Time (s; relative)',
                  y_axis_label='DM (pc/cm3)', x_range=(time_min, time_max),
@@ -376,18 +425,18 @@ def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
     dmt.circle('time', 'dm', size='sizes', fill_color='colors',
                line_color=None, fill_alpha=0.2, source=source)
 
-    if crossinds:
-        sourceneg = ColumnDataSource(data = dict({(key, tuple([value[i] for i in crossinds]))
-                                                  for (key, value) in list(data.items()) if key in fields}))
-        dmt.cross('time', 'dm', size='sizes', fill_color='colors',
-                  line_alpha=0.3, source=sourceneg)
-
-    if edgeinds:
-        sourceedge = ColumnDataSource(data=dict({(key, tuple([value[i] for i in edgeinds]))
-                                                   for (key, value) in list(data.items()) if key in fields}))
-        dmt.circle('time', 'dm', size='sizes', line_color='colors',
-                   fill_color='colors', line_alpha=0.5, fill_alpha=0.2,
-                   source=sourceedge)
+#    if crossinds:
+#        sourceneg = ColumnDataSource(data = dict({(key, tuple([value[i] for i in crossinds]))
+#                                                  for (key, value) in list(data.items()) if key in fields}))
+#        dmt.cross('time', 'dm', size='sizes', fill_color='colors',
+#                  line_alpha=0.3, source=sourceneg)
+#
+#    if edgeinds:
+#        sourceedge = ColumnDataSource(data=dict({(key, tuple([value[i] for i in edgeinds]))
+#                                                   for (key, value) in list(data.items()) if key in fields}))
+#        dmt.circle('time', 'dm', size='sizes', line_color='colors',
+#                   fill_color='colors', line_alpha=0.5, fill_alpha=0.2,
+#                   source=sourceedge)
 
     hover = dmt.select(dict(type=HoverTool))
     hover.tooltips = OrderedDict([('SNR', '@snrs'), ('keys', '@keys')])
@@ -396,41 +445,37 @@ def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
 
 
 def plotloc(data, circleinds=[], crossinds=[], edgeinds=[],
-            tools="hover,pan,box_select,wheel_zoom,reset", plot_width=450, plot_height=400):
+            tools="hover,pan,box_select,wheel_zoom,reset", plot_width=450,
+            plot_height=400):
     """ Make a light-weight loc figure """
 
     fields = ['l1', 'm1', 'sizes', 'colors', 'snrs', 'keys']
 
-    if not circleinds: circleinds = list(range(len(data['snrs'])))
+    if not len(circleinds):
+        circleinds = list(range(len(data['snrs'])))
 
     # set ranges
-    datalen = len(data['dm'])
     inds = circleinds + crossinds + edgeinds
     l1 = [data['l1'][i] for i in inds]
-    l1_min = min(l1)
-    l1_max = max(l1)
+    l1_min = min(l1)*0.95
+    l1_max = max(l1)*1.05
     m1 = [data['m1'][i] for i in inds]
-    m1_min = min(m1)
-    m1_max = max(m1)
+    m1_min = min(m1)*0.95
+    m1_max = max(m1)*1.05
 
-    source = ColumnDataSource(data = dict({(key, tuple([value[i] for i in circleinds if i not in edgeinds])) 
-                                           for (key, value) in list(data.items()) if key in fields}))
-    loc = Figure(plot_width=plot_width, plot_height=plot_height, toolbar_location="left", x_axis_label='l1 (rad)', y_axis_label='m1 (rad)',
-                 x_range=(l1_min, l1_max), y_range=(m1_min,m1_max), tools=tools, output_backend='webgl')
-    loc.circle('l1', 'm1', size='sizes', line_color=None, fill_color='colors', fill_alpha=0.2, source=source)
-
-    if crossinds:
-        sourceneg = ColumnDataSource(data = dict({(key, tuple([value[i] for i in crossinds]))
-                                                  for (key, value) in list(data.items()) if key in fields}))
-        loc.cross('l1', 'm1', size='sizes', line_color='colors', line_alpha=0.3, source=sourceneg)
-
-    if edgeinds:
-        sourceedge = ColumnDataSource(data = dict({(key, tuple([value[i] for i in edgeinds]))
-                                                   for (key, value) in list(data.items()) if key in fields}))
-        loc.circle('l1', 'm1', size='sizes', line_color='colors', fill_color='colors', source=sourceedge, line_alpha=0.5, fill_alpha=0.2)
+    source = ColumnDataSource(data=dict({(key, tuple([value[i] for i in circleinds if i not in edgeinds]))
+                                        for (key, value) in list(data.items())
+                                        if key in fields}))
+    loc = Figure(plot_width=plot_width, plot_height=plot_height,
+                 toolbar_location="left", x_axis_label='l1 (rad)',
+                 y_axis_label='m1 (rad)', x_range=(l1_min, l1_max),
+                 y_range=(m1_min, m1_max),
+                 output_backend='webgl', tools=tools)
+    loc.circle('l1', 'm1', size='sizes', fill_color='colors',
+               line_color=None, fill_alpha=0.2, source=source)
 
     hover = loc.select(dict(type=HoverTool))
-    hover.tooltips = OrderedDict([('SNR', '@snrs'), ('key', '@key')])
+    hover.tooltips = OrderedDict([('SNR', '@snrs'), ('keys', '@keys')])
 
     return loc
 
@@ -469,9 +514,9 @@ def colorsat(l, m):
     green = 0.5*(1+np.cos(np.angle(lm) + 2*3.14/3))
     blue = 0.5*(1+np.cos(np.angle(lm) - 2*3.14/3))
     amp = np.where(lm == 0, 256, 256*np.abs(lm)/np.abs(lm).max())
-    return ["#%02x%02x%02x" % (np.floor(amp[i]*red[i]),
-            np.floor(amp[i]*green[i]),
-            np.floor(amp[i]*blue[i]))
+    return ["#%02x%02x%02x" % (np.floor(amp[i]*red[i]).astype(int),
+            np.floor(amp[i]*green[i]).astype(int),
+            np.floor(amp[i]*blue[i]).astype(int))
             for i in range(len(l))]
 
 
@@ -529,7 +574,8 @@ def candplot(canddatalist, snrs=[], outname=''):
         segment, candint, dmind, dtind, beamnum = candloc
 
         # calc source location
-        imstd = util.madtostd(im)
+#        imstd = util.madtostd(im)  # outlier resistant
+        imstd = im.std()  # consistent with rfgpu
         snrmin = im.min()/imstd
         snrmax = im.max()/imstd
         if snrmax > -1*snrmin:
@@ -539,7 +585,7 @@ def candplot(canddatalist, snrs=[], outname=''):
             l1, m1 = st.pixtolm(np.where(im == im.min()))
             snrobs = snrmin
 
-        logger.info('Plotting candloc {0} with SNR {1} and image/data shapes: {2}/{3}'
+        logger.info('Plotting candloc {0} with SNR {1:.1f} and image/data shapes: {2}/{3}'
                     .format(str(candloc), snrobs, str(im.shape), str(data.shape)))
 
         pt_ra, pt_dec = st.metadata.radec

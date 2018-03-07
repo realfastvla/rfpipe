@@ -35,9 +35,7 @@ def test_dataprep(mockstate):
 
 
 def test_search(mockstate):
-
     wisdom = rfpipe.search.set_wisdom(mockstate.npixx, mockstate.npixy)
-    uvw = rfpipe.util.get_uvw_segment(mockstate, 0)
 
     candcollections = []
     times = []
@@ -55,21 +53,20 @@ def test_search(mockstate):
                 data_dmdt = rfpipe.search.resample(data_dm,
                                                    mockstate.dtarr[dtind])
 
-                canddatalist = rfpipe.search.search_thresh_fftw(mockstate,
-                                                                segment,
-                                                                data_dmdt,
-                                                                dmind,
-                                                                dtind,
-                                                                wisdom=wisdom)
+                candcollection = rfpipe.search.search_thresh_fftw(mockstate,
+                                                                  segment,
+                                                                  data_dmdt,
+                                                                  dmind,
+                                                                  dtind,
+                                                                  wisdom=wisdom)
 
-                candcollection = rfpipe.candidates.calc_features(canddatalist)
+                assert len(candcollection) == len(mockstate.get_search_ints(segment, dmind, dtind))
                 candcollections.append(candcollection)
-                times += [canddata.time_top for canddata in canddatalist]
-                assert len(canddatalist) == len(mockstate.get_search_ints(segment, dmind, dtind))
 
-    times = np.sort(times)
+    times = np.concatenate([cc.candmjd/(24*3600) for cc in candcollections])
+    times = np.sort(times - times.min())
     deltat = np.array([times[i+1] - times[i] for i in range(len(times)-1)])
-    assert all(deltat < mockstate.inttime)
+    assert (deltat < mockstate.inttime).all()
 
     integs0_0 = []
     integs1_0 = []

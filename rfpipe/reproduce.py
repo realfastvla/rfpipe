@@ -198,20 +198,22 @@ def pipeline_imdata(st, candloc, data_dmdt=None):
     canddata = candidates.CandData(state=st, loc=tuple(candloc), image=image,
                                    data=dataph)
 
-    # output is as from search.image_thresh
-    return [canddata]
+    candcollection = candidates.calc_features(canddata)
+
+    # output is as from searching functions
+    return candcollection
 
 
-def pipeline_candidate(st, candloc, canddata=None):
+def pipeline_candidate(st, candloc, candcollection=None):
     """ End-to-end pipeline to reproduce candidate plot and calculate features.
     Can optionally pass in image and corrected data, if available.
     """
 
     segment, candint, dmind, dtind, beamnum = candloc.astype(int)
 
-    if canddata is None:
-        canddatalist = pipeline_imdata(st, candloc)
+    if candcollection is None:
+        candcollection = pipeline_imdata(st, candloc)
 
-    candcollection = candidates.calc_features(canddatalist)
+    candidates.save_cands(candcollection)
 
     return candcollection

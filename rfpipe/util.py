@@ -32,10 +32,10 @@ def _phaseshift_jit(data, uvw, dl, dm):
     if (dl != 0.) or (dm != 0.):
         for j in range(sh[1]):
             for k in range(sh[2]):
+                frot = np.exp(-2j*np.pi*(dl*u[j, k] + dm*v[j, k]))
                 for i in range(sh[0]):    # iterate over pols
                     for l in range(sh[3]):
                         # phasor unwraps phase at (dl, dm) per (bl, chan)
-                        frot = np.exp(-2j*np.pi*(dl*u[j, k] + dm*v[j, k]))
                         data[i, j, k, l] = data[i, j, k, l] * frot
 
 
@@ -192,15 +192,15 @@ def get_uvw_segment(st, segment):
 
     if st.lock is not None:
         st.lock.acquire()
-    (u, v, w) = calc_uvw(datetime=mjdstr, radec=st.metadata.radec,
-                         antpos=st.metadata.antpos,
-                         telescope=st.metadata.telescope)
+    (ur, vr, wr) = calc_uvw(datetime=mjdstr, radec=st.metadata.radec,
+                            antpos=st.metadata.antpos,
+                            telescope=st.metadata.telescope)
     if st.lock is not None:
         st.lock.release()
 
-    u = np.outer(u, st.freq * (1e9/3e8) * (-1))
-    v = np.outer(v, st.freq * (1e9/3e8) * (-1))
-    w = np.outer(w, st.freq * (1e9/3e8) * (-1))
+    u = np.outer(ur, st.freq * (1e9/3e8) * (-1))
+    v = np.outer(vr, st.freq * (1e9/3e8) * (-1))
+    w = np.outer(wr, st.freq * (1e9/3e8) * (-1))
 
     return u.astype('float32'), v.astype('float32'), w.astype('float32')
 
@@ -288,24 +288,14 @@ def find_segment_times(state):
     Solution found by iterating from fringe time to memory size that fits.
     """
 
-    scale_nsegment = 1.
-    state._segmenttimes = calc_segment_times(state, scale_nsegment)
-
     # calculate memory limit to stop iteration
     assert state.memory_total_limit < state.prefs.memory_limit, 'memory_limit of {0} is smaller than best solution of {1}. Try setting maxdm/npix_max lower.'.format(state.prefs.memory_limit, state.immem_limit+state.vismem_limit)
 
     if state.memory_total > state.prefs.memory_limit:
-        logger.info('Total memory of {0} is over limit of {1} with {2} '
-                    'segments. Searching to vis/im limits of {3}/{4} GB...'
-                    .format(state.memory_total, state.prefs.memory_limit,
-                            state.nsegment, state.vismem_limit,
-                            state.immem_limit))
-
+        logger.debug("Total memory is larger than memory limit."
+                     "Iterating to smaller segment size.")
+        scale_nsegment = 1.
         while state.memory_total > state.prefs.memory_limit:
-            logger.debug('Using {0} segments requires {1}/{2} GB for '
-                         'visibilities/images. Searching for better solution.'
-                         .format(state.nsegment, state.vismem, state.immem))
-
             scale_nsegment *= state.memory_total/float(state.prefs.memory_limit)
             state._segmenttimes = calc_segment_times(state, scale_nsegment)
 

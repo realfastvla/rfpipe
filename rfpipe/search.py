@@ -6,7 +6,7 @@ from io import open
 import numpy as np
 from numba import jit, guvectorize, int64
 import pyfftw
-from rfpipe import util, candidates
+from rfpipe import util, candidates, source
 
 import logging
 logger = logging.getLogger(__name__)
@@ -17,7 +17,6 @@ def dedisperse(data, delay, parallel=False):
     delay. Returns new array with time length shortened by max delay in
     integrations. wraps _dedisperse to add logging.
     Can set mode to "single" or "multi" to use different functions.
-    Changes memory in place, so forces writability
     """
 
     if not np.any(data):
@@ -26,21 +25,16 @@ def dedisperse(data, delay, parallel=False):
     logger.info('Dedispersing up to delay shift of {0} integrations'
                 .format(delay.max()))
 
-    if delay.max() > 0:
-        nint, nbl, nchan, npol = data.shape
-        newsh = (nint-delay.max(), nbl, nchan, npol)
-        result = np.zeros(shape=newsh, dtype=data.dtype)
-
-        if parallel:
-            _ = _dedisperse_gu(np.swapaxes(np.require(data,
-                                                      requirements='W'), 0, 1),
-                               delay)
-            return data[0:len(data)-delay.max()]
-        else:
-            _dedisperse_jit(np.require(data, requirements='W'), delay, result)
-            return result
+    nint, nbl, nchan, npol = data.shape
+    newsh = (nint-delay.max(), nbl, nchan, npol)
+    if parallel:
+        data = data.copy()
+        _ = _dedisperse_gu(np.swapaxes(data, 0, 1), delay)
+        return data[0:len(data)-delay.max()]
     else:
-        return data
+        result = np.zeros(shape=newsh, dtype=data.dtype)
+        _dedisperse_jit(np.require(data, requirements='W'), delay, result)
+        return result
 
 
 @jit(nogil=True, nopython=True)
@@ -63,18 +57,18 @@ def _dedisperse_gu(data, delay):
     input visibility array must have view from "np.swapaxis(data, 0, 1)".
     """
 
-    for i in range(data.shape[0]-delay.max()):
-        for j in range(data.shape[1]):
-            iprime = i + delay[j]
-            for k in range(data.shape[2]):
-                data[i, j, k] = data[iprime, j, k]
+    if delay.max() > 0:
+        for i in range(data.shape[0]-delay.max()):
+            for j in range(data.shape[1]):
+                iprime = i + delay[j]
+                for k in range(data.shape[2]):
+                    data[i, j, k] = data[iprime, j, k]
 
 
 def resample(data, dt, parallel=False):
     """ Resample (integrate) by factor dt and return new data structure
     wraps _resample to add logging.
     Can set mode to "single" or "multi" to use different functions.
-    Changes memory in place, so forces writability
     """
 
     if not np.any(data):
@@ -84,19 +78,17 @@ def resample(data, dt, parallel=False):
     logger.info('Resampling data of length {0} by a factor of {1}'
                 .format(len0, dt))
 
-    if dt > 1:
-        nint, nbl, nchan, npol = data.shape
-        newsh = (int64(nint//dt), nbl, nchan, npol)
-        result = np.zeros(shape=newsh, dtype=data.dtype)
+    nint, nbl, nchan, npol = data.shape
+    newsh = (int64(nint//dt), nbl, nchan, npol)
 
-        if parallel:
-            _ = _resample_gu(np.swapaxes(np.require(data, requirements='W'), 0, 3), dt)
-            return data[:len0//dt]
-        else:
-            _resample_jit(np.require(data, requirements='W'), dt, result)
-            return result
+    if parallel:
+        data = data.copy()
+        _ = _resample_gu(np.swapaxes(data, 0, 3), dt)
+        return data[:len0//dt]
     else:
-        return data
+        result = np.zeros(shape=newsh, dtype=data.dtype)
+        _resample_jit(np.require(data, requirements='W'), dt, result)
+        return result
 
 
 @jit(nogil=True, nopython=True)
@@ -135,7 +127,6 @@ def _resample_gu(data, dt):
 def dedisperseresample(data, delay, dt, parallel=False):
     """ Dedisperse and resample in single function.
     parallel controls use of multicore versions of algorithms.
-    Changes memory in place, so enforces writability
     """
 
     if not np.any(data):
@@ -144,21 +135,18 @@ def dedisperseresample(data, delay, dt, parallel=False):
     logger.info('Correcting by delay/resampling {0}/{1} ints in {2} mode'
                 .format(delay.max(), dt, ['single', 'parallel'][parallel]))
 
-    if delay.max() > 0 or dt > 1:
-        nint, nbl, nchan, npol = data.shape
-        newsh = (int64(nint-delay.max())//dt, nbl, nchan, npol)
-        result = np.zeros(shape=newsh, dtype=data.dtype)
+    nint, nbl, nchan, npol = data.shape
+    newsh = (int64(nint-delay.max())//dt, nbl, nchan, npol)
 
-        if parallel:
-            _ = _dedisperseresample_gu(np.swapaxes(np.require(data,
-                                                              requirements='W'), 0, 1),
-                                       delay, dt)
-            return data[0:(len(data)-delay.max())//dt]
-        else:
-            _dedisperseresample_jit(data, delay, dt, result)
-            return result
+    if parallel:
+        data = data.copy()
+        _ = _dedisperseresample_gu(np.swapaxes(data, 0, 1),
+                                   delay, dt)
+        return data[0:(len(data)-delay.max())//dt]
     else:
-        return data
+        result = np.zeros(shape=newsh, dtype=data.dtype)
+        _dedisperseresample_jit(data, delay, dt, result)
+        return result
 
 
 @jit(nogil=True, nopython=True)
@@ -190,21 +178,50 @@ def _dedisperseresample_jit(data, delay, dt, result):
 @guvectorize([str("void(complex64[:,:,:], int64[:], int64)")],
              str("(n,m,l),(m),()"), target="parallel", nopython=True)
 def _dedisperseresample_gu(data, delay, dt):
+
     if delay.max() > 0 or dt > 1:
         nint, nchan, npol = data.shape
         for l in range(npol):
             for k in range(nchan):
                 for i in range((nint-delay.max())//dt):
-                    iprime = int64(i + delay[k])
-                    data[i, k, l] = data[iprime, k, l]
-                    for r in range(1, dt):
-                        data[i, k, l] += data[iprime+r, k, l]
-                    data[i, k, l] = data[i, k, l]/dt
+                    weight = int64(0)
+                    for r in range(dt):
+                        iprime = int64(i*dt + delay[k] + r)
+                        val = data[iprime, k, l]
+                        if r == 0:
+                            data[i, k, l] = val
+                        else:
+                            data[i, k, l] += val
+                        if val != 0j:
+                            weight += 1
+                    if weight > 0:
+                        data[i, k, l] = data[i, k, l]/weight
+                    else:
+                        data[i, k, l] = weight
 
 
 #
 # searching, imaging, thresholding
 #
+
+def prep_and_search(st, segment, data):
+    """ Bundles prep and search functions to improve performance in distributed.
+    """
+
+    data_prep = source.data_prep(st, segment, data)
+
+    if st.prefs.fftmode == "cuda":
+        candcollection = dedisperse_image_cuda(st, segment, data_prep)
+    elif st.prefs.fftmode == "fftw":
+        candcollection = dedisperse_image_fftw(st, segment, data_prep)
+    else:
+        logger.warn("fftmode {0} not recognized (cuda, fftw allowed)"
+                    .format(st.prefs.fftmode))
+
+    candidates.save_cands(st, candcollection)
+
+    return candcollection
+
 
 def dedisperse_image_cuda(st, segment, data, devicenum=None):
     """ Run dedispersion, resample for all dm and dt.
@@ -222,8 +239,8 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
     try:
         import rfgpu
     except ImportError:
-        logger.error('ImportError for rfgpu. Exiting.')
-        return
+        logger.warn('ImportError for rfgpu. Exiting.')
+        return []
 
     if not np.any(data):
         logger.info("Data is all zeros. Skipping search.")
@@ -250,20 +267,13 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
 
     rfgpu.cudaSetDevice(devicenum)
 
+    bytespercd = 8*(st.npixx*st.npixy + st.prefs.timewindow*st.nchan*st.npol)
+
     beamnum = 0
     uvw = util.get_uvw_segment(st, segment)
-    u, v, w = uvw
 
     upix = st.npixx
     vpix = st.npixy//2 + 1
-
-    # select data on grid (not working)
-#    ww = np.where((u[:, 0] > -st.uvres*st.npixx//2) &
-#                  (u[:, 0] < st.uvres*st.npixx//2) &
-#                  (v[:, 0] > -st.uvres*st.npixy//2) &
-#                  (v[:, 0] < st.uvres*st.npixy//2))[0]
-
- #   nbl = len(ww)
 
     grid = rfgpu.Grid(st.nbl, st.nchan, st.readints, upix, vpix)
     image = rfgpu.Image(st.npixx, st.npixy)
@@ -276,11 +286,12 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
     img_grid = rfgpu.GPUArrayReal((st.npixx, st.npixy))
 
     # Convert uv from lambda to us
-    u = 1e6*u[:, 0]/(1e9*st.freq[0])
-    v = 1e6*v[:, 0]/(1e9*st.freq[0])
+    u, v, w = uvw
+    u_us = 1e6*u[:, 0]/(1e9*st.freq[0])
+    v_us = 1e6*v[:, 0]/(1e9*st.freq[0])
 
     # Q: set input units to be uv (lambda), freq in GHz?
-    grid.set_uv(u, v)  # u, v in us
+    grid.set_uv(u_us, v_us)  # u, v in us
     grid.set_freq(st.freq*1e3)  # freq in MHz
     grid.set_cell(st.uvres)  # uv cell size in wavelengths (== 1/FoV(radians))
 
@@ -294,6 +305,8 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
     grid.conjugate(vis_raw)
 
     canddatalist = []
+    candcollection = candidates.CandCollection(prefs=st.prefs,
+                                               metadata=st.metadata)
     for dtind in range(len(st.dtarr)):
         for dmind in range(len(st.dmarr)):
             delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
@@ -308,7 +321,7 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
             minint = min(integrations)
             maxint = max(integrations)
 
-            logger.info('Imaging {0} ints ({1}-{2}) in seg {3} at DM/dt {4}/{5}'
+            logger.info('Imaging {0} ints ({1}-{2}) in seg {3} at DM/dt {4:.1f}/{5}'
                         ' with image {6}x{7} (uvres {8}) with gpu {9}'
                         .format(len(integrations), minint, maxint, segment,
                                 st.dmarr[dmind], st.dtarr[dtind], st.npixx,
@@ -333,31 +346,46 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
                     l, m = st.pixtolm(np.where(img_data == img_data.max()))
                     candloc = (segment, i, dmind, dtind, beamnum)
 
-                    logger.info("Got one! SNR {0} candidate at {1} and (l,m) = ({2},{3})"
+                    logger.info("Got one! SNR {0:.1f} candidate at {1} and (l,m) = ({2},{3})"
                                 .format(peak_snr, candloc, l, m))
 
-                    data_corr = dedisperseresample(data, delay, st.dtarr[dtind],
+                    data_corr = dedisperseresample(data, delay,
+                                                   st.dtarr[dtind],
                                                    parallel=st.prefs.nthread > 1)
                     data_corr = data_corr[max(0, i-st.prefs.timewindow//2):
-                                          min(i+st.prefs.timewindow//2, len(data))]
+                                          min(i+st.prefs.timewindow//2,
+                                          len(data))]
                     util.phase_shift(data_corr, uvw, l, m)
                     data_corr = data_corr.mean(axis=1)
-                    canddatalist.append(candidates.CandData(state=st, loc=candloc,
+                    canddatalist.append(candidates.CandData(state=st,
+                                                            loc=candloc,
                                                             image=img_data,
                                                             data=data_corr))
+
                     # TODO: add safety against triggering return of all images
+                    if len(canddatalist)*bytespercd/1000**3 > st.prefs.memory_limit:
+                        logger.info("Accumulated CandData size is {0:.1f} GB, "
+                                    "which exceeds memory limit of {1:.1f}. "
+                                    "Running calc_features..."
+                                    .format(len(canddatalist)*bytespercd/1000**3,
+                                            st.prefs.memory_limit))
+                        candcollection += candidates.calc_features(canddatalist)
+                        canddatalist = []
+
+    candcollection += candidates.calc_features(canddatalist)
 
     logger.info("{0} candidates returned for seg {1}"
-                .format(len(canddatalist), segment))
+                .format(len(candcollection), segment))
 
-    return canddatalist
+    return candcollection
 
 
 def dedisperse_image_fftw(st, segment, data, wisdom=None, integrations=None):
     """ Fuse the dediserpse, resample, search, threshold functions.
     """
 
-    canddatalist = []
+    candcollection = candidates.CandCollection(prefs=st.prefs,
+                                               metadata=st.metadata)
     for dtind in range(len(st.dtarr)):
         for dmind in range(len(st.dmarr)):
             delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
@@ -366,14 +394,14 @@ def dedisperse_image_fftw(st, segment, data, wisdom=None, integrations=None):
             data_corr = dedisperseresample(data, delay, st.dtarr[dtind],
                                            parallel=st.prefs.nthread > 1)
 
-            canddatalist += search_thresh_fftw(st, segment, data_corr, dmind,
-                                               dtind, wisdom=wisdom,
-                                               integrations=integrations)
+            candcollection += search_thresh_fftw(st, segment, data_corr, dmind,
+                                                 dtind, wisdom=wisdom,
+                                                 integrations=integrations)
 
     logger.info("{0} candidates returned for seg {1}"
-                .format(len(canddatalist), segment))
+                .format(len(candcollection), segment))
 
-    return canddatalist
+    return candcollection
 
 
 def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
@@ -392,6 +420,8 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
         logger.info("Data is all zeros. Skipping search.")
         return []
 
+    bytespercd = 8*(st.npixx*st.npixy + st.prefs.timewindow*st.nchan*st.npol)
+
     # assumes dedispersed/resampled data has only back end trimmed off
     if integrations is None:
         integrations = st.get_search_ints(segment, dmind, dtind)
@@ -403,7 +433,7 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
     minint = min(integrations)
     maxint = max(integrations)
 
-    logger.info('Imaging {0} ints ({1}-{2}) in seg {3} at DM/dt {4}/{5} with '
+    logger.info('Imaging {0} ints ({1}-{2}) in seg {3} at DM/dt {4:.1f}/{5} with '
                 'image {6}x{7} (uvres {8}) with fftw'
                 .format(len(integrations), minint, maxint, segment,
                         st.dmarr[dmind], st.dtarr[dtind], st.npixx, st.npixy,
@@ -421,30 +451,43 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
 
         # TODO: the following is really slow
         canddatalist = []
+        candcollection = candidates.CandCollection(prefs=st.prefs,
+                                                   metadata=st.metadata)
         for i in range(len(images)):
             peak_snr = images[i].max()/util.madtostd(images[i])
             if peak_snr > st.prefs.sigma_image1:
                 candloc = (segment, integrations[i], dmind, dtind, beamnum)
                 candim = images[i]
                 l, m = st.pixtolm(np.where(candim == candim.max()))
-                logger.info("Got one! SNR {0} candidate at {1} and (l,m) = ({2},{3})"
+                logger.info("Got one! SNR {0:.1f} candidate at {1} and (l,m) = ({2},{3})"
                             .format(peak_snr, candloc, l, m))
                 util.phase_shift(data, uvw, l, m)
                 dataph = data[max(0, integrations[i]-st.prefs.timewindow//2):
                               min(integrations[i]+st.prefs.timewindow//2, len(data))].mean(axis=1)
                 util.phase_shift(data, uvw, -l, -m)
                 canddatalist.append(candidates.CandData(state=st, loc=candloc,
-                                                        image=candim, data=dataph))
+                                                        image=candim,
+                                                        data=dataph))
+
+                if len(canddatalist)*bytespercd/1000**3 > st.prefs.memory_limit:
+                    logger.info("Accumulated CandData size is {0:.1f} GB, "
+                                "which exceeds memory limit of {1:.1f}. "
+                                "Running calc_features..."
+                                .format(len(canddatalist)*bytespercd/1000**3,
+                                        st.prefs.memory_limit))
+                    candcollection += candidates.calc_features(canddatalist)
+                    canddatalist = []
+
+        candcollection += candidates.calc_features(canddatalist)
+
     else:
         raise NotImplemented("only searchtype=image1 implemented")
 
-    # tuple(list(int), list(ndarray), list(ndarray))
-#    return (ints, images_thresh, dataph)
     logger.info("{0} candidates returned for (seg, dmind, dtind) = "
-                "({1}, {2}, {3})".format(len(canddatalist), segment, dmind,
+                "({1}, {2}, {3})".format(len(candcollection), segment, dmind,
                                          dtind))
 
-    return canddatalist
+    return candcollection
 
 
 def grid_image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,
