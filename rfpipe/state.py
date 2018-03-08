@@ -632,14 +632,17 @@ class State(object):
                 self.nchan//self.prefs.read_fdownsample, self.npol)
 
     @property
+    def datasize(self):
+        return np.int32(np.prod(self.datashape))
+
+    @property
     def datashape_orig(self):
         return (self.readints, self.metadata.nbl_orig,
                 self.metadata.nchan_orig, self.metadata.npol_orig)
 
     @property
-    def datasize(self):
-        return np.int32(self.readints*self.nbl*self.nchan*self.npol /
-                        (self.prefs.read_tdownsample*self.prefs.read_fdownsample))
+    def datasize_orig(self):
+        return np.int32(np.prod(self.datashape_orig))
 
     @property
     def nfalse(self):
@@ -703,7 +706,7 @@ class State(object):
 
         toGB = 8/1000**3   # number of complex64s to GB
 
-        return self.datasize * toGB
+        return toGB * self.datasize_orig
 
     @property
     def vismem_limit(self):
@@ -713,10 +716,8 @@ class State(object):
         """
 
         toGB = 8/1000**3   # number of complex64s to GB
-        return toGB*np.int32(self.t_overlap /
-                             self.inttime*self.nbl*self.nchan*self.npol /
-                             (self.prefs.read_tdownsample *
-                              self.prefs.read_fdownsample))
+        return toGB * ((self.datasize_orig//self.readints) *
+                       np.int32(self.t_overlap/self.inttime))
 
     @property
     def immem(self):

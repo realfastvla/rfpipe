@@ -60,6 +60,7 @@ def data_prep(st, segment, data, flagversion="latest"):
 def read_segment(st, segment, cfile=None, timeout=default_timeout):
     """ Read a segment of data.
     cfile and timeout are specific to vys data.
+    Returns data as defined in metadata (no downselection yet)
     """
 
     # assumed read shape (st.readints, st.nbl, st.metadata.nchan_orig, st.npol)
@@ -444,7 +445,7 @@ def flag_data_rtpipe(st, data):
             chans = np.arange(st.metadata.spw_nchan[spw]*spw, st.metadata.spw_nchan[spw]*(1+spw))
             for pol in range(st.npol):
                 spwpol[(spw, pol)] = np.abs(data[:, :, chans, pol]).std()
-        
+
         meanstd = np.mean(list(spwpol.values()))
         for (spw,pol) in spwpol:
             if spwpol[(spw, pol)] > st.prefs.badspwpol*meanstd:
@@ -459,13 +460,14 @@ def simulate_segment(st, loc=0., scale=1.):
     """ Simulates visibilities for a segment.
     """
 
-    shape = (st.readints, st.nbl, st.metadata.nchan_orig, st.metadata.npol_orig)
-    logger.info('Simulating data with shape {0}'.format(shape))
-    data_read = np.empty(shape, dtype='complex64', order='C')
-    data_read.real = np.random.normal(loc=loc, scale=scale, size=shape)
-    data_read.imag = np.random.normal(loc=loc, scale=scale, size=shape)
+    logger.info('Simulating data with shape {0}'.format(st.datashape_orig))
+    data = np.empty(st.datashape_orig, dtype='complex64', order='C')
+    data.real = np.random.normal(loc=loc, scale=scale,
+                                 size=st.datashape_orig).astype(np.float32)
+    data.imag = np.random.normal(loc=loc, scale=scale,
+                                 size=st.datashape_orig).astype(np.float32)
 
-    return data_read
+    return data
 
 
 def sdm_sources(sdmname):

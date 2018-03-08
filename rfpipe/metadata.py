@@ -296,7 +296,6 @@ def mock_metadata(t0, t1, nants, nspw, chans, npol, inttime_micros, scan=1,
     nomenclature. t0, t1 are times in mjd. Supports up to nant=27, npol=4, and
     nspw=8. chans is total number of channels over all spw (equal per spw).
     datasource is expected source of data (typically vys when mocking).
-    
     """
 
     logger.info('Generating mock metadata')
