@@ -208,12 +208,12 @@ def prep_and_search(st, segment, data):
     """ Bundles prep and search functions to improve performance in distributed.
     """
 
-    data_prep = source.data_prep(st, segment, data)
+    data = source.data_prep(st, segment, data)
 
     if st.prefs.fftmode == "cuda":
-        candcollection = dedisperse_image_cuda(st, segment, data_prep)
+        candcollection = dedisperse_image_cuda(st, segment, data)
     elif st.prefs.fftmode == "fftw":
-        candcollection = dedisperse_image_fftw(st, segment, data_prep)
+        candcollection = dedisperse_image_fftw(st, segment, data)
     else:
         logger.warn("fftmode {0} not recognized (cuda, fftw allowed)"
                     .format(st.prefs.fftmode))
