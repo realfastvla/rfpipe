@@ -364,11 +364,10 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
 
                     # TODO: add safety against triggering return of all images
                     if len(canddatalist)*bytespercd/1000**3 > st.prefs.memory_limit:
-                        logger.info("Accumulated CandData size is {0:.1f} GB, "
-                                    "which exceeds memory limit of {1:.1f}. "
+                        logger.info("Accumulated CandData size exceeds "
+                                    "memory limit of {0:.1f}. "
                                     "Running calc_features..."
-                                    .format(len(canddatalist)*bytespercd/1000**3,
-                                            st.prefs.memory_limit))
+                                    .format(st.prefs.memory_limit))
                         candcollection += candidates.calc_features(canddatalist)
                         canddatalist = []
 
