@@ -236,15 +236,18 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
                 for dtind in range(len(st.dtarr)-1)]), ("dtarr must increase "
                                                         "by factors of 2")
 
+    candcollection = candidates.CandCollection(prefs=st.prefs,
+                                               metadata=st.metadata)
+
     try:
         import rfgpu
     except ImportError:
         logger.warn('ImportError for rfgpu. Exiting.')
-        return []
+        return candcollection
 
     if not np.any(data):
         logger.info("Data is all zeros. Skipping search.")
-        return []
+        return candcollection
 
     if devicenum is None:
         # assume first gpu, but try to infer from worker name
@@ -305,8 +308,6 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
     grid.conjugate(vis_raw)
 
     canddatalist = []
-    candcollection = candidates.CandCollection(prefs=st.prefs,
-                                               metadata=st.metadata)
     for dtind in range(len(st.dtarr)):
         for dmind in range(len(st.dmarr)):
             delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],

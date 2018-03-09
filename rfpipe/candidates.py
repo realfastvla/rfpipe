@@ -247,7 +247,8 @@ def calc_features(canddatalist):
 
         features[i] = tuple(ff)
 
-    candcollection = CandCollection(features, st.prefs, st.metadata)
+    candcollection = CandCollection(array=features, prefs=st.prefs,
+                                    metadata=st.metadata)
 
     # make plot for peak snr in collection
     # TODO: think about candidate clustering
