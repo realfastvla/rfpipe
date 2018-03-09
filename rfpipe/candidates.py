@@ -255,8 +255,10 @@ def calc_features(canddatalist):
     if st.prefs.savecands and len(candcollection.array):
         snrs = candcollection.array['snr1'].flatten()
         maxindex = np.argmax(snrs)
+        # save plot and canddata at peaksnr
         candplot(canddatalist[maxindex], snrs=snrs)
-        # TODO: save_cands(st, canddata=canddatalist[maxindex])?
+        save_cands(st, canddata=canddatalist[maxindex])
+
 
     return candcollection  # return tuple as handle on pipeline
 
@@ -264,13 +266,29 @@ def calc_features(canddatalist):
 def save_cands(st, candcollection=None, canddata=None):
     """ Save candidate collection or cand data to pickle file.
     Collection saved as array with metadata and preferences attached.
-    (CandData saving not yet supported.)
     Writes to location defined by state using a file lock to allow multiple
     writers.
     """
 
     if canddata is not None:
-        raise NotImplementedError("CandData saving not yet implemented")
+        if st.prefs.savecands:
+            logger.info('Saving CandData to {0}.'.format(st.candsfile))
+
+            try:
+                with fileLock.FileLock(st.candsfile+'.lock', timeout=10):
+                    with open(st.candsfile, 'ab+') as pkl:
+                        pickle.dump(canddata, pkl)
+            except fileLock.FileLock.FileLockException:
+                segment = canddata.loc[0]
+                newcandsfile = ('{0}_seg{1}.pkl'
+                                .format(st.candsfile.rstrip('.pkl'), segment))
+                logger.warn('Candidate file writing timeout. '
+                            'Spilling to new file {0}.'.format(newcandsfile))
+                with open(newcandsfile, 'ab+') as pkl:
+                    pickle.dump(canddata, pkl)
+
+        else:
+            logger.info('Not saving CandData.')
 
     if candcollection is not None:
         if st.prefs.savecands and len(candcollection.array):
@@ -282,8 +300,7 @@ def save_cands(st, candcollection=None, canddata=None):
                     with open(st.candsfile, 'ab+') as pkl:
                         pickle.dump(candcollection, pkl)
             except fileLock.FileLock.FileLockException:
-                cand = candcollection.array[0]
-                segment = cand[0]
+                segment = candcollection.segment
                 newcandsfile = ('{0}_seg{1}.pkl'
                                 .format(st.candsfile.rstrip('.pkl'), segment))
                 logger.warn('Candidate file writing timeout. '
@@ -298,19 +315,24 @@ def save_cands(st, candcollection=None, canddata=None):
             logger.info('Not saving candidates.')
 
 
-def iter_cands(candsfile):
-    """ Iterate through (new style) candsfile and return a collection
-    for each segment.
+def iter_cands(candsfile, select='candcollection'):
+    """ Iterate through (new style) candsfile and return either
+    a candidatecollection or canddata.
+    select defines what kind of object to return:
+    - 'canddata' is heavier object with image and spectrum (used to make plots)
+    - 'candcollection' is lighter object with features.
     """
+
+    assert select.lower() in ['candcollection', 'canddata']
 
     with open(candsfile, 'rb') as pkl:
         while True:  # step through all possible segments
             try:
-                candcollection = pickle.load(pkl)
-                yield candcollection
-
+                candobj = pickle.load(pkl)
+                if select.lower() in str(type(candobj)).lower():
+                    yield candobj
             except EOFError:
-                logger.debug('No more CandCollections.')
+                logger.debug('Reached end of pickle.')
                 break
 
 
