@@ -377,6 +377,9 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
     logger.info("{0} candidates returned for seg {1}"
                 .format(len(candcollection), segment))
 
+    # Python may not clean these up properly
+    del vis_raw, vis_grid, img_grid, grid, image
+
     return candcollection
 
 
