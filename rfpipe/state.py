@@ -452,6 +452,14 @@ class State(object):
                 np.degrees(1/(self.npixy*self.uvres/2)))
 
     @property
+    def fieldsize_deg(self):
+        """ Takes gridding spec to estimate field of view in degrees
+        ** TODO: check for accuracy
+        """
+
+        return np.degrees(1/(self.uvres/2.))
+
+    @property
     def fringetime_orig(self):
         """ Estimate largest time span of a "segment".
         A segment is the maximal time span that can be have a single bg fringe
