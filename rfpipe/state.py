@@ -604,6 +604,7 @@ class State(object):
 
     @property
     def nints(self):
+        assert self.metadata.nints > 0, "metadata.nints must be greater than zero"
         return self.metadata.nints
 
     @property

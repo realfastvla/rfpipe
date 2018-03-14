@@ -122,6 +122,7 @@ class Metadata(object):
         if self.endtime_mjd_:
             return self.endtime_mjd_
         elif self.nints_:
+            assert self.nints_ > 0, "nints_ must be greater than zero"
             return self.starttime_mjd + (self.nints_*self.inttime)/(24*3600)
         else:
             raise AttributeError("Either endtime_mjd_ or nints_ need to be "
@@ -137,6 +138,7 @@ class Metadata(object):
         if self.nints_:
             return self.nints_
         elif self.endtime_mjd_:
+            assert self.endtime_mjd > self.starttime_mjd, "endtime_mjd must be larger than starttime_mjd"
             return np.round((self.endtime_mjd_ - self.starttime_mjd)*(24*3600)/self.inttime).astype(int)
         else:
             raise AttributeError("Either endtime_mjd_ or nints_ need to be "
