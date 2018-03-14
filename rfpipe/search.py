@@ -319,6 +319,8 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
             grid.set_shift(delay >> dtind)  # dispersion shift per chan in samples
 
             integrations = st.get_search_ints(segment, dmind, dtind)
+            if len(integrations) == 0:
+                continue
             minint = min(integrations)
             maxint = max(integrations)
 
@@ -419,9 +421,12 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
     ** dmind, dtind, beamnum assumed to represent current state of data
     """
 
+    candcollection = candidates.CandCollection(prefs=st.prefs,
+                                               metadata=st.metadata)
+
     if not np.any(data):
         logger.info("Data is all zeros. Skipping search.")
-        return []
+        return candcollection
 
     bytespercd = 8*(st.npixx*st.npixy + st.prefs.timewindow*st.nchan*st.npol)
 
@@ -433,6 +438,8 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
 
     assert isinstance(integrations, list), ("integrations should be int, list "
                                             "of ints, or None.")
+    if len(integrations) == 0:
+        return candcollection
     minint = min(integrations)
     maxint = max(integrations)
 
@@ -454,8 +461,6 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
 
         # TODO: the following is really slow
         canddatalist = []
-        candcollection = candidates.CandCollection(prefs=st.prefs,
-                                                   metadata=st.metadata)
         for i in range(len(images)):
             peak_snr = images[i].max()/util.madtostd(images[i])
             if peak_snr > st.prefs.sigma_image1:
