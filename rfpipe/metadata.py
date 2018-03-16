@@ -256,7 +256,7 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     meta['spw_reffreq'] = scanobj.reffreqs
     meta['spw_chansize'] = scanobj.chanwidths
     try:
-        meta['pols_orig'] = scanobj.bdf.spws.pols('cross')
+        meta['pols_orig'] = scanobj.bdf.spws[0].pols('cross')
     except AttributeError:
         logger.warn("No BDF found. Inferring pols from xml.")
         meta['pols_orig'] = [pol for pol in (str(sdm['Polarization'][0]
