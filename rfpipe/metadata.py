@@ -233,19 +233,8 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     else:
         meta['bdfstr'] = bdfstr
 
-    try:
-        starttime_mjd = scanobj.bdf.startTime
-    except AttributeError:
-        logger.warn("No BDF found. Inferring starttime_mjd from...")
-        starttime_mjd = list(sdm['Scan'])[scan].startTime/86400.0e9
-    meta['starttime_mjd'] = starttime_mjd
-
-    try:
-        nints = scanobj.bdf.numIntegration
-    except AttributeError:
-        logger.warn("No BDF found. Using Main table to infer nints.")
-        nints = list(sdm['Main'])[scan].numIntegration
-    meta['nints_'] = nints
+    meta['starttime_mjd'] = scanobj.startMJD
+    meta['nints_'] = scanobj.numIntegration
 
     try:
         inttime = scanobj.bdf.get_integration(0).interval
@@ -260,25 +249,16 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
 #    meta['stationids'] = scanobj.stations
     meta['xyz'] = np.array(scanobj.positions)
 
-    sources = source.sdm_sources(sdmfile)
-    meta['radec'] = [(prop['ra'], prop['dec'])
-                     for (sr, prop) in list(sources.items())
-                     if str(prop['source']) == str(scanobj.source)][0]
+    meta['radec'] = scanobj.coordinates.tolist()
     meta['dishdiameter'] = float(str(sdm['Antenna'][0].dishDiameter).strip())
-    meta['spw_orig'] = [int(str(row.spectralWindowId).split('_')[1])
-                        for row in sdm['SpectralWindow']]
-    meta['spw_nchan'] = [int(row.numChan) for row in sdm['SpectralWindow']]
-    meta['spw_reffreq'] = [float(row.chanFreqStart)
-                           for row in sdm['SpectralWindow']]
-    meta['spw_chansize'] = [float(row.chanFreqStep)
-                            for row in sdm['SpectralWindow']]
-
-    meta['pols_orig'] = [pol for pol in (str(sdm['Polarization'][0]
-                                             .corrType).strip()
-                                         .split(' '))
-                         if pol in ['XX', 'YY', 'XY', 'YX',
-                                    'RR', 'LL', 'RL', 'LR',
-                                    'A*A', 'A*B', 'B*A', 'B*B']]
+    meta['spw_orig'] = [int(str(spw).split('_')[1]) for spw in scanobj.spws]
+    meta['spw_nchan'] = scanobj.numchans
+    meta['spw_reffreq'] = scanobj.reffreqs
+    meta['spw_chansize'] = scanobj.chanwidths
+    meta['pols_orig'] = scanobj.bdf.spws.pols('cross')
+#                         if pol in ['XX', 'YY', 'XY', 'YX',
+#                                    'RR', 'LL', 'RL', 'LR',
+#                                    'A*A', 'A*B', 'B*A', 'B*B']]
     try:
         meta['spworder'] = sorted(zip(['{0}-{1}'.format(spw.swbb.rstrip('_8BIT'),
                                                         spw.sw-1)
