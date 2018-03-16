@@ -255,10 +255,15 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     meta['spw_nchan'] = scanobj.numchans
     meta['spw_reffreq'] = scanobj.reffreqs
     meta['spw_chansize'] = scanobj.chanwidths
-    meta['pols_orig'] = scanobj.bdf.spws.pols('cross')
-#                         if pol in ['XX', 'YY', 'XY', 'YX',
-#                                    'RR', 'LL', 'RL', 'LR',
-#                                    'A*A', 'A*B', 'B*A', 'B*B']]
+    try:
+        meta['pols_orig'] = scanobj.bdf.spws.pols('cross')
+    except AttributeError:
+        logger.warn("No BDF found. Inferring pols from xml.")
+        meta['pols_orig'] = [pol for pol in (str(sdm['Polarization'][0]
+                                                 .corrType)).strip().split(' ')
+                             if pol in ['XX', 'YY', 'XY', 'YX',
+                                        'RR', 'LL', 'RL', 'LR',
+                                        'A*A', 'A*B', 'B*A', 'B*B']]
     try:
         meta['spworder'] = sorted(zip(['{0}-{1}'.format(spw.swbb.rstrip('_8BIT'),
                                                         spw.sw-1)
