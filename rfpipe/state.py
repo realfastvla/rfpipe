@@ -122,6 +122,7 @@ class State(object):
             logger.info('\t nchan, nspw: {0}, {1}'
                         .format(self.nchan, self.nspw))
 
+            # TODO: remove for datasource=vys or sim
             spworder = np.argsort(self.metadata.spw_reffreq)
             if np.any(spworder != np.sort(spworder)):
                 logger.warn('BDF spw sorted to increasing order from {0}'

@@ -231,7 +231,7 @@ def calcgaindelay(sols, bls, freqarr, pols, chansize, nch, sign=1):
                 d1 = 0.
                 d2 = 0.
                 for sol in sols:
-                    if ((sol['polarization'] == pols[pi]) and (sol['skyfreq'] == freqarr[fi]) and (not sol['flagged'])):
+                    if ((sol['polarization'] == pols[pi]) and (sol['skyfreq']-freqarr[fi] < chansize) and (not sol['flagged'])):
                         if sol['antnum'] == ant1:
                             g1 = sol['amp']*np.exp(1j*np.radians(sol['phase']))
                             d1 = sol['delay']
