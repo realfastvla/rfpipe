@@ -325,15 +325,26 @@ def iter_cands(candsfile, select='candcollection'):
 
     assert select.lower() in ['candcollection', 'canddata']
 
-    with open(candsfile, 'rb') as pkl:
-        while True:  # step through all possible segments
-            try:
-                candobj = pickle.load(pkl)
-                if select.lower() in str(type(candobj)).lower():
-                    yield candobj
-            except EOFError:
-                logger.debug('Reached end of pickle.')
-                break
+    try:
+        with open(candsfile, 'rb') as pkl:
+            while True:  # step through all possible segments
+                try:
+                    candobj = pickle.load(pkl)
+                    if select.lower() in str(type(candobj)).lower():
+                        yield candobj
+                except EOFError:
+                    logger.debug('Reached end of pickle.')
+                    break
+    except UnicodeDecodeError:
+        with open(candsfile, 'rb', encoding='latin-1') as pkl:
+            while True:  # step through all possible segments
+                try:
+                    candobj = pickle.load(pkl)
+                    if select.lower() in str(type(candobj)).lower():
+                        yield candobj
+                except EOFError:
+                    logger.debug('Reached end of pickle.')
+                    break
 
 
 def iter_noise(noisefile):
@@ -341,16 +352,28 @@ def iter_noise(noisefile):
     for each segment.
     """
 
-    with open(noisefile, 'rb') as pkl:
-        while True:  # step through all possible segments
-            try:
-                noises = pickle.load(pkl)
-                for noise in noises:
-                    yield noise
+    try:
+        with open(noisefile, 'rb') as pkl:
+            while True:  # step through all possible segments
+                try:
+                    noises = pickle.load(pkl)
+                    for noise in noises:
+                        yield noise
 
-            except EOFError:
-                logger.debug('No more CandCollections.')
-                break
+                except EOFError:
+                    logger.debug('No more CandCollections.')
+                    break
+    except UnicodeDecodeError:
+        with open(noisefile, 'rb', 'latin-1') as pkl:
+            while True:  # step through all possible segments
+                try:
+                    noises = pickle.load(pkl)
+                    for noise in noises:
+                        yield noise
+
+                except EOFError:
+                    logger.debug('No more CandCollections.')
+                    break
 
 
 ### bokeh summary plot
