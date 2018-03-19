@@ -336,10 +336,10 @@ def iter_cands(candsfile, select='candcollection'):
                     logger.debug('Reached end of pickle.')
                     break
     except UnicodeDecodeError:
-        with open(candsfile, 'rb', encoding='latin-1') as pkl:
+        with open(candsfile, 'rb') as pkl:
             while True:  # step through all possible segments
                 try:
-                    candobj = pickle.load(pkl)
+                    candobj = pickle.load(pkl, encoding='latin-1')
                     if select.lower() in str(type(candobj)).lower():
                         yield candobj
                 except EOFError:
@@ -364,10 +364,10 @@ def iter_noise(noisefile):
                     logger.debug('No more CandCollections.')
                     break
     except UnicodeDecodeError:
-        with open(noisefile, 'rb', 'latin-1') as pkl:
+        with open(noisefile, 'rb') as pkl:
             while True:  # step through all possible segments
                 try:
-                    noises = pickle.load(pkl)
+                    noises = pickle.load(pkl, encoding='latin-1')
                     for noise in noises:
                         yield noise
 
