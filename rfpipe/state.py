@@ -40,7 +40,7 @@ class State(object):
 
     def __init__(self, config=None, sdmfile=None, sdmscan=None, bdfdir=None,
                  inprefs=None, inmeta=None, preffile=None, name=None,
-                 showsummary=True, lock=None):
+                 showsummary=True, lock=None, validate=True):
         """ Initialize preference attributes with text file, preffile.
         name can select preference set from within yaml file.
         preferences are overloaded with inprefs.
@@ -51,6 +51,7 @@ class State(object):
 
         inmeta is a dict with key-value pairs to overload metadata (e.g., to
         mock metadata from a simulation)
+        validate argument will use assertions to test state.
         """
 
         self.config = config
@@ -100,12 +101,41 @@ class State(object):
 
             self.metadata = metadata.Metadata(**meta)
 
+        if validate:
+            self.validate()
+
         if showsummary:
             self.summarize()
 
     def __repr__(self):
         return ('rfpipe state with metadata/prefs ({0}/{1})'
                 .format(self.metadata.datasetId, self.prefs.name))
+
+    def validate(self):
+        """ Test validity of state (metadata + preferences) with a few assertions
+        """
+
+        assert self.t_overlap < self.nints*self.inttime, ('t_overlap must be'
+                                                          ' less than scan '
+                                                          'length ({0} < {1}) '
+                                                          .format(self.t_overlap,
+                                                                  self.nints*self.inttime))
+
+        assert self.t_overlap < self.t_segment, ('Max DM sweep ({0:.1f} s)'
+                                                 ' is larger than segment '
+                                                 'size ({1:.1f} s). '
+                                                 'Pipeline will fail!'
+                                                 .format(self.t_overlap,
+                                                         self.t_segment))
+
+        if self.prefs.timesub is not None:
+            assert self.inttime < self.fringetime_orig, ('Integration time '
+                                                         'must be less than '
+                                                         'fringe time '
+                                                         '({0} < {1}) for vis '
+                                                         'subtraction'
+                                                         .format(self.inttime,
+                                                                 self.fringetime))
 
     def summarize(self):
         """ Print summary of pipeline state """
@@ -147,21 +177,10 @@ class State(object):
                                 self.readints, self.t_segment, self.t_overlap))
             logger.info('\t Searching {0} of {1} ints in scan'
                         .format(self.searchints, self.metadata.nints))
-            if ((self.t_overlap > self.t_segment/3.)
-               and (self.t_overlap < self.t_segment)):
+            if self.t_overlap > self.t_segment/3.:
                 logger.info('\t\t Lots of segments needed, since Max DM sweep '
                             '({0:.1f} s) close to segment size ({1:.1f} s)'
                             .format(self.t_overlap, self.t_segment))
-            elif self.t_overlap >= self.t_segment:
-                logger.warn('\t\t Max DM sweep ({0:.1f} s) is larger than '
-                            'segment size ({1:.1f} s). Pipeline will fail!'
-                            .format(self.t_overlap, self.t_segment))
-
-            if self.inttime > self.fringetime_orig:
-                logger.warn('\t\t Integration time larger than fringe '
-                            'timescale ({0} > {1}). Mean visibility '
-                            'subtraction will not work well.'
-                            .format(self.inttime, self.fringetime))
 
             if (self.prefs.read_tdownsample > 1 or self.prefs.read_fdownsample > 1):
                 logger.info('\t Downsampling in time/freq by {0}/{1}.'
@@ -203,7 +222,7 @@ class State(object):
                             .format(self.vismem))
 
     def clearcache(self):
-        cached = ['_dmarr', '_t_overlap', '_dmshifts', '_npol', '_blarr',
+        cached = ['_dmarr', '_dmshifts', '_npol', '_blarr',
                   '_segmenttimes', '_npixx_full', '_npixy_full']
         for obj in cached:
             try:
@@ -308,9 +327,7 @@ class State(object):
         """ Max DM delay in seconds that is fixed to int mult of integration time.
         Gets cached. """
 
-        if not hasattr(self, '_t_overlap'):
-            self._t_overlap = max(self.dmshifts)*self.inttime
-        return self._t_overlap
+        return max(self.dmshifts)*self.inttime
 
     @property
     def spw(self):

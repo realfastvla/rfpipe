@@ -275,7 +275,6 @@ def calc_segment_times(state, scale_nsegment=1.):
                                                         state.fringetime,
                                                         state.inttime))
 
-
     segmenttimes = []
     for (startdt, stopdt) in zip(state.inttime*startdts, state.inttime*stopdts):
         starttime = qa.getvalue(qa.convert(qa.time(qa.quantity(state.metadata.starttime_mjd+startdt/(24*3600), 'd'),
