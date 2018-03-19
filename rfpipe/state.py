@@ -679,12 +679,14 @@ class State(object):
         """ Use either sigma_image1_ or nfalse
         """
 
+        assert (self.prefs.sigma_image1 is not None) or (self.prefs.nfalse  is not None), "Must set either prefs.sigma_image1 or prefs.nfalse"
+
         if self.prefs.sigma_image1 is not None:
             return self.prefs.sigma_image1
         elif self.prefs.nfalse is not None:
             return self.thresholdlevel(self.prefs.nfalse)
         else:
-            logger.warn("Must set preference for either sigma_image1 or nfalse")
+            logger.warn("Cannot set sigma_image1 from given preferences")
 
     @property
     def datashape(self):
