@@ -343,7 +343,7 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
                     peak_snr = 0.
 
                 # threshold image on GPU and optionally save it
-                if peak_snr > st.prefs.sigma_image1:
+                if peak_snr > st.sigma_image1:
                     img_grid.d2h()
                     img_data = np.fft.fftshift(img_grid.data)  # shift zero pixel in middle
                     l, m = st.pixtolm(np.where(img_data == img_data.max()))
@@ -457,13 +457,13 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
                             integrations=integrations)
 
         logger.debug('Thresholding at {0} sigma.'
-                     .format(st.prefs.sigma_image1))
+                     .format(st.sigma_image1))
 
         # TODO: the following is really slow
         canddatalist = []
         for i in range(len(images)):
             peak_snr = images[i].max()/util.madtostd(images[i])
-            if peak_snr > st.prefs.sigma_image1:
+            if peak_snr > st.sigma_image1:
                 candloc = (segment, integrations[i], dmind, dtind, beamnum)
                 candim = images[i]
                 l, m = st.pixtolm(np.where(candim == candim.max()))

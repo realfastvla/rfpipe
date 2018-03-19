@@ -6,7 +6,7 @@ from io import open
 import os
 from datetime import date
 import numpy as np
-from scipy.special import erf
+from scipy.special import erf, erfinv
 from astropy import time
 from rfpipe import util, preferences, metadata, version
 import pwkit.environments.casa.util as casautil
@@ -201,15 +201,15 @@ class State(object):
 
             logger.info('\t Using {0} for {1} search at {2} sigma using {3} thread{4}.'
                         .format(self.fftmode, self.prefs.searchtype,
-                                self.prefs.sigma_image1, self.prefs.nthread,
+                                self.sigma_image1, self.prefs.nthread,
                                 's'[not self.prefs.nthread-1:]))
             logger.info('\t Using {0} DMs from {1} to {2} and dts {3}.'
                         .format(len(self.dmarr), min(self.dmarr),
                                 max(self.dmarr), self.dtarr))
             logger.info('\t Using uvgrid npix=({0}, {1}) and res={2} with {3} int chunks.'
                         .format(self.npixx, self.npixy, self.uvres, self.chunksize))
-            logger.info('\t Expect {0} thermal false positives per segment.'
-                        .format(self.nfalse))
+            logger.info('\t Expect {0} thermal false positives per scan.'
+                        .format(self.nfalse(self.sigma_image1)))
 
             logger.info('')
             if self.fftmode == "fftw":
@@ -646,12 +646,45 @@ class State(object):
 
     @property
     def searchints(self):
-        """ Number of integrations searched
+        """ Number of integrations searched per scan
         """
 
         return self.readints + \
-        (self.readints - int(round(self.t_overlap/self.inttime))) * \
-        max(0, (self.nsegment-1))
+               (self.readints - int(round(self.t_overlap/self.inttime))) * \
+               max(0, (self.nsegment-1))
+
+    @property
+    def ntrials(self):
+        """ Number of search trials per scan
+        """
+
+        dtfactor = np.sum([1/i for i in self.dtarr])
+        return self.searchints * dtfactor * len(self.dmarr) * self.npixx * self.npixy
+
+    def nfalse(self, sigma):
+        """ Number of thermal-noise false positives per scan at given sigma
+        """
+
+        qfrac = 1 - (erf(sigma/np.sqrt(2)) + 1)/2
+        return int(qfrac*self.ntrials)
+
+    def thresholdlevel(self, nfalse):
+        """ Sigma threshold for a given number of false positives per scan
+        """
+
+        return erfinv(2*(1 - nfalse/float(self.ntrials)) - 1)*np.sqrt(2)
+
+    @property
+    def sigma_image1(self):
+        """ Use either sigma_image1_ or nfalse
+        """
+
+        if self.prefs.sigma_image1 is not None:
+            return self.prefs.sigma_image1
+        elif self.prefs.nfalse is not None:
+            return self.thresholdlevel(self.prefs.nfalse)
+        else:
+            logger.warn("Must set preference for either sigma_image1 or nfalse")
 
     @property
     def datashape(self):
@@ -670,18 +703,6 @@ class State(object):
     @property
     def datasize_orig(self):
         return np.int32(np.prod(self.datashape_orig))
-
-    @property
-    def nfalse(self):
-        """ Calculate the number of thermal-noise false positives per segment.
-        """
-
-        # assumes dedisperse-all algorithm
-        dtfactor = np.sum([1/i for i in self.dtarr])
-        ntrials = self.readints * dtfactor * len(self.dmarr) * self.npixx * self.npixy
-        qfrac = 1 - (erf(self.prefs.sigma_image1/np.sqrt(2)) + 1)/2
-        nfalse = int(qfrac*ntrials)
-        return nfalse
 
     @property
     def search_dimensions(self):

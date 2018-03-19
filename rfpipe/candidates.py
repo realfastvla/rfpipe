@@ -426,10 +426,6 @@ def makesummaryplot(candsfile):
     data = dict(snrs=snr, dm=dm, l1=l1, m1=m1, time=time, sizes=sizes,
                 colors=colors, keys=keys)
 
-#    circleinds = calcinds(data, cc.prefs.sigma_image1)
-#    crossinds = calcinds(data, -1*cc.prefs.sigma_image1)
-#    edgeinds = calcinds(data, cc.prefs.sigma_plot)
-
     dmt = plotdmt(data)
     loc = plotloc(data)
     combined = Row(dmt, loc, width=950)
