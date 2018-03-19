@@ -131,8 +131,8 @@ class State(object):
             logger.info('\t Freq range: {0:.3f} -- {1:.3f}'
                         .format(self.freq.min(), self.freq.max()))
             logger.info('\t Scan has {0} ints ({1:.1f} s) and inttime {2:.3f} s'
-                        .format(self.nints, self.nints*self.metadata.inttime,
-                                self.metadata.inttime))
+                        .format(self.nints, self.nints*self.inttime,
+                                self.inttime))
             logger.info('\t {0} polarizations: {1}'
                         .format(self.metadata.npol_orig,
                                 self.metadata.pols_orig))
@@ -633,7 +633,7 @@ class State(object):
         """
 
         return self.readints + \
-        (self.readints - int(round(self.t_overlap/self.metadata.inttime))) * \
+        (self.readints - int(round(self.t_overlap/self.inttime))) * \
         max(0, (self.nsegment-1))
 
     @property
@@ -726,8 +726,8 @@ class State(object):
         """
 
         toGB = 8/1000**3   # number of complex64s to GB
-        return toGB * ((self.datasize_orig//self.readints) *
-                       np.int32(self.t_overlap/self.inttime))
+        return toGB * ((self.datasize_orig//self.readints *
+                       int(round(self.t_overlap/self.inttime))))
 
     @property
     def immem(self):
@@ -744,7 +744,7 @@ class State(object):
         """
 
         toGB = 8/1000**3   # number of complex64s to GB
-        return (min(self.chunksize, (self.t_overlap/self.inttime)) * self.npixx * self.npixy) * toGB
+        return (min(self.chunksize, int(round(self.t_overlap/self.inttime))) * self.npixx * self.npixy) * toGB
 
     @property
     def memory_total(self):

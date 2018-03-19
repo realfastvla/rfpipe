@@ -266,10 +266,15 @@ def calc_segment_times(state, scale_nsegment=1.):
     startdts = np.concatenate(([0],
                               stopdts[:-1]-int(round(state.t_overlap/state.inttime))))
 
-    assert all([len(stopdts), len(startdts)]), ('Could not set segment times.'
-                                                't_overlap may be longer than '
-                                                'nints or fringetime shorter '
-                                                'than inttime.')
+    assert all([len(stopdts), len(startdts)]), ('Could not set segment times. '
+                                                'Confirm that: '
+                                                't_overlap < scan length ({0} < {1}) '
+                                                'and fringetime > inttime ({2} > {3})'
+                                                .format(state.t_overlap,
+                                                        state.nints*state.inttime,
+                                                        state.fringetime,
+                                                        state.inttime))
+
 
     segmenttimes = []
     for (startdt, stopdt) in zip(state.inttime*startdts, state.inttime*stopdts):
@@ -289,7 +294,7 @@ def find_segment_times(state):
     """
 
     # calculate memory limit to stop iteration
-    assert state.memory_total_limit < state.prefs.memory_limit, 'memory_limit of {0} is smaller than best solution of {1}. Try setting maxdm/npix_max lower.'.format(state.prefs.memory_limit, state.immem_limit+state.vismem_limit)
+    assert state.memory_total_limit < state.prefs.memory_limit, 'memory_limit of {0} is smaller than best solution of {1}. Try setting maxdm or image memory lower.'.format(state.prefs.memory_limit, state.memory_total_limit)
 
     if state.memory_total > state.prefs.memory_limit:
         logger.debug("Total memory is larger than memory limit."
