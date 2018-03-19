@@ -2,20 +2,12 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Search State, Preferences, and Metadata &#8212; rfpipe 0.6.0 documentation</title>
+    <title>Search State, Preferences, and Metadata &#8212; rfpipe 0.9.5 documentation</title>
     <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
-        VERSION:     '0.6.0',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
+    <script type="text/javascript" src="_static/documentation_options.js"></script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
@@ -32,8 +24,7 @@
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
 
-  </head>
-  <body>
+  </head><body>
 
   <div id="navbar" class="navbar navbar-default navbar-fixed-top">
     <div class="container">
@@ -46,7 +37,7 @@
         </button>
         <a class="navbar-brand" href="index.html"><span><img src="_static/favicon.ico.png"></span>
           rfpipe</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.6.0</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.9.5</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -129,14 +120,40 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12 content">
+      <div class="col-md-3">
+        <div id="sidebar" class="bs-sidenav" role="complementary"><ul>
+<li><a class="reference internal" href="#">Search State, Preferences, and Metadata</a></li>
+</ul>
+
+  <li>
+    <a href="Overview.html" title="Previous Chapter: Overview"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm hidden-tablet">&laquo; Overview</span>
+    </a>
+  </li>
+  <li>
+    <a href="Pipeline.html" title="Next Chapter: Using a Search Pipeline"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm hidden-tablet">Using a Searc... &raquo;</span>
+    </a>
+  </li>
+<div id="sourcelink">
+  <a href="_sources/State.rst.txt"
+     rel="nofollow">Source</a>
+</div>
+<form action="search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+    <div class="col-md-9 content">
       
   <div class="section" id="search-state-preferences-and-metadata">
 <h1>Search State, Preferences, and Metadata<a class="headerlink" href="#search-state-preferences-and-metadata" title="Permalink to this headline">¶</a></h1>
 <p>The definition of a search in rfpipe is controlled with a the state.State object. A state is uniquely defined by two other classes, preferences and metadata. The preferences are parameters that define what the user wants to search, how to search, etc.. The metadata defines the way the data were recorded (e.g., observing frequency, time resolution, etc.). The state object combines these two other classes to derive run-time properties that control the search.</p>
 <dl class="class">
 <dt id="rfpipe.state.State">
-<em class="property">class </em><code class="descclassname">rfpipe.state.</code><code class="descname">State</code><span class="sig-paren">(</span><em>config=None</em>, <em>sdmfile=None</em>, <em>sdmscan=None</em>, <em>inprefs={}</em>, <em>inmeta={}</em>, <em>preffile=None</em>, <em>name=None</em>, <em>showsummary=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">rfpipe.state.</code><code class="descname">State</code><span class="sig-paren">(</span><em>config=None</em>, <em>sdmfile=None</em>, <em>sdmscan=None</em>, <em>bdfdir=None</em>, <em>inprefs=None</em>, <em>inmeta=None</em>, <em>preffile=None</em>, <em>name=None</em>, <em>showsummary=True</em>, <em>lock=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State" title="Permalink to this definition">¶</a></dt>
 <dd><p>Defines initial pipeline preferences and methods for calculating state.
 Uses attributes for preferences and metadata.
 State properties used for derived quantities that depend on
@@ -194,6 +211,11 @@ metadata+preferences.</p>
 with backup to take all defined in metadata.</p>
 </dd></dl>
 
+<dl class="attribute">
+<dt id="rfpipe.state.State.chunksize">
+<code class="descname">chunksize</code><a class="headerlink" href="#rfpipe.state.State.chunksize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
 <dt id="rfpipe.state.State.clearcache">
 <code class="descname">clearcache</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State.clearcache"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State.clearcache" title="Permalink to this definition">¶</a></dt>
@@ -205,8 +227,18 @@ with backup to take all defined in metadata.</p>
 <dd></dd></dl>
 
 <dl class="attribute">
+<dt id="rfpipe.state.State.datashape_orig">
+<code class="descname">datashape_orig</code><a class="headerlink" href="#rfpipe.state.State.datashape_orig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
 <dt id="rfpipe.state.State.datasize">
 <code class="descname">datasize</code><a class="headerlink" href="#rfpipe.state.State.datasize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.datasize_orig">
+<code class="descname">datasize_orig</code><a class="headerlink" href="#rfpipe.state.State.datasize_orig" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -243,6 +275,13 @@ analysis</p>
 <code class="descname">fftmode</code><a class="headerlink" href="#rfpipe.state.State.fftmode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Should the FFT be done with fftw or cuda?
 <em>Could overload here based on local configuration</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.fieldsize_deg">
+<code class="descname">fieldsize_deg</code><a class="headerlink" href="#rfpipe.state.State.fieldsize_deg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes gridding spec to estimate field of view in degrees
+** TODO: check for accuracy</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -283,16 +322,16 @@ suffix</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="rfpipe.state.State.get_search_ints">
+<code class="descname">get_search_ints</code><span class="sig-paren">(</span><em>segment</em>, <em>dmind</em>, <em>dtind</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State.get_search_ints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State.get_search_ints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper function to get list of integrations
+to be searched after correcting for DM and resampling.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="rfpipe.state.State.get_segmenttime_string">
 <code class="descname">get_segmenttime_string</code><span class="sig-paren">(</span><em>segment</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State.get_segmenttime_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State.get_segmenttime_string" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
-
-<dl class="method">
-<dt id="rfpipe.state.State.get_uvw_segment">
-<code class="descname">get_uvw_segment</code><span class="sig-paren">(</span><em>segment</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State.get_uvw_segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State.get_uvw_segment" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns uvw in units of baselines for a given segment.
-Tuple of u, v, w given with each a numpy array of (nbl, nchan) shape.</p>
-</dd></dl>
 
 <dl class="attribute">
 <dt id="rfpipe.state.State.immem">
@@ -311,6 +350,20 @@ Limit defined for all threads.</p>
 <dt id="rfpipe.state.State.inttime">
 <code class="descname">inttime</code><a class="headerlink" href="#rfpipe.state.State.inttime" title="Permalink to this definition">¶</a></dt>
 <dd><p>Integration time</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.memory_total">
+<code class="descname">memory_total</code><a class="headerlink" href="#rfpipe.state.State.memory_total" title="Permalink to this definition">¶</a></dt>
+<dd><p>Total memory (in GB) required to read and process.
+Depends on data source and search algorithm.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.memory_total_limit">
+<code class="descname">memory_total_limit</code><a class="headerlink" href="#rfpipe.state.State.memory_total_limit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Minimum memory (in GB) required to read and process.
+Depends on data source and search algorithm.</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -437,7 +490,7 @@ Alternately, best times found based on fringe time and memory limit</p>
 <dl class="attribute">
 <dt id="rfpipe.state.State.spw">
 <code class="descname">spw</code><a class="headerlink" href="#rfpipe.state.State.spw" title="Permalink to this definition">¶</a></dt>
-<dd><p>Spectral windows used.
+<dd><p>List of spectral windows used.
 ** TODO: update for proper naming “basband”+”swindex”</p>
 </dd></dl>
 
@@ -494,7 +547,7 @@ segments.</p>
 
 <dl class="class">
 <dt id="rfpipe.preferences.Preferences">
-<em class="property">class </em><code class="descclassname">rfpipe.preferences.</code><code class="descname">Preferences</code><span class="sig-paren">(</span><em>rfpipe_version='0.6.0', chans=None, spw=None, excludeants=(), selectpol='auto', fileroot=None, read_tdownsample=1, read_fdownsample=1, l0=0.0, m0=0.0, timesub=None, flaglist=[('badchtslide', 4.0, 0.0), ('badap', 3.0, 0.2), ('blstd', 3.0, 0.05)], flagantsol=True, badspwpol=2.0, applyonlineflags=True, gainfile=None, simulated_transient=None, nthread=1, nchunk=0, segmenttimes=None, memory_limit=32, dmarr=None, dtarr=None, dm_maxloss=0.05, mindm=0, maxdm=0, dm_pulsewidth=3000, searchtype='image1', sigma_image1=7.0, sigma_image2=7.0, sigma_plot=7.0, uvres=0, npixx=0, npixy=0, npix_max=0, uvoversample=1.0, fftmode='fftw', savenoise=False, savecands=False, candsfile=None, workdir='/Users/caseyjlaw/code/rfpipe/docs', timewindow=30, loglevel='INFO'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/preferences.html#Preferences"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.preferences.Preferences" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">rfpipe.preferences.</code><code class="descname">Preferences</code><span class="sig-paren">(</span><em>rfpipe_version='0.9.5', chans=None, spw=None, excludeants=(), selectpol='auto', fileroot=None, read_tdownsample=1, read_fdownsample=1, l0=0.0, m0=0.0, timesub=None, flaglist=[('badchtslide', 4.0, 10), ('blstd', 3.0, 0.05)], flagantsol=True, badspwpol=2.0, applyonlineflags=True, gainfile=None, simulated_transient=None, nthread=1, segmenttimes=None, memory_limit=16, maximmem=16, fftmode='fftw', dmarr=None, dtarr=None, dm_maxloss=0.05, mindm=0, maxdm=0, dm_pulsewidth=3000, searchtype='image1', sigma_image1=7.0, sigma_image2=7.0, sigma_plot=7.0, uvres=0, npixx=0, npixy=0, npix_max=0, uvoversample=1.0, savenoise=False, savecands=False, candsfile=None, workdir='/Users/caseyjlaw/code/rfpipe/docs', timewindow=30, loglevel='INFO'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/preferences.html#Preferences"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.preferences.Preferences" title="Permalink to this definition">¶</a></dt>
 <dd><p>Preferences <em>should</em> be immutable and express half of info needed to
 define state. Using preferences with metadata produces a unique state and
 pipeline outcome.</p>
@@ -561,7 +614,7 @@ pipeline outcome.</p>
 
 <dl class="attribute">
 <dt id="rfpipe.preferences.Preferences.flaglist">
-<code class="descname">flaglist</code><em class="property"> = Attribute(name='flaglist', default=[('badchtslide', 4.0, 0.0), ('badap', 3.0, 0.2), ('blstd', 3.0, 0.05)], validator=None, repr=True, cmp=True, hash=None, init=True, convert=None, metadata=mappingproxy({}))</em><a class="headerlink" href="#rfpipe.preferences.Preferences.flaglist" title="Permalink to this definition">¶</a></dt>
+<code class="descname">flaglist</code><em class="property"> = Attribute(name='flaglist', default=[('badchtslide', 4.0, 10), ('blstd', 3.0, 0.05)], validator=None, repr=True, cmp=True, hash=None, init=True, convert=None, metadata=mappingproxy({}))</em><a class="headerlink" href="#rfpipe.preferences.Preferences.flaglist" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -596,8 +649,13 @@ pipeline outcome.</p>
 <dd></dd></dl>
 
 <dl class="attribute">
+<dt id="rfpipe.preferences.Preferences.maximmem">
+<code class="descname">maximmem</code><em class="property"> = Attribute(name='maximmem', default=16, validator=None, repr=True, cmp=True, hash=None, init=True, convert=None, metadata=mappingproxy({}))</em><a class="headerlink" href="#rfpipe.preferences.Preferences.maximmem" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
 <dt id="rfpipe.preferences.Preferences.memory_limit">
-<code class="descname">memory_limit</code><em class="property"> = Attribute(name='memory_limit', default=32, validator=None, repr=True, cmp=True, hash=None, init=True, convert=None, metadata=mappingproxy({}))</em><a class="headerlink" href="#rfpipe.preferences.Preferences.memory_limit" title="Permalink to this definition">¶</a></dt>
+<code class="descname">memory_limit</code><em class="property"> = Attribute(name='memory_limit', default=16, validator=None, repr=True, cmp=True, hash=None, init=True, convert=None, metadata=mappingproxy({}))</em><a class="headerlink" href="#rfpipe.preferences.Preferences.memory_limit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -611,11 +669,6 @@ pipeline outcome.</p>
 <dd><p>Unique name for an instance of preferences.
 To be used to look up preference set for a given candidate or data set.</p>
 </dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.preferences.Preferences.nchunk">
-<code class="descname">nchunk</code><em class="property"> = Attribute(name='nchunk', default=0, validator=None, repr=True, cmp=True, hash=None, init=True, convert=None, metadata=mappingproxy({}))</em><a class="headerlink" href="#rfpipe.preferences.Preferences.nchunk" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 <dl class="attribute">
 <dt id="rfpipe.preferences.Preferences.npix_max">
@@ -655,7 +708,7 @@ To be used to look up preference set for a given candidate or data set.</p>
 
 <dl class="attribute">
 <dt id="rfpipe.preferences.Preferences.rfpipe_version">
-<code class="descname">rfpipe_version</code><em class="property"> = Attribute(name='rfpipe_version', default='0.6.0', validator=None, repr=True, cmp=True, hash=None, init=True, convert=None, metadata=mappingproxy({}))</em><a class="headerlink" href="#rfpipe.preferences.Preferences.rfpipe_version" title="Permalink to this definition">¶</a></dt>
+<code class="descname">rfpipe_version</code><em class="property"> = Attribute(name='rfpipe_version', default='0.9.5', validator=None, repr=True, cmp=True, hash=None, init=True, convert=None, metadata=mappingproxy({}))</em><a class="headerlink" href="#rfpipe.preferences.Preferences.rfpipe_version" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -737,12 +790,11 @@ To be used to look up preference set for a given candidate or data set.</p>
 
 <dl class="class">
 <dt id="rfpipe.metadata.Metadata">
-<em class="property">class </em><code class="descclassname">rfpipe.metadata.</code><code class="descname">Metadata</code><span class="sig-paren">(</span><em>datasource=None</em>, <em>filename=None</em>, <em>scan=None</em>, <em>bdfdir=None</em>, <em>bdfstr=None</em>, <em>source=None</em>, <em>radec=None</em>, <em>inttime=None</em>, <em>nints_=None</em>, <em>telescope=None</em>, <em>starttime_mjd=None</em>, <em>endtime_mjd_=None</em>, <em>dishdiameter=None</em>, <em>intent=None</em>, <em>antids=None</em>, <em>xyz=None</em>, <em>spworder=None</em>, <em>spw_orig=None</em>, <em>spw_nchan=None</em>, <em>spw_reffreq=None</em>, <em>spw_chansize=None</em>, <em>pols_orig=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/metadata.html#Metadata"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.metadata.Metadata" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">rfpipe.metadata.</code><code class="descname">Metadata</code><span class="sig-paren">(</span><em>datasource=None</em>, <em>datasetId=None</em>, <em>filename=None</em>, <em>scan=None</em>, <em>subscan=None</em>, <em>bdfdir=None</em>, <em>bdfstr=None</em>, <em>source=None</em>, <em>radec=None</em>, <em>inttime=None</em>, <em>nints_=None</em>, <em>telescope=None</em>, <em>starttime_mjd=None</em>, <em>endtime_mjd_=None</em>, <em>dishdiameter=None</em>, <em>intent=None</em>, <em>antids=None</em>, <em>xyz=None</em>, <em>spworder=None</em>, <em>spw_orig=None</em>, <em>spw_nchan=None</em>, <em>spw_reffreq=None</em>, <em>spw_chansize=None</em>, <em>pols_orig=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/metadata.html#Metadata"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.metadata.Metadata" title="Permalink to this definition">¶</a></dt>
 <dd><p>Metadata we need to translate parameters into a pipeline state.
 Called from a function defined for a given source (e.g., an sdm file).
-Built from <em>nominally</em> immutable attributes and properties.
+Built from nominally immutable attributes and properties.
 To modify metadata, use attr.assoc(inst, key=newval)</p>
-<p>TODO: can we freeze attributes while still having cached values?</p>
 <dl class="attribute">
 <dt id="rfpipe.metadata.Metadata.antids">
 <code class="descname">antids</code><em class="property"> = Attribute(name='antids', default=None, validator=None, repr=True, cmp=True, hash=None, init=True, convert=None, metadata=mappingproxy({}))</em><a class="headerlink" href="#rfpipe.metadata.Metadata.antids" title="Permalink to this definition">¶</a></dt>
@@ -767,6 +819,11 @@ To modify metadata, use attr.assoc(inst, key=newval)</p>
 <dl class="attribute">
 <dt id="rfpipe.metadata.Metadata.bdfstr">
 <code class="descname">bdfstr</code><em class="property"> = Attribute(name='bdfstr', default=None, validator=None, repr=True, cmp=True, hash=None, init=True, convert=None, metadata=mappingproxy({}))</em><a class="headerlink" href="#rfpipe.metadata.Metadata.bdfstr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.datasetId">
+<code class="descname">datasetId</code><em class="property"> = Attribute(name='datasetId', default=None, validator=None, repr=True, cmp=True, hash=None, init=True, convert=None, metadata=mappingproxy({}))</em><a class="headerlink" href="#rfpipe.metadata.Metadata.datasetId" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -848,6 +905,11 @@ Otherwise (e.g., for SDM data), it looks for <a href="#id7"><span class="problem
 <dd></dd></dl>
 
 <dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.nspw_orig">
+<code class="descname">nspw_orig</code><a class="headerlink" href="#rfpipe.metadata.Metadata.nspw_orig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
 <dt id="rfpipe.metadata.Metadata.pols_orig">
 <code class="descname">pols_orig</code><em class="property"> = Attribute(name='pols_orig', default=None, validator=None, repr=True, cmp=True, hash=None, init=True, convert=None, metadata=mappingproxy({}))</em><a class="headerlink" href="#rfpipe.metadata.Metadata.pols_orig" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -860,6 +922,11 @@ Otherwise (e.g., for SDM data), it looks for <a href="#id7"><span class="problem
 <dl class="attribute">
 <dt id="rfpipe.metadata.Metadata.scan">
 <code class="descname">scan</code><em class="property"> = Attribute(name='scan', default=None, validator=None, repr=True, cmp=True, hash=None, init=True, convert=None, metadata=mappingproxy({}))</em><a class="headerlink" href="#rfpipe.metadata.Metadata.scan" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.scanId">
+<code class="descname">scanId</code><a class="headerlink" href="#rfpipe.metadata.Metadata.scanId" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -903,6 +970,11 @@ Otherwise (e.g., for SDM data), it looks for <a href="#id7"><span class="problem
 <dd></dd></dl>
 
 <dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.subscan">
+<code class="descname">subscan</code><em class="property"> = Attribute(name='subscan', default=None, validator=None, repr=True, cmp=True, hash=None, init=True, convert=None, metadata=mappingproxy({}))</em><a class="headerlink" href="#rfpipe.metadata.Metadata.subscan" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
 <dt id="rfpipe.metadata.Metadata.telescope">
 <code class="descname">telescope</code><em class="property"> = Attribute(name='telescope', default=None, validator=None, repr=True, cmp=True, hash=None, init=True, convert=None, metadata=mappingproxy({}))</em><a class="headerlink" href="#rfpipe.metadata.Metadata.telescope" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -934,7 +1006,7 @@ Otherwise (e.g., for SDM data), it looks for <a href="#id7"><span class="problem
     </p>
     <p>
         &copy; Copyright 2017, Casey Law.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.1.<br/>
     </p>
   </div>
 </footer>

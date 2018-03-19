@@ -2,20 +2,12 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>rfpipe.pipeline &#8212; rfpipe 0.6.0 documentation</title>
+    <title>rfpipe.pipeline &#8212; rfpipe 0.9.5 documentation</title>
     <link rel="stylesheet" href="../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../../',
-        VERSION:     '0.6.0',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
+    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
@@ -30,8 +22,7 @@
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
 
-  </head>
-  <body>
+  </head><body>
 
   <div id="navbar" class="navbar navbar-default navbar-fixed-top">
     <div class="container">
@@ -44,7 +35,7 @@
         </button>
         <a class="navbar-brand" href="../../index.html"><span><img src="../../_static/favicon.ico.png"></span>
           rfpipe</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.6.0</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.9.5</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -112,61 +103,67 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12 content">
+      <div class="col-md-3">
+        <div id="sidebar" class="bs-sidenav" role="complementary">
+<form action="../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+    <div class="col-md-9 content">
       
   <h1>Source code for rfpipe.pipeline</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">absolute_import</span> <span class="c1">#, unicode_literals # not casa compatible</span>
-<span class="kn">from</span> <span class="nn">builtins</span> <span class="k">import</span> <span class="nb">bytes</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="nb">object</span><span class="p">,</span> <span class="nb">range</span><span class="p">,</span> <span class="nb">map</span><span class="p">,</span> <span class="nb">input</span><span class="c1">#, str # not casa compatible</span>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">unicode_literals</span>
+<span class="kn">from</span> <span class="nn">builtins</span> <span class="k">import</span> <span class="nb">bytes</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="nb">object</span><span class="p">,</span> <span class="nb">range</span><span class="p">,</span> <span class="nb">map</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="nb">str</span>
 <span class="kn">from</span> <span class="nn">future.utils</span> <span class="k">import</span> <span class="n">itervalues</span><span class="p">,</span> <span class="n">viewitems</span><span class="p">,</span> <span class="n">iteritems</span><span class="p">,</span> <span class="n">listvalues</span><span class="p">,</span> <span class="n">listitems</span>
 <span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="nb">open</span>
 
-<span class="kn">from</span> <span class="nn">rfpipe</span> <span class="k">import</span> <span class="n">source</span><span class="p">,</span> <span class="n">search</span><span class="p">,</span> <span class="n">util</span><span class="p">,</span> <span class="n">candidates</span>
+<span class="kn">from</span> <span class="nn">rfpipe</span> <span class="k">import</span> <span class="n">source</span><span class="p">,</span> <span class="n">search</span><span class="p">,</span> <span class="n">candidates</span>
 
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 <span class="n">vys_timeout_default</span> <span class="o">=</span> <span class="mi">10</span>
 
 
-<div class="viewcode-block" id="pipeline_scan"><a class="viewcode-back" href="../../Pipeline.html#rfpipe.pipeline.pipeline_scan">[docs]</a><span class="k">def</span> <span class="nf">pipeline_scan</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segments</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="s1">&#39;cbe-node-01&#39;</span><span class="p">,</span>
-                  <span class="n">cfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vys_timeout</span><span class="o">=</span><span class="n">vys_timeout_default</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Given rfpipe state and dask distributed client, run search pipline &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="pipeline_scan"><a class="viewcode-back" href="../../Pipeline.html#rfpipe.pipeline.pipeline_scan">[docs]</a><span class="k">def</span> <span class="nf">pipeline_scan</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segments</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">vys_timeout</span><span class="o">=</span><span class="n">vys_timeout_default</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Given rfpipe state run search pipline on all segments in a scan.</span>
+<span class="sd">        state/preference has fftmode that will determine functions used here.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">featurelists</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">segments</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-        <span class="n">segments</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">nsegment</span><span class="p">)</span>
+        <span class="n">segments</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">nsegment</span><span class="p">))</span>
 
     <span class="k">for</span> <span class="n">segment</span> <span class="ow">in</span> <span class="n">segments</span><span class="p">:</span>
         <span class="n">featurelists</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pipeline_seg</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">cfile</span><span class="o">=</span><span class="n">cfile</span><span class="p">,</span>
                                          <span class="n">vys_timeout</span><span class="o">=</span><span class="n">vys_timeout</span><span class="p">))</span>
-
-    <span class="k">return</span> <span class="n">featurelists</span>  <span class="c1"># list of tuples (collection, data)</span></div>
+</div>
+    <span class="k">return</span> <span class="n">featurelists</span>  <span class="c1"># list of tuples (collection, data)</span>
 
 
 <div class="viewcode-block" id="pipeline_seg"><a class="viewcode-back" href="../../Pipeline.html#rfpipe.pipeline.pipeline_seg">[docs]</a><span class="k">def</span> <span class="nf">pipeline_seg</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">cfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">vys_timeout</span><span class="o">=</span><span class="n">vys_timeout_default</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Submit pipeline processing of a single segment on a single node.</span>
+<span class="sd">    state/preference has fftmode that will determine functions used here.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="c1"># plan fft</span>
-    <span class="n">wisdom</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">set_wisdom</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">npixx</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">npixy</span><span class="p">)</span>
-
     <span class="n">data</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">read_segment</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">vys_timeout</span><span class="p">,</span> <span class="n">cfile</span><span class="o">=</span><span class="n">cfile</span><span class="p">)</span>
-    <span class="n">data_prep</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">data_prep</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+    <span class="n">data_prep</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">data_prep</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
 
-    <span class="n">featurelist</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">dmind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">dmarr</span><span class="p">)):</span>
-        <span class="n">delay</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">calc_delay</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">freq</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">freq</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">st</span><span class="o">.</span><span class="n">dmarr</span><span class="p">[</span><span class="n">dmind</span><span class="p">],</span>
-                                <span class="n">st</span><span class="o">.</span><span class="n">inttime</span><span class="p">)</span>
-        <span class="n">data_dm</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">dedisperse</span><span class="p">(</span><span class="n">data_prep</span><span class="p">,</span> <span class="n">delay</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">st</span><span class="o">.</span><span class="n">fftmode</span> <span class="o">==</span> <span class="s2">&quot;fftw&quot;</span><span class="p">:</span>
+        <span class="n">wisdom</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">set_wisdom</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">npixx</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">npixy</span><span class="p">)</span>
+        <span class="n">candcollection</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">dedisperse_image_fftw</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">data_prep</span><span class="p">,</span>
+                                                      <span class="n">wisdom</span><span class="o">=</span><span class="n">wisdom</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">st</span><span class="o">.</span><span class="n">fftmode</span> <span class="o">==</span> <span class="s2">&quot;cuda&quot;</span><span class="p">:</span>
+        <span class="n">candcollection</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">dedisperse_image_cuda</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">data_prep</span><span class="p">)</span>
 
-        <span class="k">for</span> <span class="n">dtind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">dtarr</span><span class="p">)):</span>
-            <span class="n">data_dmdt</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="n">data_dm</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">dtarr</span><span class="p">[</span><span class="n">dtind</span><span class="p">])</span>
-            <span class="n">canddatalist</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">search_thresh</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">data_dmdt</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span>
-                                                <span class="n">dtind</span><span class="p">,</span> <span class="n">wisdom</span><span class="o">=</span><span class="n">wisdom</span><span class="p">)</span>
-
-            <span class="n">features</span> <span class="o">=</span> <span class="n">candidates</span><span class="o">.</span><span class="n">calc_features</span><span class="p">(</span><span class="n">canddatalist</span><span class="p">)</span>
-            <span class="n">featurelist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">featurelist</span></div>
+    <span class="n">candidates</span><span class="o">.</span><span class="n">save_cands</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">candcollection</span><span class="p">)</span>
+</div>
+    <span class="k">return</span> <span class="n">candcollection</span>
 </pre></div>
 
     </div>
@@ -181,7 +178,7 @@
     </p>
     <p>
         &copy; Copyright 2017, Casey Law.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.1.<br/>
     </p>
   </div>
 </footer>

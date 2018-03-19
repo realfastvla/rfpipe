@@ -2,20 +2,12 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Searching for Transients &#8212; rfpipe 0.6.0 documentation</title>
+    <title>Searching for Transients &#8212; rfpipe 0.9.5 documentation</title>
     <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
-        VERSION:     '0.6.0',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
+    <script type="text/javascript" src="_static/documentation_options.js"></script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
@@ -32,8 +24,7 @@
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
 
-  </head>
-  <body>
+  </head><body>
 
   <div id="navbar" class="navbar navbar-default navbar-fixed-top">
     <div class="container">
@@ -46,7 +37,7 @@
         </button>
         <a class="navbar-brand" href="index.html"><span><img src="_static/favicon.ico.png"></span>
           rfpipe</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.6.0</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.9.5</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -129,14 +120,40 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12 content">
+      <div class="col-md-3">
+        <div id="sidebar" class="bs-sidenav" role="complementary"><ul>
+<li><a class="reference internal" href="#">Searching for Transients</a></li>
+</ul>
+
+  <li>
+    <a href="Pipeline.html" title="Previous Chapter: Using a Search Pipeline"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm hidden-tablet">&laquo; Using a Searc...</span>
+    </a>
+  </li>
+  <li>
+    <a href="Candidates.html" title="Next Chapter: Candidates"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm hidden-tablet">Candidates &raquo;</span>
+    </a>
+  </li>
+<div id="sourcelink">
+  <a href="_sources/Searching.rst.txt"
+     rel="nofollow">Source</a>
+</div>
+<form action="search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+    <div class="col-md-9 content">
       
   <div class="section" id="searching-for-transients">
 <h1>Searching for Transients<a class="headerlink" href="#searching-for-transients" title="Permalink to this headline">¶</a></h1>
 <p>Functions for searching…</p>
 <span class="target" id="module-rfpipe.search"></span><dl class="function">
 <dt id="rfpipe.search.dedisperse">
-<code class="descclassname">rfpipe.search.</code><code class="descname">dedisperse</code><span class="sig-paren">(</span><em>data</em>, <em>delay</em>, <em>mode='multi'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#dedisperse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.dedisperse" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">rfpipe.search.</code><code class="descname">dedisperse</code><span class="sig-paren">(</span><em>data</em>, <em>delay</em>, <em>parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#dedisperse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.dedisperse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Shift data in time (axis=0) by channel-dependent value given in
 delay. Returns new array with time length shortened by max delay in
 integrations. wraps _dedisperse to add logging.
@@ -144,18 +161,41 @@ Can set mode to “single” or “multi” to use different functions.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="rfpipe.search.grid_visibilities">
-<code class="descclassname">rfpipe.search.</code><code class="descname">grid_visibilities</code><span class="sig-paren">(</span><em>data</em>, <em>uvw</em>, <em>npixx</em>, <em>npixy</em>, <em>uvres</em>, <em>mode='multi'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#grid_visibilities"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.grid_visibilities" title="Permalink to this definition">¶</a></dt>
-<dd><p>Grid visibilities into rounded uv coordinates</p>
+<dt id="rfpipe.search.dedisperse_image_cuda">
+<code class="descclassname">rfpipe.search.</code><code class="descname">dedisperse_image_cuda</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em>, <em>devicenum=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#dedisperse_image_cuda"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.dedisperse_image_cuda" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run dedispersion, resample for all dm and dt.
+Grid and image on GPU.
+rfgpu is built from separate repo.
+Uses state to define integrations to image based on segment, dm, and dt.
+devicenum can force the gpu to use, but can be inferred via distributed.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="rfpipe.search.image">
-<code class="descclassname">rfpipe.search.</code><code class="descname">image</code><span class="sig-paren">(</span><em>data</em>, <em>uvw</em>, <em>npixx</em>, <em>npixy</em>, <em>uvres</em>, <em>fftmode</em>, <em>nthread</em>, <em>wisdom=None</em>, <em>integrations=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.image" title="Permalink to this definition">¶</a></dt>
+<dt id="rfpipe.search.dedisperse_image_fftw">
+<code class="descclassname">rfpipe.search.</code><code class="descname">dedisperse_image_fftw</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em>, <em>wisdom=None</em>, <em>integrations=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#dedisperse_image_fftw"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.dedisperse_image_fftw" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fuse the dediserpse, resample, search, threshold functions.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.search.dedisperseresample">
+<code class="descclassname">rfpipe.search.</code><code class="descname">dedisperseresample</code><span class="sig-paren">(</span><em>data</em>, <em>delay</em>, <em>dt</em>, <em>parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#dedisperseresample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.dedisperseresample" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dedisperse and resample in single function.
+parallel controls use of multicore versions of algorithms.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.search.grid_image">
+<code class="descclassname">rfpipe.search.</code><code class="descname">grid_image</code><span class="sig-paren">(</span><em>data</em>, <em>uvw</em>, <em>npixx</em>, <em>npixy</em>, <em>uvres</em>, <em>fftmode</em>, <em>nthread</em>, <em>wisdom=None</em>, <em>integrations=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#grid_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.grid_image" title="Permalink to this definition">¶</a></dt>
 <dd><p>Grid and image data.
 Optionally image integrations in list i.
 fftmode can be fftw or cuda.
 nthread is number of threads to use</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.search.grid_visibilities">
+<code class="descclassname">rfpipe.search.</code><code class="descname">grid_visibilities</code><span class="sig-paren">(</span><em>data</em>, <em>uvw</em>, <em>npixx</em>, <em>npixy</em>, <em>uvres</em>, <em>parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#grid_visibilities"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.grid_visibilities" title="Permalink to this definition">¶</a></dt>
+<dd><p>Grid visibilities into rounded uv coordinates</p>
 </dd></dl>
 
 <dl class="function">
@@ -166,8 +206,9 @@ nthread is number of threads to use</p>
 
 <dl class="function">
 <dt id="rfpipe.search.image_cuda">
-<code class="descclassname">rfpipe.search.</code><code class="descname">image_cuda</code><span class="sig-paren">(</span><em>grids</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#image_cuda"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.image_cuda" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run 2d FFT to image each plane of grid array</p>
+<code class="descclassname">rfpipe.search.</code><code class="descname">image_cuda</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#image_cuda"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.image_cuda" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run grid and image with rfgpu
+TODO: update to use rfgpu</p>
 </dd></dl>
 
 <dl class="function">
@@ -177,34 +218,28 @@ nthread is number of threads to use</p>
 Returns time images.</p>
 </dd></dl>
 
-<dl class="attribute">
-<dt id="rfpipe.search.phase_shift">
-<code class="descclassname">rfpipe.search.</code><code class="descname">phase_shift</code><a class="reference internal" href="_modules/rfpipe/search.html#phase_shift"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.phase_shift" title="Permalink to this definition">¶</a></dt>
-<dd><p>Applies a phase shift to data for a given (dl, dm).</p>
-</dd></dl>
-
 <dl class="function">
-<dt id="rfpipe.search.recenter">
-<code class="descclassname">rfpipe.search.</code><code class="descname">recenter</code><span class="sig-paren">(</span><em>array</em>, <em>center</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#recenter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.recenter" title="Permalink to this definition">¶</a></dt>
-<dd><p>Recenters images in array to location center (x, y)
-Array can be either 2d (x, y) or 3d array (time, x, y).</p>
+<dt id="rfpipe.search.prep_and_search">
+<code class="descclassname">rfpipe.search.</code><code class="descname">prep_and_search</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#prep_and_search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.prep_and_search" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bundles prep and search functions to improve performance in distributed.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="rfpipe.search.resample">
-<code class="descclassname">rfpipe.search.</code><code class="descname">resample</code><span class="sig-paren">(</span><em>data</em>, <em>dt</em>, <em>mode='multi'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#resample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.resample" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">rfpipe.search.</code><code class="descname">resample</code><span class="sig-paren">(</span><em>data</em>, <em>dt</em>, <em>parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#resample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.resample" title="Permalink to this definition">¶</a></dt>
 <dd><p>Resample (integrate) by factor dt and return new data structure
 wraps _resample to add logging.
 Can set mode to “single” or “multi” to use different functions.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="rfpipe.search.search_thresh">
-<code class="descclassname">rfpipe.search.</code><code class="descname">search_thresh</code><span class="sig-paren">(</span><em>st</em>, <em>data</em>, <em>segment</em>, <em>dmind</em>, <em>dtind</em>, <em>beamnum=0</em>, <em>wisdom=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#search_thresh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.search_thresh" title="Permalink to this definition">¶</a></dt>
-<dd><p>High-level wrapper for search algorithms.
-Expects dedispersed, resampled data as input and data state.
+<dt id="rfpipe.search.search_thresh_fftw">
+<code class="descclassname">rfpipe.search.</code><code class="descname">search_thresh_fftw</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em>, <em>dmind</em>, <em>dtind</em>, <em>integrations=None</em>, <em>beamnum=0</em>, <em>wisdom=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#search_thresh_fftw"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.search_thresh_fftw" title="Permalink to this definition">¶</a></dt>
+<dd><p>Take dedispersed, resampled data, image with fftw and threshold.
 Returns list of CandData objects that define candidates with
-candloc, image, and phased visibility data.</p>
+candloc, image, and phased visibility data.
+Integrations can define subset of all available in data to search.
+Default will take integrations not searched in neighboring segments.</p>
 <p>** only supports threshold &gt; image max (no min)
 ** dmind, dtind, beamnum assumed to represent current state of data</p>
 </dd></dl>
@@ -230,7 +265,7 @@ candloc, image, and phased visibility data.</p>
     </p>
     <p>
         &copy; Copyright 2017, Casey Law.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.1.<br/>
     </p>
   </div>
 </footer>

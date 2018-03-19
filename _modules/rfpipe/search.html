@@ -2,20 +2,12 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>rfpipe.search &#8212; rfpipe 0.6.0 documentation</title>
+    <title>rfpipe.search &#8212; rfpipe 0.9.5 documentation</title>
     <link rel="stylesheet" href="../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../../',
-        VERSION:     '0.6.0',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
+    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
@@ -30,8 +22,7 @@
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
 
-  </head>
-  <body>
+  </head><body>
 
   <div id="navbar" class="navbar navbar-default navbar-fixed-top">
     <div class="container">
@@ -44,7 +35,7 @@
         </button>
         <a class="navbar-brand" href="../../index.html"><span><img src="../../_static/favicon.ico.png"></span>
           rfpipe</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.6.0</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.9.5</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -112,26 +103,35 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12 content">
+      <div class="col-md-3">
+        <div id="sidebar" class="bs-sidenav" role="complementary">
+<form action="../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+    <div class="col-md-9 content">
       
   <h1>Source code for rfpipe.search</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">absolute_import</span> <span class="c1">#, unicode_literals # not casa compatible</span>
-<span class="kn">from</span> <span class="nn">builtins</span> <span class="k">import</span> <span class="nb">bytes</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="nb">object</span><span class="p">,</span> <span class="nb">range</span><span class="p">,</span> <span class="nb">map</span><span class="p">,</span> <span class="nb">input</span><span class="c1">#, str # not casa compatible</span>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">unicode_literals</span>
+<span class="kn">from</span> <span class="nn">builtins</span> <span class="k">import</span> <span class="nb">bytes</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="nb">object</span><span class="p">,</span> <span class="nb">range</span><span class="p">,</span> <span class="nb">map</span><span class="p">,</span> <span class="nb">input</span><span class="c1">#, str</span>
 <span class="kn">from</span> <span class="nn">future.utils</span> <span class="k">import</span> <span class="n">itervalues</span><span class="p">,</span> <span class="n">viewitems</span><span class="p">,</span> <span class="n">iteritems</span><span class="p">,</span> <span class="n">listvalues</span><span class="p">,</span> <span class="n">listitems</span>
 <span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="nb">open</span>
 
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">numba</span> <span class="k">import</span> <span class="n">jit</span><span class="p">,</span> <span class="n">guvectorize</span><span class="p">,</span> <span class="n">vectorize</span><span class="p">,</span> <span class="n">int32</span><span class="p">,</span> <span class="n">int64</span>
+<span class="kn">from</span> <span class="nn">numba</span> <span class="k">import</span> <span class="n">jit</span><span class="p">,</span> <span class="n">guvectorize</span><span class="p">,</span> <span class="n">int64</span>
 <span class="kn">import</span> <span class="nn">pyfftw</span>
-<span class="kn">from</span> <span class="nn">rfpipe</span> <span class="k">import</span> <span class="n">util</span><span class="p">,</span> <span class="n">candidates</span>
+<span class="kn">from</span> <span class="nn">rfpipe</span> <span class="k">import</span> <span class="n">util</span><span class="p">,</span> <span class="n">candidates</span><span class="p">,</span> <span class="n">source</span>
 
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="dedisperse"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.dedisperse">[docs]</a><span class="k">def</span> <span class="nf">dedisperse</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">delay</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;multi&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="dedisperse"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.dedisperse">[docs]</a><span class="k">def</span> <span class="nf">dedisperse</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">delay</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Shift data in time (axis=0) by channel-dependent value given in</span>
 <span class="sd">    delay. Returns new array with time length shortened by max delay in</span>
 <span class="sd">    integrations. wraps _dedisperse to add logging.</span>
@@ -141,55 +141,50 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
 
-    <span class="c1"># changes memory in place, so need to force writability</span>
-    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">requirements</span><span class="o">=</span><span class="s1">&#39;W&#39;</span><span class="p">)</span>
-
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Dedispersing up to delay shift of </span><span class="si">{0}</span><span class="s1"> integrations&#39;</span>
                 <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">delay</span><span class="o">.</span><span class="n">max</span><span class="p">()))</span>
 
-    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;single&#39;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">_dedisperse_jit</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">delay</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;multi&#39;</span><span class="p">:</span>
+    <span class="n">nint</span><span class="p">,</span> <span class="n">nbl</span><span class="p">,</span> <span class="n">nchan</span><span class="p">,</span> <span class="n">npol</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">newsh</span> <span class="o">=</span> <span class="p">(</span><span class="n">nint</span><span class="o">-</span><span class="n">delay</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">nbl</span><span class="p">,</span> <span class="n">nchan</span><span class="p">,</span> <span class="n">npol</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">parallel</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">_</span> <span class="o">=</span> <span class="n">_dedisperse_gu</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">delay</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">-</span><span class="n">delay</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;No such dedispersion mode.&#39;</span><span class="p">)</span></div>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">newsh</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">_dedisperse_jit</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">requirements</span><span class="o">=</span><span class="s1">&#39;W&#39;</span><span class="p">),</span> <span class="n">delay</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">result</span>
 
 
 <span class="nd">@jit</span><span class="p">(</span><span class="n">nogil</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">_dedisperse_jit</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">delay</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_dedisperse_jit</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">delay</span><span class="p">,</span> <span class="n">result</span><span class="p">):</span>
 
-    <span class="k">if</span> <span class="n">delay</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">nint</span><span class="p">,</span> <span class="n">nbl</span><span class="p">,</span> <span class="n">nchan</span><span class="p">,</span> <span class="n">npol</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
-        <span class="n">newsh</span> <span class="o">=</span> <span class="p">(</span><span class="n">nint</span><span class="o">-</span><span class="n">delay</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">nbl</span><span class="p">,</span> <span class="n">nchan</span><span class="p">,</span> <span class="n">npol</span><span class="p">)</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">newsh</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nchan</span><span class="p">):</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nint</span><span class="o">-</span><span class="n">delay</span><span class="o">.</span><span class="n">max</span><span class="p">()):</span>
-                <span class="n">iprime</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="n">delay</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
-                <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">npol</span><span class="p">):</span>
-                    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbl</span><span class="p">):</span>
-                        <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">iprime</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">result</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">data</span>
+    <span class="n">nint</span><span class="p">,</span> <span class="n">nbl</span><span class="p">,</span> <span class="n">nchan</span><span class="p">,</span> <span class="n">npol</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nchan</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nint</span><span class="o">-</span><span class="n">delay</span><span class="o">.</span><span class="n">max</span><span class="p">()):</span>
+            <span class="n">iprime</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="n">delay</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">npol</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbl</span><span class="p">):</span>
+                    <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">iprime</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span>
 
 
-<span class="nd">@guvectorize</span><span class="p">([</span><span class="s2">&quot;void(complex64[:,:,:], int64[:])&quot;</span><span class="p">],</span> <span class="s1">&#39;(n,m,l),(m)&#39;</span><span class="p">,</span>
+<span class="nd">@guvectorize</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="s2">&quot;void(complex64[:,:,:], int64[:])&quot;</span><span class="p">)],</span> <span class="nb">str</span><span class="p">(</span><span class="s2">&quot;(n,m,l),(m)&quot;</span><span class="p">),</span>
              <span class="n">target</span><span class="o">=</span><span class="s1">&#39;parallel&#39;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">_dedisperse_gu</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">delay</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Multicore dedispersion via numpy broadcasting.</span>
+    <span class="sa">b</span><span class="sd">&quot;&quot;&quot; Multicore dedispersion via numpy broadcasting.</span>
 <span class="sd">    Requires that data be in axis order (nbl, nint, nchan, npol), so typical</span>
 <span class="sd">    input visibility array must have view from &quot;np.swapaxis(data, 0, 1)&quot;.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">delay</span><span class="o">.</span><span class="n">max</span><span class="p">()):</span>
-        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
-            <span class="n">iprime</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="n">delay</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
-            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]):</span>
-                <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">iprime</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">delay</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">delay</span><span class="o">.</span><span class="n">max</span><span class="p">()):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                <span class="n">iprime</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="n">delay</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]):</span>
+                    <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">iprime</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="resample"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.resample">[docs]</a><span class="k">def</span> <span class="nf">resample</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;multi&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="resample"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.resample">[docs]</a><span class="k">def</span> <span class="nf">resample</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Resample (integrate) by factor dt and return new data structure</span>
 <span class="sd">    wraps _resample to add logging.</span>
 <span class="sd">    Can set mode to &quot;single&quot; or &quot;multi&quot; to use different functions.</span>
@@ -198,48 +193,42 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
 
-    <span class="c1"># changes memory in place, so need to force writability</span>
-    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">requirements</span><span class="o">=</span><span class="s1">&#39;W&#39;</span><span class="p">)</span>
-
     <span class="n">len0</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Resampling data of length </span><span class="si">{0}</span><span class="s1"> by a factor of </span><span class="si">{1}</span><span class="s1">&#39;</span>
                 <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">len0</span><span class="p">,</span> <span class="n">dt</span><span class="p">))</span>
 
-    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;single&#39;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">_resample_jit</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;multi&#39;</span><span class="p">:</span>
+    <span class="n">nint</span><span class="p">,</span> <span class="n">nbl</span><span class="p">,</span> <span class="n">nchan</span><span class="p">,</span> <span class="n">npol</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">newsh</span> <span class="o">=</span> <span class="p">(</span><span class="n">int64</span><span class="p">(</span><span class="n">nint</span><span class="o">//</span><span class="n">dt</span><span class="p">),</span> <span class="n">nbl</span><span class="p">,</span> <span class="n">nchan</span><span class="p">,</span> <span class="n">npol</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">parallel</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">_</span> <span class="o">=</span> <span class="n">_resample_gu</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dt</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">data</span><span class="p">[:</span><span class="n">len0</span><span class="o">//</span><span class="n">dt</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;No such resample mode.&#39;</span><span class="p">)</span></div>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">newsh</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">_resample_jit</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">requirements</span><span class="o">=</span><span class="s1">&#39;W&#39;</span><span class="p">),</span> <span class="n">dt</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">result</span>
 
 
 <span class="nd">@jit</span><span class="p">(</span><span class="n">nogil</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">_resample_jit</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_resample_jit</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">result</span><span class="p">):</span>
 
-    <span class="k">if</span> <span class="n">dt</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">nint</span><span class="p">,</span> <span class="n">nbl</span><span class="p">,</span> <span class="n">nchan</span><span class="p">,</span> <span class="n">npol</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
-        <span class="n">newsh</span> <span class="o">=</span> <span class="p">(</span><span class="n">int64</span><span class="p">(</span><span class="n">nint</span><span class="o">//</span><span class="n">dt</span><span class="p">),</span> <span class="n">nbl</span><span class="p">,</span> <span class="n">nchan</span><span class="p">,</span> <span class="n">npol</span><span class="p">)</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">newsh</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-
-        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbl</span><span class="p">):</span>
-            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nchan</span><span class="p">):</span>
-                <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">npol</span><span class="p">):</span>
-                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">int64</span><span class="p">(</span><span class="n">nint</span><span class="o">//</span><span class="n">dt</span><span class="p">)):</span>
-                        <span class="n">iprime</span> <span class="o">=</span> <span class="n">int64</span><span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="n">dt</span><span class="p">)</span>
-                        <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">iprime</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span>
-                        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
-                            <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> <span class="o">+=</span> <span class="n">data</span><span class="p">[</span><span class="n">iprime</span><span class="o">+</span><span class="n">r</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span>
-                        <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span><span class="o">/</span><span class="n">dt</span>
-
-        <span class="k">return</span> <span class="n">result</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">data</span>
+    <span class="n">nint</span><span class="p">,</span> <span class="n">nbl</span><span class="p">,</span> <span class="n">nchan</span><span class="p">,</span> <span class="n">npol</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbl</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nchan</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">npol</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">int64</span><span class="p">(</span><span class="n">nint</span><span class="o">//</span><span class="n">dt</span><span class="p">)):</span>
+                    <span class="n">iprime</span> <span class="o">=</span> <span class="n">int64</span><span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="n">dt</span><span class="p">)</span>
+                    <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">iprime</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+                        <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> <span class="o">+=</span> <span class="n">data</span><span class="p">[</span><span class="n">iprime</span><span class="o">+</span><span class="n">r</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span>
+                    <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span><span class="o">/</span><span class="n">dt</span>
 
 
-<span class="nd">@guvectorize</span><span class="p">([</span><span class="s2">&quot;void(complex64[:], int64)&quot;</span><span class="p">],</span> <span class="s1">&#39;(n),()&#39;</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s1">&#39;parallel&#39;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="nd">@guvectorize</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="s2">&quot;void(complex64[:], int64)&quot;</span><span class="p">)],</span> <span class="nb">str</span><span class="p">(</span><span class="s2">&quot;(n),()&quot;</span><span class="p">),</span>
+             <span class="n">target</span><span class="o">=</span><span class="s2">&quot;parallel&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">_resample_gu</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Multicore resampling via numpy broadcasting.</span>
+    <span class="sa">b</span><span class="sd">&quot;&quot;&quot; Multicore resampling via numpy broadcasting.</span>
 <span class="sd">    Requires that data be in nint axisto be last, so input</span>
 <span class="sd">    visibility array must have view from &quot;np.swapaxis(data, 0, 3)&quot;.</span>
 <span class="sd">    *modifies original memory space* (unlike _resample_jit)</span>
@@ -249,131 +238,418 @@
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">//</span><span class="n">dt</span><span class="p">):</span>
             <span class="n">iprime</span> <span class="o">=</span> <span class="n">int64</span><span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="n">dt</span><span class="p">)</span>
             <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">iprime</span><span class="p">]</span>
-            <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">dt</span><span class="p">):</span>
-<span class="c1">#                print(i0, i, iprime, r)</span>
+            <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
                 <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">data</span><span class="p">[</span><span class="n">iprime</span><span class="o">+</span><span class="n">r</span><span class="p">]</span>
             <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">/</span><span class="n">dt</span>
+
+
+<div class="viewcode-block" id="dedisperseresample"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.dedisperseresample">[docs]</a><span class="k">def</span> <span class="nf">dedisperseresample</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">delay</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Dedisperse and resample in single function.</span>
+<span class="sd">    parallel controls use of multicore versions of algorithms.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Correcting by delay/resampling </span><span class="si">{0}</span><span class="s1">/</span><span class="si">{1}</span><span class="s1"> ints in </span><span class="si">{2}</span><span class="s1"> mode&#39;</span>
+                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">delay</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">dt</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;single&#39;</span><span class="p">,</span> <span class="s1">&#39;parallel&#39;</span><span class="p">][</span><span class="n">parallel</span><span class="p">]))</span>
+
+    <span class="n">nint</span><span class="p">,</span> <span class="n">nbl</span><span class="p">,</span> <span class="n">nchan</span><span class="p">,</span> <span class="n">npol</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">newsh</span> <span class="o">=</span> <span class="p">(</span><span class="n">int64</span><span class="p">(</span><span class="n">nint</span><span class="o">-</span><span class="n">delay</span><span class="o">.</span><span class="n">max</span><span class="p">())</span><span class="o">//</span><span class="n">dt</span><span class="p">,</span> <span class="n">nbl</span><span class="p">,</span> <span class="n">nchan</span><span class="p">,</span> <span class="n">npol</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">parallel</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">_dedisperseresample_gu</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                                   <span class="n">delay</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">:(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">-</span><span class="n">delay</span><span class="o">.</span><span class="n">max</span><span class="p">())</span><span class="o">//</span><span class="n">dt</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">newsh</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">_dedisperseresample_jit</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">delay</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">result</span>
+
+
+<span class="nd">@jit</span><span class="p">(</span><span class="n">nogil</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_dedisperseresample_jit</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">delay</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">result</span><span class="p">):</span>
+
+    <span class="n">nint</span><span class="p">,</span> <span class="n">nbl</span><span class="p">,</span> <span class="n">nchan</span><span class="p">,</span> <span class="n">npol</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">nintout</span> <span class="o">=</span> <span class="n">int64</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbl</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">npol</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nchan</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nintout</span><span class="p">):</span>
+                    <span class="n">weight</span> <span class="o">=</span> <span class="n">int64</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dt</span><span class="p">):</span>
+                        <span class="n">iprime</span> <span class="o">=</span> <span class="n">int64</span><span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="n">dt</span> <span class="o">+</span> <span class="n">delay</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">+</span> <span class="n">r</span><span class="p">)</span>
+                        <span class="n">val</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">iprime</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span>
+                        <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> <span class="o">+=</span> <span class="n">val</span>
+                        <span class="k">if</span> <span class="n">val</span> <span class="o">!=</span> <span class="mi">0</span><span class="n">j</span><span class="p">:</span>
+                            <span class="n">weight</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                    <span class="k">if</span> <span class="n">weight</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span><span class="o">/</span><span class="n">weight</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">result</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">weight</span>
+
+    <span class="k">return</span> <span class="n">result</span>
+
+
+<span class="nd">@guvectorize</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="s2">&quot;void(complex64[:,:,:], int64[:], int64)&quot;</span><span class="p">)],</span>
+             <span class="nb">str</span><span class="p">(</span><span class="s2">&quot;(n,m,l),(m),()&quot;</span><span class="p">),</span> <span class="n">target</span><span class="o">=</span><span class="s2">&quot;parallel&quot;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_dedisperseresample_gu</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">delay</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+
+    <span class="k">if</span> <span class="n">delay</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">dt</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">nint</span><span class="p">,</span> <span class="n">nchan</span><span class="p">,</span> <span class="n">npol</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">npol</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nchan</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">((</span><span class="n">nint</span><span class="o">-</span><span class="n">delay</span><span class="o">.</span><span class="n">max</span><span class="p">())</span><span class="o">//</span><span class="n">dt</span><span class="p">):</span>
+                    <span class="n">weight</span> <span class="o">=</span> <span class="n">int64</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dt</span><span class="p">):</span>
+                        <span class="n">iprime</span> <span class="o">=</span> <span class="n">int64</span><span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="n">dt</span> <span class="o">+</span> <span class="n">delay</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">+</span> <span class="n">r</span><span class="p">)</span>
+                        <span class="n">val</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">iprime</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="n">r</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> <span class="o">+=</span> <span class="n">val</span>
+                        <span class="k">if</span> <span class="n">val</span> <span class="o">!=</span> <span class="mi">0</span><span class="n">j</span><span class="p">:</span>
+                            <span class="n">weight</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="k">if</span> <span class="n">weight</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span><span class="o">/</span><span class="n">weight</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">weight</span>
+
 
 <span class="c1">#</span>
 <span class="c1"># searching, imaging, thresholding</span>
 <span class="c1">#</span>
 
+<div class="viewcode-block" id="prep_and_search"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.prep_and_search">[docs]</a><span class="k">def</span> <span class="nf">prep_and_search</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Bundles prep and search functions to improve performance in distributed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="search_thresh"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.search_thresh">[docs]</a><span class="k">def</span> <span class="nf">search_thresh</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">,</span> <span class="n">beamnum</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">wisdom</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; High-level wrapper for search algorithms.</span>
-<span class="sd">    Expects dedispersed, resampled data as input and data state.</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">data_prep</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">fftmode</span> <span class="o">==</span> <span class="s2">&quot;cuda&quot;</span><span class="p">:</span>
+        <span class="n">candcollection</span> <span class="o">=</span> <span class="n">dedisperse_image_cuda</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">fftmode</span> <span class="o">==</span> <span class="s2">&quot;fftw&quot;</span><span class="p">:</span>
+        <span class="n">candcollection</span> <span class="o">=</span> <span class="n">dedisperse_image_fftw</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;fftmode </span><span class="si">{0}</span><span class="s2"> not recognized (cuda, fftw allowed)&quot;</span>
+                    <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">fftmode</span><span class="p">))</span>
+
+    <span class="n">candidates</span><span class="o">.</span><span class="n">save_cands</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">candcollection</span><span class="p">)</span>
+</div>
+    <span class="k">return</span> <span class="n">candcollection</span>
+
+
+<div class="viewcode-block" id="dedisperse_image_cuda"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.dedisperse_image_cuda">[docs]</a><span class="k">def</span> <span class="nf">dedisperse_image_cuda</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">devicenum</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Run dedispersion, resample for all dm and dt.</span>
+<span class="sd">    Grid and image on GPU.</span>
+<span class="sd">    rfgpu is built from separate repo.</span>
+<span class="sd">    Uses state to define integrations to image based on segment, dm, and dt.</span>
+<span class="sd">    devicenum can force the gpu to use, but can be inferred via distributed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">assert</span> <span class="n">st</span><span class="o">.</span><span class="n">dtarr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;st.dtarr[0] assumed to be 1&quot;</span>
+    <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">st</span><span class="o">.</span><span class="n">dtarr</span><span class="p">[</span><span class="n">dtind</span><span class="p">]</span><span class="o">*</span><span class="mi">2</span> <span class="o">==</span> <span class="n">st</span><span class="o">.</span><span class="n">dtarr</span><span class="p">[</span><span class="n">dtind</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">dtind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">dtarr</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)]),</span> <span class="p">(</span><span class="s2">&quot;dtarr must increase &quot;</span>
+                                                        <span class="s2">&quot;by factors of 2&quot;</span><span class="p">)</span>
+
+    <span class="n">candcollection</span> <span class="o">=</span> <span class="n">candidates</span><span class="o">.</span><span class="n">CandCollection</span><span class="p">(</span><span class="n">prefs</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="p">,</span>
+                                               <span class="n">metadata</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">rfgpu</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;ImportError for rfgpu. Exiting.&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">candcollection</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Data is all zeros. Skipping search.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">candcollection</span>
+
+    <span class="k">if</span> <span class="n">devicenum</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># assume first gpu, but try to infer from worker name</span>
+        <span class="n">devicenum</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">distributed</span> <span class="k">import</span> <span class="n">get_worker</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">get_worker</span><span class="p">()</span><span class="o">.</span><span class="n">name</span>
+            <span class="n">devicenum</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;g&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Using name </span><span class="si">{0}</span><span class="s2"> to set GPU devicenum to </span><span class="si">{1}</span><span class="s2">&quot;</span>
+                         <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">devicenum</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Could not parse worker name </span><span class="si">{0}</span><span class="s2">. Using default GPU devicenum </span><span class="si">{1}</span><span class="s2">&quot;</span>
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">devicenum</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;No worker found. Using default GPU devicenum </span><span class="si">{0}</span><span class="s2">&quot;</span>
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">devicenum</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;distributed not available. Using default GPU devicenum </span><span class="si">{0}</span><span class="s2">&quot;</span>
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">devicenum</span><span class="p">))</span>
+
+    <span class="n">rfgpu</span><span class="o">.</span><span class="n">cudaSetDevice</span><span class="p">(</span><span class="n">devicenum</span><span class="p">)</span>
+
+    <span class="n">bytespercd</span> <span class="o">=</span> <span class="mi">8</span><span class="o">*</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">npixx</span><span class="o">*</span><span class="n">st</span><span class="o">.</span><span class="n">npixy</span> <span class="o">+</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">timewindow</span><span class="o">*</span><span class="n">st</span><span class="o">.</span><span class="n">nchan</span><span class="o">*</span><span class="n">st</span><span class="o">.</span><span class="n">npol</span><span class="p">)</span>
+
+    <span class="n">beamnum</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">uvw</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">get_uvw_segment</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">)</span>
+
+    <span class="n">upix</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">npixx</span>
+    <span class="n">vpix</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">npixy</span><span class="o">//</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span>
+
+    <span class="n">grid</span> <span class="o">=</span> <span class="n">rfgpu</span><span class="o">.</span><span class="n">Grid</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">nbl</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">nchan</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">readints</span><span class="p">,</span> <span class="n">upix</span><span class="p">,</span> <span class="n">vpix</span><span class="p">)</span>
+    <span class="n">image</span> <span class="o">=</span> <span class="n">rfgpu</span><span class="o">.</span><span class="n">Image</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">npixx</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">npixy</span><span class="p">)</span>
+    <span class="n">image</span><span class="o">.</span><span class="n">add_stat</span><span class="p">(</span><span class="s1">&#39;rms&#39;</span><span class="p">)</span>
+    <span class="n">image</span><span class="o">.</span><span class="n">add_stat</span><span class="p">(</span><span class="s1">&#39;max&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Data buffers on GPU</span>
+    <span class="n">vis_raw</span> <span class="o">=</span> <span class="n">rfgpu</span><span class="o">.</span><span class="n">GPUArrayComplex</span><span class="p">((</span><span class="n">st</span><span class="o">.</span><span class="n">nbl</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">nchan</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">readints</span><span class="p">))</span>
+    <span class="n">vis_grid</span> <span class="o">=</span> <span class="n">rfgpu</span><span class="o">.</span><span class="n">GPUArrayComplex</span><span class="p">((</span><span class="n">upix</span><span class="p">,</span> <span class="n">vpix</span><span class="p">))</span>
+    <span class="n">img_grid</span> <span class="o">=</span> <span class="n">rfgpu</span><span class="o">.</span><span class="n">GPUArrayReal</span><span class="p">((</span><span class="n">st</span><span class="o">.</span><span class="n">npixx</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">npixy</span><span class="p">))</span>
+
+    <span class="c1"># Convert uv from lambda to us</span>
+    <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">uvw</span>
+    <span class="n">u_us</span> <span class="o">=</span> <span class="mf">1e6</span><span class="o">*</span><span class="n">u</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="p">(</span><span class="mf">1e9</span><span class="o">*</span><span class="n">st</span><span class="o">.</span><span class="n">freq</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">v_us</span> <span class="o">=</span> <span class="mf">1e6</span><span class="o">*</span><span class="n">v</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="p">(</span><span class="mf">1e9</span><span class="o">*</span><span class="n">st</span><span class="o">.</span><span class="n">freq</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1"># Q: set input units to be uv (lambda), freq in GHz?</span>
+    <span class="n">grid</span><span class="o">.</span><span class="n">set_uv</span><span class="p">(</span><span class="n">u_us</span><span class="p">,</span> <span class="n">v_us</span><span class="p">)</span>  <span class="c1"># u, v in us</span>
+    <span class="n">grid</span><span class="o">.</span><span class="n">set_freq</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">freq</span><span class="o">*</span><span class="mf">1e3</span><span class="p">)</span>  <span class="c1"># freq in MHz</span>
+    <span class="n">grid</span><span class="o">.</span><span class="n">set_cell</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">uvres</span><span class="p">)</span>  <span class="c1"># uv cell size in wavelengths (== 1/FoV(radians))</span>
+
+    <span class="c1"># Compute gridding transform</span>
+    <span class="n">grid</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
+
+    <span class="c1"># move Stokes I data in (assumes dual pol data)</span>
+    <span class="n">vis_raw</span><span class="o">.</span><span class="n">data</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">rollaxis</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">3</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">vis_raw</span><span class="o">.</span><span class="n">h2d</span><span class="p">()</span>  <span class="c1"># Send it to GPU memory</span>
+
+    <span class="n">grid</span><span class="o">.</span><span class="n">conjugate</span><span class="p">(</span><span class="n">vis_raw</span><span class="p">)</span>
+
+    <span class="n">canddatalist</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">dtind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">dtarr</span><span class="p">)):</span>
+        <span class="k">for</span> <span class="n">dmind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">dmarr</span><span class="p">)):</span>
+            <span class="n">delay</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">calc_delay</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">freq</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">freq</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">st</span><span class="o">.</span><span class="n">dmarr</span><span class="p">[</span><span class="n">dmind</span><span class="p">],</span>
+                                    <span class="n">st</span><span class="o">.</span><span class="n">inttime</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">dtind</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">grid</span><span class="o">.</span><span class="n">downsample</span><span class="p">(</span><span class="n">vis_raw</span><span class="p">)</span>
+
+            <span class="n">grid</span><span class="o">.</span><span class="n">set_shift</span><span class="p">(</span><span class="n">delay</span> <span class="o">&gt;&gt;</span> <span class="n">dtind</span><span class="p">)</span>  <span class="c1"># dispersion shift per chan in samples</span>
+
+            <span class="n">integrations</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">get_search_ints</span><span class="p">(</span><span class="n">segment</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">integrations</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">minint</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">integrations</span><span class="p">)</span>
+            <span class="n">maxint</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">integrations</span><span class="p">)</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Imaging </span><span class="si">{0}</span><span class="s1"> ints (</span><span class="si">{1}</span><span class="s1">-</span><span class="si">{2}</span><span class="s1">) in seg </span><span class="si">{3}</span><span class="s1"> at DM/dt </span><span class="si">{4:.1f}</span><span class="s1">/</span><span class="si">{5}</span><span class="s1">&#39;</span>
+                        <span class="s1">&#39; with image </span><span class="si">{6}</span><span class="s1">x</span><span class="si">{7}</span><span class="s1"> (uvres </span><span class="si">{8}</span><span class="s1">) with gpu </span><span class="si">{9}</span><span class="s1">&#39;</span>
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">integrations</span><span class="p">),</span> <span class="n">minint</span><span class="p">,</span> <span class="n">maxint</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span>
+                                <span class="n">st</span><span class="o">.</span><span class="n">dmarr</span><span class="p">[</span><span class="n">dmind</span><span class="p">],</span> <span class="n">st</span><span class="o">.</span><span class="n">dtarr</span><span class="p">[</span><span class="n">dtind</span><span class="p">],</span> <span class="n">st</span><span class="o">.</span><span class="n">npixx</span><span class="p">,</span>
+                                <span class="n">st</span><span class="o">.</span><span class="n">npixy</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">uvres</span><span class="p">,</span> <span class="n">devicenum</span><span class="p">))</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">integrations</span><span class="p">:</span>
+                <span class="c1"># grid and FFT</span>
+                <span class="n">grid</span><span class="o">.</span><span class="n">operate</span><span class="p">(</span><span class="n">vis_raw</span><span class="p">,</span> <span class="n">vis_grid</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">image</span><span class="o">.</span><span class="n">operate</span><span class="p">(</span><span class="n">vis_grid</span><span class="p">,</span> <span class="n">img_grid</span><span class="p">)</span>
+
+                <span class="c1"># calc snr</span>
+                <span class="n">stats</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">stats</span><span class="p">(</span><span class="n">img_grid</span><span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">peak_snr</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s1">&#39;max&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;rms&#39;</span><span class="p">]</span>
+                <span class="k">except</span> <span class="ne">ZeroDivisionError</span><span class="p">:</span>
+                    <span class="n">peak_snr</span> <span class="o">=</span> <span class="mf">0.</span>
+
+                <span class="c1"># threshold image on GPU and optionally save it</span>
+                <span class="k">if</span> <span class="n">peak_snr</span> <span class="o">&gt;</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">sigma_image1</span><span class="p">:</span>
+                    <span class="n">img_grid</span><span class="o">.</span><span class="n">d2h</span><span class="p">()</span>
+                    <span class="n">img_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftshift</span><span class="p">(</span><span class="n">img_grid</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>  <span class="c1"># shift zero pixel in middle</span>
+                    <span class="n">l</span><span class="p">,</span> <span class="n">m</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">pixtolm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">img_data</span> <span class="o">==</span> <span class="n">img_data</span><span class="o">.</span><span class="n">max</span><span class="p">()))</span>
+                    <span class="n">candloc</span> <span class="o">=</span> <span class="p">(</span><span class="n">segment</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">,</span> <span class="n">beamnum</span><span class="p">)</span>
+
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Got one! SNR </span><span class="si">{0:.1f}</span><span class="s2"> candidate at </span><span class="si">{1}</span><span class="s2"> and (l,m) = (</span><span class="si">{2}</span><span class="s2">,</span><span class="si">{3}</span><span class="s2">)&quot;</span>
+                                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">peak_snr</span><span class="p">,</span> <span class="n">candloc</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">m</span><span class="p">))</span>
+
+                    <span class="n">data_corr</span> <span class="o">=</span> <span class="n">dedisperseresample</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">delay</span><span class="p">,</span>
+                                                   <span class="n">st</span><span class="o">.</span><span class="n">dtarr</span><span class="p">[</span><span class="n">dtind</span><span class="p">],</span>
+                                                   <span class="n">parallel</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">nthread</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="n">data_corr</span> <span class="o">=</span> <span class="n">data_corr</span><span class="p">[</span><span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="o">-</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">timewindow</span><span class="o">//</span><span class="mi">2</span><span class="p">):</span>
+                                          <span class="nb">min</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">timewindow</span><span class="o">//</span><span class="mi">2</span><span class="p">,</span>
+                                          <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">))]</span>
+                    <span class="n">util</span><span class="o">.</span><span class="n">phase_shift</span><span class="p">(</span><span class="n">data_corr</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span>
+                    <span class="n">data_corr</span> <span class="o">=</span> <span class="n">data_corr</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="n">canddatalist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">candidates</span><span class="o">.</span><span class="n">CandData</span><span class="p">(</span><span class="n">state</span><span class="o">=</span><span class="n">st</span><span class="p">,</span>
+                                                            <span class="n">loc</span><span class="o">=</span><span class="n">candloc</span><span class="p">,</span>
+                                                            <span class="n">image</span><span class="o">=</span><span class="n">img_data</span><span class="p">,</span>
+                                                            <span class="n">data</span><span class="o">=</span><span class="n">data_corr</span><span class="p">))</span>
+
+                    <span class="c1"># TODO: add safety against triggering return of all images</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">canddatalist</span><span class="p">)</span><span class="o">*</span><span class="n">bytespercd</span><span class="o">/</span><span class="mi">1000</span><span class="o">**</span><span class="mi">3</span> <span class="o">&gt;</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">memory_limit</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Accumulated CandData size exceeds &quot;</span>
+                                    <span class="s2">&quot;memory limit of </span><span class="si">{0:.1f}</span><span class="s2">. &quot;</span>
+                                    <span class="s2">&quot;Running calc_features...&quot;</span>
+                                    <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">memory_limit</span><span class="p">))</span>
+                        <span class="n">candcollection</span> <span class="o">+=</span> <span class="n">candidates</span><span class="o">.</span><span class="n">calc_features</span><span class="p">(</span><span class="n">canddatalist</span><span class="p">)</span>
+                        <span class="n">canddatalist</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">candcollection</span> <span class="o">+=</span> <span class="n">candidates</span><span class="o">.</span><span class="n">calc_features</span><span class="p">(</span><span class="n">canddatalist</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> candidates returned for seg </span><span class="si">{1}</span><span class="s2">&quot;</span>
+                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">candcollection</span><span class="p">),</span> <span class="n">segment</span><span class="p">))</span>
+
+    <span class="c1"># Python may not clean these up properly</span>
+    <span class="k">del</span> <span class="n">vis_raw</span><span class="p">,</span> <span class="n">vis_grid</span><span class="p">,</span> <span class="n">img_grid</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">image</span>
+</div>
+    <span class="k">return</span> <span class="n">candcollection</span>
+
+
+<div class="viewcode-block" id="dedisperse_image_fftw"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.dedisperse_image_fftw">[docs]</a><span class="k">def</span> <span class="nf">dedisperse_image_fftw</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">wisdom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">integrations</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Fuse the dediserpse, resample, search, threshold functions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">candcollection</span> <span class="o">=</span> <span class="n">candidates</span><span class="o">.</span><span class="n">CandCollection</span><span class="p">(</span><span class="n">prefs</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="p">,</span>
+                                               <span class="n">metadata</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">dtind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">dtarr</span><span class="p">)):</span>
+        <span class="k">for</span> <span class="n">dmind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">dmarr</span><span class="p">)):</span>
+            <span class="n">delay</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">calc_delay</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">freq</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">freq</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">st</span><span class="o">.</span><span class="n">dmarr</span><span class="p">[</span><span class="n">dmind</span><span class="p">],</span>
+                                    <span class="n">st</span><span class="o">.</span><span class="n">inttime</span><span class="p">)</span>
+
+            <span class="n">data_corr</span> <span class="o">=</span> <span class="n">dedisperseresample</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">delay</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">dtarr</span><span class="p">[</span><span class="n">dtind</span><span class="p">],</span>
+                                           <span class="n">parallel</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">nthread</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">candcollection</span> <span class="o">+=</span> <span class="n">search_thresh_fftw</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">data_corr</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span>
+                                                 <span class="n">dtind</span><span class="p">,</span> <span class="n">wisdom</span><span class="o">=</span><span class="n">wisdom</span><span class="p">,</span>
+                                                 <span class="n">integrations</span><span class="o">=</span><span class="n">integrations</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> candidates returned for seg </span><span class="si">{1}</span><span class="s2">&quot;</span>
+                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">candcollection</span><span class="p">),</span> <span class="n">segment</span><span class="p">))</span>
+</div>
+    <span class="k">return</span> <span class="n">candcollection</span>
+
+
+<div class="viewcode-block" id="search_thresh_fftw"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.search_thresh_fftw">[docs]</a><span class="k">def</span> <span class="nf">search_thresh_fftw</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">,</span> <span class="n">integrations</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                       <span class="n">beamnum</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">wisdom</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Take dedispersed, resampled data, image with fftw and threshold.</span>
 <span class="sd">    Returns list of CandData objects that define candidates with</span>
 <span class="sd">    candloc, image, and phased visibility data.</span>
+<span class="sd">    Integrations can define subset of all available in data to search.</span>
+<span class="sd">    Default will take integrations not searched in neighboring segments.</span>
 
 <span class="sd">    ** only supports threshold &gt; image max (no min)</span>
 <span class="sd">    ** dmind, dtind, beamnum assumed to represent current state of data</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="n">candcollection</span> <span class="o">=</span> <span class="n">candidates</span><span class="o">.</span><span class="n">CandCollection</span><span class="p">(</span><span class="n">prefs</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="p">,</span>
+                                               <span class="n">metadata</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">[]</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Data is all zeros. Skipping search.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">candcollection</span>
 
-    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">requirements</span><span class="o">=</span><span class="s1">&#39;W&#39;</span><span class="p">)</span>
-    <span class="n">uvw</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">get_uvw_segment</span><span class="p">(</span><span class="n">segment</span><span class="p">)</span>
+    <span class="n">bytespercd</span> <span class="o">=</span> <span class="mi">8</span><span class="o">*</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">npixx</span><span class="o">*</span><span class="n">st</span><span class="o">.</span><span class="n">npixy</span> <span class="o">+</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">timewindow</span><span class="o">*</span><span class="n">st</span><span class="o">.</span><span class="n">nchan</span><span class="o">*</span><span class="n">st</span><span class="o">.</span><span class="n">npol</span><span class="p">)</span>
 
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Imaging </span><span class="si">{0}</span><span class="s1">x</span><span class="si">{1}</span><span class="s1"> pix with uvres of </span><span class="si">{2}</span><span class="s1">.&#39;</span>
-                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">npixx</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">npixy</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">uvres</span><span class="p">))</span>
+    <span class="c1"># assumes dedispersed/resampled data has only back end trimmed off</span>
+    <span class="k">if</span> <span class="n">integrations</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">integrations</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">get_search_ints</span><span class="p">(</span><span class="n">segment</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">integrations</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">integrations</span> <span class="o">=</span> <span class="p">[</span><span class="n">integrations</span><span class="p">]</span>
+
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">integrations</span><span class="p">,</span> <span class="nb">list</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;integrations should be int, list &quot;</span>
+                                            <span class="s2">&quot;of ints, or None.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">integrations</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">candcollection</span>
+    <span class="n">minint</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">integrations</span><span class="p">)</span>
+    <span class="n">maxint</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">integrations</span><span class="p">)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Imaging </span><span class="si">{0}</span><span class="s1"> ints (</span><span class="si">{1}</span><span class="s1">-</span><span class="si">{2}</span><span class="s1">) in seg </span><span class="si">{3}</span><span class="s1"> at DM/dt </span><span class="si">{4:.1f}</span><span class="s1">/</span><span class="si">{5}</span><span class="s1"> with &#39;</span>
+                <span class="s1">&#39;image </span><span class="si">{6}</span><span class="s1">x</span><span class="si">{7}</span><span class="s1"> (uvres </span><span class="si">{8}</span><span class="s1">) with fftw&#39;</span>
+                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">integrations</span><span class="p">),</span> <span class="n">minint</span><span class="p">,</span> <span class="n">maxint</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span>
+                        <span class="n">st</span><span class="o">.</span><span class="n">dmarr</span><span class="p">[</span><span class="n">dmind</span><span class="p">],</span> <span class="n">st</span><span class="o">.</span><span class="n">dtarr</span><span class="p">[</span><span class="n">dtind</span><span class="p">],</span> <span class="n">st</span><span class="o">.</span><span class="n">npixx</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">npixy</span><span class="p">,</span>
+                        <span class="n">st</span><span class="o">.</span><span class="n">uvres</span><span class="p">))</span>
+
+    <span class="n">uvw</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">get_uvw_segment</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="s1">&#39;image1&#39;</span> <span class="ow">in</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">searchtype</span><span class="p">:</span>
+        <span class="n">images</span> <span class="o">=</span> <span class="n">grid_image</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">npixx</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">npixy</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">uvres</span><span class="p">,</span>
+                            <span class="s1">&#39;fftw&#39;</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">nthread</span><span class="p">,</span> <span class="n">wisdom</span><span class="o">=</span><span class="n">wisdom</span><span class="p">,</span>
+                            <span class="n">integrations</span><span class="o">=</span><span class="n">integrations</span><span class="p">)</span>
 
-        <span class="n">images</span> <span class="o">=</span> <span class="n">image</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">npixx</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">npixy</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">uvres</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">fftmode</span><span class="p">,</span>
-                       <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">nthread</span><span class="p">,</span> <span class="n">wisdom</span><span class="o">=</span><span class="n">wisdom</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Thresholding at </span><span class="si">{0}</span><span class="s1"> sigma.&#39;</span>
+                     <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">sigma_image1</span><span class="p">))</span>
 
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Thresholding images for DM=</span><span class="si">{0}</span><span class="s1">, dt=</span><span class="si">{1}</span><span class="s1"> at </span><span class="si">{2}</span><span class="s1"> sigma.&#39;</span>
-                    <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">dmarr</span><span class="p">[</span><span class="n">dmind</span><span class="p">],</span> <span class="n">st</span><span class="o">.</span><span class="n">dtarr</span><span class="p">[</span><span class="n">dtind</span><span class="p">],</span>
-                            <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">sigma_image1</span><span class="p">))</span>
-
+        <span class="c1"># TODO: the following is really slow</span>
         <span class="n">canddatalist</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">)):</span>
-            <span class="k">if</span> <span class="p">(</span><span class="n">images</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">/</span><span class="n">util</span><span class="o">.</span><span class="n">madtostd</span><span class="p">(</span><span class="n">images</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">&gt;</span>
-               <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">sigma_image1</span><span class="p">):</span>
-                <span class="n">candloc</span> <span class="o">=</span> <span class="p">(</span><span class="n">segment</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">,</span> <span class="n">beamnum</span><span class="p">)</span>
+            <span class="n">peak_snr</span> <span class="o">=</span> <span class="n">images</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">/</span><span class="n">util</span><span class="o">.</span><span class="n">madtostd</span><span class="p">(</span><span class="n">images</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">peak_snr</span> <span class="o">&gt;</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">sigma_image1</span><span class="p">:</span>
+                <span class="n">candloc</span> <span class="o">=</span> <span class="p">(</span><span class="n">segment</span><span class="p">,</span> <span class="n">integrations</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">,</span> <span class="n">beamnum</span><span class="p">)</span>
                 <span class="n">candim</span> <span class="o">=</span> <span class="n">images</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
                 <span class="n">l</span><span class="p">,</span> <span class="n">m</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">pixtolm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">candim</span> <span class="o">==</span> <span class="n">candim</span><span class="o">.</span><span class="n">max</span><span class="p">()))</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;image peak at l, m: </span><span class="si">{0}</span><span class="s2">, </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">m</span><span class="p">))</span>
-                <span class="n">phase_shift</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;phasing data from: </span><span class="si">{0}</span><span class="s2">, </span><span class="si">{1}</span><span class="s2">&quot;</span>
-                             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="o">-</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">timewindow</span><span class="o">//</span><span class="mi">2</span><span class="p">),</span>
-                                     <span class="nb">min</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">timewindow</span><span class="o">//</span><span class="mi">2</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">))))</span>
-                <span class="n">dataph</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="o">-</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">timewindow</span><span class="o">//</span><span class="mi">2</span><span class="p">):</span>
-                              <span class="nb">min</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">timewindow</span><span class="o">//</span><span class="mi">2</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">))]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-                <span class="n">phase_shift</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="o">-</span><span class="n">l</span><span class="p">,</span> <span class="o">-</span><span class="n">m</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Got one! SNR </span><span class="si">{0:.1f}</span><span class="s2"> candidate at </span><span class="si">{1}</span><span class="s2"> and (l,m) = (</span><span class="si">{2}</span><span class="s2">,</span><span class="si">{3}</span><span class="s2">)&quot;</span>
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">peak_snr</span><span class="p">,</span> <span class="n">candloc</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">m</span><span class="p">))</span>
+                <span class="n">util</span><span class="o">.</span><span class="n">phase_shift</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span>
+                <span class="n">dataph</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">integrations</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">timewindow</span><span class="o">//</span><span class="mi">2</span><span class="p">):</span>
+                              <span class="nb">min</span><span class="p">(</span><span class="n">integrations</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">timewindow</span><span class="o">//</span><span class="mi">2</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">))]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">util</span><span class="o">.</span><span class="n">phase_shift</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="o">-</span><span class="n">l</span><span class="p">,</span> <span class="o">-</span><span class="n">m</span><span class="p">)</span>
                 <span class="n">canddatalist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">candidates</span><span class="o">.</span><span class="n">CandData</span><span class="p">(</span><span class="n">state</span><span class="o">=</span><span class="n">st</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="n">candloc</span><span class="p">,</span>
-                                                        <span class="n">image</span><span class="o">=</span><span class="n">candim</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">dataph</span><span class="p">))</span>
+                                                        <span class="n">image</span><span class="o">=</span><span class="n">candim</span><span class="p">,</span>
+                                                        <span class="n">data</span><span class="o">=</span><span class="n">dataph</span><span class="p">))</span>
+
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">canddatalist</span><span class="p">)</span><span class="o">*</span><span class="n">bytespercd</span><span class="o">/</span><span class="mi">1000</span><span class="o">**</span><span class="mi">3</span> <span class="o">&gt;</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">memory_limit</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Accumulated CandData size is </span><span class="si">{0:.1f}</span><span class="s2"> GB, &quot;</span>
+                                <span class="s2">&quot;which exceeds memory limit of </span><span class="si">{1:.1f}</span><span class="s2">. &quot;</span>
+                                <span class="s2">&quot;Running calc_features...&quot;</span>
+                                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">canddatalist</span><span class="p">)</span><span class="o">*</span><span class="n">bytespercd</span><span class="o">/</span><span class="mi">1000</span><span class="o">**</span><span class="mi">3</span><span class="p">,</span>
+                                        <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">memory_limit</span><span class="p">))</span>
+                    <span class="n">candcollection</span> <span class="o">+=</span> <span class="n">candidates</span><span class="o">.</span><span class="n">calc_features</span><span class="p">(</span><span class="n">canddatalist</span><span class="p">)</span>
+                    <span class="n">canddatalist</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">candcollection</span> <span class="o">+=</span> <span class="n">candidates</span><span class="o">.</span><span class="n">calc_features</span><span class="p">(</span><span class="n">canddatalist</span><span class="p">)</span>
+
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="bp">NotImplemented</span><span class="p">(</span><span class="s2">&quot;only searchtype=image1 implemented&quot;</span><span class="p">)</span>
 
-    <span class="c1"># tuple(list(int), list(ndarray), list(ndarray))</span>
-<span class="c1">#    return (ints, images_thresh, dataph)</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Returning data for </span><span class="si">{0}</span><span class="s2"> candidates&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">canddatalist</span><span class="p">)))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> candidates returned for (seg, dmind, dtind) = &quot;</span>
+                <span class="s2">&quot;(</span><span class="si">{1}</span><span class="s2">, </span><span class="si">{2}</span><span class="s2">, </span><span class="si">{3}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">candcollection</span><span class="p">),</span> <span class="n">segment</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span>
+                                         <span class="n">dtind</span><span class="p">))</span>
+</div>
+    <span class="k">return</span> <span class="n">candcollection</span>
 
-    <span class="k">return</span> <span class="n">canddatalist</span></div>
 
-
-<div class="viewcode-block" id="image"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.image">[docs]</a><span class="k">def</span> <span class="nf">image</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">,</span> <span class="n">uvres</span><span class="p">,</span> <span class="n">fftmode</span><span class="p">,</span> <span class="n">nthread</span><span class="p">,</span> <span class="n">wisdom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-          <span class="n">integrations</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="grid_image"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.grid_image">[docs]</a><span class="k">def</span> <span class="nf">grid_image</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">,</span> <span class="n">uvres</span><span class="p">,</span> <span class="n">fftmode</span><span class="p">,</span> <span class="n">nthread</span><span class="p">,</span> <span class="n">wisdom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">integrations</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Grid and image data.</span>
 <span class="sd">    Optionally image integrations in list i.</span>
 <span class="sd">    fftmode can be fftw or cuda.</span>
 <span class="sd">    nthread is number of threads to use</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;single&#39;</span> <span class="k">if</span> <span class="n">nthread</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="s1">&#39;multi&#39;</span>
-
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">integrations</span><span class="p">:</span>
-        <span class="n">integrations</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">integrations</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Imaging int</span><span class="si">{0}</span><span class="s1"> </span><span class="si">{1}</span><span class="s1">&#39;</span>
-                    <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;s&#39;</span><span class="p">[</span><span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">integrations</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">:],</span>
-                            <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">integrations</span><span class="p">])))</span>
-
-    <span class="n">grids</span> <span class="o">=</span> <span class="n">grid_visibilities</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">integrations</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">uvw</span><span class="p">,</span> <span class="n">npixx</span><span class="p">,</span>
-                              <span class="n">npixy</span><span class="p">,</span> <span class="n">uvres</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">integrations</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">integrations</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)))</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">integrations</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">integrations</span> <span class="o">=</span> <span class="p">[</span><span class="n">integrations</span><span class="p">]</span>
 
     <span class="k">if</span> <span class="n">fftmode</span> <span class="o">==</span> <span class="s1">&#39;fftw&#39;</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Imaging with fftw.&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Imaging with fftw on </span><span class="si">{0}</span><span class="s2"> threads&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nthread</span><span class="p">))</span>
+        <span class="n">grids</span> <span class="o">=</span> <span class="n">grid_visibilities</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">integrations</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">uvw</span><span class="p">,</span> <span class="n">npixx</span><span class="p">,</span>
+                                  <span class="n">npixy</span><span class="p">,</span> <span class="n">uvres</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="n">nthread</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span>
         <span class="n">images</span> <span class="o">=</span> <span class="n">image_fftw</span><span class="p">(</span><span class="n">grids</span><span class="p">,</span> <span class="n">nthread</span><span class="o">=</span><span class="n">nthread</span><span class="p">,</span> <span class="n">wisdom</span><span class="o">=</span><span class="n">wisdom</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">fftmode</span> <span class="o">==</span> <span class="s1">&#39;cuda&#39;</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Imaging with cuda.&quot;</span><span class="p">)</span>
-        <span class="n">images</span> <span class="o">=</span> <span class="n">image_cuda</span><span class="p">(</span><span class="n">grids</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Imaging with cuda not yet supported.&quot;</span><span class="p">)</span>
+        <span class="n">images</span> <span class="o">=</span> <span class="n">image_cuda</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Imaging fftmode </span><span class="si">{0}</span><span class="s2"> not supported.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fftmode</span><span class="p">))</span>
+</div>
+    <span class="k">return</span> <span class="n">images</span>
 
-    <span class="k">return</span> <span class="n">images</span></div>
 
-
-<div class="viewcode-block" id="image_cuda"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.image_cuda">[docs]</a><span class="k">def</span> <span class="nf">image_cuda</span><span class="p">(</span><span class="n">grids</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Run 2d FFT to image each plane of grid array</span>
+<div class="viewcode-block" id="image_cuda"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.image_cuda">[docs]</a><span class="k">def</span> <span class="nf">image_cuda</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; Run grid and image with rfgpu</span>
+<span class="sd">    TODO: update to use rfgpu</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">try</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">pyfft.cuda</span> <span class="k">import</span> <span class="n">Plan</span>
-        <span class="kn">from</span> <span class="nn">pycuda.tools</span> <span class="k">import</span> <span class="n">make_default_context</span>
-        <span class="kn">import</span> <span class="nn">pycuda.gpuarray</span> <span class="k">as</span> <span class="nn">gpuarray</span>
-        <span class="kn">import</span> <span class="nn">pycuda.driver</span> <span class="k">as</span> <span class="nn">cuda</span>
-    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;ImportError for pycuda or pyfft. Use pyfftw instead.&#39;</span><span class="p">)</span>
-
-    <span class="n">nints</span><span class="p">,</span> <span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span> <span class="o">=</span> <span class="n">grids</span><span class="o">.</span><span class="n">shape</span>
-
-    <span class="n">cuda</span><span class="o">.</span><span class="n">init</span><span class="p">()</span>
-    <span class="n">context</span> <span class="o">=</span> <span class="n">make_default_context</span><span class="p">()</span>
-    <span class="n">stream</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">Stream</span><span class="p">()</span>
-
-    <span class="n">plan</span> <span class="o">=</span> <span class="n">Plan</span><span class="p">((</span><span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">),</span> <span class="n">stream</span><span class="o">=</span><span class="n">stream</span><span class="p">)</span>
-
-    <span class="n">grid_gpu</span> <span class="o">=</span> <span class="n">gpuarray</span><span class="o">.</span><span class="n">to_gpu</span><span class="p">(</span><span class="n">grids</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nints</span><span class="p">):</span>
-        <span class="n">plan</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">grid_gpu</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">inverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">grids</span> <span class="o">=</span> <span class="n">grid_gpu</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-
-    <span class="n">context</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">recenter</span><span class="p">(</span><span class="n">grids</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="p">(</span><span class="n">npixx</span><span class="o">//</span><span class="mi">2</span><span class="p">,</span> <span class="n">npixy</span><span class="o">//</span><span class="mi">2</span><span class="p">))</span></div>
+</div>
+    <span class="k">pass</span>
 
 
 <div class="viewcode-block" id="image_fftw"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.image_fftw">[docs]</a><span class="k">def</span> <span class="nf">image_fftw</span><span class="p">(</span><span class="n">grids</span><span class="p">,</span> <span class="n">nthread</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">wisdom</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -385,71 +661,77 @@
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Importing wisdom...&#39;</span><span class="p">)</span>
         <span class="n">pyfftw</span><span class="o">.</span><span class="n">import_wisdom</span><span class="p">(</span><span class="n">wisdom</span><span class="p">)</span>
 
-    <span class="n">images</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">interfaces</span><span class="o">.</span><span class="n">numpy_fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">(</span><span class="n">grids</span><span class="p">,</span> <span class="n">auto_align_input</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                                               <span class="n">auto_contiguous</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                                               <span class="n">planner_effort</span><span class="o">=</span><span class="s1">&#39;FFTW_MEASURE&#39;</span><span class="p">,</span>
-                                               <span class="n">threads</span><span class="o">=</span><span class="n">nthread</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Starting pyfftw ifft2&quot;</span><span class="p">)</span>
+    <span class="n">images</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">grids</span><span class="p">)</span>
 
-    <span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span> <span class="o">=</span> <span class="n">images</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+<span class="c1">#    images = pyfftw.interfaces.numpy_fft.ifft2(grids, auto_align_input=True,</span>
+<span class="c1">#                                               auto_contiguous=True,</span>
+<span class="c1">#                                               planner_effort=&#39;FFTW_MEASURE&#39;,</span>
+<span class="c1">#                                               overwrite_input=True,</span>
+<span class="c1">#                                               threads=nthread)</span>
+<span class="c1">#    nints, npixx, npixy = images.shape</span>
+<span class="c1">#</span>
+<span class="c1">#   return np.fft.fftshift(images.real, (npixx//2, npixy//2))</span>
 
-    <span class="k">return</span> <span class="n">recenter</span><span class="p">(</span><span class="n">images</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="p">(</span><span class="n">npixx</span><span class="o">//</span><span class="mi">2</span><span class="p">,</span> <span class="n">npixy</span><span class="o">//</span><span class="mi">2</span><span class="p">))</span></div>
+    <span class="n">fft_obj</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">FFTW</span><span class="p">(</span><span class="n">grids</span><span class="p">,</span> <span class="n">images</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">direction</span><span class="o">=</span><span class="s2">&quot;FFTW_BACKWARD&quot;</span><span class="p">)</span>
+    <span class="n">fft_obj</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Recentering fft</span><span class="se">\&#39;</span><span class="s1">d images...&#39;</span><span class="p">)</span>
+</div>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftshift</span><span class="p">(</span><span class="n">images</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
 
 
-<div class="viewcode-block" id="grid_visibilities"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.grid_visibilities">[docs]</a><span class="k">def</span> <span class="nf">grid_visibilities</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">,</span> <span class="n">uvres</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;multi&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="grid_visibilities"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.grid_visibilities">[docs]</a><span class="k">def</span> <span class="nf">grid_visibilities</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">,</span> <span class="n">uvres</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Grid visibilities into rounded uv coordinates &quot;&quot;&quot;</span>
 
-    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">requirements</span><span class="o">=</span><span class="s1">&#39;W&#39;</span><span class="p">)</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Gridding visibilities for grid of (</span><span class="si">{0}</span><span class="s1">, </span><span class="si">{1}</span><span class="s1">) pix and </span><span class="si">{2}</span><span class="s1"> &#39;</span>
-                <span class="s1">&#39;resolution.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">,</span> <span class="n">uvres</span><span class="p">))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Gridding </span><span class="si">{0}</span><span class="s1"> ints at (</span><span class="si">{1}</span><span class="s1">, </span><span class="si">{2}</span><span class="s1">) pix and </span><span class="si">{3}</span><span class="s1"> &#39;</span>
+                 <span class="s1">&#39;resolution in </span><span class="si">{4}</span><span class="s1"> mode.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">,</span>
+                                                  <span class="n">uvres</span><span class="p">,</span>
+                                                  <span class="p">[</span><span class="s1">&#39;single&#39;</span><span class="p">,</span> <span class="s1">&#39;parallel&#39;</span><span class="p">][</span><span class="n">parallel</span><span class="p">]))</span>
+    <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">uvw</span>
+    <span class="n">grids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">),</span>
+                     <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex64</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;single&#39;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">_grid_visibilities_jit</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">,</span> <span class="n">uvres</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;multi&#39;</span><span class="p">:</span>
-        <span class="n">grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">),</span>
-                        <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex64</span><span class="p">)</span>
-        <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">uvw</span>
-        <span class="n">_</span> <span class="o">=</span> <span class="n">_grid_visibilities_gu</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">,</span> <span class="n">uvres</span><span class="p">,</span> <span class="n">grid</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">grid</span>
+    <span class="k">if</span> <span class="n">parallel</span><span class="p">:</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">_grid_visibilities_gu</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">,</span> <span class="n">uvres</span><span class="p">,</span> <span class="n">grids</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;No such resample mode.&#39;</span><span class="p">)</span></div>
+        <span class="n">_grid_visibilities_jit</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">,</span> <span class="n">uvres</span><span class="p">,</span> <span class="n">grids</span><span class="p">)</span>
+</div>
+    <span class="k">return</span> <span class="n">grids</span>
 
 
 <span class="nd">@jit</span><span class="p">(</span><span class="n">nogil</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">_grid_visibilities_jit</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">,</span> <span class="n">uvres</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Grid visibilities into rounded uv coordinates using jit on single core.</span>
+<span class="k">def</span> <span class="nf">_grid_visibilities_jit</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">,</span> <span class="n">uvres</span><span class="p">,</span> <span class="n">grids</span><span class="p">):</span>
+    <span class="sa">b</span><span class="sd">&quot;&quot;&quot; Grid visibilities into rounded uv coordinates using jit on single core.</span>
 <span class="sd">    Rounding not working here, so minor differences with original and</span>
 <span class="sd">    guvectorized versions.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">us</span><span class="p">,</span> <span class="n">vs</span><span class="p">,</span> <span class="n">ws</span> <span class="o">=</span> <span class="n">uvw</span>
     <span class="n">nint</span><span class="p">,</span> <span class="n">nbl</span><span class="p">,</span> <span class="n">nchan</span><span class="p">,</span> <span class="n">npol</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
 
 <span class="c1"># rounding not available in numba</span>
 <span class="c1">#    ubl = np.round(us/uvres, 0).astype(np.int32)</span>
 <span class="c1">#    vbl = np.round(vs/uvres, 0).astype(np.int32)</span>
-    <span class="n">ubl</span> <span class="o">=</span> <span class="p">(</span><span class="n">us</span><span class="o">/</span><span class="n">uvres</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-    <span class="n">vbl</span> <span class="o">=</span> <span class="p">(</span><span class="n">vs</span><span class="o">/</span><span class="n">uvres</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-
-    <span class="n">grids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">nint</span><span class="p">,</span> <span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex64</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbl</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nchan</span><span class="p">):</span>
-            <span class="k">if</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">ubl</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">])</span> <span class="o">&lt;</span> <span class="n">npixx</span><span class="o">//</span><span class="mi">2</span><span class="p">)</span> <span class="ow">and</span> \
-               <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">vbl</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">])</span> <span class="o">&lt;</span> <span class="n">npixy</span><span class="o">//</span><span class="mi">2</span><span class="p">):</span>
-                <span class="n">u</span> <span class="o">=</span> <span class="n">int64</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">ubl</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">],</span> <span class="n">npixx</span><span class="p">))</span>
-                <span class="n">v</span> <span class="o">=</span> <span class="n">int64</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">vbl</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">],</span> <span class="n">npixy</span><span class="p">))</span>
+            <span class="n">ubl</span> <span class="o">=</span> <span class="n">int64</span><span class="p">(</span><span class="n">u</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span><span class="o">/</span><span class="n">uvres</span><span class="p">)</span>
+            <span class="n">vbl</span> <span class="o">=</span> <span class="n">int64</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span><span class="o">/</span><span class="n">uvres</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">ubl</span> <span class="o">&lt;</span> <span class="n">npixx</span><span class="o">//</span><span class="mi">2</span><span class="p">))</span> <span class="ow">and</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">vbl</span> <span class="o">&lt;</span> <span class="n">npixy</span><span class="o">//</span><span class="mi">2</span><span class="p">)):</span>
+                <span class="n">umod</span> <span class="o">=</span> <span class="n">int64</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">ubl</span><span class="p">,</span> <span class="n">npixx</span><span class="p">))</span>
+                <span class="n">vmod</span> <span class="o">=</span> <span class="n">int64</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">vbl</span><span class="p">,</span> <span class="n">npixy</span><span class="p">))</span>
                 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nint</span><span class="p">):</span>
-                    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">npol</span><span class="p">):</span>
-                        <span class="n">grids</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">grids</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">]</span> <span class="o">+</span> <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">npol</span><span class="p">):</span>
+                        <span class="n">grids</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">umod</span><span class="p">,</span> <span class="n">vmod</span><span class="p">]</span> <span class="o">+=</span> <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span>
 
     <span class="k">return</span> <span class="n">grids</span>
 
 
-<span class="nd">@guvectorize</span><span class="p">([</span><span class="s2">&quot;void(complex64[:,:,:], float32[:,:], float32[:,:], float32[:,:], int64, int64, int64, complex64[:,:])&quot;</span><span class="p">],</span>
-             <span class="s1">&#39;(n,m,l),(n,m),(n,m),(n,m),(),(),(),(o,p)&#39;</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s1">&#39;parallel&#39;</span><span class="p">,</span>
-             <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="nd">@guvectorize</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="s2">&quot;void(complex64[:,:,:], float32[:,:], float32[:,:], float32[:,:], int64, int64, int64, complex64[:,:])&quot;</span><span class="p">)],</span>
+             <span class="nb">str</span><span class="p">(</span><span class="s2">&quot;(n,m,l),(n,m),(n,m),(n,m),(),(),(),(o,p)&quot;</span><span class="p">),</span>
+             <span class="n">target</span><span class="o">=</span><span class="s1">&#39;parallel&#39;</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">_grid_visibilities_gu</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">us</span><span class="p">,</span> <span class="n">vs</span><span class="p">,</span> <span class="n">ws</span><span class="p">,</span> <span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">,</span> <span class="n">uvres</span><span class="p">,</span> <span class="n">grid</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Grid visibilities into rounded uv coordinates for multiple cores&quot;&quot;&quot;</span>
+    <span class="sa">b</span><span class="sd">&quot;&quot;&quot; Grid visibilities into rounded uv coordinates for multiple cores&quot;&quot;&quot;</span>
 
     <span class="n">ubl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">us</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">int64</span><span class="p">)</span>
     <span class="n">vbl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">vs</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">int64</span><span class="p">)</span>
@@ -466,29 +748,10 @@
                     <span class="n">grid</span><span class="p">[</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">]</span> <span class="o">+=</span> <span class="n">data</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="recenter"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.recenter">[docs]</a><span class="k">def</span> <span class="nf">recenter</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">center</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Recenters images in array to location center (x, y)</span>
-<span class="sd">    Array can be either 2d (x, y) or 3d array (time, x, y).</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">center</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
-
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">center</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">center</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">center</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">center</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span></div>
-
-<span class="c1">#    s = a[1:].shape</span>
-<span class="c1">#    c = (c[0] % s[0], c[1] % s[1])</span>
-<span class="c1">#    a1 = np.concatenate([a[:, c[0]:], a[:, :c[0]]], axis=1)</span>
-<span class="c1">#    a2 = np.concatenate([a1[:, :,c[1]:], a1[:, :,:c[1]]], axis=2)</span>
-<span class="c1">#    return a2</span>
-
-
 <div class="viewcode-block" id="image_arm"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.image_arm">[docs]</a><span class="k">def</span> <span class="nf">image_arm</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot; Takes visibilities and images arms of VLA &quot;&quot;&quot;</span>
-
-    <span class="k">pass</span></div>
+</div>
+    <span class="k">pass</span>
 
 
 <div class="viewcode-block" id="set_wisdom"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.set_wisdom">[docs]</a><span class="k">def</span> <span class="nf">set_wisdom</span><span class="p">(</span><span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">):</span>
@@ -496,29 +759,10 @@
 
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating FFT wisdom...&#39;</span><span class="p">)</span>
     <span class="n">arr</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">empty_aligned</span><span class="p">((</span><span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;complex64&#39;</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
-    <span class="n">arr</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="o">*</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="o">*</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="n">fft_arr</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">interfaces</span><span class="o">.</span><span class="n">numpy_fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">auto_align_input</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                                                 <span class="n">auto_contiguous</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                                                <span class="n">planner_effort</span><span class="o">=</span><span class="s1">&#39;FFTW_MEASURE&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">export_wisdom</span><span class="p">()</span></div>
-
-
-<div class="viewcode-block" id="phase_shift"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.phase_shift">[docs]</a><span class="nd">@jit</span><span class="p">(</span><span class="n">nogil</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">phase_shift</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="n">dl</span><span class="p">,</span> <span class="n">dm</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Applies a phase shift to data for a given (dl, dm).</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">sh</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
-    <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">uvw</span>
-
-    <span class="k">if</span> <span class="p">(</span><span class="n">dl</span> <span class="o">!=</span> <span class="mf">0.</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">dm</span> <span class="o">!=</span> <span class="mf">0.</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">sh</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
-            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">sh</span><span class="p">[</span><span class="mi">2</span><span class="p">]):</span>
-                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">sh</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>    <span class="c1"># iterate over pols</span>
-                    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">sh</span><span class="p">[</span><span class="mi">3</span><span class="p">]):</span>
-                        <span class="c1"># phasor unwraps phase at (dl, dm) per (bl, chan)</span>
-                        <span class="n">frot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="n">j</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="p">(</span><span class="n">dl</span><span class="o">*</span><span class="n">u</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">+</span> <span class="n">dm</span><span class="o">*</span><span class="n">v</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">]))</span>
-                        <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> <span class="o">*</span> <span class="n">frot</span></div>
+                                                <span class="n">planner_effort</span><span class="o">=</span><span class="s1">&#39;FFTW_MEASURE&#39;</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">export_wisdom</span><span class="p">()</span>
 </pre></div>
 
     </div>
@@ -533,7 +777,7 @@
     </p>
     <p>
         &copy; Copyright 2017, Casey Law.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.1.<br/>
     </p>
   </div>
 </footer>

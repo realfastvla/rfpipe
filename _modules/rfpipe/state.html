@@ -2,20 +2,12 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>rfpipe.state &#8212; rfpipe 0.6.0 documentation</title>
+    <title>rfpipe.state &#8212; rfpipe 0.9.5 documentation</title>
     <link rel="stylesheet" href="../../_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../../',
-        VERSION:     '0.6.0',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
+    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
@@ -30,8 +22,7 @@
 <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
 <meta name="apple-mobile-web-app-capable" content="yes">
 
-  </head>
-  <body>
+  </head><body>
 
   <div id="navbar" class="navbar navbar-default navbar-fixed-top">
     <div class="container">
@@ -44,7 +35,7 @@
         </button>
         <a class="navbar-brand" href="../../index.html"><span><img src="../../_static/favicon.ico.png"></span>
           rfpipe</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.6.0</b></span>
+        <span class="navbar-text navbar-version pull-left"><b>0.9.5</b></span>
       </div>
 
         <div class="collapse navbar-collapse nav-collapse">
@@ -112,11 +103,22 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12 content">
+      <div class="col-md-3">
+        <div id="sidebar" class="bs-sidenav" role="complementary">
+<form action="../../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+        </div>
+      </div>
+    <div class="col-md-9 content">
       
   <h1>Source code for rfpipe.state</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">absolute_import</span> <span class="c1">#, unicode_literals # not casa compatible</span>
-<span class="kn">from</span> <span class="nn">builtins</span> <span class="k">import</span> <span class="nb">bytes</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="nb">object</span><span class="p">,</span> <span class="nb">range</span><span class="p">,</span> <span class="nb">map</span><span class="p">,</span> <span class="nb">input</span><span class="c1">#, str # not casa compatible</span>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">unicode_literals</span>
+<span class="kn">from</span> <span class="nn">builtins</span> <span class="k">import</span> <span class="nb">bytes</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="nb">object</span><span class="p">,</span> <span class="nb">range</span><span class="p">,</span> <span class="nb">map</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="nb">str</span>
 <span class="kn">from</span> <span class="nn">future.utils</span> <span class="k">import</span> <span class="n">itervalues</span><span class="p">,</span> <span class="n">viewitems</span><span class="p">,</span> <span class="n">iteritems</span><span class="p">,</span> <span class="n">listvalues</span><span class="p">,</span> <span class="n">listitems</span>
 <span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="nb">open</span>
 
@@ -132,7 +134,6 @@
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 <span class="n">qa</span> <span class="o">=</span> <span class="n">casautil</span><span class="o">.</span><span class="n">tools</span><span class="o">.</span><span class="n">quanta</span><span class="p">()</span>
-<span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Using pwkit casa&#39;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="State"><a class="viewcode-back" href="../../State.html#rfpipe.state.State">[docs]</a><span class="k">class</span> <span class="nc">State</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -156,15 +157,16 @@
 <span class="sd">    - uvoversample + npix_max + metadata =&gt; npixx, npixy</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sdmfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sdmscan</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">inprefs</span><span class="o">=</span><span class="p">{},</span>
-                 <span class="n">inmeta</span><span class="o">=</span><span class="p">{},</span> <span class="n">preffile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">showsummary</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sdmfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sdmscan</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bdfdir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">inprefs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">inmeta</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">preffile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">showsummary</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">lock</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Initialize preference attributes with text file, preffile.</span>
 <span class="sd">        name can select preference set from within yaml file.</span>
 <span class="sd">        preferences are overloaded with inprefs.</span>
 
 <span class="sd">        Metadata source can be either:</span>
 <span class="sd">        1) Config object is a scan_config object (see evla_mcast library) or</span>
-<span class="sd">        2) sdmfile and sdmscan.</span>
+<span class="sd">        2) sdmfile and sdmscan (optional bdfdir for reading from CBE).</span>
 
 <span class="sd">        inmeta is a dict with key-value pairs to overload metadata (e.g., to</span>
 <span class="sd">        mock metadata from a simulation)</span>
@@ -175,32 +177,29 @@
         <span class="k">if</span> <span class="n">sdmfile</span><span class="p">:</span>
             <span class="n">sdmfile</span> <span class="o">=</span> <span class="n">sdmfile</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sdmfile</span> <span class="o">=</span> <span class="n">sdmfile</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lock</span> <span class="o">=</span> <span class="n">lock</span>
 
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inprefs</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-            <span class="c1"># get pipeline preferences as dict</span>
-            <span class="n">prefs</span> <span class="o">=</span> <span class="n">preferences</span><span class="o">.</span><span class="n">parsepreffile</span><span class="p">(</span><span class="n">preffile</span><span class="p">)</span>
-
-            <span class="c1"># optionally overload preferences</span>
-            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">inprefs</span><span class="p">:</span>
-                <span class="n">prefs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">inprefs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-
-            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">prefs</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">prefs</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="nb">type</span><span class="p">(</span><span class="n">prefs</span><span class="p">[</span><span class="n">key</span><span class="p">]))</span>
-
-            <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span> <span class="o">=</span> <span class="n">preferences</span><span class="o">.</span><span class="n">Preferences</span><span class="p">(</span><span class="o">**</span><span class="n">prefs</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inprefs</span><span class="p">,</span> <span class="n">preferences</span><span class="o">.</span><span class="n">Preferences</span><span class="p">):</span>
+        <span class="c1"># set prefs according to inprefs type</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inprefs</span><span class="p">,</span> <span class="n">preferences</span><span class="o">.</span><span class="n">Preferences</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span> <span class="o">=</span> <span class="n">inprefs</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;inprefs should be either a dictionary or </span><span class="se">\</span>
-<span class="s1">                         preferences.Preferences object&#39;</span><span class="p">)</span>
+            <span class="c1"># default values will result in empty dict</span>
+            <span class="n">prefs</span> <span class="o">=</span> <span class="n">preferences</span><span class="o">.</span><span class="n">parsepreffile</span><span class="p">(</span><span class="n">preffile</span><span class="p">,</span> <span class="n">inprefs</span><span class="o">=</span><span class="n">inprefs</span><span class="p">,</span>
+                                              <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span> <span class="o">=</span> <span class="n">preferences</span><span class="o">.</span><span class="n">Preferences</span><span class="p">(</span><span class="o">**</span><span class="n">prefs</span><span class="p">)</span>
 
-        <span class="c1"># TODO: is this working?</span>
+        <span class="c1"># TODO: not working</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">logging</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">loglevel</span><span class="p">))</span>
 
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inmeta</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inmeta</span><span class="p">,</span> <span class="n">metadata</span><span class="o">.</span><span class="n">Metadata</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="n">inmeta</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">inmeta</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">inmeta</span> <span class="o">=</span> <span class="p">{}</span>
+
             <span class="c1"># get metadata</span>
             <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sdmfile</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">sdmscan</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">:</span>
-                <span class="n">meta</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">sdm_metadata</span><span class="p">(</span><span class="n">sdmfile</span><span class="p">,</span> <span class="n">sdmscan</span><span class="p">)</span>
+                <span class="n">meta</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">sdm_metadata</span><span class="p">(</span><span class="n">sdmfile</span><span class="p">,</span> <span class="n">sdmscan</span><span class="p">,</span> <span class="n">bdfdir</span><span class="o">=</span><span class="n">bdfdir</span><span class="p">)</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sdmfile</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">sdmscan</span><span class="p">):</span>
                 <span class="c1"># config datasource can be vys or simulated data</span>
                 <span class="n">datasource</span> <span class="o">=</span> <span class="n">inmeta</span><span class="p">[</span><span class="s1">&#39;datasource&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="s1">&#39;datasource&#39;</span> <span class="ow">in</span> <span class="n">inmeta</span> <span class="k">else</span> <span class="s1">&#39;vys&#39;</span>
@@ -209,25 +208,23 @@
                 <span class="n">meta</span> <span class="o">=</span> <span class="p">{}</span>
 
             <span class="c1"># optionally overload metadata</span>
-            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">inmeta</span><span class="p">:</span>
-                <span class="n">meta</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">inmeta</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inmeta</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">inmeta</span><span class="p">:</span>
+                    <span class="n">meta</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">inmeta</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
-            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">meta</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">meta</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="nb">type</span><span class="p">(</span><span class="n">meta</span><span class="p">[</span><span class="n">key</span><span class="p">]))</span>
+                <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">meta</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">meta</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="nb">type</span><span class="p">(</span><span class="n">meta</span><span class="p">[</span><span class="n">key</span><span class="p">]))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;inmeta not dict, Metadata, or None. Not parsed.&quot;</span><span class="p">)</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">Metadata</span><span class="p">(</span><span class="o">**</span><span class="n">meta</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inmeta</span><span class="p">,</span> <span class="n">metadata</span><span class="o">.</span><span class="n">Metadata</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="n">inmeta</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;inmeta should be either a dictionary or &#39;</span>
-                         <span class="s1">&#39;metadata.Metadata object&#39;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">showsummary</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">summarize</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;rfpipe state with metadata/prefs (</span><span class="si">{0}</span><span class="s1">/</span><span class="si">{1}</span><span class="s1">)&#39;</span>
-                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">datasetId</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
 
 <div class="viewcode-block" id="State.summarize"><a class="viewcode-back" href="../../State.html#rfpipe.state.State.summarize">[docs]</a>    <span class="k">def</span> <span class="nf">summarize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Print summary of pipeline state &quot;&quot;&quot;</span>
@@ -244,16 +241,17 @@
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> nchan, nspw: </span><span class="si">{0}</span><span class="s1">, </span><span class="si">{1}</span><span class="s1">&#39;</span>
                         <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nchan</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nspw</span><span class="p">))</span>
 
+            <span class="c1"># TODO: remove for datasource=vys or sim</span>
             <span class="n">spworder</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">spw_reffreq</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">spworder</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">spworder</span><span class="p">)):</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;Sorting spw frequencies to increasing order from order </span><span class="si">{0}</span><span class="s1">&#39;</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;BDF spw sorted to increasing order from </span><span class="si">{0}</span><span class="s1">&#39;</span>
                             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">spworder</span><span class="p">))</span>
 
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Freq range: </span><span class="si">{0:.3f}</span><span class="s1"> -- </span><span class="si">{1:.3f}</span><span class="s1">&#39;</span>
                         <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">freq</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">freq</span><span class="o">.</span><span class="n">max</span><span class="p">()))</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Scan has </span><span class="si">{0}</span><span class="s1"> ints (</span><span class="si">{1:.1f}</span><span class="s1"> s) and inttime </span><span class="si">{2:.3f}</span><span class="s1"> s&#39;</span>
-                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nints</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nints</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">inttime</span><span class="p">,</span>
-                                <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">inttime</span><span class="p">))</span>
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nints</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nints</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">inttime</span><span class="p">,</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">inttime</span><span class="p">))</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> </span><span class="si">{0}</span><span class="s1"> polarizations: </span><span class="si">{1}</span><span class="s1">&#39;</span>
                         <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">npol_orig</span><span class="p">,</span>
                                 <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">pols_orig</span><span class="p">))</span>
@@ -262,19 +260,12 @@
                                 <span class="bp">self</span><span class="o">.</span><span class="n">uvres_full</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">uvoversample</span><span class="p">))</span>
 
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Pipeline summary:&#39;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gainfile</span><span class="p">):</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Found telcal file </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gainfile</span><span class="p">))</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;No telcal file found at </span><span class="si">{0}</span><span class="s1">&#39;</span>
-                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gainfile</span><span class="p">))</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Products saved with </span><span class="si">{0}</span><span class="s1">. telcal calibration with </span><span class="si">{1}</span><span class="s1">.&#39;</span>
-                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fileroot</span><span class="p">,</span>
-                                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gainfile</span><span class="p">)))</span>
-
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Using </span><span class="si">{0}</span><span class="s1"> segment</span><span class="si">{1}</span><span class="s1"> of </span><span class="si">{2}</span><span class="s1"> ints (</span><span class="si">{3:.1f}</span><span class="s1"> s) with &#39;</span>
                         <span class="s1">&#39;overlap of </span><span class="si">{4:.1f}</span><span class="s1"> s&#39;</span>
                         <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsegment</span><span class="p">,</span> <span class="s2">&quot;s&quot;</span><span class="p">[</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">nsegment</span><span class="o">-</span><span class="mi">1</span><span class="p">:],</span>
                                 <span class="bp">self</span><span class="o">.</span><span class="n">readints</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_segment</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_overlap</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Searching </span><span class="si">{0}</span><span class="s1"> of </span><span class="si">{1}</span><span class="s1"> ints in scan&#39;</span>
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">searchints</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">nints</span><span class="p">))</span>
             <span class="k">if</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">t_overlap</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_segment</span><span class="o">/</span><span class="mf">3.</span><span class="p">)</span>
                <span class="ow">and</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t_overlap</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_segment</span><span class="p">)):</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t\t</span><span class="s1"> Lots of segments needed, since Max DM sweep &#39;</span>
@@ -291,29 +282,44 @@
                             <span class="s1">&#39;subtraction will not work well.&#39;</span>
                             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inttime</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fringetime</span><span class="p">))</span>
 
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Downsampling in time/freq by </span><span class="si">{0}</span><span class="s1">/</span><span class="si">{1}</span><span class="s1">.&#39;</span>
-                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">read_tdownsample</span><span class="p">,</span>
-                                <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">read_fdownsample</span><span class="p">))</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Excluding ants </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">excludeants</span><span class="p">))</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">read_tdownsample</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">read_fdownsample</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Downsampling in time/freq by </span><span class="si">{0}</span><span class="s1">/</span><span class="si">{1}</span><span class="s1">.&#39;</span>
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">read_tdownsample</span><span class="p">,</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">read_fdownsample</span><span class="p">))</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">excludeants</span><span class="p">):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Excluding ants </span><span class="si">{0}</span><span class="s1">&#39;</span>
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">excludeants</span><span class="p">))</span>
+
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Using pols </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pols</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gainfile</span><span class="p">)</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gainfile</span><span class="p">):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Found telcal file </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gainfile</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Gainfile preference (</span><span class="si">{0}</span><span class="s1">) is not a telcal file&#39;</span>
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gainfile</span><span class="p">))</span>
+
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
 
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Search with </span><span class="si">{0}</span><span class="s1"> and threshold </span><span class="si">{1}</span><span class="s1">.&#39;</span>
-                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">searchtype</span><span class="p">,</span>
-                                <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">sigma_image1</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Using </span><span class="si">{0}</span><span class="s1"> for </span><span class="si">{1}</span><span class="s1"> search at </span><span class="si">{2}</span><span class="s1"> sigma using </span><span class="si">{3}</span><span class="s1"> thread</span><span class="si">{4}</span><span class="s1">.&#39;</span>
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fftmode</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">searchtype</span><span class="p">,</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">sigma_image1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">nthread</span><span class="p">,</span>
+                                <span class="s1">&#39;s&#39;</span><span class="p">[</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">nthread</span><span class="o">-</span><span class="mi">1</span><span class="p">:]))</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Using </span><span class="si">{0}</span><span class="s1"> DMs from </span><span class="si">{1}</span><span class="s1"> to </span><span class="si">{2}</span><span class="s1"> and dts </span><span class="si">{3}</span><span class="s1">.&#39;</span>
                         <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dmarr</span><span class="p">),</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dmarr</span><span class="p">),</span>
                                 <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dmarr</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtarr</span><span class="p">))</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Using uvgrid npix=(</span><span class="si">{0}</span><span class="s1">, </span><span class="si">{1}</span><span class="s1">) and res=</span><span class="si">{2}</span><span class="s1">.&#39;</span>
-                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npixx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">npixy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">uvres</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Using uvgrid npix=(</span><span class="si">{0}</span><span class="s1">, </span><span class="si">{1}</span><span class="s1">) and res=</span><span class="si">{2}</span><span class="s1"> with </span><span class="si">{3}</span><span class="s1"> int chunks.&#39;</span>
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npixx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">npixy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">uvres</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">chunksize</span><span class="p">))</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Expect </span><span class="si">{0}</span><span class="s1"> thermal false positives per segment.&#39;</span>
                         <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nfalse</span><span class="p">))</span>
 
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Visibility/image memory usage is </span><span class="si">{0}</span><span class="s1">/</span><span class="si">{1}</span><span class="s1"> GB/segment&#39;</span>
-                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vismem</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">immem</span><span class="p">))</span></div>
-<span class="c1">#            logger.info(&#39;\t Imaging in {0} chunk{1} using max of {2} GB/segment&#39;.format(self.nchunk, &quot;s&quot;[not self.nsegment-1:], immem))</span>
-<span class="c1">#            logger.info(&#39;\t Grand total memory usage: {0} GB/segment&#39;.format(vismem + immem))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fftmode</span> <span class="o">==</span> <span class="s2">&quot;fftw&quot;</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Visibility/image memory usage is </span><span class="si">{0}</span><span class="s1">/</span><span class="si">{1}</span><span class="s1"> &#39;</span>
+                            <span class="s1">&#39;GB/segment when using fftw imaging.&#39;</span>
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vismem</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">immem</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">fftmode</span> <span class="o">==</span> <span class="s2">&quot;cuda&quot;</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Visibility memory usage is </span><span class="si">{0}</span><span class="s1"> &#39;</span>
+                            <span class="s1">&#39;GB/segment when using cuda imaging.&#39;</span></div>
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vismem</span><span class="p">))</span>
 
 <div class="viewcode-block" id="State.clearcache"><a class="viewcode-back" href="../../State.html#rfpipe.state.State.clearcache">[docs]</a>    <span class="k">def</span> <span class="nf">clearcache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">cached</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;_dmarr&#39;</span><span class="p">,</span> <span class="s1">&#39;_t_overlap&#39;</span><span class="p">,</span> <span class="s1">&#39;_dmshifts&#39;</span><span class="p">,</span> <span class="s1">&#39;_npol&#39;</span><span class="p">,</span> <span class="s1">&#39;_blarr&#39;</span><span class="p">,</span>
@@ -321,8 +327,19 @@
         <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">cached</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="nb">delattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
-                <span class="k">pass</span></div>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span></div>
+                <span class="k">pass</span>
+
+<div class="viewcode-block" id="State.get_search_ints"><a class="viewcode-back" href="../../State.html#rfpipe.state.State.get_search_ints">[docs]</a>    <span class="k">def</span> <span class="nf">get_search_ints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Helper function to get list of integrations</span>
+<span class="sd">        to be searched after correcting for DM and resampling.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">segment</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">readints</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">dmshifts</span><span class="p">[</span><span class="n">dmind</span><span class="p">])</span><span class="o">//</span><span class="bp">self</span><span class="o">.</span><span class="n">dtarr</span><span class="p">[</span><span class="n">dtind</span><span class="p">]))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">dmshifts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">dmshifts</span><span class="p">[</span><span class="n">dmind</span><span class="p">])</span><span class="o">//</span><span class="bp">self</span><span class="o">.</span><span class="n">dtarr</span><span class="p">[</span><span class="n">dtind</span><span class="p">],</span></div>
+                              <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">readints</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">dmshifts</span><span class="p">[</span><span class="n">dmind</span><span class="p">])</span><span class="o">//</span><span class="bp">self</span><span class="o">.</span><span class="n">dtarr</span><span class="p">[</span><span class="n">dtind</span><span class="p">]))</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">version</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -333,12 +350,10 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">fileroot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="c1"># **TODO: update for sdm or config sources</span>
-
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">fileroot</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">fileroot</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">scanId</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">dmarr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -346,7 +361,7 @@
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">dmarr</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_dmarr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">dmarr</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_dmarr</span> <span class="o">=</span> <span class="n">calc_dmarr</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_dmarr</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">calc_dmarr</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dmarr</span>
 
@@ -380,7 +395,7 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">chans</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">chans</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="nb">range</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">spw_nchan</span><span class="p">))</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">spw_nchan</span><span class="p">)))</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">inttime</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -418,7 +433,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">spw</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Spectral windows used.</span>
+        <span class="sd">&quot;&quot;&quot; List of spectral windows used.</span>
 <span class="sd">        ** TODO: update for proper naming &quot;basband&quot;+&quot;swindex&quot;</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
@@ -557,6 +572,14 @@
                 <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npixy</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">uvres</span><span class="o">/</span><span class="mi">2</span><span class="p">)))</span>
 
     <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">fieldsize_deg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Takes gridding spec to estimate field of view in degrees</span>
+<span class="sd">        ** TODO: check for accuracy</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uvres</span><span class="o">/</span><span class="mf">2.</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">fringetime_orig</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Estimate largest time span of a &quot;segment&quot;.</span>
 <span class="sd">        A segment is the maximal time span that can be have a single bg fringe</span>
@@ -609,18 +632,19 @@
 <span class="sd">        suffix</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">gainfile</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">gainfile</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">today</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
             <span class="c1"># look for gainfile in mchammer</span>
             <span class="n">gainfile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;/home/mchammer/evladata/telcal/&#39;</span>
                                     <span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">/</span><span class="si">{1:02}</span><span class="s1">/</span><span class="si">{2}</span><span class="s1">.GN&#39;</span>
                                     <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">today</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">today</span><span class="o">.</span><span class="n">month</span><span class="p">,</span>
-                                            <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">filename</span><span class="p">))</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">datasetId</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">gainfile</span><span class="p">):</span>  <span class="c1"># use full path if given</span>
                 <span class="n">gainfile</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">gainfile</span>
             <span class="k">else</span><span class="p">:</span>  <span class="c1"># else assume workdir</span>
-                <span class="n">gainfile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">gainfile</span><span class="p">)</span>
+                <span class="n">gainfile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">workdir</span><span class="p">,</span>
+                                        <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">gainfile</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">gainfile</span>
 
@@ -659,7 +683,17 @@
 <span class="c1">#            elif self.prefs.nsegment:</span>
 <span class="c1">#                self._segmenttimes = calc_segment_times(self, self.prefs.nsegment)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">find_segment_times</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_segmenttimes</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">calc_segment_times</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="mf">1.</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">memory_total</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">memory_limit</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Total memory of </span><span class="si">{0}</span><span class="s1"> is over limit of </span><span class="si">{1}</span><span class="s1"> &#39;</span>
+                                <span class="s1">&#39;with </span><span class="si">{2}</span><span class="s1"> segments. Searching to vis/im limits&#39;</span>
+                                <span class="s1">&#39; of </span><span class="si">{3}</span><span class="s1">/</span><span class="si">{4}</span><span class="s1"> GB...&#39;</span>
+                                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">memory_total</span><span class="p">,</span>
+                                        <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">memory_limit</span><span class="p">,</span>
+                                        <span class="bp">self</span><span class="o">.</span><span class="n">nsegment</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vismem_limit</span><span class="p">,</span>
+                                        <span class="bp">self</span><span class="o">.</span><span class="n">immem_limit</span><span class="p">))</span>
+
+                    <span class="n">util</span><span class="o">.</span><span class="n">find_segment_times</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_segmenttimes</span>
 
@@ -672,39 +706,25 @@
 
         <span class="n">peakx</span><span class="p">,</span> <span class="n">peaky</span> <span class="o">=</span> <span class="n">pix</span>
         <span class="c1"># if np.where output</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">peaky</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">peaky</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">peaky</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">peakx</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">peaky</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;More than one peak pixel (</span><span class="si">{0}</span><span class="s2">, </span><span class="si">{1}</span><span class="s2">). Using first.&quot;</span>
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">peakx</span><span class="p">,</span> <span class="n">peaky</span><span class="p">))</span>
             <span class="n">peaky</span> <span class="o">=</span> <span class="n">peaky</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">peakx</span> <span class="o">=</span> <span class="n">peakx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
         <span class="n">l1</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npixx</span><span class="o">/</span><span class="mf">2.</span> <span class="o">-</span> <span class="n">peakx</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npixx</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">uvres</span><span class="p">)</span>
         <span class="n">m1</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npixy</span><span class="o">/</span><span class="mf">2.</span> <span class="o">-</span> <span class="n">peaky</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npixy</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">uvres</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">l1</span><span class="p">,</span> <span class="n">m1</span></div>
+</div>
+        <span class="k">return</span> <span class="n">l1</span><span class="p">,</span> <span class="n">m1</span>
 
 <div class="viewcode-block" id="State.get_segmenttime_string"><a class="viewcode-back" href="../../State.html#rfpipe.state.State.get_segmenttime_string">[docs]</a>    <span class="k">def</span> <span class="nf">get_segmenttime_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">segment</span><span class="p">):</span>
-        <span class="n">mid_mjd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">segmenttimes</span><span class="p">[</span><span class="n">segment</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">qa</span><span class="o">.</span><span class="n">time</span><span class="p">(</span><span class="n">qa</span><span class="o">.</span><span class="n">quantity</span><span class="p">(</span><span class="n">mid_mjd</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">),</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;ymd&#39;</span><span class="p">,</span> <span class="n">prec</span><span class="o">=</span><span class="mi">8</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
-
-<div class="viewcode-block" id="State.get_uvw_segment"><a class="viewcode-back" href="../../State.html#rfpipe.state.State.get_uvw_segment">[docs]</a>    <span class="k">def</span> <span class="nf">get_uvw_segment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">segment</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Returns uvw in units of baselines for a given segment.</span>
-<span class="sd">        Tuple of u, v, w given with each a numpy array of (nbl, nchan) shape.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="n">mjdstr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_segmenttime_string</span><span class="p">(</span><span class="n">segment</span><span class="p">)</span>
-        <span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">calc_uvw</span><span class="p">(</span><span class="n">datetime</span><span class="o">=</span><span class="n">mjdstr</span><span class="p">,</span> <span class="n">radec</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">radec</span><span class="p">,</span>
-                                  <span class="n">antpos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">antpos</span><span class="p">,</span>
-                                  <span class="n">telescope</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">telescope</span><span class="p">)</span>
-<span class="c1">#        u = u * self.metadata.freq_orig[0] * (1e9/3e8) * (-1)</span>
-<span class="c1">#        v = v * self.metadata.freq_orig[0] * (1e9/3e8) * (-1)</span>
-<span class="c1">#        w = w * self.metadata.freq_orig[0] * (1e9/3e8) * (-1)</span>
-        <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">freq</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1e9</span><span class="o">/</span><span class="mf">3e8</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
-        <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">freq</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1e9</span><span class="o">/</span><span class="mf">3e8</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
-        <span class="n">w</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">freq</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1e9</span><span class="o">/</span><span class="mf">3e8</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
-
-        <span class="k">return</span> <span class="n">u</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;float32&#39;</span><span class="p">),</span> <span class="n">v</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;float32&#39;</span><span class="p">),</span> <span class="n">w</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;float32&#39;</span><span class="p">)</span></div>
+        <span class="n">mid_mjd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">segmenttimes</span><span class="p">[</span><span class="n">segment</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span></div>
+        <span class="k">return</span> <span class="n">qa</span><span class="o">.</span><span class="n">time</span><span class="p">(</span><span class="n">qa</span><span class="o">.</span><span class="n">quantity</span><span class="p">(</span><span class="n">mid_mjd</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">),</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;ymd&#39;</span><span class="p">,</span> <span class="n">prec</span><span class="o">=</span><span class="mi">8</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">nints</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">nints</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;metadata.nints must be greater than zero&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">nints</span>
 
     <span class="nd">@property</span>
@@ -731,7 +751,9 @@
         <span class="sd">&quot;&quot;&quot; Number of integrations searched</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">readints</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">nsegment</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">readints</span> <span class="o">+</span> \
+        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">readints</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t_overlap</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">inttime</span><span class="p">)))</span> <span class="o">*</span> \
+        <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsegment</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">datashape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -740,8 +762,16 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">datasize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">long</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">readints</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">nbl</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">nchan</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">npol</span> <span class="o">/</span>
-                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">read_tdownsample</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">read_fdownsample</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">datashape</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">datashape_orig</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">readints</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">nbl_orig</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">nchan_orig</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">npol_orig</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">datasize_orig</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">datashape_orig</span><span class="p">))</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">nfalse</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -805,7 +835,7 @@
 
         <span class="n">toGB</span> <span class="o">=</span> <span class="mi">8</span><span class="o">/</span><span class="mi">1000</span><span class="o">**</span><span class="mi">3</span>   <span class="c1"># number of complex64s to GB</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">datasize</span> <span class="o">*</span> <span class="n">toGB</span>
+        <span class="k">return</span> <span class="n">toGB</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">datasize_orig</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">vismem_limit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -815,10 +845,8 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">toGB</span> <span class="o">=</span> <span class="mi">8</span><span class="o">/</span><span class="mi">1000</span><span class="o">**</span><span class="mi">3</span>   <span class="c1"># number of complex64s to GB</span>
-        <span class="k">return</span> <span class="n">toGB</span><span class="o">*</span><span class="n">long</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t_overlap</span> <span class="o">/</span>
-                         <span class="bp">self</span><span class="o">.</span><span class="n">inttime</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">nbl</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">nchan</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">npol</span> <span class="o">/</span>
-                         <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">read_tdownsample</span> <span class="o">*</span>
-                          <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">read_fdownsample</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">toGB</span> <span class="o">*</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">datasize_orig</span><span class="o">//</span><span class="bp">self</span><span class="o">.</span><span class="n">readints</span> <span class="o">*</span>
+                       <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t_overlap</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">inttime</span><span class="p">))))</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">immem</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -826,7 +854,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">toGB</span> <span class="o">=</span> <span class="mi">8</span><span class="o">/</span><span class="mi">1000</span><span class="o">**</span><span class="mi">3</span>   <span class="c1"># number of complex64s to GB</span>
-        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">readints</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">npixx</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">npixy</span><span class="p">)</span> <span class="o">*</span> <span class="n">toGB</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chunksize</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">npixx</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">npixy</span><span class="p">)</span> <span class="o">*</span> <span class="n">toGB</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">immem_limit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -835,11 +863,44 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">toGB</span> <span class="o">=</span> <span class="mi">8</span><span class="o">/</span><span class="mi">1000</span><span class="o">**</span><span class="mi">3</span>   <span class="c1"># number of complex64s to GB</span>
-        <span class="k">return</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">t_overlap</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">inttime</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">npixx</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">npixy</span><span class="p">)</span> <span class="o">*</span> <span class="n">toGB</span>
+        <span class="k">return</span> <span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chunksize</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t_overlap</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">inttime</span><span class="p">)))</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">npixx</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">npixy</span><span class="p">)</span> <span class="o">*</span> <span class="n">toGB</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">defined</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">[</span><span class="n">key</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;_&#39;</span><span class="p">]</span></div>
+    <span class="k">def</span> <span class="nf">memory_total</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Total memory (in GB) required to read and process.</span>
+<span class="sd">        Depends on data source and search algorithm.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fftmode</span> <span class="o">==</span> <span class="s2">&quot;fftw&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">immem</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">vismem</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">fftmode</span> <span class="o">==</span> <span class="s2">&quot;cuda&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">vismem</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">memory_total_limit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Minimum memory (in GB) required to read and process.</span>
+<span class="sd">        Depends on data source and search algorithm.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fftmode</span> <span class="o">==</span> <span class="s2">&quot;fftw&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">immem_limit</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">vismem_limit</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">fftmode</span> <span class="o">==</span> <span class="s2">&quot;cuda&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">vismem_limit</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">chunksize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">toGB</span> <span class="o">=</span> <span class="mi">8</span><span class="o">/</span><span class="mi">1000</span><span class="o">**</span><span class="mi">3</span>   <span class="c1"># number of complex64s to GB</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">maximmem</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span>
+                           <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">maximmem</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npixx</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">npixy</span><span class="o">*</span><span class="n">toGB</span><span class="p">))),</span>
+                       <span class="bp">self</span><span class="o">.</span><span class="n">readints</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">readints</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">defined</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></div>
+        <span class="k">return</span> <span class="p">[</span><span class="n">key</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="k">if</span> <span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;_&#39;</span><span class="p">]</span>
 
 <span class="c1"># **not sure we need this</span>
 <span class="c1">#</span>
@@ -867,110 +928,6 @@
     <span class="c1"># flagantsol should be merged with flaglist</span>
 
 
-<span class="k">def</span> <span class="nf">calc_dmarr</span><span class="p">(</span><span class="n">state</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Function to calculate the DM values for a given maximum sensitivity loss.</span>
-<span class="sd">    dm_maxloss is sensitivity loss tolerated by dm bin width. dm_pulsewidth is</span>
-<span class="sd">    assumed pulse width in microsec.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">dm_maxloss</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">dm_maxloss</span>
-    <span class="n">dm_pulsewidth</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">dm_pulsewidth</span>
-    <span class="n">mindm</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">mindm</span>
-    <span class="n">maxdm</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">maxdm</span>
-
-    <span class="c1"># parameters</span>
-    <span class="n">tsamp</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">inttime</span><span class="o">*</span><span class="mf">1e6</span>  <span class="c1"># in microsec</span>
-    <span class="n">k</span> <span class="o">=</span> <span class="mf">8.3</span>
-    <span class="n">freq</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">freq</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>  <span class="c1"># central (mean) frequency in GHz</span>
-    <span class="n">bw</span> <span class="o">=</span> <span class="mf">1e3</span><span class="o">*</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">freq</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">-</span> <span class="n">state</span><span class="o">.</span><span class="n">freq</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>  <span class="c1"># in MHz</span>
-    <span class="n">ch</span> <span class="o">=</span> <span class="mf">1e-6</span><span class="o">*</span><span class="n">state</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">spw_chansize</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># in MHz ** first spw only</span>
-
-    <span class="c1"># width functions and loss factor</span>
-    <span class="n">dt0</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">dm</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dm_pulsewidth</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">tsamp</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">((</span><span class="n">k</span><span class="o">*</span><span class="n">dm</span><span class="o">*</span><span class="n">ch</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">freq</span><span class="o">**</span><span class="mi">3</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
-    <span class="n">dt1</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">dm</span><span class="p">,</span> <span class="n">ddm</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dm_pulsewidth</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">tsamp</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">((</span><span class="n">k</span><span class="o">*</span><span class="n">dm</span><span class="o">*</span><span class="n">ch</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">freq</span><span class="o">**</span><span class="mi">3</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">((</span><span class="n">k</span><span class="o">*</span><span class="n">ddm</span><span class="o">*</span><span class="n">bw</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">freq</span><span class="o">**</span><span class="mf">3.</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
-    <span class="n">loss</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">dm</span><span class="p">,</span> <span class="n">ddm</span><span class="p">:</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dt0</span><span class="p">(</span><span class="n">dm</span><span class="p">)</span><span class="o">/</span><span class="n">dt1</span><span class="p">(</span><span class="n">dm</span><span class="p">,</span><span class="n">ddm</span><span class="p">))</span>
-    <span class="n">loss_cordes</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">ddm</span><span class="p">,</span> <span class="n">dfreq</span><span class="p">,</span> <span class="n">dm_pulsewidth</span><span class="p">,</span> <span class="n">freq</span><span class="p">:</span> <span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="mf">6.91e-3</span> <span class="o">*</span> <span class="n">ddm</span> <span class="o">*</span> <span class="n">dfreq</span> <span class="o">/</span> <span class="p">(</span><span class="n">dm_pulsewidth</span><span class="o">*</span><span class="n">freq</span><span class="o">**</span><span class="mi">3</span><span class="p">)))</span> <span class="o">*</span> <span class="n">erf</span><span class="p">(</span><span class="mf">6.91e-3</span> <span class="o">*</span> <span class="n">ddm</span> <span class="o">*</span> <span class="n">dfreq</span> <span class="o">/</span> <span class="p">(</span><span class="n">dm_pulsewidth</span><span class="o">*</span><span class="n">freq</span><span class="o">**</span><span class="mi">3</span><span class="p">))</span>  <span class="c1"># not quite right for underresolved pulses</span>
-
-    <span class="k">if</span> <span class="n">maxdm</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">return</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># iterate over dmgrid to find optimal dm values. go higher than maxdm to be sure final list includes full range.</span>
-        <span class="n">dmgrid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">mindm</span><span class="p">,</span> <span class="n">maxdm</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">)</span>
-        <span class="n">dmgrid_final</span> <span class="o">=</span> <span class="p">[</span><span class="n">dmgrid</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dmgrid</span><span class="p">)):</span>
-            <span class="n">ddm</span> <span class="o">=</span> <span class="p">(</span><span class="n">dmgrid</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">dmgrid_final</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">/</span><span class="mf">2.</span>
-            <span class="n">ll</span> <span class="o">=</span> <span class="n">loss</span><span class="p">(</span><span class="n">dmgrid</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="n">ddm</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">ll</span> <span class="o">&gt;</span> <span class="n">dm_maxloss</span><span class="p">:</span>
-                <span class="n">dmgrid_final</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dmgrid</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-
-    <span class="k">return</span> <span class="n">dmgrid_final</span>
-
-
-<span class="k">def</span> <span class="nf">calc_segment_times</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">scale_nsegment</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Helper function for set_pipeline to define segmenttimes list.</span>
-<span class="sd">    Forces segment time windows to be fixed relative to integration boundaries.</span>
-<span class="sd">    Can optionally push nsegment scaling up.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-<span class="c1">#    stopdts = np.linspace(int(round(state.t_overlap/state.inttime)), state.nints,</span>
-<span class="c1">#                          nsegment+1)[1:]  # nseg+1 keeps at least one seg</span>
-<span class="c1">#    startdts = np.concatenate(([0],</span>
-<span class="c1">#                              stopdts[:-1]-int(round(state.t_overlap/state.inttime))))</span>
-    <span class="c1"># or force on integer boundaries?</span>
-
-    <span class="n">stopdts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">t_overlap</span><span class="o">/</span><span class="n">state</span><span class="o">.</span><span class="n">inttime</span><span class="p">)),</span> <span class="n">state</span><span class="o">.</span><span class="n">nints</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span>
-                        <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span>
-                            <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">fringetime</span><span class="o">/</span><span class="n">state</span><span class="o">.</span><span class="n">inttime</span><span class="o">/</span><span class="n">scale_nsegment</span><span class="p">))),</span>
-                        <span class="n">state</span><span class="o">.</span><span class="n">nints</span><span class="o">-</span><span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">t_overlap</span><span class="o">/</span><span class="n">state</span><span class="o">.</span><span class="n">inttime</span><span class="p">))),</span>
-                        <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)[</span><span class="mi">1</span><span class="p">:]</span>
-    <span class="n">startdts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="mi">0</span><span class="p">],</span>
-                              <span class="n">stopdts</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">t_overlap</span><span class="o">/</span><span class="n">state</span><span class="o">.</span><span class="n">inttime</span><span class="p">))))</span>
-
-    <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">stopdts</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">startdts</span><span class="p">)]),</span> <span class="p">(</span><span class="s1">&#39;Could not set segment times.&#39;</span>
-                                                <span class="s1">&#39;t_overlap may be longer than &#39;</span>
-                                                <span class="s1">&#39;nints or fringetime shorter &#39;</span>
-                                                <span class="s1">&#39;than inttime.&#39;</span><span class="p">)</span>
-
-    <span class="n">segmenttimes</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="p">(</span><span class="n">startdt</span><span class="p">,</span> <span class="n">stopdt</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">inttime</span><span class="o">*</span><span class="n">startdts</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">inttime</span><span class="o">*</span><span class="n">stopdts</span><span class="p">):</span>
-        <span class="n">starttime</span> <span class="o">=</span> <span class="n">qa</span><span class="o">.</span><span class="n">getvalue</span><span class="p">(</span><span class="n">qa</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="n">qa</span><span class="o">.</span><span class="n">time</span><span class="p">(</span><span class="n">qa</span><span class="o">.</span><span class="n">quantity</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">starttime_mjd</span><span class="o">+</span><span class="n">startdt</span><span class="o">/</span><span class="p">(</span><span class="mi">24</span><span class="o">*</span><span class="mi">3600</span><span class="p">),</span> <span class="s1">&#39;d&#39;</span><span class="p">),</span>
-                                                   <span class="n">form</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;ymd&#39;</span><span class="p">],</span> <span class="n">prec</span><span class="o">=</span><span class="mi">9</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;s&#39;</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="p">(</span><span class="mi">24</span><span class="o">*</span><span class="mi">3600</span><span class="p">)</span>
-        <span class="n">stoptime</span> <span class="o">=</span> <span class="n">qa</span><span class="o">.</span><span class="n">getvalue</span><span class="p">(</span><span class="n">qa</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="n">qa</span><span class="o">.</span><span class="n">time</span><span class="p">(</span><span class="n">qa</span><span class="o">.</span><span class="n">quantity</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">starttime_mjd</span><span class="o">+</span><span class="n">stopdt</span><span class="o">/</span><span class="p">(</span><span class="mi">24</span><span class="o">*</span><span class="mi">3600</span><span class="p">),</span> <span class="s1">&#39;d&#39;</span><span class="p">),</span>
-                                                  <span class="n">form</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;ymd&#39;</span><span class="p">],</span> <span class="n">prec</span><span class="o">=</span><span class="mi">9</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;s&#39;</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="p">(</span><span class="mi">24</span><span class="o">*</span><span class="mi">3600</span><span class="p">)</span>
-        <span class="n">segmenttimes</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">starttime</span><span class="p">,</span> <span class="n">stoptime</span><span class="p">))</span>
-
-    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">segmenttimes</span><span class="p">)</span>
-
-
-<span class="k">def</span> <span class="nf">find_segment_times</span><span class="p">(</span><span class="n">state</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Iterates to optimal segment time list, given memory and fringe time limits.</span>
-<span class="sd">    Segment sizes bounded by fringe time and memory limit,</span>
-<span class="sd">    Solution found by iterating from fringe time to memory size that fits.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">scale_nsegment</span> <span class="o">=</span> <span class="mf">1.</span>
-    <span class="n">state</span><span class="o">.</span><span class="n">_segmenttimes</span> <span class="o">=</span> <span class="n">calc_segment_times</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">scale_nsegment</span><span class="p">)</span>
-
-    <span class="c1"># calculate memory limit to stop iteration</span>
-    <span class="k">assert</span> <span class="n">state</span><span class="o">.</span><span class="n">immem_limit</span><span class="o">+</span><span class="n">state</span><span class="o">.</span><span class="n">vismem_limit</span> <span class="o">&lt;</span> <span class="n">state</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">memory_limit</span><span class="p">,</span> <span class="s1">&#39;memory_limit of </span><span class="si">{0}</span><span class="s1"> is smaller than best solution of </span><span class="si">{1}</span><span class="s1">. Try setting maxdm/npix_max lower.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">memory_limit</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">immem_limit</span><span class="o">+</span><span class="n">state</span><span class="o">.</span><span class="n">vismem_limit</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">vismem</span><span class="o">+</span><span class="n">state</span><span class="o">.</span><span class="n">immem</span> <span class="o">&gt;</span> <span class="n">state</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">memory_limit</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Over memory limit of </span><span class="si">{0}</span><span class="s1"> when reading </span><span class="si">{1}</span><span class="s1"> segments &#39;</span>
-                    <span class="s1">&#39;(</span><span class="si">{2}</span><span class="s1">/</span><span class="si">{3}</span><span class="s1"> GB for visibilities/imaging). Searching for &#39;</span>
-                    <span class="s1">&#39;solution down to </span><span class="si">{4}</span><span class="s1">/</span><span class="si">{5}</span><span class="s1"> GB...&#39;</span>
-                    <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">memory_limit</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">nsegment</span><span class="p">,</span>
-                            <span class="n">state</span><span class="o">.</span><span class="n">vismem</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">immem</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">vismem_limit</span><span class="p">,</span>
-                            <span class="n">state</span><span class="o">.</span><span class="n">immem_limit</span><span class="p">))</span>
-
-        <span class="k">while</span> <span class="n">state</span><span class="o">.</span><span class="n">vismem</span><span class="o">+</span><span class="n">state</span><span class="o">.</span><span class="n">immem</span> <span class="o">&gt;</span> <span class="n">state</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">memory_limit</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Using </span><span class="si">{0}</span><span class="s1"> segments requires </span><span class="si">{1}</span><span class="s1">/</span><span class="si">{2}</span><span class="s1"> GB for &#39;</span>
-                         <span class="s1">&#39;visibilities/images. Searching for better solution.&#39;</span>
-                         <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">nsegment</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">vismem</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">immem</span><span class="p">))</span>
-
-            <span class="n">scale_nsegment</span> <span class="o">*=</span> <span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">vismem</span><span class="o">+</span><span class="n">state</span><span class="o">.</span><span class="n">immem</span><span class="p">)</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">memory_limit</span><span class="p">)</span>
-            <span class="n">state</span><span class="o">.</span><span class="n">_segmenttimes</span> <span class="o">=</span> <span class="n">calc_segment_times</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">scale_nsegment</span><span class="p">)</span>
-
-
 <span class="k">def</span> <span class="nf">state_vystest</span><span class="p">(</span><span class="n">wait</span><span class="p">,</span> <span class="n">catch</span><span class="p">,</span> <span class="n">scantime</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">preffile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Create state to read vys data after wait seconds with nsegment segments.</span>
 <span class="sd">    kwargs passed in as preferences via inpref argument to State.</span>
@@ -992,7 +949,7 @@
     <span class="n">t0</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">+</span><span class="n">dt</span><span class="p">)</span><span class="o">.</span><span class="n">mjd</span>
     <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;starttime_mjd&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">t0</span>
     <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;stopime_mjd&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">t0</span><span class="o">+</span><span class="n">onesec</span><span class="o">*</span><span class="n">catch</span>
-    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;antids&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ea</span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">26</span><span class="p">)]</span>  <span class="c1"># fixed for scan_config test docs</span>
+    <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;antids&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ea</span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">26</span><span class="p">)]</span>  <span class="c1"># fixed for scan_config test docs</span>
 
     <span class="c1"># read example scan configuration</span>
     <span class="n">config</span> <span class="o">=</span> <span class="n">scan_config</span><span class="o">.</span><span class="n">ScanConfig</span><span class="p">(</span><span class="n">vci</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_install_dir</span><span class="p">,</span> <span class="s1">&#39;data/vci.xml&#39;</span><span class="p">),</span>
@@ -1018,7 +975,7 @@
     </p>
     <p>
         &copy; Copyright 2017, Casey Law.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.1.<br/>
     </p>
   </div>
 </footer>
