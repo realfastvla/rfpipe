@@ -64,7 +64,7 @@ class Preferences(object):
     maxdm = attr.ib(default=0)  # in pc/cm3
     dm_pulsewidth = attr.ib(default=3000)   # in microsec
     searchtype = attr.ib(default='image1')  # supported: image1, image1stat
-    sigma_image1 = attr.ib(default=None)  # threshold for image1 algorithm
+    sigma_image1 = attr.ib(default=7)  # threshold for image1 algorithm
     sigma_image2 = attr.ib(default=None)  # second threshold (no algo yet)
     nfalse = attr.ib(default=None)  # number of thermal false positives per scan
     uvres = attr.ib(default=0)  # in lambda
