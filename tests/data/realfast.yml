@@ -7,7 +7,6 @@ rfpipe:
     timesub: 'mean'
     searchtype: 'image1stats'    # search algorithm: 'image1' is single image snr threshold
     sigma_image1: 6.4
-    sigma_plot: 7.2
     npix_max: 2048
     badspwpol: 2.
     uvoversample: 1.5
