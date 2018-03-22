@@ -53,4 +53,4 @@ def test_state():
     inmeta = rfpipe.metadata.mock_metadata(0, 1, 27, 16, 32, 4, 1e6)
     st = rfpipe.state.State(inmeta=inmeta, preffile=preffile,
                             inprefs={'chans': list(range(10))})
-    assert st.chans == range(10)
+    assert st.chans == list(range(10))

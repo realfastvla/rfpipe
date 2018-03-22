@@ -32,13 +32,12 @@ def oldcands_read(candsfile, sdmscan=None):
         else:
             logger.warn("Not sure what we've got in this here cands pkl file...")
 
-    if (sdmscan is None) and (u'scan' in d['featureind']):
-        scanind = d['featureind'].index('scan')
+    if sdmscan is None:  # and (u'scan' in d['featureind']):
+#        scanind = d['featureind'].index('scan')
+        scanind = 0
         scans = np.unique(loc[:, scanind])
     elif sdmscan is not None:
         scans = [sdmscan]
-    else:
-        scans = [None]
 
     ll = []
     for scan in scans:
@@ -74,7 +73,7 @@ def oldcands_readone(candsfile, scan=None):
             logger.warn("Not sure what we've got in this here cands pkl file...")
 
     # detect merged vs nonmerged
-    if 'scan' in d['featureind']:
+    if u'scan' in d['featureind']:
         locind0 = 1
     else:
         locind0 = 0
@@ -84,9 +83,10 @@ def oldcands_readone(candsfile, scan=None):
         assert locind0 == 0, "Set scan if candsfile has multiple scans."
 
     inprefs = preferences.oldstate_preferences(d, scan=scan)
-    inprefs.pop('gainfile')
-    inprefs.pop('workdir')
-    inprefs.pop('fileroot')
+    inprefs.pop(u'gainfile')
+    inprefs.pop(u'workdir')
+    inprefs.pop(u'fileroot')
+    inprefs['segmenttimes'] = np.array(inprefs['segmenttimes'])
     sdmfile = os.path.basename(d['filename'])
 
     try:
