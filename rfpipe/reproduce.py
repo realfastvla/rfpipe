@@ -32,7 +32,7 @@ def oldcands_read(candsfile, sdmscan=None):
         else:
             logger.warn("Not sure what we've got in this here cands pkl file...")
 
-    if (sdmscan is None) and ('scan' in d['featureind']):
+    if (sdmscan is None) and (u'scan' in d['featureind']):
         scanind = d['featureind'].index('scan')
         scans = np.unique(loc[:, scanind])
     elif sdmscan is not None:

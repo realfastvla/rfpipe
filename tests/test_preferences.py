@@ -50,5 +50,7 @@ def test_name():
 
 def test_state():
     preffile = os.path.join(_install_dir, 'data/realfast.yml')
-    st = rfpipe.state.State(preffile=preffile, inprefs={'chans': range(10)})
+    inmeta = rfpipe.metadata.mock_metadata(0, 1, 27, 16, 32, 4, 1e6)
+    st = rfpipe.state.State(inmeta=inmeta, preffile=preffile,
+                            inprefs={'chans': list(range(10))})
     assert st.chans == range(10)
