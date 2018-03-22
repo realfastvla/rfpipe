@@ -9,7 +9,7 @@ from astropy import time
 
 
 def test_create():
-    st = rfpipe.state.State()
+    st = rfpipe.state.State(validate=False, showsummary=False)
     assert st.metadata.atdefaults()
 
 
