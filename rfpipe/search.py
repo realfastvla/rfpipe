@@ -7,9 +7,15 @@ import numpy as np
 from numba import jit, guvectorize, int64
 import pyfftw
 from rfpipe import util, candidates, source
+from time import sleep
 
 import logging
 logger = logging.getLogger(__name__)
+
+try:
+    import rfgpu
+except ImportError:
+    logger.info('rfgpu not imported.')
 
 
 def dedisperse(data, delay, parallel=False):
@@ -236,18 +242,10 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
                 for dtind in range(len(st.dtarr)-1)]), ("dtarr must increase "
                                                         "by factors of 2")
 
-    candcollection = candidates.CandCollection(prefs=st.prefs,
-                                               metadata=st.metadata)
-
-    try:
-        import rfgpu
-    except ImportError:
-        logger.warn('ImportError for rfgpu. Exiting.')
-        return candcollection
-
     if not np.any(data):
         logger.info("Data is all zeros. Skipping search.")
-        return candcollection
+        return candidates.CandCollection(prefs=st.prefs,
+                                         metadata=st.metadata)
 
     if devicenum is None:
         # assume first gpu, but try to infer from worker name
@@ -267,6 +265,18 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
         except ImportError:
             logger.warn("distributed not available. Using default GPU devicenum {0}"
                         .format(devicenum))
+
+    cc = rfgpu_wrapper(st, segment, data, devicenum)
+    return cc
+
+
+@jit(nogil=True)  # nopython=True
+def rfgpu_wrapper(st, segment, data, devicenum):
+    """ Wrap core rfgpu calls as a gil-free numba call
+    """
+
+    candcollection = candidates.CandCollection(prefs=st.prefs,
+                                               metadata=st.metadata)
 
     rfgpu.cudaSetDevice(devicenum)
 
@@ -337,9 +347,9 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
 
                 # calc snr
                 stats = image.stats(img_grid)
-                try:
+                if stats['rms'] != 0.:
                     peak_snr = stats['max']/stats['rms']
-                except ZeroDivisionError:
+                else:
                     peak_snr = 0.
 
                 # threshold image on GPU and optionally save it
@@ -374,13 +384,15 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
                         candcollection += candidates.calc_features(canddatalist)
                         canddatalist = []
 
+#        sleep(0.1)  # GIL check for distributed stability
+
     candcollection += candidates.calc_features(canddatalist)
 
     logger.info("{0} candidates returned for seg {1}"
                 .format(len(candcollection), segment))
 
     # Python may not clean these up properly
-    del vis_raw, vis_grid, img_grid, grid, image
+#    del vis_raw, vis_grid, img_grid, grid, image
 
     return candcollection
 
