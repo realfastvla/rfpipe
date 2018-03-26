@@ -611,9 +611,14 @@ class State(object):
             peaky = peaky[0]
             peakx = peakx[0]
 
-        l1 = (self.npixx/2. - peakx)/(self.npixx*self.uvres)
-        m1 = (self.npixy/2. - peaky)/(self.npixy*self.uvres)
+        l1, m1 = self.calclm(self.npixx, self.npixy, self.uvres, peakx, peaky)
 
+        return l1, m1
+
+    @staticmethod
+    def calclm(npixx, npixy, uvres, peakx, peaky):
+        l1 = (npixx/2. - peakx)/(npixx*uvres)
+        m1 = (npixy/2. - peaky)/(npixy*uvres)
         return l1, m1
 
     def get_segmenttime_string(self, segment):
