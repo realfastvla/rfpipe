@@ -7,7 +7,7 @@ import numpy as np
 from numba import jit, guvectorize, int64
 import pyfftw
 from rfpipe import util, candidates, source
-from time import sleep
+#from time import sleep
 
 import logging
 logger = logging.getLogger(__name__)
@@ -356,9 +356,7 @@ def rfgpu_wrapper(st, segment, data, devicenum):
                 if peak_snr > st.sigma_image1:
                     img_grid.d2h()
                     img_data = np.fft.fftshift(img_grid.data)  # shift zero pixel in middle
-#                    l, m = st.pixtolm(np.where(img_data == img_data.max()))
-                    peakx, peaky = np.where(img_data == img_data.max())
-                    l, m = calclm(st.npixx, st.npixy, st.uvres, peakx, peaky)
+                    l, m = st.pixtolm(np.where(img_data == img_data.max()))
                     candloc = (segment, i, dmind, dtind, beamnum)
 
                     logger.info("Got one! SNR {0:.1f} candidate at {1} and (l,m) = ({2},{3})"
