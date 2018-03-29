@@ -177,9 +177,9 @@ class State(object):
                                 self.readints, self.t_segment, self.t_overlap))
             logger.info('\t Searching {0} of {1} ints in scan'
                         .format(self.searchints, self.metadata.nints))
-            if self.t_overlap > self.t_segment/3.:
-                logger.info('\t\t Lots of segments needed, since Max DM sweep '
-                            '({0:.1f} s) close to segment size ({1:.1f} s)'
+            if self.t_overlap > self.t_segment/2.:
+                logger.info('\t\t Highly redundant reading. Max DM sweep '
+                            '({0:.1f} s) > 1/2 segment size ({1:.1f} s)'
                             .format(self.t_overlap, self.t_segment))
 
             if (self.prefs.read_tdownsample > 1 or self.prefs.read_fdownsample > 1):

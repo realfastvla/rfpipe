@@ -7,7 +7,7 @@ import numpy as np
 from numba import jit, guvectorize, int64
 import pyfftw
 from rfpipe import util, candidates, source
-#from time import sleep
+from time import sleep
 
 import logging
 logger = logging.getLogger(__name__)
@@ -384,7 +384,7 @@ def rfgpu_wrapper(st, segment, data, devicenum):
                         candcollection += candidates.calc_features(canddatalist)
                         canddatalist = []
 
-#        sleep(0.1)  # GIL check for distributed stability
+        sleep(0.1)  # GIL check for distributed stability
 
     candcollection += candidates.calc_features(canddatalist)
 
