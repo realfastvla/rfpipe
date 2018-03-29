@@ -282,7 +282,7 @@ def mock_metadata(t0, t1, nants, nspw, chans, npol, inttime_micros, scan=1,
     """ Wraps Metadata call to provide immutable, attribute-filled class instance.
     Parallel structure to sdm_metadata, so this inherits some of its
     nomenclature. t0, t1 are times in mjd. Supports up to nant=27, npol=4, and
-    nspw=8. chans is total number of channels over all spw (equal per spw).
+    nspw=32. chans is total number of channels over all spw (equal per spw).
     datasource is expected source of data (typically vys when mocking).
     """
 
@@ -333,8 +333,8 @@ def mock_metadata(t0, t1, nants, nspw, chans, npol, inttime_micros, scan=1,
     meta['radec'] = [0., 0.]
     meta['dishdiameter'] = 25
     meta['spw_orig'] = list(range(nspw))
-    meta['spw_reffreq'] = np.linspace(2e9, 4e9, 17)[:nspw]
-    meta['spw_chansize'] = [4000000]*nspw
+    meta['spw_reffreq'] = np.linspace(2e9, 4e9, 33)[:nspw]
+    meta['spw_chansize'] = [2000000]*nspw
     chanperspw = chans//nspw
     meta['spw_nchan'] = [chanperspw]*nspw
     meta['pols_orig'] = ['A*A', 'A*B', 'B*A', 'B*B'][:npol]
