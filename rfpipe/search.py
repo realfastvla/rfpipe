@@ -270,7 +270,7 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
     return cc
 
 
-@jit(nogil=True)  # nopython=True
+#@jit(nogil=True)  # nopython=True
 def rfgpu_wrapper(st, segment, data, devicenum):
     """ Wrap core rfgpu calls as a gil-free numba call
     """
