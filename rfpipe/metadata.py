@@ -337,7 +337,12 @@ def mock_metadata(t0, t1, nants, nspw, chans, npol, inttime_micros, scan=1,
     meta['spw_chansize'] = [2000000]*nspw
     chanperspw = chans//nspw
     meta['spw_nchan'] = [chanperspw]*nspw
-    meta['pols_orig'] = ['A*A', 'A*B', 'B*A', 'B*B'][:npol]
+    if npol == 4:
+        meta['pols_orig'] = ['A*A', 'A*B', 'B*A', 'B*B']
+    elif npol == 2:
+        meta['pols_orig'] = ['A*A', 'B*B']
+    else:
+        logger.warn("npol must be 2 or 4 (autos or full pol)")
     meta['spworder'] = sorted([('{0}-{1}'.format('AC1', sbid),
                                 meta['spw_reffreq'][sbid])
                                for sbid in range(nspw)], key=lambda x: x[1])
