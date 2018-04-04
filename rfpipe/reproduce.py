@@ -86,7 +86,7 @@ def oldcands_readone(candsfile, scan=None):
     inprefs.pop(u'gainfile')
     inprefs.pop(u'workdir')
     inprefs.pop(u'fileroot')
-    inprefs['segmenttimes'] = np.array(inprefs['segmenttimes'])
+    inprefs['segmenttimes'] = inprefs['segmenttimes']
     sdmfile = os.path.basename(d['filename'])
 
     try:
@@ -137,6 +137,9 @@ def pipeline_dataprep(st, candloc):
     """
 
     segment, candint, dmind, dtind, beamnum = candloc.astype(int)
+
+    # propagate through to new candcollection
+    st.prefs.segmenttimes = st._segmenttimes.tolist()
 
     # prep data
     data = source.read_segment(st, segment)

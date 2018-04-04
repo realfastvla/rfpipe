@@ -570,14 +570,14 @@ class State(object):
 
     @property
     def segmenttimes(self):
-        """ List of tuples containing MJD times defining segment start and stop.
+        """ Array of float pairs containing MJD times defining segment start and stop.
         Calculated from prefs.nsegment first.
         Alternately, best times found based on fringe time and memory limit
         """
 
         if not hasattr(self, '_segmenttimes'):
             if self.prefs.segmenttimes is not None:
-                self._segmenttimes = self.prefs.segmenttimes
+                self._segmenttimes = np.array(self.prefs.segmenttimes)
 #            elif self.prefs.nsegment:
 #                self._segmenttimes = calc_segment_times(self, self.prefs.nsegment)
             else:

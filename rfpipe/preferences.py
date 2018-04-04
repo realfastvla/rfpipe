@@ -51,7 +51,7 @@ class Preferences(object):
     # processing
     nthread = attr.ib(default=1)
 #    nsegment = attr.ib(default=0)
-    segmenttimes = attr.ib(default=None)
+    segmenttimes = attr.ib(default=None)  # list of lists of float pairs
     memory_limit = attr.ib(default=16)  # in GB; includes typical freqs/configs
     maximmem = attr.ib(default=16)  # in GB; defines chunk for fftw imaging
 
