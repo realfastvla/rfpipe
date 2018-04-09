@@ -472,10 +472,9 @@ class State(object):
     @property
     def fieldsize_deg(self):
         """ Takes gridding spec to estimate field of view in degrees
-        ** TODO: check for accuracy
         """
 
-        return np.degrees(1/(self.uvres/2.))
+        return np.degrees(1/(self.uvres*2.))
 
     @property
     def fringetime_orig(self):
