@@ -154,7 +154,7 @@ class State(object):
 
             # TODO: remove for datasource=vys or sim
             spworder = np.argsort(self.metadata.spw_reffreq)
-            if np.any(spworder != np.sort(spworder)):
+            if np.any(spworder != np.sort(spworder)) and self.meta.datasource == 'sdm':
                 logger.warn('BDF spw sorted to increasing order from {0}'
                             .format(spworder))
 
@@ -699,7 +699,7 @@ class State(object):
 
     @property
     def datasize(self):
-        return np.int32(np.prod(self.datashape))
+        return long(np.prod(self.datashape))
 
     @property
     def datashape_orig(self):
@@ -708,7 +708,7 @@ class State(object):
 
     @property
     def datasize_orig(self):
-        return np.int32(np.prod(self.datashape_orig))
+        return long(np.prod(self.datashape_orig))
 
     @property
     def search_dimensions(self):
