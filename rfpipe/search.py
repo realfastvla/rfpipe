@@ -266,15 +266,6 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
             logger.warn("distributed not available. Using default GPU devicenum {0}"
                         .format(devicenum))
 
-    cc = rfgpu_wrapper(st, segment, data, devicenum)
-    return cc
-
-
-#@jit(nogil=True)  # nopython=True
-def rfgpu_wrapper(st, segment, data, devicenum):
-    """ Wrap core rfgpu calls as a gil-free numba call
-    """
-
     candcollection = candidates.CandCollection(prefs=st.prefs,
                                                metadata=st.metadata)
 
@@ -384,15 +375,10 @@ def rfgpu_wrapper(st, segment, data, devicenum):
                         candcollection += candidates.calc_features(canddatalist)
                         canddatalist = []
 
-#        sleep(0.1)  # GIL check for distributed stability
-
     candcollection += candidates.calc_features(canddatalist)
 
     logger.info("{0} candidates returned for seg {1}"
                 .format(len(candcollection), segment))
-
-    # Python may not clean these up properly
-#    del vis_raw, vis_grid, img_grid, grid, image
 
     return candcollection
 
@@ -454,6 +440,8 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
         return candcollection
     minint = min(integrations)
     maxint = max(integrations)
+
+    # TODO: add check that manually set integrations are safe for given dt
 
     logger.info('Imaging {0} ints ({1}-{2}) in seg {3} at DM/dt {4:.1f}/{5} with '
                 'image {6}x{7} (uvres {8}) with fftw'

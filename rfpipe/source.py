@@ -32,28 +32,28 @@ def data_prep(st, segment, data, flagversion="latest"):
     takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
     logger.debug('Selecting pols {0}'.format(st.pols))
 
-    data = data.take(takepol, axis=3).copy()
-    data = prep_standard(st, segment, data)
-    data = calibration.apply_telcal(st, data)
+    datap = data.take(takepol, axis=3).copy()
+    datap = prep_standard(st, segment, datap)
+    datap = calibration.apply_telcal(st, datap)
 
     # support backwards compatibility for reproducible flagging
     if flagversion == "latest":
-        data = flag_data(st, data)
+        datap = flag_data(st, datap)
     elif flagversion == "rtpipe":
-        data = flag_data_rtpipe(st, data)
+        datap = flag_data_rtpipe(st, datap)
 
     if st.prefs.timesub == 'mean':
         logger.info('Subtracting mean visibility in time.')
-        data = util.meantsub(data, parallel=st.prefs.nthread > 1)
+        datap = util.meantsub(datap, parallel=st.prefs.nthread > 1)
     else:
         logger.info('No visibility subtraction done.')
 
     if st.prefs.savenoise:
-        save_noise(st, segment, data.take(st.chans, axis=2))
+        save_noise(st, segment, datap.take(st.chans, axis=2))
 
     logger.debug('Selecting chans {0}'.format(st.chans))
 
-    return data.take(st.chans, axis=2)
+    return datap.take(st.chans, axis=2)
 
 
 def read_segment(st, segment, cfile=None, timeout=default_timeout):
