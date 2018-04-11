@@ -26,7 +26,7 @@ conda config --add channels pkgw-forge
 conda config --add channels conda-forge
 conda create -n realfast numpy scipy cython matplotlib pwkit casa-tools casa-python casa-data numba astropy pyfftw
 source activate realfast
-pip install git+ssh://git@github.com/realfastvla/rfpipe
+pip install -e git+git://github.com/realfastvla/rfpipe#egg=rfpipe
 ```
 
 ## Dependencies
