@@ -1,7 +1,13 @@
+==============
 Candidates
-#############
+==============
 
 The search functions (or the pipeline) will return objects that summarize the candidates detected.
+
+.. _candidatesapi:
+
+Candidates API
+==============
 
 .. autoclass:: rfpipe.candidates.CandData
    :members:

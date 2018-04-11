@@ -1,14 +1,12 @@
 =========================
-Searching for Transients
+Observational Metadata
 =========================
 
-Functions for searching...
+.. _metadataapi:
 
-.. _searchapi:
-
-Search API
+Metadata API
 =========================
 
-.. automodule:: rfpipe.search
+.. autoclass:: rfpipe.metadata.Metadata
    :members:
    :undoc-members:

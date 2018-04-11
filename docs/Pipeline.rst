@@ -1,5 +1,6 @@
+=========================
 Using a Search Pipeline
-##############################
+=========================
 
 A transient search is composed of a series of steps to read, prepare, and process data...
 
@@ -7,8 +8,10 @@ The standard search is described by this flow chart:
 
 .. image:: rf-pipeline.png
 
+.. _pipelineapi:
 
-The pipeline module has the following members:
+Pipeline API
+=============
 
 .. automodule:: rfpipe.pipeline
    :members:

@@ -1,16 +1,17 @@
-Search State, Preferences, and Metadata
-####################################################
+==============
+Search State
+==============
 
-The definition of a search in rfpipe is controlled with a the state.State object. A state is uniquely defined by two other classes, preferences and metadata. The preferences are parameters that define what the user wants to search, how to search, etc.. The metadata defines the way the data were recorded (e.g., observing frequency, time resolution, etc.). The state object combines these two other classes to derive run-time properties that control the search.
+The definition of a search in rfpipe is controlled with a State object (class docs at :ref:`stateauto`). The state object is passed to many of the core functions that run the search, which then defines how the functions operate (e.g., values of DM to search, memory limits of the computer, number of pixels in an image, thresholds to apply, etc.).
+
+All decisions about running the pipeline are driven from the metadata (e.g., observing frequency, array configuration, number of integrations, etc.) and preferences. These are defined with the Metadata (see :ref:`metadataauto`) and Preferences (see :ref:`preferencesauto`) classes. For a given metadata and preference object, the state is uniquely defined. This design allows users to take the preferences from a search conducted in realtime at the VLA and reproduce the analysis on their own computer.
+
+.. _stateapi:
+
+State API
+==============
 
 .. autoclass:: rfpipe.state.State
    :members:
    :undoc-members:
 
-.. autoclass:: rfpipe.preferences.Preferences
-   :members:
-   :undoc-members:
-
-.. autoclass:: rfpipe.metadata.Metadata
-   :members:
-   :undoc-members:
