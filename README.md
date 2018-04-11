@@ -13,7 +13,7 @@ Planned future development include:
 
 [![Build Status](https://travis-ci.org/realfastvla/rfpipe.svg?branch=master)](https://travis-ci.org/realfastvla/rfpipe)
 [![codecov](https://codecov.io/gh/realfastvla/rfpipe/branch/master/graph/badge.svg)](https://codecov.io/gh/realfastvla/rfpipe)
-
+[![ASCL](https://img.shields.io/badge/ascl-1710.002-blue.svg?colorB=262255)](https://ascl.net/1710.002)
 ## Installation
 
 `rfpipe` requires the [anaconda](http://anaconda.com) installer on Linux and OSX. The most reliable install process adds two custom channels and a new build environment.
@@ -39,3 +39,9 @@ pip install git+ssh://git@github.com/realfastvla/rfpipe
 - attrs
 - pycuda and pyfft (optional; for GPU FFTs)
 - vys/vysmaw and vysmaw_reader (optional; to read vys data from VLA correlator)
+
+## Citation
+If you use rfpipe, please support open software by citing the record on the [Astrophysics Source Code Library](ascl.net) at http://ascl.net/1710.002. In AASTeX, you can do this like so:
+```
+\software{..., rfpipe \citep{2017ascl.soft10002L}, ...}
+```
