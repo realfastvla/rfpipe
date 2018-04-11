@@ -699,7 +699,7 @@ class State(object):
 
     @property
     def datasize(self):
-        return long(np.prod(self.datashape))
+        return np.prod(self.datashape)
 
     @property
     def datashape_orig(self):
@@ -708,7 +708,7 @@ class State(object):
 
     @property
     def datasize_orig(self):
-        return long(np.prod(self.datashape_orig))
+        return np.prod(self.datashape_orig)
 
     @property
     def search_dimensions(self):
