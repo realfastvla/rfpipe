@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 try:
     import rfgpu
 except ImportError:
-    logger.info('rfgpu not imported.')
+    pass
 
 
 def dedisperse(data, delay, parallel=False):
