@@ -154,7 +154,7 @@ class State(object):
 
             # TODO: remove for datasource=vys or sim
             spworder = np.argsort(self.metadata.spw_reffreq)
-            if np.any(spworder != np.sort(spworder)) and self.meta.datasource == 'sdm':
+            if np.any(spworder != np.sort(spworder)) and self.metadata.datasource == 'sdm':
                 logger.warn('BDF spw sorted to increasing order from {0}'
                             .format(spworder))
 
