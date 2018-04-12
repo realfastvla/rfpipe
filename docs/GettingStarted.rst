@@ -2,7 +2,7 @@
 Getting Started
 ==============
 
-.. _installation
+.. _installation:
 
 Installation
 ==============
@@ -21,7 +21,7 @@ If you intend to contribute to rfpipe, you should instead install rfpipe from so
   cd rfpipe
   python setup.py install
 
-.. _quickstart
+.. _quickstart:
 
 Quick Start
 ==============

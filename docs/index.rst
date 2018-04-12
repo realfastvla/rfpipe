@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-rfpipe: radio interferometric transient search
-=================================================
+rfpipe: radio interferometric transient search library
+=======================================================
 
 Overview
 ---------
@@ -16,20 +16,15 @@ rfpipe is the core transient search library of the realfast project. For more in
 .. |ascl| image:: https://img.shields.io/badge/ascl-1710.002-blue.svg?colorB=262255
    :target: https://ascl.net/1710.002
 
+
 Contents:
 
 .. toctree::
    :maxdepth: 2
 
    GettingStarted
-   State
-   Preferences
-   Metadata
-   Source
-   Searching
-   Pipeline
-   Candidates
-   Reproduce
+   Concepts
+   UseCases
 
 
 * :ref:`genindex`
