@@ -18,24 +18,15 @@ qa = casautil.tools.quanta()
 
 
 class State(object):
-    """ Defines initial pipeline preferences and methods for calculating state.
-    Uses attributes for preferences and metadata.
-    State properties used for derived quantities that depend on
-    metadata+preferences.
+    """ Defines initial search from preferences and methods.
+    State properties are used to calculate quantities for the search.
 
-    Scheme:
-    1) initial, minimal state defines either parameters for later use or fixes
-        final state
-    2) read metadata from observation for given scan (if final value not
-        yet set)
-    3) run functions to set state (sets hashable state)
-    4) may also set convenience attibutes
-    5) run data processing for given segment
-
-    these should be modified to change state based on input
-    - nsegment or dmarr + memory_limit + metadata => segmenttimes
-    - dmarr or dm_parameters + metadata => dmarr
-    - uvoversample + npix_max + metadata => npixx, npixy
+    Approach:
+    1) initial preferences can overload state properties
+    2) read metadata from observation for given scan
+    3) set state (and a few cached values)
+    4) state can optionally include attributes for later convenience
+    5) run search on a segment.
     """
 
     def __init__(self, config=None, sdmfile=None, sdmscan=None, bdfdir=None,
@@ -680,7 +671,7 @@ class State(object):
 
     @property
     def sigma_image1(self):
-        """ Use either sigma_image1_ or nfalse
+        """ Use either sigma_image1 or nfalse
         """
 
         assert (self.prefs.sigma_image1 is not None) or (self.prefs.nfalse  is not None), "Must set either prefs.sigma_image1 or prefs.nfalse"

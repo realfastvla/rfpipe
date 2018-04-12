@@ -11,9 +11,12 @@ Planned future development include:
 - Remove dependence on rtpipe.
 - Python 3 support.
 
+[![Docs](https://img.shields.io/badge/Made%20with-Sphinx-1f425f.svg)](https://realfastvla.github.io/rfpipe)
 [![Build Status](https://travis-ci.org/realfastvla/rfpipe.svg?branch=master)](https://travis-ci.org/realfastvla/rfpipe)
 [![codecov](https://codecov.io/gh/realfastvla/rfpipe/branch/master/graph/badge.svg)](https://codecov.io/gh/realfastvla/rfpipe)
+[![PyPI pyversions](https://img.shields.io/pypi/pyversions/ansicolortags.svg)](https://pypi.python.org/pypi/rfpipe/)
 [![ASCL](https://img.shields.io/badge/ascl-1710.002-blue.svg?colorB=262255)](https://ascl.net/1710.002)
+
 ## Installation
 
 `rfpipe` requires the [anaconda](http://anaconda.com) installer on Linux and OSX. The most reliable install process adds two custom channels and a new build environment.
@@ -23,7 +26,7 @@ conda config --add channels pkgw-forge
 conda config --add channels conda-forge
 conda create -n realfast numpy scipy cython matplotlib pwkit casa-tools casa-python casa-data numba astropy pyfftw
 source activate realfast
-pip install git+ssh://git@github.com/realfastvla/rfpipe
+pip install -e git+git://github.com/realfastvla/rfpipe#egg=rfpipe
 ```
 
 ## Dependencies

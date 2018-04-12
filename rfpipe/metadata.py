@@ -114,8 +114,8 @@ class Metadata(object):
 
     @property
     def endtime_mjd(self):
-        """ If nints_ is defined (e.g., for SDM data), then endtime_mjd is calculated.
-        Otherwise (e.g., for scan_config/vys data), it looks for endtime_mjd_ 
+        """ If nints\_ is defined (e.g., for SDM data), then endtime_mjd is calculated.
+        Otherwise (e.g., for scan_config/vys data), it looks for endtime_mjd\_
         attribute
         """
 
@@ -130,9 +130,9 @@ class Metadata(object):
 
     @property
     def nints(self):
-        """ If endtime_mjd_ is defined (e.g., for scan_config/vys
+        """ If endtime_mjd\_ is defined (e.g., for scan_config/vys
         data), then endtime_mjd is calculated.
-        Otherwise (e.g., for SDM data), it looks for nints_ attribute
+        Otherwise (e.g., for SDM data), it looks for nints\_ attribute
         """
 
         if self.nints_:

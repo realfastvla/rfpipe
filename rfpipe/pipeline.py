@@ -16,15 +16,18 @@ def pipeline_scan(st, segments=None, cfile=None,
         state/preference has fftmode that will determine functions used here.
     """
 
-    featurelists = []
+    # initialize with empty cc
+    candcollection = candidates.CandCollection(prefs=st.prefs,
+                                               metadata=st.metadata)
+
     if not isinstance(segments, list):
         segments = list(range(st.nsegment))
 
     for segment in segments:
-        featurelists.append(pipeline_seg(st, segment, cfile=cfile,
-                                         vys_timeout=vys_timeout))
+        candcollection += pipeline_seg(st, segment, cfile=cfile,
+                                       vys_timeout=vys_timeout)
 
-    return featurelists  # list of tuples (collection, data)
+    return candcollection
 
 
 def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default):
@@ -38,10 +41,11 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default):
     if st.fftmode == "fftw":
         wisdom = search.set_wisdom(st.npixx, st.npixy)
         candcollection = search.dedisperse_image_fftw(st, segment, data_prep,
-                                                      wisdom=wisdom)
+                                                       wisdom=wisdom)
     elif st.fftmode == "cuda":
         candcollection = search.dedisperse_image_cuda(st, segment, data_prep)
 
-    candidates.save_cands(st, candcollection)
+    # will save to pkl, if state says to
+    candidates.save_cands(st, candcollection=candcollection)
 
     return candcollection
