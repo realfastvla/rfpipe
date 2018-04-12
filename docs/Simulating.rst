@@ -1,7 +1,7 @@
-:: _simulating:
+.. _simulating:
 
 =============================
-Findind Simulated Transients
+Finding Simulated Transients
 =============================
 
 (mock_segment, i0, dm, dt, amp, l, m)
@@ -14,6 +14,6 @@ Findind Simulated Transients
 
 .. autofunction:: rfpipe.source.simulate_segment
 	:noindex:
-	
+
 .. autofunction:: rfpipe.source.generate_transient
 	:noindex:

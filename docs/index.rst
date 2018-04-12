@@ -6,9 +6,6 @@
 rfpipe: radio interferometric transient search library
 =======================================================
 
-Overview
----------
-
 rfpipe is a library for radio interferometric transient searches. It takes interferometric visibilities as input and can search them for transients. Currently, rfpipe is optimized for `VLA <https://public.nrao.edu/telescopes/vla/>`_ data and image-based searches, but the design is intended to allow other telescopes and algorithms.
 
 rfpipe is the core transient search library of the realfast project. For more information, see `our ApJS paper <https://ui.adsabs.harvard.edu/#abs/2018arXiv180203084L/abstract>`_ or visit http://realfast.io. This software can be cited via this link: |ascl|.
@@ -18,6 +15,7 @@ rfpipe is the core transient search library of the realfast project. For more in
 
 
 Contents:
+=========
 
 .. toctree::
    :maxdepth: 2
