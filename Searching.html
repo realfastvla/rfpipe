@@ -1,163 +1,90 @@
-<!DOCTYPE html>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Searching for Transients &#8212; rfpipe 0.9.5 documentation</title>
-    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
+    <title>Transient Search &#8212; rfpipe 0.9.6 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script type="text/javascript" src="_static/documentation_options.js"></script>
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.9.6',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
-    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Candidates" href="Candidates.html" />
-    <link rel="prev" title="Using a Search Pipeline" href="Pipeline.html" />
-<meta charset='utf-8'>
-<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
-<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
-<meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="prev" title="Observational Metadata" href="Metadata.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Candidates.html" title="Candidates"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="Metadata.html" title="Observational Metadata"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">rfpipe 0.9.6 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="Concepts.html" accesskey="U">Concepts</a> &#187;</li> 
+      </ul>
+    </div>  
 
-  </head><body>
-
-  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
-    <div class="container">
-      <div class="navbar-header">
-        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
-        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-        </button>
-        <a class="navbar-brand" href="index.html"><span><img src="_static/favicon.ico.png"></span>
-          rfpipe</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.9.5</b></span>
-      </div>
-
-        <div class="collapse navbar-collapse nav-collapse">
-          <ul class="nav navbar-nav">
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
             
-            
-              <li class="dropdown globaltoc-container">
-  <a role="button"
-     id="dLabelGlobalToc"
-     data-toggle="dropdown"
-     data-target="#"
-     href="index.html">Site <b class="caret"></b></a>
-  <ul class="dropdown-menu globaltoc"
-      role="menu"
-      aria-labelledby="dLabelGlobalToc"><ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="Overview.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Overview.html#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Overview.html#quick-start">Quick Start</a></li>
-<li class="toctree-l1"><a class="reference internal" href="State.html">Search State, Preferences, and Metadata</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Pipeline.html">Using a Search Pipeline</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Searching for Transients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Candidates.html">Candidates</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Reproduce.html">Reproducing Transient Detections</a></li>
+  <div class="section" id="transient-search">
+<h1>Transient Search<a class="headerlink" href="#transient-search" title="Permalink to this headline">¶</a></h1>
+<p>A transient search will use a State object and data to produce a set of candidate transients. The state defines the way the search functions operate, including physical parameters, algorithms, and computational limits. The pipeline module (see <a class="reference internal" href="Pipeline.html#pipeline"><span class="std std-ref">Searching for an FRB in SDM Data</span></a>) wraps both reading and searching functions for ease of use.</p>
+<p>The data can be input from one of three sources:</p>
+<ul class="simple">
+<li>SDM file (a standard VLA and realfast data product),</li>
+<li>simulation (numpy random number generator), and</li>
+<li>vysmaw client (a real-time streaming protocol at the VLA).</li>
 </ul>
-</ul>
-</li>
-              
-                <li class="dropdown">
-  <a role="button"
-     id="dLabelLocalToc"
-     data-toggle="dropdown"
-     data-target="#"
-     href="#">Page <b class="caret"></b></a>
-  <ul class="dropdown-menu localtoc"
-      role="menu"
-      aria-labelledby="dLabelLocalToc"><ul>
-<li><a class="reference internal" href="#">Searching for Transients</a></li>
-</ul>
-</ul>
-</li>
-              
-            
-            
-              
-                
-  <li>
-    <a href="Pipeline.html" title="Previous Chapter: Using a Search Pipeline"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm hidden-tablet">&laquo; Using a Searc...</span>
-    </a>
-  </li>
-  <li>
-    <a href="Candidates.html" title="Next Chapter: Candidates"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm hidden-tablet">Candidates &raquo;</span>
-    </a>
-  </li>
-              
-            
-            
-            
-            
-              <li class="hidden-sm">
-<div id="sourcelink">
-  <a href="_sources/Searching.rst.txt"
-     rel="nofollow">Source</a>
-</div></li>
-            
-          </ul>
+<p>Given a state object that defines the data source, one can read a single segment with <code class="docutils literal"><span class="pre">rfpipe.source.read_segment</span></code>.</p>
+<dl class="function">
+<dt id="rfpipe.source.read_segment">
+<code class="descclassname">rfpipe.source.</code><code class="descname">read_segment</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>cfile=None</em>, <em>timeout=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#read_segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.read_segment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a segment of data.
+cfile and timeout are specific to vys data.
+Returns data as defined in metadata (no downselection yet)</p>
+</dd></dl>
 
-          
-            
-<form class="navbar-form navbar-right" action="search.html" method="get">
- <div class="form-group">
-  <input type="text" name="q" class="form-control" placeholder="Search" />
- </div>
-  <input type="hidden" name="check_keywords" value="yes" />
-  <input type="hidden" name="area" value="default" />
-</form>
-          
-        </div>
-    </div>
-  </div>
+<p>There are several functions for preparing the data for a search, but most importantly the data will probably need to be calibrated and flagged. Again, given a state that defines the data preparation steps, one can prepare data with <code class="docutils literal"><span class="pre">rfpipesource.data_prep</span></code>.</p>
+<dl class="function">
+<dt id="rfpipe.source.data_prep">
+<code class="descclassname">rfpipe.source.</code><code class="descname">data_prep</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em>, <em>flagversion=u'latest'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#data_prep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.data_prep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies calibration, flags, and subtracts time mean for data.
+flagversion can be “latest” or “rtpipe”.
+Optionally prepares data with antenna flags, fixing out of order data,
+calibration, downsampling, etc..</p>
+</dd></dl>
 
-<div class="container">
-  <div class="row">
-      <div class="col-md-3">
-        <div id="sidebar" class="bs-sidenav" role="complementary"><ul>
-<li><a class="reference internal" href="#">Searching for Transients</a></li>
-</ul>
-
-  <li>
-    <a href="Pipeline.html" title="Previous Chapter: Using a Search Pipeline"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm hidden-tablet">&laquo; Using a Searc...</span>
-    </a>
-  </li>
-  <li>
-    <a href="Candidates.html" title="Next Chapter: Candidates"><span class="glyphicon glyphicon-chevron-right visible-sm"></span><span class="hidden-sm hidden-tablet">Candidates &raquo;</span>
-    </a>
-  </li>
-<div id="sourcelink">
-  <a href="_sources/Searching.rst.txt"
-     rel="nofollow">Source</a>
-</div>
-<form action="search.html" method="get">
- <div class="form-group">
-  <input type="text" name="q" class="form-control" placeholder="Search" />
- </div>
-  <input type="hidden" name="check_keywords" value="yes" />
-  <input type="hidden" name="area" value="default" />
-</form>
-        </div>
-      </div>
-    <div class="col-md-9 content">
-      
-  <div class="section" id="searching-for-transients">
-<h1>Searching for Transients<a class="headerlink" href="#searching-for-transients" title="Permalink to this headline">¶</a></h1>
-<p>Functions for searching…</p>
-<span class="target" id="module-rfpipe.search"></span><dl class="function">
-<dt id="rfpipe.search.dedisperse">
-<code class="descclassname">rfpipe.search.</code><code class="descname">dedisperse</code><span class="sig-paren">(</span><em>data</em>, <em>delay</em>, <em>parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#dedisperse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.dedisperse" title="Permalink to this definition">¶</a></dt>
-<dd><p>Shift data in time (axis=0) by channel-dependent value given in
-delay. Returns new array with time length shortened by max delay in
-integrations. wraps _dedisperse to add logging.
-Can set mode to “single” or “multi” to use different functions.</p>
+<p>The transient search is similarly defined by the state and search functions take it as input. A range of data correction and search functions are available in the search module. Many algorithms have been implemented both for CPU (using the FFTW library) and GPU (using CUDA) environments.</p>
+<dl class="function">
+<dt id="rfpipe.search.dedisperse_image_fftw">
+<code class="descclassname">rfpipe.search.</code><code class="descname">dedisperse_image_fftw</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em>, <em>wisdom=None</em>, <em>integrations=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#dedisperse_image_fftw"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.dedisperse_image_fftw" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fuse the dediserpse, resample, search, threshold functions.</p>
 </dd></dl>
 
 <dl class="function">
@@ -170,9 +97,156 @@ Uses state to define integrations to image based on segment, dm, and dt.
 devicenum can force the gpu to use, but can be inferred via distributed.</p>
 </dd></dl>
 
+<div class="section" id="module-rfpipe.source">
+<span id="source-api"></span><span id="sourceapi"></span><h2>Source API<a class="headerlink" href="#module-rfpipe.source" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
-<dt id="rfpipe.search.dedisperse_image_fftw">
-<code class="descclassname">rfpipe.search.</code><code class="descname">dedisperse_image_fftw</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em>, <em>wisdom=None</em>, <em>integrations=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#dedisperse_image_fftw"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.dedisperse_image_fftw" title="Permalink to this definition">¶</a></dt>
+<dt>
+<code class="descclassname">rfpipe.source.</code><code class="descname">data_prep</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em>, <em>flagversion=u'latest'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#data_prep"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Applies calibration, flags, and subtracts time mean for data.
+flagversion can be “latest” or “rtpipe”.
+Optionally prepares data with antenna flags, fixing out of order data,
+calibration, downsampling, etc..</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.estimate_noiseperbl">
+<code class="descclassname">rfpipe.source.</code><code class="descname">estimate_noiseperbl</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#estimate_noiseperbl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.estimate_noiseperbl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes large data array and sigma clips it to find noise per bl for
+input to detect_bispectra.
+Takes mean across pols and channels for now, as in detect_bispectra.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.flag_badchtslide">
+<code class="descclassname">rfpipe.source.</code><code class="descname">flag_badchtslide</code><span class="sig-paren">(</span><em>data</em>, <em>sigma</em>, <em>win</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#flag_badchtslide"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.flag_badchtslide" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use data (4d) to calculate (int, chan, pol) to be flagged</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.flag_blstd">
+<code class="descclassname">rfpipe.source.</code><code class="descname">flag_blstd</code><span class="sig-paren">(</span><em>data</em>, <em>sigma</em>, <em>convergence</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#flag_blstd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.flag_blstd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use data (4d) to calculate (int, chan, pol) to be flagged.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.flag_data">
+<code class="descclassname">rfpipe.source.</code><code class="descname">flag_data</code><span class="sig-paren">(</span><em>st</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#flag_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.flag_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Identifies bad data and flags it to 0.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.flag_data_rtpipe">
+<code class="descclassname">rfpipe.source.</code><code class="descname">flag_data_rtpipe</code><span class="sig-paren">(</span><em>st</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#flag_data_rtpipe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.flag_data_rtpipe" title="Permalink to this definition">¶</a></dt>
+<dd><p>Flagging data in single process
+Deprecated.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.generate_transient">
+<code class="descclassname">rfpipe.source.</code><code class="descname">generate_transient</code><span class="sig-paren">(</span><em>st</em>, <em>amp</em>, <em>i0</em>, <em>dm</em>, <em>dt</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#generate_transient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.generate_transient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a dynamic spectrum for given parameters
+amp is in system units (post calibration)
+i0 is a float for integration relative to start of segment.
+dm/dt are in units of pc/cm3 and seconds, respectively</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.getsdm">
+<code class="descclassname">rfpipe.source.</code><code class="descname">getsdm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#getsdm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.getsdm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrap sdmpy.SDM to get around schema change error</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.prep_standard">
+<code class="descclassname">rfpipe.source.</code><code class="descname">prep_standard</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#prep_standard"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.prep_standard" title="Permalink to this definition">¶</a></dt>
+<dd><p>Common first data prep stages, incl
+online flags, resampling, and mock transients.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.read_bdf">
+<code class="descclassname">rfpipe.source.</code><code class="descname">read_bdf</code><span class="sig-paren">(</span><em>st</em>, <em>nskip=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#read_bdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.read_bdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uses sdmpy to read a given range of integrations from sdm of given scan.
+readints=0 will read all of bdf (skipping nskip).
+Returns data in increasing frequency order.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.read_bdf_segment">
+<code class="descclassname">rfpipe.source.</code><code class="descname">read_bdf_segment</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#read_bdf_segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.read_bdf_segment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uses sdmpy to reads bdf (sdm) format data into numpy array in given
+segment. Each segment has st.readints integrations.</p>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">rfpipe.source.</code><code class="descname">read_segment</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>cfile=None</em>, <em>timeout=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#read_segment"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Read a segment of data.
+cfile and timeout are specific to vys data.
+Returns data as defined in metadata (no downselection yet)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.read_vys_segment">
+<code class="descclassname">rfpipe.source.</code><code class="descname">read_vys_segment</code><span class="sig-paren">(</span><em>st</em>, <em>seg</em>, <em>cfile=None</em>, <em>timeout=10</em>, <em>offset=4</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#read_vys_segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.read_vys_segment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read segment seg defined by state st from vys stream.
+Uses vysmaw application timefilter to receive multicast messages and pull
+spectra on the CBE.
+timeout is a multiple of read time in seconds to wait.
+offset is extra time in seconds to keep vys reader open.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.save_noise">
+<code class="descclassname">rfpipe.source.</code><code class="descname">save_noise</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em>, <em>chunk=200</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#save_noise"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.save_noise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates noise properties and save values to pickle.
+chunk defines window for measurement. at least one measurement always made.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.sdm_sources">
+<code class="descclassname">rfpipe.source.</code><code class="descname">sdm_sources</code><span class="sig-paren">(</span><em>sdmname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#sdm_sources"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.sdm_sources" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use sdmpy to get all sources and ra,dec per scan as dict</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.simulate_segment">
+<code class="descclassname">rfpipe.source.</code><code class="descname">simulate_segment</code><span class="sig-paren">(</span><em>st</em>, <em>loc=0.0</em>, <em>scale=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#simulate_segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.simulate_segment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simulates visibilities for a segment.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.source.slidedev">
+<code class="descclassname">rfpipe.source.</code><code class="descname">slidedev</code><a class="reference internal" href="_modules/rfpipe/source.html#slidedev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.slidedev" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a (len x 2) array, calculate the deviation from the median per pol.
+Calculates median over a window, win.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rfpipe.search">
+<span id="search-api"></span><span id="searchapi"></span><h2>Search API<a class="headerlink" href="#module-rfpipe.search" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="rfpipe.search.dedisperse">
+<code class="descclassname">rfpipe.search.</code><code class="descname">dedisperse</code><span class="sig-paren">(</span><em>data</em>, <em>delay</em>, <em>parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#dedisperse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.dedisperse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shift data in time (axis=0) by channel-dependent value given in
+delay. Returns new array with time length shortened by max delay in
+integrations. wraps _dedisperse to add logging.
+Can set mode to “single” or “multi” to use different functions.</p>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">rfpipe.search.</code><code class="descname">dedisperse_image_cuda</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em>, <em>devicenum=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#dedisperse_image_cuda"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Run dedispersion, resample for all dm and dt.
+Grid and image on GPU.
+rfgpu is built from separate repo.
+Uses state to define integrations to image based on segment, dm, and dt.
+devicenum can force the gpu to use, but can be inferred via distributed.</p>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<code class="descclassname">rfpipe.search.</code><code class="descname">dedisperse_image_fftw</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em>, <em>wisdom=None</em>, <em>integrations=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#dedisperse_image_fftw"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>Fuse the dediserpse, resample, search, threshold functions.</p>
 </dd></dl>
 
@@ -251,23 +325,75 @@ Default will take integrations not searched in neighboring segments.</p>
 </dd></dl>
 
 </div>
-
-
-    </div>
-      
-  </div>
 </div>
-<footer class="footer">
-  <div class="container">
-    <p class="pull-right">
-      <a href="#">Back to top</a>
-      
-    </p>
-    <p>
-        &copy; Copyright 2017, Casey Law.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.1.<br/>
-    </p>
-  </div>
-</footer>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/favicon.ico.png" alt="Logo"/>
+            </a></p>
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Transient Search</a><ul>
+<li><a class="reference internal" href="#module-rfpipe.source">Source API</a></li>
+<li><a class="reference internal" href="#module-rfpipe.search">Search API</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="Metadata.html"
+                        title="previous chapter">Observational Metadata</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="Candidates.html"
+                        title="next chapter">Candidates</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Searching.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Candidates.html" title="Candidates"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="Metadata.html" title="Observational Metadata"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">rfpipe 0.9.6 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="Concepts.html" >Concepts</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Casey Law.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.
+    </div>
   </body>
 </html>

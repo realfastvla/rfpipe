@@ -1,0 +1,232 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Observational Metadata &#8212; rfpipe 0.9.6 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.9.6',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Transient Search" href="Searching.html" />
+    <link rel="prev" title="Search Preferences" href="Preferences.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Searching.html" title="Transient Search"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="Preferences.html" title="Search Preferences"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">rfpipe 0.9.6 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="Concepts.html" accesskey="U">Concepts</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="observational-metadata">
+<h1>Observational Metadata<a class="headerlink" href="#observational-metadata" title="Permalink to this headline">¶</a></h1>
+<p>Metadata define the properties of the data. Properties such as observing frequency, antenna positions, and time of observation are all metadata defined as the data are recorded.</p>
+<p>Metadata are required to interpret the data that is read and to calculate the parameters of the search. In general, the metadata is provided by someone else (e.g., in an SDM file), although rfpipe has tools for generate metadata.</p>
+<dl class="function">
+<dt id="rfpipe.metadata.mock_metadata">
+<code class="descclassname">rfpipe.metadata.</code><code class="descname">mock_metadata</code><span class="sig-paren">(</span><em>t0</em>, <em>t1</em>, <em>nants</em>, <em>nspw</em>, <em>chans</em>, <em>npol</em>, <em>inttime_micros</em>, <em>scan=1</em>, <em>subscan=1</em>, <em>datasource=u'vys'</em>, <em>datasetid=u'test'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/metadata.html#mock_metadata"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.metadata.mock_metadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wraps Metadata call to provide immutable, attribute-filled class instance.
+Parallel structure to sdm_metadata, so this inherits some of its
+nomenclature. t0, t1 are times in mjd. Supports up to nant=27, npol=4, and
+nspw=32. chans is total number of channels over all spw (equal per spw).
+datasource is expected source of data (typically vys when mocking).</p>
+</dd></dl>
+
+<p>This can be useful for simulating data with <code class="docutils literal"><span class="pre">datasource='sim'</span></code>. However, the most common use case is reading data/metadata from an SDM file. In this case, metadata can be read directly from the SDM file.</p>
+<dl class="function">
+<dt id="rfpipe.metadata.sdm_metadata">
+<code class="descclassname">rfpipe.metadata.</code><code class="descname">sdm_metadata</code><span class="sig-paren">(</span><em>sdmfile</em>, <em>scan</em>, <em>bdfdir=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/metadata.html#sdm_metadata"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.metadata.sdm_metadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wraps Metadata call to provide immutable, attribute-filled class instance.</p>
+</dd></dl>
+
+<div class="section" id="metadata-api">
+<span id="metadataapi"></span><h2>Metadata API<a class="headerlink" href="#metadata-api" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="rfpipe.metadata.Metadata">
+<em class="property">class </em><code class="descclassname">rfpipe.metadata.</code><code class="descname">Metadata</code><span class="sig-paren">(</span><em>datasource=None</em>, <em>datasetId=None</em>, <em>filename=None</em>, <em>scan=None</em>, <em>subscan=None</em>, <em>bdfdir=None</em>, <em>bdfstr=None</em>, <em>source=None</em>, <em>radec=None</em>, <em>inttime=None</em>, <em>nints_=None</em>, <em>telescope=None</em>, <em>starttime_mjd=None</em>, <em>endtime_mjd_=None</em>, <em>dishdiameter=None</em>, <em>intent=None</em>, <em>antids=None</em>, <em>xyz=None</em>, <em>spworder=None</em>, <em>spw_orig=None</em>, <em>spw_nchan=None</em>, <em>spw_reffreq=None</em>, <em>spw_chansize=None</em>, <em>pols_orig=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/metadata.html#Metadata"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.metadata.Metadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Metadata we need to translate parameters into a pipeline state.
+Called from a function defined for a given source (e.g., an sdm file).
+Built from nominally immutable attributes and properties.
+To modify metadata, use attr.assoc(inst, key=newval)</p>
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.antpos">
+<code class="descname">antpos</code><a class="headerlink" href="#rfpipe.metadata.Metadata.antpos" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rfpipe.metadata.Metadata.atdefaults">
+<code class="descname">atdefaults</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/metadata.html#Metadata.atdefaults"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.metadata.Metadata.atdefaults" title="Permalink to this definition">¶</a></dt>
+<dd><p>Is metadata still set at default values?</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.endtime_mjd">
+<code class="descname">endtime_mjd</code><a class="headerlink" href="#rfpipe.metadata.Metadata.endtime_mjd" title="Permalink to this definition">¶</a></dt>
+<dd><p>If nints_ is defined (e.g., for SDM data), then endtime_mjd is calculated.
+Otherwise (e.g., for scan_config/vys data), it looks for endtime_mjd_
+attribute</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.freq_orig">
+<code class="descname">freq_orig</code><a class="headerlink" href="#rfpipe.metadata.Metadata.freq_orig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Spacing of channel centers in GHz.
+Out of order metadata order is sorted in state/data reading</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.nants_orig">
+<code class="descname">nants_orig</code><a class="headerlink" href="#rfpipe.metadata.Metadata.nants_orig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.nbl_orig">
+<code class="descname">nbl_orig</code><a class="headerlink" href="#rfpipe.metadata.Metadata.nbl_orig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.nchan_orig">
+<code class="descname">nchan_orig</code><a class="headerlink" href="#rfpipe.metadata.Metadata.nchan_orig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.nints">
+<code class="descname">nints</code><a class="headerlink" href="#rfpipe.metadata.Metadata.nints" title="Permalink to this definition">¶</a></dt>
+<dd><p>If endtime_mjd_ is defined (e.g., for scan_config/vys
+data), then endtime_mjd is calculated.
+Otherwise (e.g., for SDM data), it looks for nints_ attribute</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.npol_orig">
+<code class="descname">npol_orig</code><a class="headerlink" href="#rfpipe.metadata.Metadata.npol_orig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.nspw_orig">
+<code class="descname">nspw_orig</code><a class="headerlink" href="#rfpipe.metadata.Metadata.nspw_orig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.scanId">
+<code class="descname">scanId</code><a class="headerlink" href="#rfpipe.metadata.Metadata.scanId" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.starttime_string">
+<code class="descname">starttime_string</code><a class="headerlink" href="#rfpipe.metadata.Metadata.starttime_string" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.uvrange_orig">
+<code class="descname">uvrange_orig</code><a class="headerlink" href="#rfpipe.metadata.Metadata.uvrange_orig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/favicon.ico.png" alt="Logo"/>
+            </a></p>
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Observational Metadata</a><ul>
+<li><a class="reference internal" href="#metadata-api">Metadata API</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="Preferences.html"
+                        title="previous chapter">Search Preferences</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="Searching.html"
+                        title="next chapter">Transient Search</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Metadata.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Searching.html" title="Transient Search"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="Preferences.html" title="Search Preferences"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">rfpipe 0.9.6 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="Concepts.html" >Concepts</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Casey Law.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.
+    </div>
+  </body>
+</html>

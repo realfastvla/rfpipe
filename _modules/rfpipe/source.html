@@ -1,0 +1,636 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>rfpipe.source &#8212; rfpipe 0.9.6 documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.9.6',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">rfpipe 0.9.6 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for rfpipe.source</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">unicode_literals</span>
+<span class="kn">from</span> <span class="nn">builtins</span> <span class="k">import</span> <span class="nb">bytes</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="nb">object</span><span class="p">,</span> <span class="nb">range</span><span class="p">,</span> <span class="nb">map</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="nb">str</span>
+<span class="kn">from</span> <span class="nn">future.utils</span> <span class="k">import</span> <span class="n">itervalues</span><span class="p">,</span> <span class="n">viewitems</span><span class="p">,</span> <span class="n">iteritems</span><span class="p">,</span> <span class="n">listvalues</span><span class="p">,</span> <span class="n">listitems</span>
+
+<span class="kn">import</span> <span class="nn">os.path</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numba</span> <span class="k">import</span> <span class="n">jit</span>
+<span class="kn">from</span> <span class="nn">astropy</span> <span class="k">import</span> <span class="n">time</span>
+<span class="kn">import</span> <span class="nn">sdmpy</span>
+<span class="kn">import</span> <span class="nn">pwkit.environments.casa.util</span> <span class="k">as</span> <span class="nn">casautil</span>
+<span class="kn">from</span> <span class="nn">rfpipe</span> <span class="k">import</span> <span class="n">util</span><span class="p">,</span> <span class="n">calibration</span><span class="p">,</span> <span class="n">fileLock</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">qa</span> <span class="o">=</span> <span class="n">casautil</span><span class="o">.</span><span class="n">tools</span><span class="o">.</span><span class="n">quanta</span><span class="p">()</span>
+<span class="n">default_timeout</span> <span class="o">=</span> <span class="mi">10</span>  <span class="c1"># multiple of read time in seconds to wait</span>
+
+
+<div class="viewcode-block" id="data_prep"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.data_prep">[docs]</a><span class="k">def</span> <span class="nf">data_prep</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">flagversion</span><span class="o">=</span><span class="s2">&quot;latest&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Applies calibration, flags, and subtracts time mean for data.</span>
+<span class="sd">    flagversion can be &quot;latest&quot; or &quot;rtpipe&quot;.</span>
+<span class="sd">    Optionally prepares data with antenna flags, fixing out of order data,</span>
+<span class="sd">    calibration, downsampling, etc..</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">data</span>
+
+    <span class="c1"># take pols of interest</span>
+    <span class="n">takepol</span> <span class="o">=</span> <span class="p">[</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">pols_orig</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">pol</span><span class="p">)</span> <span class="k">for</span> <span class="n">pol</span> <span class="ow">in</span> <span class="n">st</span><span class="o">.</span><span class="n">pols</span><span class="p">]</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Selecting pols </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">pols</span><span class="p">))</span>
+
+    <span class="n">datap</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">takepol</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">datap</span> <span class="o">=</span> <span class="n">prep_standard</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">datap</span><span class="p">)</span>
+    <span class="n">datap</span> <span class="o">=</span> <span class="n">calibration</span><span class="o">.</span><span class="n">apply_telcal</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">datap</span><span class="p">)</span>
+
+    <span class="c1"># support backwards compatibility for reproducible flagging</span>
+    <span class="k">if</span> <span class="n">flagversion</span> <span class="o">==</span> <span class="s2">&quot;latest&quot;</span><span class="p">:</span>
+        <span class="n">datap</span> <span class="o">=</span> <span class="n">flag_data</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">datap</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">flagversion</span> <span class="o">==</span> <span class="s2">&quot;rtpipe&quot;</span><span class="p">:</span>
+        <span class="n">datap</span> <span class="o">=</span> <span class="n">flag_data_rtpipe</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">datap</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">timesub</span> <span class="o">==</span> <span class="s1">&#39;mean&#39;</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Subtracting mean visibility in time.&#39;</span><span class="p">)</span>
+        <span class="n">datap</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">meantsub</span><span class="p">(</span><span class="n">datap</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">nthread</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;No visibility subtraction done.&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">savenoise</span><span class="p">:</span>
+        <span class="n">save_noise</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">datap</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">chans</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Selecting chans </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">chans</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">datap</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">chans</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="read_segment"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.read_segment">[docs]</a><span class="k">def</span> <span class="nf">read_segment</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">cfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">default_timeout</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Read a segment of data.</span>
+<span class="sd">    cfile and timeout are specific to vys data.</span>
+<span class="sd">    Returns data as defined in metadata (no downselection yet)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># assumed read shape (st.readints, st.nbl, st.metadata.nchan_orig, st.npol)</span>
+    <span class="k">if</span> <span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">datasource</span> <span class="o">==</span> <span class="s1">&#39;sdm&#39;</span><span class="p">:</span>
+        <span class="n">data_read</span> <span class="o">=</span> <span class="n">read_bdf_segment</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">datasource</span> <span class="o">==</span> <span class="s1">&#39;vys&#39;</span><span class="p">:</span>
+        <span class="n">data_read</span> <span class="o">=</span> <span class="n">read_vys_segment</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">cfile</span><span class="o">=</span><span class="n">cfile</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">datasource</span> <span class="o">==</span> <span class="s1">&#39;sim&#39;</span><span class="p">:</span>
+        <span class="n">data_read</span> <span class="o">=</span> <span class="n">simulate_segment</span><span class="p">(</span><span class="n">st</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Datasource </span><span class="si">{0}</span><span class="s1"> not recognized.&#39;</span>
+                     <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">datasource</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">data_read</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;No data read.&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">data_read</span></div>
+
+
+<div class="viewcode-block" id="prep_standard"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.prep_standard">[docs]</a><span class="k">def</span> <span class="nf">prep_standard</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Common first data prep stages, incl</span>
+<span class="sd">    online flags, resampling, and mock transients.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">data</span>
+
+    <span class="c1"># read Flag.xml and apply flags for given ant/time range</span>
+    <span class="k">if</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">applyonlineflags</span> <span class="ow">and</span> <span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">datasource</span> <span class="o">==</span> <span class="s1">&#39;sdm&#39;</span><span class="p">:</span>
+
+        <span class="n">sdm</span> <span class="o">=</span> <span class="n">getsdm</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">bdfdir</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">bdfdir</span><span class="p">)</span>
+        <span class="n">scan</span> <span class="o">=</span> <span class="n">sdm</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">scan</span><span class="p">)</span>
+
+        <span class="c1"># segment flagged from logical OR from (start, stop) flags</span>
+        <span class="n">t0</span><span class="p">,</span> <span class="n">t1</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">segmenttimes</span><span class="p">[</span><span class="n">segment</span><span class="p">]</span>
+        <span class="c1"># 0=bad, 1=good. axis=0 is time axis.</span>
+        <span class="n">flags</span> <span class="o">=</span> <span class="n">scan</span><span class="o">.</span><span class="n">flags</span><span class="p">([</span><span class="n">t0</span><span class="p">,</span> <span class="n">t1</span><span class="p">])</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">flags</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Found antennas to flag in time range </span><span class="si">{0}</span><span class="s1">-</span><span class="si">{1}</span><span class="s1"> &#39;</span>
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t0</span><span class="p">,</span> <span class="n">t1</span><span class="p">))</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">flags</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">requirements</span><span class="o">=</span><span class="s1">&#39;W&#39;</span><span class="p">),</span> <span class="mi">0</span><span class="n">j</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;No flagged antennas in time range </span><span class="si">{0}</span><span class="s1">-</span><span class="si">{1}</span><span class="s1"> &#39;</span>
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t0</span><span class="p">,</span> <span class="n">t1</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Not applying online flags.&#39;</span><span class="p">)</span>
+
+    <span class="c1"># optionally integrate (downsample)</span>
+    <span class="k">if</span> <span class="p">((</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">read_tdownsample</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">read_fdownsample</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)):</span>
+        <span class="n">data2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">datashape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;complex64&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">read_tdownsample</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Downsampling in time by </span><span class="si">{0}</span><span class="s1">&#39;</span>
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">read_tdownsample</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">datashape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                <span class="n">data2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span>
+                    <span class="n">i</span><span class="o">*</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">read_tdownsample</span><span class="p">:(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">read_tdownsample</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">read_fdownsample</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Downsampling in frequency by </span><span class="si">{0}</span><span class="s1">&#39;</span>
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">read_fdownsample</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">datashape</span><span class="p">[</span><span class="mi">2</span><span class="p">]):</span>
+                <span class="n">data2</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">i</span><span class="o">*</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">read_fdownsample</span><span class="p">:(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">read_fdownsample</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data2</span>
+
+    <span class="c1"># optionally add transients</span>
+    <span class="k">if</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">simulated_transient</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">simulated_transient</span><span class="p">,</span> <span class="nb">list</span><span class="p">),</span> <span class="s2">&quot;Simulated transient must be list of tuples.&quot;</span>
+
+        <span class="n">uvw</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">get_uvw_segment</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">simulated_transient</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">params</span><span class="p">)</span> <span class="o">==</span> <span class="mi">7</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;Transient requires 7 parameters: &quot;</span>
+                                      <span class="s2">&quot;(segment, i0/int, dm/pc/cm3, dt/s, &quot;</span>
+                                      <span class="s2">&quot;amp/sys, dl/rad, dm/rad)&quot;</span><span class="p">)</span>
+            <span class="p">(</span><span class="n">mock_segment</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">amp</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span> <span class="o">=</span> <span class="n">params</span>
+            <span class="k">if</span> <span class="n">segment</span> <span class="o">==</span> <span class="n">mock_segment</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Adding transient to segment </span><span class="si">{0}</span><span class="s2"> at int </span><span class="si">{1}</span><span class="s2">, DM </span><span class="si">{2}</span><span class="s2">, &quot;</span>
+                            <span class="s2">&quot;dt </span><span class="si">{3}</span><span class="s2"> with amp </span><span class="si">{4}</span><span class="s2"> and l,m=</span><span class="si">{5}</span><span class="s2">,</span><span class="si">{6}</span><span class="s2">&quot;</span>
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">mock_segment</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">amp</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">m</span><span class="p">))</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">model</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">generate_transient</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">amp</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+                                                       <span class="o">.</span><span class="n">transpose</span><span class="p">()[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">],</span>
+                                                       <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span>
+                                       <span class="n">requirements</span><span class="o">=</span><span class="s1">&#39;W&#39;</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;IndexError while adding transient. Skipping...&quot;</span><span class="p">)</span>
+                    <span class="k">continue</span>
+
+                <span class="n">model</span> <span class="o">=</span> <span class="n">calibration</span><span class="o">.</span><span class="n">apply_telcal</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">sign</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">util</span><span class="o">.</span><span class="n">phase_shift</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="o">-</span><span class="n">l</span><span class="p">,</span> <span class="o">-</span><span class="n">m</span><span class="p">)</span>
+                <span class="n">data</span> <span class="o">+=</span> <span class="n">model</span>
+
+    <span class="k">return</span> <span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="read_vys_segment"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.read_vys_segment">[docs]</a><span class="k">def</span> <span class="nf">read_vys_segment</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">seg</span><span class="p">,</span> <span class="n">cfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">default_timeout</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Read segment seg defined by state st from vys stream.</span>
+<span class="sd">    Uses vysmaw application timefilter to receive multicast messages and pull</span>
+<span class="sd">    spectra on the CBE.</span>
+<span class="sd">    timeout is a multiple of read time in seconds to wait.</span>
+<span class="sd">    offset is extra time in seconds to keep vys reader open.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># TODO: support for time downsampling</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">vysmaw_reader</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;ImportError for vysmaw_reader. Cannot &#39;</span>
+                     <span class="s1">&#39;consume vys data.&#39;</span><span class="p">)</span>
+
+    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">Time</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">segmenttimes</span><span class="p">[</span><span class="n">seg</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;mjd&#39;</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span><span class="o">.</span><span class="n">unix</span>
+    <span class="n">t1</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">Time</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">segmenttimes</span><span class="p">[</span><span class="n">seg</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;mjd&#39;</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span><span class="o">.</span><span class="n">unix</span>
+
+<span class="c1">#    data = np.empty((st.readints, st.nbl,</span>
+<span class="c1">#                     st.metadata.nchan_orig, st.metadata.npol_orig),</span>
+<span class="c1">#                    dtype=&#39;complex64&#39;, order=&#39;C&#39;)</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Reading </span><span class="si">{0}</span><span class="s1"> s ints into shape </span><span class="si">{1}</span><span class="s1"> from </span><span class="si">{2}</span><span class="s1"> - </span><span class="si">{3}</span><span class="s1"> unix seconds&#39;</span>
+                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">inttime</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">datashape_orig</span><span class="p">,</span> <span class="n">t0</span><span class="p">,</span> <span class="n">t1</span><span class="p">))</span>
+
+    <span class="n">polmap_standard</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;A*A&#39;</span><span class="p">,</span> <span class="s1">&#39;A*B&#39;</span><span class="p">,</span> <span class="s1">&#39;B*A&#39;</span><span class="p">,</span> <span class="s1">&#39;B*B&#39;</span><span class="p">]</span>
+    <span class="n">bbmap_standard</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;AC1&#39;</span><span class="p">,</span> <span class="s1">&#39;AC2&#39;</span><span class="p">,</span> <span class="s1">&#39;AC&#39;</span><span class="p">,</span> <span class="s1">&#39;BD1&#39;</span><span class="p">,</span> <span class="s1">&#39;BD2&#39;</span><span class="p">,</span> <span class="s1">&#39;BD&#39;</span><span class="p">]</span>
+
+    <span class="c1"># TODO: vysmaw currently pulls all data, but allocates buffer based on these.</span>
+    <span class="c1"># buffer will be too small if taking subset of all data.</span>
+    <span class="n">pollist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">polmap_standard</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">pol</span><span class="p">)</span>
+                        <span class="k">for</span> <span class="n">pol</span> <span class="ow">in</span> <span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">pols_orig</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>  <span class="c1"># TODO: use st.pols when vysmaw filter can too</span>
+    <span class="n">antlist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">ant</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;ea&#39;</span><span class="p">))</span>
+                        <span class="k">for</span> <span class="n">ant</span> <span class="ow">in</span> <span class="n">st</span><span class="o">.</span><span class="n">ants</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">spwlist</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">spworder</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># list of strings [&quot;bb-spw&quot;] in increasing freq order</span>
+    <span class="n">bbsplist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([(</span><span class="nb">int</span><span class="p">(</span><span class="n">bbmap_standard</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">spw</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])),</span>
+                          <span class="nb">int</span><span class="p">(</span><span class="n">spw</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]))</span> <span class="k">for</span> <span class="n">spw</span> <span class="ow">in</span> <span class="n">spwlist</span><span class="p">],</span>
+                        <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">vysmaw_reader</span><span class="o">.</span><span class="n">Reader</span><span class="p">(</span><span class="n">t0</span><span class="p">,</span> <span class="n">t1</span><span class="p">,</span> <span class="n">antlist</span><span class="p">,</span> <span class="n">pollist</span><span class="p">,</span> <span class="n">bbsplist</span><span class="p">,</span>
+                              <span class="n">inttime_micros</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">inttime</span><span class="o">*</span><span class="mf">1000000.</span><span class="p">,</span>
+                              <span class="n">nchan</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">spw_nchan</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                              <span class="n">cfile</span><span class="o">=</span><span class="n">cfile</span><span class="p">,</span>
+                              <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
+                              <span class="n">offset</span><span class="o">=</span><span class="n">offset</span><span class="p">)</span> <span class="k">as</span> <span class="n">reader</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">reader</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">readwindow</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># TODO: move pol selection up and into vysmaw filter function</span>
+    <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">data</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span></div>
+
+
+<div class="viewcode-block" id="read_bdf_segment"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.read_bdf_segment">[docs]</a><span class="k">def</span> <span class="nf">read_bdf_segment</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Uses sdmpy to reads bdf (sdm) format data into numpy array in given</span>
+<span class="sd">    segment. Each segment has st.readints integrations.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">assert</span> <span class="n">segment</span> <span class="o">&lt;</span> <span class="n">st</span><span class="o">.</span><span class="n">nsegment</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;segment </span><span class="si">{0}</span><span class="s1"> is too big for nsegment </span><span class="si">{1}</span><span class="s1">&#39;</span>
+                                   <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">segment</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">nsegment</span><span class="p">))</span>
+
+    <span class="c1"># define integration range</span>
+    <span class="n">nskip</span> <span class="o">=</span> <span class="p">(</span><span class="mi">24</span><span class="o">*</span><span class="mi">3600</span><span class="o">*</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">segmenttimes</span><span class="p">[</span><span class="n">segment</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+                      <span class="o">-</span> <span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">starttime_mjd</span><span class="p">)</span><span class="o">/</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">inttime</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Reading scan </span><span class="si">{0}</span><span class="s1">, segment </span><span class="si">{1}</span><span class="s1">/</span><span class="si">{2}</span><span class="s1">, times </span><span class="si">{3}</span><span class="s1"> to </span><span class="si">{4}</span><span class="s1">&#39;</span>
+                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">scan</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">segmenttimes</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="n">qa</span><span class="o">.</span><span class="n">time</span><span class="p">(</span><span class="n">qa</span><span class="o">.</span><span class="n">quantity</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">segmenttimes</span><span class="p">[</span><span class="n">segment</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;d&#39;</span><span class="p">),</span>
+                                <span class="n">form</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;hms&#39;</span><span class="p">],</span> <span class="n">prec</span><span class="o">=</span><span class="mi">9</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+                        <span class="n">qa</span><span class="o">.</span><span class="n">time</span><span class="p">(</span><span class="n">qa</span><span class="o">.</span><span class="n">quantity</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">segmenttimes</span><span class="p">[</span><span class="n">segment</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;d&#39;</span><span class="p">),</span>
+                                <span class="n">form</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;hms&#39;</span><span class="p">],</span> <span class="n">prec</span><span class="o">=</span><span class="mi">9</span><span class="p">)[</span><span class="mi">0</span><span class="p">]))</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">read_bdf</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">nskip</span><span class="o">=</span><span class="n">nskip</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;complex64&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="read_bdf"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.read_bdf">[docs]</a><span class="k">def</span> <span class="nf">read_bdf</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">nskip</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Uses sdmpy to read a given range of integrations from sdm of given scan.</span>
+<span class="sd">    readints=0 will read all of bdf (skipping nskip).</span>
+<span class="sd">    Returns data in increasing frequency order.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">filename</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;sdmfile </span><span class="si">{0}</span><span class="s1"> does not exist&#39;</span>
+                                                  <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">filename</span><span class="p">))</span>
+    <span class="k">assert</span> <span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">bdfstr</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;bdfstr not defined for scan </span><span class="si">{0}</span><span class="s1">&#39;</span>
+                                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">scan</span><span class="p">))</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Reading </span><span class="si">%d</span><span class="s1"> ints starting at int </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">readints</span><span class="p">,</span> <span class="n">nskip</span><span class="p">))</span>
+    <span class="n">sdm</span> <span class="o">=</span> <span class="n">getsdm</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">bdfdir</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">bdfdir</span><span class="p">)</span>
+    <span class="n">scan</span> <span class="o">=</span> <span class="n">sdm</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">scan</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">st</span><span class="o">.</span><span class="n">readints</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">nbl_orig</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">nchan_orig</span><span class="p">,</span>
+                     <span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">npol_orig</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;complex64&#39;</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">)</span>
+
+    <span class="n">sortind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">spw_reffreq</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nskip</span><span class="p">,</span> <span class="n">nskip</span><span class="o">+</span><span class="n">st</span><span class="o">.</span><span class="n">readints</span><span class="p">):</span>
+        <span class="n">read</span> <span class="o">=</span> <span class="n">scan</span><span class="o">.</span><span class="n">bdf</span><span class="o">.</span><span class="n">get_integration</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">spwidx</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;cross&#39;</span><span class="p">)</span>
+        <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="n">nskip</span><span class="p">]</span> <span class="o">=</span> <span class="n">read</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">sortind</span><span class="p">,</span>
+                                  <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">nbl_orig</span><span class="p">,</span>
+                                                  <span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">nchan_orig</span><span class="p">,</span>
+                                                  <span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">npol_orig</span><span class="p">)</span>
+
+<span class="c1">#    data[:] = scan.bdf.get_data(trange=[nskip, nskip+st.readints]).reshape(data.shape)</span>
+
+    <span class="k">return</span> <span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="save_noise"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.save_noise">[docs]</a><span class="k">def</span> <span class="nf">save_noise</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">chunk</span><span class="o">=</span><span class="mi">200</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Calculates noise properties and save values to pickle.</span>
+<span class="sd">    chunk defines window for measurement. at least one measurement always made.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">from</span> <span class="nn">rfpipe.search</span> <span class="k">import</span> <span class="n">grid_image</span>
+
+    <span class="n">uvw</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">get_uvw_segment</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">)</span>
+    <span class="n">chunk</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">readints</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># ensure at least one measurement</span>
+    <span class="n">ranges</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">readints</span><span class="o">-</span><span class="n">chunk</span><span class="p">,</span> <span class="n">chunk</span><span class="p">)),</span>
+                      <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">chunk</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">readints</span><span class="p">,</span> <span class="n">chunk</span><span class="p">))))</span>
+
+    <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">r0</span><span class="p">,</span> <span class="n">r1</span><span class="p">)</span> <span class="ow">in</span> <span class="n">ranges</span><span class="p">:</span>
+        <span class="n">imid</span> <span class="o">=</span> <span class="p">(</span><span class="n">r0</span><span class="o">+</span><span class="n">r1</span><span class="p">)</span><span class="o">//</span><span class="mi">2</span>
+        <span class="n">noiseperbl</span> <span class="o">=</span> <span class="n">estimate_noiseperbl</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">r0</span><span class="p">:</span><span class="n">r1</span><span class="p">])</span>
+        <span class="n">imstd</span> <span class="o">=</span> <span class="n">grid_image</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">npixx</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">npixy</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">uvres</span><span class="p">,</span>
+                           <span class="s1">&#39;fftw&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">integrations</span><span class="o">=</span><span class="n">imid</span><span class="p">)</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+        <span class="n">zerofrac</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">r0</span><span class="p">:</span><span class="n">r1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="n">j</span><span class="p">)[</span><span class="mi">0</span><span class="p">]))</span><span class="o">/</span><span class="n">data</span><span class="p">[</span><span class="n">r0</span><span class="p">:</span><span class="n">r1</span><span class="p">]</span><span class="o">.</span><span class="n">size</span>
+        <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">segment</span><span class="p">,</span> <span class="n">imid</span><span class="p">,</span> <span class="n">noiseperbl</span><span class="p">,</span> <span class="n">zerofrac</span><span class="p">,</span> <span class="n">imstd</span><span class="p">))</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">noisefile</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">noisefile</span>
+        <span class="k">with</span> <span class="n">fileLock</span><span class="o">.</span><span class="n">FileLock</span><span class="p">(</span><span class="n">noisefile</span><span class="o">+</span><span class="s1">&#39;.lock&#39;</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">noisefile</span><span class="p">,</span> <span class="s1">&#39;ab+&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">pkl</span><span class="p">:</span>
+                <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">pkl</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">fileLock</span><span class="o">.</span><span class="n">FileLock</span><span class="o">.</span><span class="n">FileLockException</span><span class="p">:</span>
+        <span class="n">noisefile</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">_seg</span><span class="si">{1}</span><span class="s1">.pkl&#39;</span>
+                     <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">noisefile</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;.pkl&#39;</span><span class="p">),</span> <span class="n">segment</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;Noise file writing timeout. &#39;</span>
+                    <span class="s1">&#39;Spilling to new file </span><span class="si">{0}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">noisefile</span><span class="p">))</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">noisefile</span><span class="p">,</span> <span class="s1">&#39;ab+&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">pkl</span><span class="p">:</span>
+            <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">pkl</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Wrote </span><span class="si">{0}</span><span class="s1"> noise measurement</span><span class="si">{1}</span><span class="s1"> from segment </span><span class="si">{2}</span><span class="s1"> to </span><span class="si">{3}</span><span class="s1">&#39;</span>
+                    <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">),</span> <span class="s1">&#39;s&#39;</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">segment</span><span class="p">,</span> <span class="n">noisefile</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="estimate_noiseperbl"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.estimate_noiseperbl">[docs]</a><span class="k">def</span> <span class="nf">estimate_noiseperbl</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes large data array and sigma clips it to find noise per bl for</span>
+<span class="sd">    input to detect_bispectra.</span>
+<span class="sd">    Takes mean across pols and channels for now, as in detect_bispectra.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># define noise per baseline for data seen by detect_bispectra or image</span>
+    <span class="n">datamean</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">imag</span>  <span class="c1"># use imaginary part to estimate noise without calibrated, on-axis signal</span>
+    <span class="n">noiseperbl</span> <span class="o">=</span> <span class="n">datamean</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>  <span class="c1"># measure single noise for input to detect_bispectra</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Measured noise per baseline of </span><span class="si">{0:.3f}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">noiseperbl</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">noiseperbl</span></div>
+
+
+<div class="viewcode-block" id="flag_data"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.flag_data">[docs]</a><span class="k">def</span> <span class="nf">flag_data</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Identifies bad data and flags it to 0.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<span class="c1">#    data = np.ma.masked_equal(data, 0j)  # TODO remove this and ignore zeros manually</span>
+    <span class="n">flags</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">flagparams</span> <span class="ow">in</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">flaglist</span><span class="p">:</span>
+        <span class="n">mode</span><span class="p">,</span> <span class="n">arg0</span><span class="p">,</span> <span class="n">arg1</span> <span class="o">=</span> <span class="n">flagparams</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;blstd&#39;</span><span class="p">:</span>
+            <span class="n">flags</span> <span class="o">*=</span> <span class="n">flag_blstd</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">arg0</span><span class="p">,</span> <span class="n">arg1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;badchtslide&#39;</span><span class="p">:</span>
+            <span class="n">flags</span> <span class="o">*=</span> <span class="n">flag_badchtslide</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">arg0</span><span class="p">,</span> <span class="n">arg1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Flaging mode </span><span class="si">{0}</span><span class="s2"> not available.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">mode</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">data</span><span class="o">*</span><span class="n">flags</span></div>
+
+
+<div class="viewcode-block" id="flag_blstd"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.flag_blstd">[docs]</a><span class="k">def</span> <span class="nf">flag_blstd</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">convergence</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Use data (4d) to calculate (int, chan, pol) to be flagged.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">sh</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">flags</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">sh</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">sh</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">sh</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+
+    <span class="n">blstd</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># iterate to good median and std values</span>
+    <span class="n">blstdmednew</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">blstd</span><span class="p">)</span>
+    <span class="n">blstdstdnew</span> <span class="o">=</span> <span class="n">blstd</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+    <span class="n">blstdstd</span> <span class="o">=</span> <span class="n">blstdstdnew</span><span class="o">*</span><span class="mi">2</span>  <span class="c1"># TODO: is this initialization used?</span>
+    <span class="k">while</span> <span class="p">(</span><span class="n">blstdstd</span><span class="o">-</span><span class="n">blstdstdnew</span><span class="p">)</span><span class="o">/</span><span class="n">blstdstd</span> <span class="o">&gt;</span> <span class="n">convergence</span><span class="p">:</span>
+        <span class="n">blstdstd</span> <span class="o">=</span> <span class="n">blstdstdnew</span>
+        <span class="n">blstdmed</span> <span class="o">=</span> <span class="n">blstdmednew</span>
+        <span class="n">blstd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_where</span><span class="p">(</span><span class="n">blstd</span> <span class="o">&gt;</span> <span class="n">blstdmed</span> <span class="o">+</span> <span class="n">sigma</span><span class="o">*</span><span class="n">blstdstd</span><span class="p">,</span> <span class="n">blstd</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">blstdmednew</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">blstd</span><span class="p">)</span>
+        <span class="n">blstdstdnew</span> <span class="o">=</span> <span class="n">blstd</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+
+    <span class="c1"># flag blstd too high</span>
+    <span class="n">badt</span><span class="p">,</span> <span class="n">badch</span><span class="p">,</span> <span class="n">badpol</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">blstd</span> <span class="o">&gt;</span> <span class="n">blstdmednew</span> <span class="o">+</span> <span class="n">sigma</span><span class="o">*</span><span class="n">blstdstdnew</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;flag by blstd: </span><span class="si">{0}</span><span class="s2"> of </span><span class="si">{1}</span><span class="s2"> total channel/time/pol cells flagged.&quot;</span>
+                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">badt</span><span class="p">),</span> <span class="n">sh</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">sh</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">sh</span><span class="p">[</span><span class="mi">3</span><span class="p">]))</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">badt</span><span class="p">)):</span>
+        <span class="n">flags</span><span class="p">[</span><span class="n">badt</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">badch</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">badpol</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">return</span> <span class="n">flags</span></div>
+
+
+<div class="viewcode-block" id="flag_badchtslide"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.flag_badchtslide">[docs]</a><span class="k">def</span> <span class="nf">flag_badchtslide</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">win</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Use data (4d) to calculate (int, chan, pol) to be flagged</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">sh</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">flags</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">sh</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">sh</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">sh</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+
+    <span class="n">meanamp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">spec</span> <span class="o">=</span> <span class="n">meanamp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">lc</span> <span class="o">=</span> <span class="n">meanamp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># calc badch as deviation from median of window</span>
+    <span class="n">specmed</span> <span class="o">=</span> <span class="n">slidedev</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">win</span><span class="p">)</span>
+    <span class="n">badch</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">specmed</span> <span class="o">&gt;</span> <span class="n">sigma</span><span class="o">*</span><span class="n">specmed</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+
+    <span class="c1"># calc badt as deviation from median of window</span>
+    <span class="n">lcmed</span> <span class="o">=</span> <span class="n">slidedev</span><span class="p">(</span><span class="n">lc</span><span class="p">,</span> <span class="n">win</span><span class="p">)</span>
+    <span class="n">badt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">lcmed</span> <span class="o">&gt;</span> <span class="n">sigma</span><span class="o">*</span><span class="n">lcmed</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+
+    <span class="n">badtcnt</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">badt</span><span class="p">))</span>
+    <span class="n">badchcnt</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">badch</span><span class="p">))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;flag by badchtslide: </span><span class="si">{0}</span><span class="s2">/</span><span class="si">{1}</span><span class="s2"> pol-times and </span><span class="si">{2}</span><span class="s2">/</span><span class="si">{3}</span><span class="s2"> pol-chans flagged.&quot;</span>
+                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">badtcnt</span><span class="p">,</span> <span class="n">sh</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">sh</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">badchcnt</span><span class="p">,</span> <span class="n">sh</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">sh</span><span class="p">[</span><span class="mi">3</span><span class="p">]))</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">badch</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+        <span class="n">flags</span><span class="p">[:,</span> <span class="n">badch</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">],</span> <span class="n">badch</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">badt</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+        <span class="n">flags</span><span class="p">[</span><span class="n">badt</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">],</span> <span class="p">:,</span> <span class="n">badt</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">return</span> <span class="n">flags</span></div>
+
+
+<div class="viewcode-block" id="slidedev"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.slidedev">[docs]</a><span class="nd">@jit</span>
+<span class="k">def</span> <span class="nf">slidedev</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">win</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Given a (len x 2) array, calculate the deviation from the median per pol.</span>
+<span class="sd">    Calculates median over a window, win.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">med</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">),</span> <span class="mi">2</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">)):</span>
+        <span class="n">inds</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="o">-</span><span class="n">win</span><span class="o">//</span><span class="mi">2</span><span class="p">),</span> <span class="n">i</span><span class="p">))</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="n">win</span><span class="o">//</span><span class="mi">2</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">arr</span><span class="p">))))</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">inds</span><span class="p">:</span>
+            <span class="n">med</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">inds</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">arr</span><span class="o">-</span><span class="n">med</span></div>
+
+
+<div class="viewcode-block" id="flag_data_rtpipe"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.flag_data_rtpipe">[docs]</a><span class="k">def</span> <span class="nf">flag_data_rtpipe</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Flagging data in single process</span>
+<span class="sd">    Deprecated.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">rtlib_cython</span> <span class="k">as</span> <span class="nn">rtlib</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;rtpipe not installed. Cannot import rtlib for flagging.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># **hack!**</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;dataformat&#39;</span><span class="p">:</span> <span class="s1">&#39;sdm&#39;</span><span class="p">,</span> <span class="s1">&#39;ants&#39;</span><span class="p">:</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">ant</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;ea&#39;</span><span class="p">))</span> <span class="k">for</span> <span class="n">ant</span> <span class="ow">in</span> <span class="n">st</span><span class="o">.</span><span class="n">ants</span><span class="p">],</span> <span class="s1">&#39;excludeants&#39;</span><span class="p">:</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">excludeants</span><span class="p">,</span> <span class="s1">&#39;nants&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">ants</span><span class="p">)}</span>
+
+    <span class="k">for</span> <span class="n">flag</span> <span class="ow">in</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">flaglist</span><span class="p">:</span>
+        <span class="n">mode</span><span class="p">,</span> <span class="n">sig</span><span class="p">,</span> <span class="n">conv</span> <span class="o">=</span> <span class="n">flag</span>
+        <span class="k">for</span> <span class="n">spw</span> <span class="ow">in</span> <span class="n">st</span><span class="o">.</span><span class="n">spw</span><span class="p">:</span>
+            <span class="n">chans</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">spw_nchan</span><span class="p">[</span><span class="n">spw</span><span class="p">]</span><span class="o">*</span><span class="n">spw</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">spw_nchan</span><span class="p">[</span><span class="n">spw</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="n">spw</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">pol</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">npol</span><span class="p">):</span>
+                <span class="n">status</span> <span class="o">=</span> <span class="n">rtlib</span><span class="o">.</span><span class="n">dataflag</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">chans</span><span class="p">,</span> <span class="n">pol</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">sig</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">conv</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">status</span><span class="p">)</span>
+
+    <span class="c1"># hack to get rid of bad spw/pol combos whacked by rfi</span>
+    <span class="k">if</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">badspwpol</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Comparing overall power between spw/pol. Removing those with </span><span class="si">{0}</span><span class="s1"> times typical value&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">badspwpol</span><span class="p">))</span>
+        <span class="n">spwpol</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">spw</span> <span class="ow">in</span> <span class="n">st</span><span class="o">.</span><span class="n">spw</span><span class="p">:</span>
+            <span class="n">chans</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">spw_nchan</span><span class="p">[</span><span class="n">spw</span><span class="p">]</span><span class="o">*</span><span class="n">spw</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">spw_nchan</span><span class="p">[</span><span class="n">spw</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="n">spw</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">pol</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">npol</span><span class="p">):</span>
+                <span class="n">spwpol</span><span class="p">[(</span><span class="n">spw</span><span class="p">,</span> <span class="n">pol</span><span class="p">)]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">chans</span><span class="p">,</span> <span class="n">pol</span><span class="p">])</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+
+        <span class="n">meanstd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">spwpol</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">spw</span><span class="p">,</span><span class="n">pol</span><span class="p">)</span> <span class="ow">in</span> <span class="n">spwpol</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">spwpol</span><span class="p">[(</span><span class="n">spw</span><span class="p">,</span> <span class="n">pol</span><span class="p">)]</span> <span class="o">&gt;</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">badspwpol</span><span class="o">*</span><span class="n">meanstd</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Flagging all of (spw </span><span class="si">%d</span><span class="s1">, pol </span><span class="si">%d</span><span class="s1">) for excess noise.&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">spw</span><span class="p">,</span> <span class="n">pol</span><span class="p">))</span>
+                <span class="n">chans</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">spw_nchan</span><span class="p">[</span><span class="n">spw</span><span class="p">]</span><span class="o">*</span><span class="n">spw</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">spw_nchan</span><span class="p">[</span><span class="n">spw</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="n">spw</span><span class="p">))</span>
+                <span class="n">data</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">chans</span><span class="p">,</span> <span class="n">pol</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="n">j</span>
+
+    <span class="k">return</span> <span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="simulate_segment"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.simulate_segment">[docs]</a><span class="k">def</span> <span class="nf">simulate_segment</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Simulates visibilities for a segment.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Simulating data with shape </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">datashape_orig</span><span class="p">))</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">datashape_orig</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;complex64&#39;</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">)</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">real</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">loc</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span>
+                                 <span class="n">size</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">datashape_orig</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">imag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">loc</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span>
+                                 <span class="n">size</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">datashape_orig</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="sdm_sources"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.sdm_sources">[docs]</a><span class="k">def</span> <span class="nf">sdm_sources</span><span class="p">(</span><span class="n">sdmname</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Use sdmpy to get all sources and ra,dec per scan as dict &quot;&quot;&quot;</span>
+
+    <span class="n">sdm</span> <span class="o">=</span> <span class="n">getsdm</span><span class="p">(</span><span class="n">sdmname</span><span class="p">)</span>
+    <span class="n">sourcedict</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">sdm</span><span class="p">[</span><span class="s1">&#39;Field&#39;</span><span class="p">]:</span>
+        <span class="n">src</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">fieldName</span><span class="p">)</span>
+        <span class="n">sourcenum</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">sourceId</span><span class="p">)</span>
+        <span class="n">direction</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">referenceDir</span><span class="p">)</span>
+        <span class="c1"># skip first two values in string</span>
+        <span class="p">(</span><span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">)</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">direction</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)[</span><span class="mi">3</span><span class="p">:]]</span>
+
+        <span class="n">sourcedict</span><span class="p">[</span><span class="n">sourcenum</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">sourcedict</span><span class="p">[</span><span class="n">sourcenum</span><span class="p">][</span><span class="s1">&#39;source&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">src</span>
+        <span class="n">sourcedict</span><span class="p">[</span><span class="n">sourcenum</span><span class="p">][</span><span class="s1">&#39;ra&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ra</span>
+        <span class="n">sourcedict</span><span class="p">[</span><span class="n">sourcenum</span><span class="p">][</span><span class="s1">&#39;dec&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dec</span>
+
+    <span class="k">return</span> <span class="n">sourcedict</span></div>
+
+
+<div class="viewcode-block" id="getsdm"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.getsdm">[docs]</a><span class="k">def</span> <span class="nf">getsdm</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Wrap sdmpy.SDM to get around schema change error &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">sdm</span> <span class="o">=</span> <span class="n">sdmpy</span><span class="o">.</span><span class="n">SDM</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;use_xsd&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">sdm</span> <span class="o">=</span> <span class="n">sdmpy</span><span class="o">.</span><span class="n">SDM</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">sdm</span></div>
+
+
+<div class="viewcode-block" id="generate_transient"><a class="viewcode-back" href="../../Simulating.html#rfpipe.source.generate_transient">[docs]</a><span class="k">def</span> <span class="nf">generate_transient</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">amp</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Create a dynamic spectrum for given parameters</span>
+<span class="sd">    amp is in system units (post calibration)</span>
+<span class="sd">    i0 is a float for integration relative to start of segment.</span>
+<span class="sd">    dm/dt are in units of pc/cm3 and seconds, respectively</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">model</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">nchan_orig</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">readints</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;complex64&#39;</span><span class="p">)</span>
+    <span class="n">chans</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">nchan</span><span class="p">)</span>
+
+    <span class="n">i</span> <span class="o">=</span> <span class="n">i0</span> <span class="o">+</span> <span class="n">util</span><span class="o">.</span><span class="n">calc_delay2</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">freq</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">freq</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">dm</span><span class="p">)</span><span class="o">/</span><span class="n">st</span><span class="o">.</span><span class="n">inttime</span>
+<span class="c1">#    print(i)</span>
+    <span class="n">i_f</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    <span class="n">imax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="n">dt</span><span class="o">/</span><span class="n">st</span><span class="o">.</span><span class="n">inttime</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    <span class="n">imin</span> <span class="o">=</span> <span class="n">i_f</span>
+    <span class="n">i_r</span> <span class="o">=</span> <span class="n">imax</span> <span class="o">-</span> <span class="n">imin</span>
+<span class="c1">#    print(i_r)</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">i_r</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">ir1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">i_r</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
+<span class="c1">#        print(ir1)</span>
+        <span class="n">model</span><span class="p">[</span><span class="n">chans</span><span class="p">[</span><span class="n">ir1</span><span class="p">],</span> <span class="n">i_f</span><span class="p">[</span><span class="n">ir1</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">amp</span>
+
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">i_r</span> <span class="o">==</span> <span class="mi">2</span><span class="p">):</span>
+        <span class="n">ir2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">i_r</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">i_c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">f1</span> <span class="o">=</span> <span class="p">(</span><span class="n">dt</span><span class="o">/</span><span class="n">st</span><span class="o">.</span><span class="n">inttime</span> <span class="o">-</span> <span class="p">(</span><span class="n">i_c</span> <span class="o">-</span> <span class="n">i</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="n">dt</span><span class="o">/</span><span class="n">st</span><span class="o">.</span><span class="n">inttime</span><span class="p">)</span>
+        <span class="n">f0</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">f1</span>
+<span class="c1">#        print(np.vstack((ir2, f0[ir2], f1[ir2])).transpose())</span>
+        <span class="n">model</span><span class="p">[</span><span class="n">chans</span><span class="p">[</span><span class="n">ir2</span><span class="p">],</span> <span class="n">i_f</span><span class="p">[</span><span class="n">ir2</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">f0</span><span class="p">[</span><span class="n">ir2</span><span class="p">]</span><span class="o">*</span><span class="n">amp</span>
+        <span class="n">model</span><span class="p">[</span><span class="n">chans</span><span class="p">[</span><span class="n">ir2</span><span class="p">],</span> <span class="n">i_f</span><span class="p">[</span><span class="n">ir2</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">f1</span><span class="p">[</span><span class="n">ir2</span><span class="p">]</span><span class="o">*</span><span class="n">amp</span>
+
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">i_r</span> <span class="o">==</span> <span class="mi">3</span><span class="p">):</span>
+        <span class="n">ir3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">i_r</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="n">f2</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="n">dt</span><span class="o">/</span><span class="n">st</span><span class="o">.</span><span class="n">inttime</span> <span class="o">-</span> <span class="p">(</span><span class="n">imax</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="n">dt</span><span class="o">/</span><span class="n">st</span><span class="o">.</span><span class="n">inttime</span><span class="p">)</span>
+        <span class="n">f0</span> <span class="o">=</span> <span class="p">((</span><span class="n">i_f</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">i</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">dt</span><span class="o">/</span><span class="n">st</span><span class="o">.</span><span class="n">inttime</span><span class="p">)</span>
+        <span class="n">f1</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">f2</span> <span class="o">-</span> <span class="n">f0</span>
+<span class="c1">#        print(np.vstack((ir3, f0[ir3], f1[ir3], f2[ir3])).transpose())</span>
+        <span class="n">model</span><span class="p">[</span><span class="n">chans</span><span class="p">[</span><span class="n">ir3</span><span class="p">],</span> <span class="n">i_f</span><span class="p">[</span><span class="n">ir3</span><span class="p">]]</span> <span class="o">+=</span> <span class="n">f0</span><span class="p">[</span><span class="n">ir3</span><span class="p">]</span><span class="o">*</span><span class="n">amp</span>
+        <span class="n">model</span><span class="p">[</span><span class="n">chans</span><span class="p">[</span><span class="n">ir3</span><span class="p">],</span> <span class="n">i_f</span><span class="p">[</span><span class="n">ir3</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">f1</span><span class="p">[</span><span class="n">ir3</span><span class="p">]</span><span class="o">*</span><span class="n">amp</span>
+        <span class="n">model</span><span class="p">[</span><span class="n">chans</span><span class="p">[</span><span class="n">ir3</span><span class="p">],</span> <span class="n">i_f</span><span class="p">[</span><span class="n">ir3</span><span class="p">]</span><span class="o">+</span><span class="mi">2</span><span class="p">]</span> <span class="o">+=</span> <span class="n">f2</span><span class="p">[</span><span class="n">ir3</span><span class="p">]</span><span class="o">*</span><span class="n">amp</span>
+
+    <span class="k">return</span> <span class="n">model</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../index.html">
+              <img class="logo" src="../../_static/favicon.ico.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">rfpipe 0.9.6 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Casey Law.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.
+    </div>
+  </body>
+</html>

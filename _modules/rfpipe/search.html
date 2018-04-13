@@ -1,121 +1,49 @@
-<!DOCTYPE html>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>rfpipe.search &#8212; rfpipe 0.9.5 documentation</title>
-    <link rel="stylesheet" href="../../_static/bootstrap-sphinx.css" type="text/css" />
+    <title>rfpipe.search &#8212; rfpipe 0.9.6 documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.9.6',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
-    <script type="text/javascript" src="../../_static/js/jquery-1.11.0.min.js"></script>
-    <script type="text/javascript" src="../../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../../_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="../../_static/bootstrap-sphinx.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
-    <link rel="search" title="Search" href="../../search.html" />
-<meta charset='utf-8'>
-<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
-<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
-<meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">rfpipe 0.9.6 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
 
-  </head><body>
-
-  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
-    <div class="container">
-      <div class="navbar-header">
-        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
-        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-        </button>
-        <a class="navbar-brand" href="../../index.html"><span><img src="../../_static/favicon.ico.png"></span>
-          rfpipe</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.9.5</b></span>
-      </div>
-
-        <div class="collapse navbar-collapse nav-collapse">
-          <ul class="nav navbar-nav">
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
             
-            
-              <li class="dropdown globaltoc-container">
-  <a role="button"
-     id="dLabelGlobalToc"
-     data-toggle="dropdown"
-     data-target="#"
-     href="../../index.html">Site <b class="caret"></b></a>
-  <ul class="dropdown-menu globaltoc"
-      role="menu"
-      aria-labelledby="dLabelGlobalToc"><ul>
-<li class="toctree-l1"><a class="reference internal" href="../../Overview.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Overview.html#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Overview.html#quick-start">Quick Start</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../State.html">Search State, Preferences, and Metadata</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Pipeline.html">Using a Search Pipeline</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Searching.html">Searching for Transients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Candidates.html">Candidates</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Reproduce.html">Reproducing Transient Detections</a></li>
-</ul>
-</ul>
-</li>
-              
-                <li class="dropdown">
-  <a role="button"
-     id="dLabelLocalToc"
-     data-toggle="dropdown"
-     data-target="#"
-     href="#">Page <b class="caret"></b></a>
-  <ul class="dropdown-menu localtoc"
-      role="menu"
-      aria-labelledby="dLabelLocalToc"></ul>
-</li>
-              
-            
-            
-              
-                
-              
-            
-            
-            
-            
-              <li class="hidden-sm"></li>
-            
-          </ul>
-
-          
-            
-<form class="navbar-form navbar-right" action="../../search.html" method="get">
- <div class="form-group">
-  <input type="text" name="q" class="form-control" placeholder="Search" />
- </div>
-  <input type="hidden" name="check_keywords" value="yes" />
-  <input type="hidden" name="area" value="default" />
-</form>
-          
-        </div>
-    </div>
-  </div>
-
-<div class="container">
-  <div class="row">
-      <div class="col-md-3">
-        <div id="sidebar" class="bs-sidenav" role="complementary">
-<form action="../../search.html" method="get">
- <div class="form-group">
-  <input type="text" name="q" class="form-control" placeholder="Search" />
- </div>
-  <input type="hidden" name="check_keywords" value="yes" />
-  <input type="hidden" name="area" value="default" />
-</form>
-        </div>
-      </div>
-    <div class="col-md-9 content">
-      
   <h1>Source code for rfpipe.search</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">unicode_literals</span>
 <span class="kn">from</span> <span class="nn">builtins</span> <span class="k">import</span> <span class="nb">bytes</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="nb">object</span><span class="p">,</span> <span class="nb">range</span><span class="p">,</span> <span class="nb">map</span><span class="p">,</span> <span class="nb">input</span><span class="c1">#, str</span>
@@ -126,9 +54,15 @@
 <span class="kn">from</span> <span class="nn">numba</span> <span class="k">import</span> <span class="n">jit</span><span class="p">,</span> <span class="n">guvectorize</span><span class="p">,</span> <span class="n">int64</span>
 <span class="kn">import</span> <span class="nn">pyfftw</span>
 <span class="kn">from</span> <span class="nn">rfpipe</span> <span class="k">import</span> <span class="n">util</span><span class="p">,</span> <span class="n">candidates</span><span class="p">,</span> <span class="n">source</span>
+<span class="c1">#from time import sleep</span>
 
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">rfgpu</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="k">pass</span>
 
 
 <div class="viewcode-block" id="dedisperse"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.dedisperse">[docs]</a><span class="k">def</span> <span class="nf">dedisperse</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">delay</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
@@ -152,8 +86,8 @@
         <span class="k">return</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">-</span><span class="n">delay</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">newsh</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-        <span class="n">_dedisperse_jit</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">requirements</span><span class="o">=</span><span class="s1">&#39;W&#39;</span><span class="p">),</span> <span class="n">delay</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span></div>
-        <span class="k">return</span> <span class="n">result</span>
+        <span class="n">_dedisperse_jit</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">requirements</span><span class="o">=</span><span class="s1">&#39;W&#39;</span><span class="p">),</span> <span class="n">delay</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
 
 
 <span class="nd">@jit</span><span class="p">(</span><span class="n">nogil</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -206,8 +140,8 @@
         <span class="k">return</span> <span class="n">data</span><span class="p">[:</span><span class="n">len0</span><span class="o">//</span><span class="n">dt</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">newsh</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-        <span class="n">_resample_jit</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">requirements</span><span class="o">=</span><span class="s1">&#39;W&#39;</span><span class="p">),</span> <span class="n">dt</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span></div>
-        <span class="k">return</span> <span class="n">result</span>
+        <span class="n">_resample_jit</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">requirements</span><span class="o">=</span><span class="s1">&#39;W&#39;</span><span class="p">),</span> <span class="n">dt</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
 
 
 <span class="nd">@jit</span><span class="p">(</span><span class="n">nogil</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -264,8 +198,8 @@
         <span class="k">return</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">:(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">-</span><span class="n">delay</span><span class="o">.</span><span class="n">max</span><span class="p">())</span><span class="o">//</span><span class="n">dt</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">newsh</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-        <span class="n">_dedisperseresample_jit</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">delay</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span></div>
-        <span class="k">return</span> <span class="n">result</span>
+        <span class="n">_dedisperseresample_jit</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">delay</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
 
 
 <span class="nd">@jit</span><span class="p">(</span><span class="n">nogil</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -338,8 +272,8 @@
                     <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">fftmode</span><span class="p">))</span>
 
     <span class="n">candidates</span><span class="o">.</span><span class="n">save_cands</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">candcollection</span><span class="p">)</span>
-</div>
-    <span class="k">return</span> <span class="n">candcollection</span>
+
+    <span class="k">return</span> <span class="n">candcollection</span></div>
 
 
 <div class="viewcode-block" id="dedisperse_image_cuda"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.dedisperse_image_cuda">[docs]</a><span class="k">def</span> <span class="nf">dedisperse_image_cuda</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">devicenum</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -355,18 +289,10 @@
                 <span class="k">for</span> <span class="n">dtind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">dtarr</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)]),</span> <span class="p">(</span><span class="s2">&quot;dtarr must increase &quot;</span>
                                                         <span class="s2">&quot;by factors of 2&quot;</span><span class="p">)</span>
 
-    <span class="n">candcollection</span> <span class="o">=</span> <span class="n">candidates</span><span class="o">.</span><span class="n">CandCollection</span><span class="p">(</span><span class="n">prefs</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="p">,</span>
-                                               <span class="n">metadata</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span>
-
-    <span class="k">try</span><span class="p">:</span>
-        <span class="kn">import</span> <span class="nn">rfgpu</span>
-    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;ImportError for rfgpu. Exiting.&#39;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">candcollection</span>
-
     <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Data is all zeros. Skipping search.&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">candcollection</span>
+        <span class="k">return</span> <span class="n">candidates</span><span class="o">.</span><span class="n">CandCollection</span><span class="p">(</span><span class="n">prefs</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="p">,</span>
+                                         <span class="n">metadata</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">devicenum</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># assume first gpu, but try to infer from worker name</span>
@@ -386,6 +312,9 @@
         <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;distributed not available. Using default GPU devicenum </span><span class="si">{0}</span><span class="s2">&quot;</span>
                         <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">devicenum</span><span class="p">))</span>
+
+    <span class="n">candcollection</span> <span class="o">=</span> <span class="n">candidates</span><span class="o">.</span><span class="n">CandCollection</span><span class="p">(</span><span class="n">prefs</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="p">,</span>
+                                               <span class="n">metadata</span><span class="o">=</span><span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span>
 
     <span class="n">rfgpu</span><span class="o">.</span><span class="n">cudaSetDevice</span><span class="p">(</span><span class="n">devicenum</span><span class="p">)</span>
 
@@ -456,13 +385,13 @@
 
                 <span class="c1"># calc snr</span>
                 <span class="n">stats</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">stats</span><span class="p">(</span><span class="n">img_grid</span><span class="p">)</span>
-                <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">stats</span><span class="p">[</span><span class="s1">&#39;rms&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="mf">0.</span><span class="p">:</span>
                     <span class="n">peak_snr</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="s1">&#39;max&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;rms&#39;</span><span class="p">]</span>
-                <span class="k">except</span> <span class="ne">ZeroDivisionError</span><span class="p">:</span>
+                <span class="k">else</span><span class="p">:</span>
                     <span class="n">peak_snr</span> <span class="o">=</span> <span class="mf">0.</span>
 
                 <span class="c1"># threshold image on GPU and optionally save it</span>
-                <span class="k">if</span> <span class="n">peak_snr</span> <span class="o">&gt;</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">sigma_image1</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">peak_snr</span> <span class="o">&gt;</span> <span class="n">st</span><span class="o">.</span><span class="n">sigma_image1</span><span class="p">:</span>
                     <span class="n">img_grid</span><span class="o">.</span><span class="n">d2h</span><span class="p">()</span>
                     <span class="n">img_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftshift</span><span class="p">(</span><span class="n">img_grid</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>  <span class="c1"># shift zero pixel in middle</span>
                     <span class="n">l</span><span class="p">,</span> <span class="n">m</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">pixtolm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">img_data</span> <span class="o">==</span> <span class="n">img_data</span><span class="o">.</span><span class="n">max</span><span class="p">()))</span>
@@ -498,10 +427,7 @@
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> candidates returned for seg </span><span class="si">{1}</span><span class="s2">&quot;</span>
                 <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">candcollection</span><span class="p">),</span> <span class="n">segment</span><span class="p">))</span>
 
-    <span class="c1"># Python may not clean these up properly</span>
-    <span class="k">del</span> <span class="n">vis_raw</span><span class="p">,</span> <span class="n">vis_grid</span><span class="p">,</span> <span class="n">img_grid</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">image</span>
-</div>
-    <span class="k">return</span> <span class="n">candcollection</span>
+    <span class="k">return</span> <span class="n">candcollection</span></div>
 
 
 <div class="viewcode-block" id="dedisperse_image_fftw"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.dedisperse_image_fftw">[docs]</a><span class="k">def</span> <span class="nf">dedisperse_image_fftw</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">wisdom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">integrations</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -524,8 +450,8 @@
 
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> candidates returned for seg </span><span class="si">{1}</span><span class="s2">&quot;</span>
                 <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">candcollection</span><span class="p">),</span> <span class="n">segment</span><span class="p">))</span>
-</div>
-    <span class="k">return</span> <span class="n">candcollection</span>
+
+    <span class="k">return</span> <span class="n">candcollection</span></div>
 
 
 <div class="viewcode-block" id="search_thresh_fftw"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.search_thresh_fftw">[docs]</a><span class="k">def</span> <span class="nf">search_thresh_fftw</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">,</span> <span class="n">integrations</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -562,6 +488,8 @@
     <span class="n">minint</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">integrations</span><span class="p">)</span>
     <span class="n">maxint</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">integrations</span><span class="p">)</span>
 
+    <span class="c1"># TODO: add check that manually set integrations are safe for given dt</span>
+
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Imaging </span><span class="si">{0}</span><span class="s1"> ints (</span><span class="si">{1}</span><span class="s1">-</span><span class="si">{2}</span><span class="s1">) in seg </span><span class="si">{3}</span><span class="s1"> at DM/dt </span><span class="si">{4:.1f}</span><span class="s1">/</span><span class="si">{5}</span><span class="s1"> with &#39;</span>
                 <span class="s1">&#39;image </span><span class="si">{6}</span><span class="s1">x</span><span class="si">{7}</span><span class="s1"> (uvres </span><span class="si">{8}</span><span class="s1">) with fftw&#39;</span>
                 <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">integrations</span><span class="p">),</span> <span class="n">minint</span><span class="p">,</span> <span class="n">maxint</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span>
@@ -576,13 +504,13 @@
                             <span class="n">integrations</span><span class="o">=</span><span class="n">integrations</span><span class="p">)</span>
 
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Thresholding at </span><span class="si">{0}</span><span class="s1"> sigma.&#39;</span>
-                     <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">sigma_image1</span><span class="p">))</span>
+                     <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">sigma_image1</span><span class="p">))</span>
 
         <span class="c1"># TODO: the following is really slow</span>
         <span class="n">canddatalist</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">)):</span>
             <span class="n">peak_snr</span> <span class="o">=</span> <span class="n">images</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">/</span><span class="n">util</span><span class="o">.</span><span class="n">madtostd</span><span class="p">(</span><span class="n">images</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-            <span class="k">if</span> <span class="n">peak_snr</span> <span class="o">&gt;</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">sigma_image1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">peak_snr</span> <span class="o">&gt;</span> <span class="n">st</span><span class="o">.</span><span class="n">sigma_image1</span><span class="p">:</span>
                 <span class="n">candloc</span> <span class="o">=</span> <span class="p">(</span><span class="n">segment</span><span class="p">,</span> <span class="n">integrations</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">,</span> <span class="n">beamnum</span><span class="p">)</span>
                 <span class="n">candim</span> <span class="o">=</span> <span class="n">images</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
                 <span class="n">l</span><span class="p">,</span> <span class="n">m</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">pixtolm</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">candim</span> <span class="o">==</span> <span class="n">candim</span><span class="o">.</span><span class="n">max</span><span class="p">()))</span>
@@ -613,8 +541,8 @@
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> candidates returned for (seg, dmind, dtind) = &quot;</span>
                 <span class="s2">&quot;(</span><span class="si">{1}</span><span class="s2">, </span><span class="si">{2}</span><span class="s2">, </span><span class="si">{3}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">candcollection</span><span class="p">),</span> <span class="n">segment</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span>
                                          <span class="n">dtind</span><span class="p">))</span>
-</div>
-    <span class="k">return</span> <span class="n">candcollection</span>
+
+    <span class="k">return</span> <span class="n">candcollection</span></div>
 
 
 <div class="viewcode-block" id="grid_image"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.grid_image">[docs]</a><span class="k">def</span> <span class="nf">grid_image</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">,</span> <span class="n">uvres</span><span class="p">,</span> <span class="n">fftmode</span><span class="p">,</span> <span class="n">nthread</span><span class="p">,</span> <span class="n">wisdom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -640,16 +568,16 @@
         <span class="n">images</span> <span class="o">=</span> <span class="n">image_cuda</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Imaging fftmode </span><span class="si">{0}</span><span class="s2"> not supported.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fftmode</span><span class="p">))</span>
-</div>
-    <span class="k">return</span> <span class="n">images</span>
+
+    <span class="k">return</span> <span class="n">images</span></div>
 
 
 <div class="viewcode-block" id="image_cuda"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.image_cuda">[docs]</a><span class="k">def</span> <span class="nf">image_cuda</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot; Run grid and image with rfgpu</span>
 <span class="sd">    TODO: update to use rfgpu</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-</div>
-    <span class="k">pass</span>
+
+    <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="image_fftw"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.image_fftw">[docs]</a><span class="k">def</span> <span class="nf">image_fftw</span><span class="p">(</span><span class="n">grids</span><span class="p">,</span> <span class="n">nthread</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">wisdom</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -677,8 +605,8 @@
     <span class="n">fft_obj</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
 
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Recentering fft</span><span class="se">\&#39;</span><span class="s1">d images...&#39;</span><span class="p">)</span>
-</div>
-    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftshift</span><span class="p">(</span><span class="n">images</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftshift</span><span class="p">(</span><span class="n">images</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="grid_visibilities"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.grid_visibilities">[docs]</a><span class="k">def</span> <span class="nf">grid_visibilities</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">,</span> <span class="n">uvres</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
@@ -696,8 +624,8 @@
         <span class="n">_</span> <span class="o">=</span> <span class="n">_grid_visibilities_gu</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">,</span> <span class="n">uvres</span><span class="p">,</span> <span class="n">grids</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">_grid_visibilities_jit</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">,</span> <span class="n">uvres</span><span class="p">,</span> <span class="n">grids</span><span class="p">)</span>
-</div>
-    <span class="k">return</span> <span class="n">grids</span>
+
+    <span class="k">return</span> <span class="n">grids</span></div>
 
 
 <span class="nd">@jit</span><span class="p">(</span><span class="n">nogil</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -750,8 +678,8 @@
 
 <div class="viewcode-block" id="image_arm"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.image_arm">[docs]</a><span class="k">def</span> <span class="nf">image_arm</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot; Takes visibilities and images arms of VLA &quot;&quot;&quot;</span>
-</div>
-    <span class="k">pass</span>
+
+    <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="set_wisdom"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.set_wisdom">[docs]</a><span class="k">def</span> <span class="nf">set_wisdom</span><span class="p">(</span><span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">):</span>
@@ -761,25 +689,48 @@
     <span class="n">arr</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">empty_aligned</span><span class="p">((</span><span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;complex64&#39;</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
     <span class="n">fft_arr</span> <span class="o">=</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">interfaces</span><span class="o">.</span><span class="n">numpy_fft</span><span class="o">.</span><span class="n">ifft2</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">auto_align_input</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                                                 <span class="n">auto_contiguous</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                                                <span class="n">planner_effort</span><span class="o">=</span><span class="s1">&#39;FFTW_MEASURE&#39;</span><span class="p">)</span></div>
-    <span class="k">return</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">export_wisdom</span><span class="p">()</span>
+                                                <span class="n">planner_effort</span><span class="o">=</span><span class="s1">&#39;FFTW_MEASURE&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">pyfftw</span><span class="o">.</span><span class="n">export_wisdom</span><span class="p">()</span></div>
 </pre></div>
 
-    </div>
-      
-  </div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../index.html">
+              <img class="logo" src="../../_static/favicon.ico.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
 </div>
-<footer class="footer">
-  <div class="container">
-    <p class="pull-right">
-      <a href="#">Back to top</a>
-      
-    </p>
-    <p>
-        &copy; Copyright 2017, Casey Law.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.1.<br/>
-    </p>
-  </div>
-</footer>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">rfpipe 0.9.6 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Casey Law.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.
+    </div>
   </body>
 </html>

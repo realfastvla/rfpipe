@@ -1,121 +1,49 @@
-<!DOCTYPE html>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>rfpipe.reproduce &#8212; rfpipe 0.9.5 documentation</title>
-    <link rel="stylesheet" href="../../_static/bootstrap-sphinx.css" type="text/css" />
+    <title>rfpipe.reproduce &#8212; rfpipe 0.9.6 documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.9.6',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
-    <script type="text/javascript" src="../../_static/js/jquery-1.11.0.min.js"></script>
-    <script type="text/javascript" src="../../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../../_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="../../_static/bootstrap-sphinx.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
-    <link rel="search" title="Search" href="../../search.html" />
-<meta charset='utf-8'>
-<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
-<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
-<meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">rfpipe 0.9.6 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
 
-  </head><body>
-
-  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
-    <div class="container">
-      <div class="navbar-header">
-        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
-        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-        </button>
-        <a class="navbar-brand" href="../../index.html"><span><img src="../../_static/favicon.ico.png"></span>
-          rfpipe</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.9.5</b></span>
-      </div>
-
-        <div class="collapse navbar-collapse nav-collapse">
-          <ul class="nav navbar-nav">
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
             
-            
-              <li class="dropdown globaltoc-container">
-  <a role="button"
-     id="dLabelGlobalToc"
-     data-toggle="dropdown"
-     data-target="#"
-     href="../../index.html">Site <b class="caret"></b></a>
-  <ul class="dropdown-menu globaltoc"
-      role="menu"
-      aria-labelledby="dLabelGlobalToc"><ul>
-<li class="toctree-l1"><a class="reference internal" href="../../Overview.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Overview.html#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Overview.html#quick-start">Quick Start</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../State.html">Search State, Preferences, and Metadata</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Pipeline.html">Using a Search Pipeline</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Searching.html">Searching for Transients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Candidates.html">Candidates</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Reproduce.html">Reproducing Transient Detections</a></li>
-</ul>
-</ul>
-</li>
-              
-                <li class="dropdown">
-  <a role="button"
-     id="dLabelLocalToc"
-     data-toggle="dropdown"
-     data-target="#"
-     href="#">Page <b class="caret"></b></a>
-  <ul class="dropdown-menu localtoc"
-      role="menu"
-      aria-labelledby="dLabelLocalToc"></ul>
-</li>
-              
-            
-            
-              
-                
-              
-            
-            
-            
-            
-              <li class="hidden-sm"></li>
-            
-          </ul>
-
-          
-            
-<form class="navbar-form navbar-right" action="../../search.html" method="get">
- <div class="form-group">
-  <input type="text" name="q" class="form-control" placeholder="Search" />
- </div>
-  <input type="hidden" name="check_keywords" value="yes" />
-  <input type="hidden" name="area" value="default" />
-</form>
-          
-        </div>
-    </div>
-  </div>
-
-<div class="container">
-  <div class="row">
-      <div class="col-md-3">
-        <div id="sidebar" class="bs-sidenav" role="complementary">
-<form action="../../search.html" method="get">
- <div class="form-group">
-  <input type="text" name="q" class="form-control" placeholder="Search" />
- </div>
-  <input type="hidden" name="check_keywords" value="yes" />
-  <input type="hidden" name="area" value="default" />
-</form>
-        </div>
-      </div>
-    <div class="col-md-9 content">
-      
   <h1>Source code for rfpipe.reproduce</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">unicode_literals</span>
 <span class="kn">from</span> <span class="nn">builtins</span> <span class="k">import</span> <span class="nb">bytes</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="nb">object</span><span class="p">,</span> <span class="nb">range</span><span class="p">,</span> <span class="nb">map</span><span class="p">,</span> <span class="nb">input</span><span class="c1">#, str # not numpy/python2 compatible</span>
@@ -131,7 +59,7 @@
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="oldcands_read"><a class="viewcode-back" href="../../Reproduce.html#rfpipe.reproduce.oldcands_read">[docs]</a><span class="k">def</span> <span class="nf">oldcands_read</span><span class="p">(</span><span class="n">candsfile</span><span class="p">,</span> <span class="n">sdmscan</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">oldcands_read</span><span class="p">(</span><span class="n">candsfile</span><span class="p">,</span> <span class="n">sdmscan</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Read old-style candfile and create new-style candcollection</span>
 <span class="sd">    Returns a list of tuples (state, dataframe) per scan.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -151,13 +79,12 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Not sure what we&#39;ve got in this here cands pkl file...&quot;</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="p">(</span><span class="n">sdmscan</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="s1">&#39;scan&#39;</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;featureind&#39;</span><span class="p">]):</span>
-        <span class="n">scanind</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;featureind&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;scan&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">sdmscan</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># and (u&#39;scan&#39; in d[&#39;featureind&#39;]):</span>
+<span class="c1">#        scanind = d[&#39;featureind&#39;].index(&#39;scan&#39;)</span>
+        <span class="n">scanind</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">scans</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">scanind</span><span class="p">])</span>
     <span class="k">elif</span> <span class="n">sdmscan</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">scans</span> <span class="o">=</span> <span class="p">[</span><span class="n">sdmscan</span><span class="p">]</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">scans</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span>
 
     <span class="n">ll</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">scan</span> <span class="ow">in</span> <span class="n">scans</span><span class="p">:</span>
@@ -166,11 +93,11 @@
             <span class="n">ll</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">st</span><span class="p">,</span> <span class="n">cc</span><span class="p">))</span>
         <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
             <span class="k">pass</span>
-</div>
+
     <span class="k">return</span> <span class="n">ll</span>
 
 
-<div class="viewcode-block" id="oldcands_readone"><a class="viewcode-back" href="../../Reproduce.html#rfpipe.reproduce.oldcands_readone">[docs]</a><span class="k">def</span> <span class="nf">oldcands_readone</span><span class="p">(</span><span class="n">candsfile</span><span class="p">,</span> <span class="n">scan</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">oldcands_readone</span><span class="p">(</span><span class="n">candsfile</span><span class="p">,</span> <span class="n">scan</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Reads old-style candidate files to create new state and candidate</span>
 <span class="sd">    collection for a given scan.</span>
 <span class="sd">    Parsing merged cands file requires sdm locally with bdf for given scan.</span>
@@ -193,7 +120,7 @@
             <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Not sure what we&#39;ve got in this here cands pkl file...&quot;</span><span class="p">)</span>
 
     <span class="c1"># detect merged vs nonmerged</span>
-    <span class="k">if</span> <span class="s1">&#39;scan&#39;</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;featureind&#39;</span><span class="p">]:</span>
+    <span class="k">if</span> <span class="sa">u</span><span class="s1">&#39;scan&#39;</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;featureind&#39;</span><span class="p">]:</span>
         <span class="n">locind0</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">locind0</span> <span class="o">=</span> <span class="mi">0</span>
@@ -203,9 +130,10 @@
         <span class="k">assert</span> <span class="n">locind0</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Set scan if candsfile has multiple scans.&quot;</span>
 
     <span class="n">inprefs</span> <span class="o">=</span> <span class="n">preferences</span><span class="o">.</span><span class="n">oldstate_preferences</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">scan</span><span class="o">=</span><span class="n">scan</span><span class="p">)</span>
-    <span class="n">inprefs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;gainfile&#39;</span><span class="p">)</span>
-    <span class="n">inprefs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;workdir&#39;</span><span class="p">)</span>
-    <span class="n">inprefs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;fileroot&#39;</span><span class="p">)</span>
+    <span class="n">inprefs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;gainfile&#39;</span><span class="p">)</span>
+    <span class="n">inprefs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;workdir&#39;</span><span class="p">)</span>
+    <span class="n">inprefs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;fileroot&#39;</span><span class="p">)</span>
+    <span class="n">inprefs</span><span class="p">[</span><span class="s1">&#39;segmenttimes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">inprefs</span><span class="p">[</span><span class="s1">&#39;segmenttimes&#39;</span><span class="p">]</span>
     <span class="n">sdmfile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;filename&#39;</span><span class="p">])</span>
 
     <span class="k">try</span><span class="p">:</span>
@@ -238,16 +166,16 @@
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">loc</span><span class="p">)):</span>
         <span class="n">features</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">prop</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
     <span class="n">cc</span> <span class="o">=</span> <span class="n">candidates</span><span class="o">.</span><span class="n">CandCollection</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="p">,</span> <span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span>
-</div>
+
     <span class="k">return</span> <span class="n">st</span><span class="p">,</span> <span class="n">cc</span>
 
 
-<div class="viewcode-block" id="oldcands_convert"><a class="viewcode-back" href="../../Reproduce.html#rfpipe.reproduce.oldcands_convert">[docs]</a><span class="k">def</span> <span class="nf">oldcands_convert</span><span class="p">(</span><span class="n">candsfile</span><span class="p">,</span> <span class="n">scan</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">oldcands_convert</span><span class="p">(</span><span class="n">candsfile</span><span class="p">,</span> <span class="n">scan</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Take old style candsfile for a single scan and writes new style file.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">st</span><span class="p">,</span> <span class="n">cc</span> <span class="o">=</span> <span class="n">oldcands_readone</span><span class="p">(</span><span class="n">candsfile</span><span class="p">,</span> <span class="n">scan</span><span class="o">=</span><span class="n">scan</span><span class="p">)</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">candsfile</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">pkl</span><span class="p">:</span></div>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">st</span><span class="o">.</span><span class="n">candsfile</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">pkl</span><span class="p">:</span>
         <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">cc</span><span class="p">,</span> <span class="n">pkl</span><span class="p">)</span>
 
 
@@ -257,12 +185,15 @@
 
     <span class="n">segment</span><span class="p">,</span> <span class="n">candint</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">,</span> <span class="n">beamnum</span> <span class="o">=</span> <span class="n">candloc</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
 
+    <span class="c1"># propagate through to new candcollection</span>
+    <span class="n">st</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">segmenttimes</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="n">_segmenttimes</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
     <span class="c1"># prep data</span>
     <span class="n">data</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">read_segment</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">)</span>
     <span class="n">flagversion</span> <span class="o">=</span> <span class="s2">&quot;rtpipe&quot;</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="s2">&quot;rtpipe_version&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="s2">&quot;latest&quot;</span>
     <span class="n">data_prep</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">data_prep</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">flagversion</span><span class="o">=</span><span class="n">flagversion</span><span class="p">)</span>
-</div>
-    <span class="k">return</span> <span class="n">data_prep</span>
+
+    <span class="k">return</span> <span class="n">data_prep</span></div>
 
 
 <div class="viewcode-block" id="pipeline_datacorrect"><a class="viewcode-back" href="../../Reproduce.html#rfpipe.reproduce.pipeline_datacorrect">[docs]</a><span class="k">def</span> <span class="nf">pipeline_datacorrect</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">candloc</span><span class="p">,</span> <span class="n">data_prep</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -285,8 +216,8 @@
 
     <span class="n">data_dmdt</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">dedisperseresample</span><span class="p">(</span><span class="n">data_prep</span><span class="p">,</span> <span class="n">delay</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
 <span class="c1">#    data_dmdt = search.resample(data_dm, dt)</span>
-</div>
-    <span class="k">return</span> <span class="n">data_dmdt</span>
+
+    <span class="k">return</span> <span class="n">data_dmdt</span></div>
 
 
 <div class="viewcode-block" id="pipeline_imdata"><a class="viewcode-back" href="../../Reproduce.html#rfpipe.reproduce.pipeline_imdata">[docs]</a><span class="k">def</span> <span class="nf">pipeline_imdata</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">candloc</span><span class="p">,</span> <span class="n">data_dmdt</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -319,8 +250,8 @@
 
     <span class="n">candcollection</span> <span class="o">=</span> <span class="n">candidates</span><span class="o">.</span><span class="n">calc_features</span><span class="p">(</span><span class="n">canddata</span><span class="p">)</span>
 
-    <span class="c1"># output is as from searching functions</span></div>
-    <span class="k">return</span> <span class="n">candcollection</span>
+    <span class="c1"># output is as from searching functions</span>
+    <span class="k">return</span> <span class="n">candcollection</span></div>
 
 
 <div class="viewcode-block" id="pipeline_candidate"><a class="viewcode-back" href="../../Reproduce.html#rfpipe.reproduce.pipeline_candidate">[docs]</a><span class="k">def</span> <span class="nf">pipeline_candidate</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">candloc</span><span class="p">,</span> <span class="n">candcollection</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -334,25 +265,48 @@
         <span class="n">candcollection</span> <span class="o">=</span> <span class="n">pipeline_imdata</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">candloc</span><span class="p">)</span>
 
     <span class="n">candidates</span><span class="o">.</span><span class="n">save_cands</span><span class="p">(</span><span class="n">candcollection</span><span class="p">)</span>
-</div>
-    <span class="k">return</span> <span class="n">candcollection</span>
+
+    <span class="k">return</span> <span class="n">candcollection</span></div>
 </pre></div>
 
-    </div>
-      
-  </div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../index.html">
+              <img class="logo" src="../../_static/favicon.ico.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
 </div>
-<footer class="footer">
-  <div class="container">
-    <p class="pull-right">
-      <a href="#">Back to top</a>
-      
-    </p>
-    <p>
-        &copy; Copyright 2017, Casey Law.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.1.<br/>
-    </p>
-  </div>
-</footer>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">rfpipe 0.9.6 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Casey Law.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.
+    </div>
   </body>
 </html>

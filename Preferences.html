@@ -1,0 +1,160 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Search Preferences &#8212; rfpipe 0.9.6 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.9.6',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Observational Metadata" href="Metadata.html" />
+    <link rel="prev" title="Search State" href="State.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Metadata.html" title="Observational Metadata"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="State.html" title="Search State"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">rfpipe 0.9.6 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="Concepts.html" accesskey="U">Concepts</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="search-preferences">
+<h1>Search Preferences<a class="headerlink" href="#search-preferences" title="Permalink to this headline">¶</a></h1>
+<p>Preferences are a way for a user to define how a transient search for any kind of data/metadata. Preferences have sensible defaults, so the state can be defined even if no preferences are provided.</p>
+<p>The most commonly used preferences define the search parameters (e.g., the range of dispersion measures), the computational limits (e.g., the maximum memory or maximum image size), and the search algorithm (e.g., CUDA or FFTW imaging).</p>
+<p>The simplest way to define the search preferences is by passing arguments during the definition of the State object. This call can take a file as input (a preffile) and overload preference values with the inprefs (a dict).</p>
+<div class="section" id="preferences-api">
+<span id="preferencesapi"></span><h2>Preferences API<a class="headerlink" href="#preferences-api" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="rfpipe.preferences.Preferences">
+<em class="property">class </em><code class="descclassname">rfpipe.preferences.</code><code class="descname">Preferences</code><span class="sig-paren">(</span><em>rfpipe_version='0.9.6', chans=None, spw=None, excludeants=(), selectpol=u'auto', fileroot=None, read_tdownsample=1, read_fdownsample=1, l0=0.0, m0=0.0, timesub=None, flaglist=[(u'badchtslide', 4.0, 10), (u'blstd', 3.0, 0.05)], flagantsol=True, badspwpol=2.0, applyonlineflags=True, gainfile=None, simulated_transient=None, nthread=1, segmenttimes=None, memory_limit=16, maximmem=16, fftmode=u'fftw', dmarr=None, dtarr=None, dm_maxloss=0.05, mindm=0, maxdm=0, dm_pulsewidth=3000, searchtype=u'image1', sigma_image1=7, sigma_image2=None, nfalse=None, uvres=0, npixx=0, npixy=0, npix_max=0, uvoversample=1.0, savenoise=False, savecands=False, candsfile=None, workdir='/Users/caseyjlaw/code/rfpipe', timewindow=30, loglevel=u'INFO'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/preferences.html#Preferences"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.preferences.Preferences" title="Permalink to this definition">¶</a></dt>
+<dd><p>Preferences express half of info needed to
+define state. Using preferences with metadata produces a unique state and
+pipeline outcome.</p>
+<dl class="attribute">
+<dt id="rfpipe.preferences.Preferences.json">
+<code class="descname">json</code><a class="headerlink" href="#rfpipe.preferences.Preferences.json" title="Permalink to this definition">¶</a></dt>
+<dd><p>json string that can be loaded into elasticsearch or hashed.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.preferences.Preferences.name">
+<code class="descname">name</code><a class="headerlink" href="#rfpipe.preferences.Preferences.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unique name for an instance of preferences.
+To be used to look up preference set for a given candidate or data set.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.preferences.Preferences.ordered">
+<code class="descname">ordered</code><a class="headerlink" href="#rfpipe.preferences.Preferences.ordered" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get OrderedDict of preferences sorted by key</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/favicon.ico.png" alt="Logo"/>
+            </a></p>
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Search Preferences</a><ul>
+<li><a class="reference internal" href="#preferences-api">Preferences API</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="State.html"
+                        title="previous chapter">Search State</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="Metadata.html"
+                        title="next chapter">Observational Metadata</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Preferences.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Metadata.html" title="Observational Metadata"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="State.html" title="Search State"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">rfpipe 0.9.6 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="Concepts.html" >Concepts</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Casey Law.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.
+    </div>
+  </body>
+</html>

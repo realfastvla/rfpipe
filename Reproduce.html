@@ -1,174 +1,61 @@
-<!DOCTYPE html>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Reproducing Transient Detections &#8212; rfpipe 0.9.5 documentation</title>
-    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
+    <title>Reproducing realfast Candidate Transients &#8212; rfpipe 0.9.6 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script type="text/javascript" src="_static/documentation_options.js"></script>
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.9.6',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
-    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="Candidates" href="Candidates.html" />
-<meta charset='utf-8'>
-<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
-<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
-<meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="prev" title="Finding Simulated Transients" href="Simulating.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Simulating.html" title="Finding Simulated Transients"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">rfpipe 0.9.6 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="UseCases.html" accesskey="U">Use Cases</a> &#187;</li> 
+      </ul>
+    </div>  
 
-  </head><body>
-
-  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
-    <div class="container">
-      <div class="navbar-header">
-        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
-        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-        </button>
-        <a class="navbar-brand" href="index.html"><span><img src="_static/favicon.ico.png"></span>
-          rfpipe</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.9.5</b></span>
-      </div>
-
-        <div class="collapse navbar-collapse nav-collapse">
-          <ul class="nav navbar-nav">
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
             
-            
-              <li class="dropdown globaltoc-container">
-  <a role="button"
-     id="dLabelGlobalToc"
-     data-toggle="dropdown"
-     data-target="#"
-     href="index.html">Site <b class="caret"></b></a>
-  <ul class="dropdown-menu globaltoc"
-      role="menu"
-      aria-labelledby="dLabelGlobalToc"><ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="Overview.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Overview.html#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Overview.html#quick-start">Quick Start</a></li>
-<li class="toctree-l1"><a class="reference internal" href="State.html">Search State, Preferences, and Metadata</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Pipeline.html">Using a Search Pipeline</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Searching.html">Searching for Transients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Candidates.html">Candidates</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Reproducing Transient Detections</a></li>
-</ul>
-</ul>
-</li>
-              
-                <li class="dropdown">
-  <a role="button"
-     id="dLabelLocalToc"
-     data-toggle="dropdown"
-     data-target="#"
-     href="#">Page <b class="caret"></b></a>
-  <ul class="dropdown-menu localtoc"
-      role="menu"
-      aria-labelledby="dLabelLocalToc"><ul>
-<li><a class="reference internal" href="#">Reproducing Transient Detections</a></li>
-</ul>
-</ul>
-</li>
-              
-            
-            
-              
-                
-  <li>
-    <a href="Candidates.html" title="Previous Chapter: Candidates"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm hidden-tablet">&laquo; Candidates</span>
-    </a>
-  </li>
-              
-            
-            
-            
-            
-              <li class="hidden-sm">
-<div id="sourcelink">
-  <a href="_sources/Reproduce.rst.txt"
-     rel="nofollow">Source</a>
-</div></li>
-            
-          </ul>
-
-          
-            
-<form class="navbar-form navbar-right" action="search.html" method="get">
- <div class="form-group">
-  <input type="text" name="q" class="form-control" placeholder="Search" />
- </div>
-  <input type="hidden" name="check_keywords" value="yes" />
-  <input type="hidden" name="area" value="default" />
-</form>
-          
-        </div>
-    </div>
-  </div>
-
-<div class="container">
-  <div class="row">
-      <div class="col-md-3">
-        <div id="sidebar" class="bs-sidenav" role="complementary"><ul>
-<li><a class="reference internal" href="#">Reproducing Transient Detections</a></li>
-</ul>
-
-  <li>
-    <a href="Candidates.html" title="Previous Chapter: Candidates"><span class="glyphicon glyphicon-chevron-left visible-sm"></span><span class="hidden-sm hidden-tablet">&laquo; Candidates</span>
-    </a>
-  </li>
-<div id="sourcelink">
-  <a href="_sources/Reproduce.rst.txt"
-     rel="nofollow">Source</a>
-</div>
-<form action="search.html" method="get">
- <div class="form-group">
-  <input type="text" name="q" class="form-control" placeholder="Search" />
- </div>
-  <input type="hidden" name="check_keywords" value="yes" />
-  <input type="hidden" name="area" value="default" />
-</form>
-        </div>
-      </div>
-    <div class="col-md-9 content">
-      
-  <div class="section" id="reproducing-transient-detections">
-<h1>Reproducing Transient Detections<a class="headerlink" href="#reproducing-transient-detections" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="reproducing-realfast-candidate-transients">
+<span id="reproduce"></span><h1>Reproducing realfast Candidate Transients<a class="headerlink" href="#reproducing-realfast-candidate-transients" title="Permalink to this headline">¶</a></h1>
 <p>The rfpipe library has been developed for the realfast project, a real-time transient search instrument at the VLA. The realfast project will capture VLA visibility data for candidate transients detected in real time. Those results can be reproduced offline by rfpipe.</p>
-<span class="target" id="module-rfpipe.reproduce"></span><dl class="function">
-<dt id="rfpipe.reproduce.oldcands_convert">
-<code class="descclassname">rfpipe.reproduce.</code><code class="descname">oldcands_convert</code><span class="sig-paren">(</span><em>candsfile</em>, <em>scan=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/reproduce.html#oldcands_convert"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.reproduce.oldcands_convert" title="Permalink to this definition">¶</a></dt>
-<dd><p>Take old style candsfile for a single scan and writes new style file.</p>
-</dd></dl>
-
+<p>The <code class="docutils literal"><span class="pre">rfpipe.reproduce</span></code> defines a set of functions to make it easier to reproduce a candidate. The functions are defined as a series of operations. The output of the earlier operations an be input to the later stages; it is also fine to run the last stage, which will automatically run earlier stages.</p>
 <dl class="function">
-<dt id="rfpipe.reproduce.oldcands_read">
-<code class="descclassname">rfpipe.reproduce.</code><code class="descname">oldcands_read</code><span class="sig-paren">(</span><em>candsfile</em>, <em>sdmscan=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/reproduce.html#oldcands_read"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.reproduce.oldcands_read" title="Permalink to this definition">¶</a></dt>
-<dd><p>Read old-style candfile and create new-style candcollection
-Returns a list of tuples (state, dataframe) per scan.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rfpipe.reproduce.oldcands_readone">
-<code class="descclassname">rfpipe.reproduce.</code><code class="descname">oldcands_readone</code><span class="sig-paren">(</span><em>candsfile</em>, <em>scan=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/reproduce.html#oldcands_readone"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.reproduce.oldcands_readone" title="Permalink to this definition">¶</a></dt>
-<dd><p>Reads old-style candidate files to create new state and candidate
-collection for a given scan.
-Parsing merged cands file requires sdm locally with bdf for given scan.
-If no scan provided, assumes candsfile is from single scan not merged.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rfpipe.reproduce.pipeline_candidate">
-<code class="descclassname">rfpipe.reproduce.</code><code class="descname">pipeline_candidate</code><span class="sig-paren">(</span><em>st</em>, <em>candloc</em>, <em>candcollection=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/reproduce.html#pipeline_candidate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.reproduce.pipeline_candidate" title="Permalink to this definition">¶</a></dt>
-<dd><p>End-to-end pipeline to reproduce candidate plot and calculate features.
-Can optionally pass in image and corrected data, if available.</p>
+<dt id="rfpipe.reproduce.pipeline_dataprep">
+<code class="descclassname">rfpipe.reproduce.</code><code class="descname">pipeline_dataprep</code><span class="sig-paren">(</span><em>st</em>, <em>candloc</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/reproduce.html#pipeline_dataprep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.reproduce.pipeline_dataprep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepare (read, cal, flag) data for a given state and candloc.</p>
 </dd></dl>
 
 <dl class="function">
@@ -179,12 +66,6 @@ Can optionally pass in prepared (flagged, calibrated) data, if available.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="rfpipe.reproduce.pipeline_dataprep">
-<code class="descclassname">rfpipe.reproduce.</code><code class="descname">pipeline_dataprep</code><span class="sig-paren">(</span><em>st</em>, <em>candloc</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/reproduce.html#pipeline_dataprep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.reproduce.pipeline_dataprep" title="Permalink to this definition">¶</a></dt>
-<dd><p>Prepare (read, cal, flag) data for a given state and candloc.</p>
-</dd></dl>
-
-<dl class="function">
 <dt id="rfpipe.reproduce.pipeline_imdata">
 <code class="descclassname">rfpipe.reproduce.</code><code class="descname">pipeline_imdata</code><span class="sig-paren">(</span><em>st</em>, <em>candloc</em>, <em>data_dmdt=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/reproduce.html#pipeline_imdata"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.reproduce.pipeline_imdata" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate image and phased visibility data for candloc.
@@ -192,24 +73,99 @@ Phases to peak pixel in image of candidate.
 Can optionally pass in corrected data, if available.</p>
 </dd></dl>
 
+<dl class="function">
+<dt id="rfpipe.reproduce.pipeline_candidate">
+<code class="descclassname">rfpipe.reproduce.</code><code class="descname">pipeline_candidate</code><span class="sig-paren">(</span><em>st</em>, <em>candloc</em>, <em>candcollection=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/reproduce.html#pipeline_candidate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.reproduce.pipeline_candidate" title="Permalink to this definition">¶</a></dt>
+<dd><p>End-to-end pipeline to reproduce candidate plot and calculate features.
+Can optionally pass in image and corrected data, if available.</p>
+</dd></dl>
+
+<p>First, one needs to read the <code class="docutils literal"><span class="pre">CandCollection</span></code> locally. The <code class="docutils literal"><span class="pre">iter_cands</span></code> function provides a convenient way to step through the pickle files used to hold candidate data.</p>
+<dl class="function">
+<dt id="rfpipe.candidates.iter_cands">
+<code class="descclassname">rfpipe.candidates.</code><code class="descname">iter_cands</code><span class="sig-paren">(</span><em>candsfile</em>, <em>select=u'candcollection'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/candidates.html#iter_cands"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.candidates.iter_cands" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate through (new style) candsfile and return either
+a candidatecollection or canddata.
+select defines what kind of object to return:
+- ‘canddata’ is heavier object with image and spectrum (used to make plots)
+- ‘candcollection’ is lighter object with features.</p>
+</dd></dl>
+
+<p>To get the first collection, you could take the pickle file output by the search produced in one of the other Use Cases (see <a class="reference internal" href="Pipeline.html#pipeline"><span class="std std-ref">Searching for an FRB in SDM Data</span></a> or <a class="reference internal" href="Simulating.html#simulating"><span class="std std-ref">Finding Simulated Transients</span></a>):</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">&gt;</span> <span class="k">for</span> <span class="n">cc</span> <span class="ow">in</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">candidates</span><span class="o">.</span><span class="n">iter_cands</span><span class="p">(</span><span class="s1">&#39;cands_16A-459_TEST_1hr_000.57633.66130137732.scan7.cut.7.1.pkl&#39;</span><span class="p">):</span>
+<span class="o">&gt;</span> <span class="nb">print</span><span class="p">(</span><span class="n">cc</span><span class="p">)</span>
+<span class="n">CandCollection</span> <span class="k">for</span> <span class="mi">16</span><span class="n">A</span><span class="o">-</span><span class="mi">459</span><span class="n">_TEST_1hr_000</span><span class="o">.</span><span class="mf">57633.66130137732</span><span class="o">.</span><span class="n">scan7</span><span class="o">.</span><span class="n">cut</span><span class="p">,</span> <span class="n">scan</span> <span class="mi">7</span> <span class="k">with</span> <span class="mi">3</span> <span class="n">candidates</span>
+</pre></div>
+</div>
+<p>This will return the candcollection that defines all candidates and allows you to regenerate the state that found them. The candidate is defined with a set of five integers, which, when associated with a state, uniquely identifies the data used to make the detection. To capture this “candidate location”:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">&gt;</span> <span class="n">maxsnr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">cc</span><span class="o">.</span><span class="n">array</span><span class="p">[</span><span class="s1">&#39;snr1&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">cc</span><span class="o">.</span><span class="n">array</span><span class="p">[</span><span class="s1">&#39;snr1&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">())[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+<span class="o">&gt;</span> <span class="n">candloc</span> <span class="o">=</span> <span class="n">cc</span><span class="o">.</span><span class="n">array</span><span class="p">[[</span><span class="s1">&#39;segment&#39;</span><span class="p">,</span> <span class="s1">&#39;integration&#39;</span><span class="p">,</span> <span class="s1">&#39;dmind&#39;</span><span class="p">,</span> <span class="s1">&#39;dtind&#39;</span><span class="p">,</span> <span class="s1">&#39;beamnum&#39;</span><span class="p">]][</span><span class="n">maxsnr</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">((</span><span class="s1">&#39;i4&#39;</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="o">&gt;</span> <span class="n">st</span> <span class="o">=</span> <span class="n">cc</span><span class="o">.</span><span class="n">state</span>
+</pre></div>
+</div>
+<p>(Some type wackiness here that will probably be simplified in the future.)</p>
+<p>Now to reproduce each stage of the analysis, we can run:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">&gt;</span> <span class="n">data_prep</span> <span class="o">=</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">reproduce</span><span class="o">.</span><span class="n">pipeline_dataprep</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">candloc</span><span class="p">)</span>
+<span class="o">&gt;</span> <span class="n">data_dmdt</span> <span class="o">=</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">reproduce</span><span class="o">.</span><span class="n">pipeline_datacorrect</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">candloc</span><span class="p">,</span> <span class="n">data_prep</span><span class="o">=</span><span class="n">data_prep</span><span class="p">)</span>
+<span class="o">&gt;</span> <span class="n">candcollection</span> <span class="o">=</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">reproduce</span><span class="o">.</span><span class="n">pipeline_imdata</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">candloc</span><span class="p">,</span> <span class="n">data_dmdt</span><span class="o">=</span><span class="n">data_dmdt</span><span class="p">)</span>
+<span class="o">&gt;</span> <span class="n">candcollection</span> <span class="o">=</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">reproduce</span><span class="o">.</span><span class="n">pipeline_candidate</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">candloc</span><span class="p">,</span> <span class="n">candcollection</span><span class="o">=</span><span class="n">candcollection</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The final <code class="docutils literal"><span class="pre">rfpipe.reproduce.pipeline_candidate</span></code> function will run the final plot generation and saving of candidate pickle file but returns its input candcollection for convenience.</p>
 </div>
 
 
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/favicon.ico.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="Simulating.html"
+                        title="previous chapter">Finding Simulated Transients</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Reproduce.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
     </div>
-      
-  </div>
-</div>
-<footer class="footer">
-  <div class="container">
-    <p class="pull-right">
-      <a href="#">Back to top</a>
-      
-    </p>
-    <p>
-        &copy; Copyright 2017, Casey Law.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.1.<br/>
-    </p>
-  </div>
-</footer>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Simulating.html" title="Finding Simulated Transients"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">rfpipe 0.9.6 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="UseCases.html" >Use Cases</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Casey Law.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.
+    </div>
   </body>
 </html>

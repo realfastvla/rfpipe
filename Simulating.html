@@ -1,0 +1,157 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Finding Simulated Transients &#8212; rfpipe 0.9.6 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.9.6',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Reproducing realfast Candidate Transients" href="Reproduce.html" />
+    <link rel="prev" title="Searching for an FRB in SDM Data" href="Pipeline.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Reproduce.html" title="Reproducing realfast Candidate Transients"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="Pipeline.html" title="Searching for an FRB in SDM Data"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">rfpipe 0.9.6 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="UseCases.html" accesskey="U">Use Cases</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="finding-simulated-transients">
+<span id="simulating"></span><h1>Finding Simulated Transients<a class="headerlink" href="#finding-simulated-transients" title="Permalink to this headline">¶</a></h1>
+<p>It is useful to simulate transients for testing purposes. This is done by defining parameters of a set of transient in the <code class="docutils literal"><span class="pre">Preferences</span></code>. The <code class="docutils literal"><span class="pre">simulated_transient</span></code> preference expects a list of tuples defined as:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">simulated_transient</span> <span class="o">=</span> <span class="p">[(</span><span class="n">segment</span><span class="p">,</span> <span class="n">integration</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">amplitude</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">m</span><span class="p">)]</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal"><span class="pre">dm</span></code> and <code class="docutils literal"><span class="pre">dt</span></code> parameters are in units of pc/cm3 and s, respectively. The <code class="docutils literal"><span class="pre">amplitude</span></code> defines the strength of the signal per time, baseline, and frequency bin and is added to the data after calibration. The <code class="docutils literal"><span class="pre">l</span></code> and <code class="docutils literal"><span class="pre">m</span></code> define the location of the transient in radians of phase relative to the phase center; be sure to choose values small enough to fit in the field of view.</p>
+<p>Starting with an SDM file, we can add transients with some freedom. Here is a simple one:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">&gt;</span> <span class="kn">import</span> <span class="nn">rfpipe</span>
+<span class="o">&gt;</span> <span class="n">st</span> <span class="o">=</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">State</span><span class="p">(</span><span class="n">sdmfile</span><span class="o">=</span><span class="s1">&#39;16A-459_TEST_1hr_000.57633.66130137732.scan7.cut&#39;</span><span class="p">,</span> <span class="n">sdmscan</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">inprefs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;dmarr&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">565</span><span class="p">],</span> <span class="s1">&#39;dtarr&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;npix_max&#39;</span><span class="p">:</span> <span class="mi">512</span><span class="p">,</span> <span class="s1">&#39;gainfile&#39;</span><span class="p">:</span> <span class="s1">&#39;16A-459_TEST_1hr_000.57633.66130137732.GN&#39;</span><span class="p">,</span> <span class="s1">&#39;simulated_transient&#39;</span><span class="p">:</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">5e-5</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">)],</span> <span class="s1">&#39;savecands&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+</pre></div>
+</div>
+<p>The preparation of data by the <code class="docutils literal"><span class="pre">rfpipe.source.data_prep</span></code> function includes adding simulated transients. The data is modified by adding to the data a numpy array generated by this function.</p>
+<dl class="function">
+<dt>
+<code class="descclassname">rfpipe.source.</code><code class="descname">generate_transient</code><span class="sig-paren">(</span><em>st</em>, <em>amp</em>, <em>i0</em>, <em>dm</em>, <em>dt</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#generate_transient"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Create a dynamic spectrum for given parameters
+amp is in system units (post calibration)
+i0 is a float for integration relative to start of segment.
+dm/dt are in units of pc/cm3 and seconds, respectively</p>
+</dd></dl>
+
+<p>Running the search pipeline, we get the following:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>&gt; cc = rfpipe.pipeline.pipeline_scan(st)
+Reading scan 7, segment 0/0, times 16:18:58.220 to 16:19:02.220
+...
+Adding transient to segment 0 at int 10, DM 0, dt 5e-05 with amp 0.1 and l,m=0.0,0.0
+...
+flag by badchtslide: 0/1600 pol-times and 0/512 pol-chans flagged.
+flag by blstd: 662 of 409600 total channel/time/pol cells flagged.
+Correcting by delay/resampling 0/1 ints in single mode
+Imaging 800 ints (0-799) in seg 0 at DM/dt 0.0/1 with image 512x512 (uvres 104) with fftw
+Got one! SNR 72.0 candidate at (0, 10, 0, 0, 0) and (l,m) = (0.0,0.0)
+Got one! SNR 7.5 candidate at (0, 404, 0, 0, 0) and (l,m) = (-0.0012770432692307692,0.00015024038461538462)
+Calculating features for 2 candidates.
+2 candidates returned for (seg, dmind, dtind) = (0, 0, 0)
+...
+</pre></div>
+</div>
+<p>In this case, we have added a transient to data read from a file with a known FRB (see <a class="reference internal" href="Pipeline.html#pipeline"><span class="std std-ref">Searching for an FRB in SDM Data</span></a>). However, since the FRB was added at <code class="docutils literal"><span class="pre">DM=0</span></code>, it appears strongest there. However, some of the signal from the highly-dispersed FRB still appears at another integration.</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/favicon.ico.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="Pipeline.html"
+                        title="previous chapter">Searching for an FRB in SDM Data</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="Reproduce.html"
+                        title="next chapter">Reproducing realfast Candidate Transients</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Simulating.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Reproduce.html" title="Reproducing realfast Candidate Transients"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="Pipeline.html" title="Searching for an FRB in SDM Data"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">rfpipe 0.9.6 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="UseCases.html" >Use Cases</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Casey Law.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.
+    </div>
+  </body>
+</html>

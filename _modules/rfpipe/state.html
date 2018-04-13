@@ -1,121 +1,49 @@
-<!DOCTYPE html>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>rfpipe.state &#8212; rfpipe 0.9.5 documentation</title>
-    <link rel="stylesheet" href="../../_static/bootstrap-sphinx.css" type="text/css" />
+    <title>rfpipe.state &#8212; rfpipe 0.9.6 documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.9.6',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
-    <script type="text/javascript" src="../../_static/js/jquery-1.11.0.min.js"></script>
-    <script type="text/javascript" src="../../_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="../../_static/bootstrap-3.3.7/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="../../_static/bootstrap-sphinx.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
-    <link rel="search" title="Search" href="../../search.html" />
-<meta charset='utf-8'>
-<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
-<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
-<meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">rfpipe 0.9.6 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
 
-  </head><body>
-
-  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
-    <div class="container">
-      <div class="navbar-header">
-        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
-        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-        </button>
-        <a class="navbar-brand" href="../../index.html"><span><img src="../../_static/favicon.ico.png"></span>
-          rfpipe</a>
-        <span class="navbar-text navbar-version pull-left"><b>0.9.5</b></span>
-      </div>
-
-        <div class="collapse navbar-collapse nav-collapse">
-          <ul class="nav navbar-nav">
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
             
-            
-              <li class="dropdown globaltoc-container">
-  <a role="button"
-     id="dLabelGlobalToc"
-     data-toggle="dropdown"
-     data-target="#"
-     href="../../index.html">Site <b class="caret"></b></a>
-  <ul class="dropdown-menu globaltoc"
-      role="menu"
-      aria-labelledby="dLabelGlobalToc"><ul>
-<li class="toctree-l1"><a class="reference internal" href="../../Overview.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Overview.html#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Overview.html#quick-start">Quick Start</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../State.html">Search State, Preferences, and Metadata</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Pipeline.html">Using a Search Pipeline</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Searching.html">Searching for Transients</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Candidates.html">Candidates</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../Reproduce.html">Reproducing Transient Detections</a></li>
-</ul>
-</ul>
-</li>
-              
-                <li class="dropdown">
-  <a role="button"
-     id="dLabelLocalToc"
-     data-toggle="dropdown"
-     data-target="#"
-     href="#">Page <b class="caret"></b></a>
-  <ul class="dropdown-menu localtoc"
-      role="menu"
-      aria-labelledby="dLabelLocalToc"></ul>
-</li>
-              
-            
-            
-              
-                
-              
-            
-            
-            
-            
-              <li class="hidden-sm"></li>
-            
-          </ul>
-
-          
-            
-<form class="navbar-form navbar-right" action="../../search.html" method="get">
- <div class="form-group">
-  <input type="text" name="q" class="form-control" placeholder="Search" />
- </div>
-  <input type="hidden" name="check_keywords" value="yes" />
-  <input type="hidden" name="area" value="default" />
-</form>
-          
-        </div>
-    </div>
-  </div>
-
-<div class="container">
-  <div class="row">
-      <div class="col-md-3">
-        <div id="sidebar" class="bs-sidenav" role="complementary">
-<form action="../../search.html" method="get">
- <div class="form-group">
-  <input type="text" name="q" class="form-control" placeholder="Search" />
- </div>
-  <input type="hidden" name="check_keywords" value="yes" />
-  <input type="hidden" name="area" value="default" />
-</form>
-        </div>
-      </div>
-    <div class="col-md-9 content">
-      
   <h1>Source code for rfpipe.state</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">unicode_literals</span>
 <span class="kn">from</span> <span class="nn">builtins</span> <span class="k">import</span> <span class="nb">bytes</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="nb">object</span><span class="p">,</span> <span class="nb">range</span><span class="p">,</span> <span class="nb">map</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="nb">str</span>
@@ -125,7 +53,7 @@
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">date</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">scipy.special</span> <span class="k">import</span> <span class="n">erf</span>
+<span class="kn">from</span> <span class="nn">scipy.special</span> <span class="k">import</span> <span class="n">erf</span><span class="p">,</span> <span class="n">erfinv</span>
 <span class="kn">from</span> <span class="nn">astropy</span> <span class="k">import</span> <span class="n">time</span>
 <span class="kn">from</span> <span class="nn">rfpipe</span> <span class="k">import</span> <span class="n">util</span><span class="p">,</span> <span class="n">preferences</span><span class="p">,</span> <span class="n">metadata</span><span class="p">,</span> <span class="n">version</span>
 <span class="kn">import</span> <span class="nn">pwkit.environments.casa.util</span> <span class="k">as</span> <span class="nn">casautil</span>
@@ -137,29 +65,20 @@
 
 
 <div class="viewcode-block" id="State"><a class="viewcode-back" href="../../State.html#rfpipe.state.State">[docs]</a><span class="k">class</span> <span class="nc">State</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Defines initial pipeline preferences and methods for calculating state.</span>
-<span class="sd">    Uses attributes for preferences and metadata.</span>
-<span class="sd">    State properties used for derived quantities that depend on</span>
-<span class="sd">    metadata+preferences.</span>
+    <span class="sd">&quot;&quot;&quot; Defines initial search from preferences and methods.</span>
+<span class="sd">    State properties are used to calculate quantities for the search.</span>
 
-<span class="sd">    Scheme:</span>
-<span class="sd">    1) initial, minimal state defines either parameters for later use or fixes</span>
-<span class="sd">        final state</span>
-<span class="sd">    2) read metadata from observation for given scan (if final value not</span>
-<span class="sd">        yet set)</span>
-<span class="sd">    3) run functions to set state (sets hashable state)</span>
-<span class="sd">    4) may also set convenience attibutes</span>
-<span class="sd">    5) run data processing for given segment</span>
-
-<span class="sd">    these should be modified to change state based on input</span>
-<span class="sd">    - nsegment or dmarr + memory_limit + metadata =&gt; segmenttimes</span>
-<span class="sd">    - dmarr or dm_parameters + metadata =&gt; dmarr</span>
-<span class="sd">    - uvoversample + npix_max + metadata =&gt; npixx, npixy</span>
+<span class="sd">    Approach:</span>
+<span class="sd">    1) initial preferences can overload state properties</span>
+<span class="sd">    2) read metadata from observation for given scan</span>
+<span class="sd">    3) set state (and a few cached values)</span>
+<span class="sd">    4) state can optionally include attributes for later convenience</span>
+<span class="sd">    5) run search on a segment.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sdmfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sdmscan</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bdfdir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">inprefs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">inmeta</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">preffile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">showsummary</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">lock</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                 <span class="n">showsummary</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">lock</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">validate</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Initialize preference attributes with text file, preffile.</span>
 <span class="sd">        name can select preference set from within yaml file.</span>
 <span class="sd">        preferences are overloaded with inprefs.</span>
@@ -170,6 +89,7 @@
 
 <span class="sd">        inmeta is a dict with key-value pairs to overload metadata (e.g., to</span>
 <span class="sd">        mock metadata from a simulation)</span>
+<span class="sd">        validate argument will use assertions to test state.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
@@ -219,12 +139,41 @@
 
             <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">Metadata</span><span class="p">(</span><span class="o">**</span><span class="n">meta</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="n">validate</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">validate</span><span class="p">()</span>
+
         <span class="k">if</span> <span class="n">showsummary</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">summarize</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;rfpipe state with metadata/prefs (</span><span class="si">{0}</span><span class="s1">/</span><span class="si">{1}</span><span class="s1">)&#39;</span>
                 <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">datasetId</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+
+<div class="viewcode-block" id="State.validate"><a class="viewcode-back" href="../../State.html#rfpipe.state.State.validate">[docs]</a>    <span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Test validity of state (metadata + preferences) with a few assertions</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_overlap</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">nints</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">inttime</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;t_overlap must be&#39;</span>
+                                                          <span class="s1">&#39; less than scan &#39;</span>
+                                                          <span class="s1">&#39;length (</span><span class="si">{0}</span><span class="s1"> &lt; </span><span class="si">{1}</span><span class="s1">) &#39;</span>
+                                                          <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t_overlap</span><span class="p">,</span>
+                                                                  <span class="bp">self</span><span class="o">.</span><span class="n">nints</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">inttime</span><span class="p">))</span>
+
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_overlap</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_segment</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Max DM sweep (</span><span class="si">{0:.1f}</span><span class="s1"> s)&#39;</span>
+                                                 <span class="s1">&#39; is larger than segment &#39;</span>
+                                                 <span class="s1">&#39;size (</span><span class="si">{1:.1f}</span><span class="s1"> s). &#39;</span>
+                                                 <span class="s1">&#39;Pipeline will fail!&#39;</span>
+                                                 <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t_overlap</span><span class="p">,</span>
+                                                         <span class="bp">self</span><span class="o">.</span><span class="n">t_segment</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">timesub</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">inttime</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">fringetime_orig</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Integration time &#39;</span>
+                                                         <span class="s1">&#39;must be less than &#39;</span>
+                                                         <span class="s1">&#39;fringe time &#39;</span>
+                                                         <span class="s1">&#39;(</span><span class="si">{0}</span><span class="s1"> &lt; </span><span class="si">{1}</span><span class="s1">) for vis &#39;</span>
+                                                         <span class="s1">&#39;subtraction&#39;</span>
+                                                         <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inttime</span><span class="p">,</span>
+                                                                 <span class="bp">self</span><span class="o">.</span><span class="n">fringetime</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="State.summarize"><a class="viewcode-back" href="../../State.html#rfpipe.state.State.summarize">[docs]</a>    <span class="k">def</span> <span class="nf">summarize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Print summary of pipeline state &quot;&quot;&quot;</span>
@@ -243,7 +192,7 @@
 
             <span class="c1"># TODO: remove for datasource=vys or sim</span>
             <span class="n">spworder</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">spw_reffreq</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">spworder</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">spworder</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">spworder</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">spworder</span><span class="p">))</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">datasource</span> <span class="o">==</span> <span class="s1">&#39;sdm&#39;</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;BDF spw sorted to increasing order from </span><span class="si">{0}</span><span class="s1">&#39;</span>
                             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">spworder</span><span class="p">))</span>
 
@@ -266,21 +215,10 @@
                                 <span class="bp">self</span><span class="o">.</span><span class="n">readints</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_segment</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_overlap</span><span class="p">))</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Searching </span><span class="si">{0}</span><span class="s1"> of </span><span class="si">{1}</span><span class="s1"> ints in scan&#39;</span>
                         <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">searchints</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">nints</span><span class="p">))</span>
-            <span class="k">if</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">t_overlap</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_segment</span><span class="o">/</span><span class="mf">3.</span><span class="p">)</span>
-               <span class="ow">and</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t_overlap</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_segment</span><span class="p">)):</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t\t</span><span class="s1"> Lots of segments needed, since Max DM sweep &#39;</span>
-                            <span class="s1">&#39;(</span><span class="si">{0:.1f}</span><span class="s1"> s) close to segment size (</span><span class="si">{1:.1f}</span><span class="s1"> s)&#39;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_overlap</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_segment</span><span class="o">/</span><span class="mf">2.</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t\t</span><span class="s1"> Highly redundant reading. Max DM sweep &#39;</span>
+                            <span class="s1">&#39;(</span><span class="si">{0:.1f}</span><span class="s1"> s) &gt; 1/2 segment size (</span><span class="si">{1:.1f}</span><span class="s1"> s)&#39;</span>
                             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t_overlap</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_segment</span><span class="p">))</span>
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_overlap</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_segment</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t\t</span><span class="s1"> Max DM sweep (</span><span class="si">{0:.1f}</span><span class="s1"> s) is larger than &#39;</span>
-                            <span class="s1">&#39;segment size (</span><span class="si">{1:.1f}</span><span class="s1"> s). Pipeline will fail!&#39;</span>
-                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t_overlap</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_segment</span><span class="p">))</span>
-
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">inttime</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">fringetime_orig</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t\t</span><span class="s1"> Integration time larger than fringe &#39;</span>
-                            <span class="s1">&#39;timescale (</span><span class="si">{0}</span><span class="s1"> &gt; </span><span class="si">{1}</span><span class="s1">). Mean visibility &#39;</span>
-                            <span class="s1">&#39;subtraction will not work well.&#39;</span>
-                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inttime</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fringetime</span><span class="p">))</span>
 
             <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">read_tdownsample</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">read_fdownsample</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">):</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Downsampling in time/freq by </span><span class="si">{0}</span><span class="s1">/</span><span class="si">{1}</span><span class="s1">.&#39;</span>
@@ -301,15 +239,15 @@
 
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Using </span><span class="si">{0}</span><span class="s1"> for </span><span class="si">{1}</span><span class="s1"> search at </span><span class="si">{2}</span><span class="s1"> sigma using </span><span class="si">{3}</span><span class="s1"> thread</span><span class="si">{4}</span><span class="s1">.&#39;</span>
                         <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fftmode</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">searchtype</span><span class="p">,</span>
-                                <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">sigma_image1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">nthread</span><span class="p">,</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">sigma_image1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">nthread</span><span class="p">,</span>
                                 <span class="s1">&#39;s&#39;</span><span class="p">[</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">nthread</span><span class="o">-</span><span class="mi">1</span><span class="p">:]))</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Using </span><span class="si">{0}</span><span class="s1"> DMs from </span><span class="si">{1}</span><span class="s1"> to </span><span class="si">{2}</span><span class="s1"> and dts </span><span class="si">{3}</span><span class="s1">.&#39;</span>
                         <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dmarr</span><span class="p">),</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dmarr</span><span class="p">),</span>
                                 <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dmarr</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtarr</span><span class="p">))</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Using uvgrid npix=(</span><span class="si">{0}</span><span class="s1">, </span><span class="si">{1}</span><span class="s1">) and res=</span><span class="si">{2}</span><span class="s1"> with </span><span class="si">{3}</span><span class="s1"> int chunks.&#39;</span>
                         <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npixx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">npixy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">uvres</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">chunksize</span><span class="p">))</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Expect </span><span class="si">{0}</span><span class="s1"> thermal false positives per segment.&#39;</span>
-                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nfalse</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Expect </span><span class="si">{0}</span><span class="s1"> thermal false positives per scan.&#39;</span>
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nfalse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigma_image1</span><span class="p">)))</span>
 
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fftmode</span> <span class="o">==</span> <span class="s2">&quot;fftw&quot;</span><span class="p">:</span>
@@ -318,17 +256,17 @@
                             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vismem</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">immem</span><span class="p">))</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">fftmode</span> <span class="o">==</span> <span class="s2">&quot;cuda&quot;</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> Visibility memory usage is </span><span class="si">{0}</span><span class="s1"> &#39;</span>
-                            <span class="s1">&#39;GB/segment when using cuda imaging.&#39;</span></div>
-                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vismem</span><span class="p">))</span>
+                            <span class="s1">&#39;GB/segment when using cuda imaging.&#39;</span>
+                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vismem</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="State.clearcache"><a class="viewcode-back" href="../../State.html#rfpipe.state.State.clearcache">[docs]</a>    <span class="k">def</span> <span class="nf">clearcache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">cached</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;_dmarr&#39;</span><span class="p">,</span> <span class="s1">&#39;_t_overlap&#39;</span><span class="p">,</span> <span class="s1">&#39;_dmshifts&#39;</span><span class="p">,</span> <span class="s1">&#39;_npol&#39;</span><span class="p">,</span> <span class="s1">&#39;_blarr&#39;</span><span class="p">,</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;_dmarr&#39;</span><span class="p">,</span> <span class="s1">&#39;_dmshifts&#39;</span><span class="p">,</span> <span class="s1">&#39;_npol&#39;</span><span class="p">,</span> <span class="s1">&#39;_blarr&#39;</span><span class="p">,</span>
                   <span class="s1">&#39;_segmenttimes&#39;</span><span class="p">,</span> <span class="s1">&#39;_npixx_full&#39;</span><span class="p">,</span> <span class="s1">&#39;_npixy_full&#39;</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">cached</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="nb">delattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span></div>
-                <span class="k">pass</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="k">pass</span></div>
 
 <div class="viewcode-block" id="State.get_search_ints"><a class="viewcode-back" href="../../State.html#rfpipe.state.State.get_search_ints">[docs]</a>    <span class="k">def</span> <span class="nf">get_search_ints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Helper function to get list of integrations</span>
@@ -338,8 +276,8 @@
         <span class="k">if</span> <span class="n">segment</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">readints</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">dmshifts</span><span class="p">[</span><span class="n">dmind</span><span class="p">])</span><span class="o">//</span><span class="bp">self</span><span class="o">.</span><span class="n">dtarr</span><span class="p">[</span><span class="n">dtind</span><span class="p">]))</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">dmshifts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">dmshifts</span><span class="p">[</span><span class="n">dmind</span><span class="p">])</span><span class="o">//</span><span class="bp">self</span><span class="o">.</span><span class="n">dtarr</span><span class="p">[</span><span class="n">dtind</span><span class="p">],</span></div>
-                              <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">readints</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">dmshifts</span><span class="p">[</span><span class="n">dmind</span><span class="p">])</span><span class="o">//</span><span class="bp">self</span><span class="o">.</span><span class="n">dtarr</span><span class="p">[</span><span class="n">dtind</span><span class="p">]))</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">dmshifts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">dmshifts</span><span class="p">[</span><span class="n">dmind</span><span class="p">])</span><span class="o">//</span><span class="bp">self</span><span class="o">.</span><span class="n">dtarr</span><span class="p">[</span><span class="n">dtind</span><span class="p">],</span>
+                              <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">readints</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">dmshifts</span><span class="p">[</span><span class="n">dmind</span><span class="p">])</span><span class="o">//</span><span class="bp">self</span><span class="o">.</span><span class="n">dtarr</span><span class="p">[</span><span class="n">dtind</span><span class="p">]))</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">version</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -427,9 +365,7 @@
         <span class="sd">&quot;&quot;&quot; Max DM delay in seconds that is fixed to int mult of integration time.</span>
 <span class="sd">        Gets cached. &quot;&quot;&quot;</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_t_overlap&#39;</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_t_overlap</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dmshifts</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">inttime</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_t_overlap</span>
+        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dmshifts</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">inttime</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">spw</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -574,10 +510,9 @@
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">fieldsize_deg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Takes gridding spec to estimate field of view in degrees</span>
-<span class="sd">        ** TODO: check for accuracy</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uvres</span><span class="o">/</span><span class="mf">2.</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uvres</span><span class="o">*</span><span class="mf">2.</span><span class="p">))</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">fringetime_orig</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -672,14 +607,14 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">segmenttimes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; List of tuples containing MJD times defining segment start and stop.</span>
+        <span class="sd">&quot;&quot;&quot; Array of float pairs containing MJD times defining segment start and stop.</span>
 <span class="sd">        Calculated from prefs.nsegment first.</span>
 <span class="sd">        Alternately, best times found based on fringe time and memory limit</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_segmenttimes&#39;</span><span class="p">):</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">segmenttimes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_segmenttimes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">segmenttimes</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_segmenttimes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">segmenttimes</span><span class="p">)</span>
 <span class="c1">#            elif self.prefs.nsegment:</span>
 <span class="c1">#                self._segmenttimes = calc_segment_times(self, self.prefs.nsegment)</span>
             <span class="k">else</span><span class="p">:</span>
@@ -713,14 +648,19 @@
             <span class="n">peaky</span> <span class="o">=</span> <span class="n">peaky</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">peakx</span> <span class="o">=</span> <span class="n">peakx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
-        <span class="n">l1</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npixx</span><span class="o">/</span><span class="mf">2.</span> <span class="o">-</span> <span class="n">peakx</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npixx</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">uvres</span><span class="p">)</span>
-        <span class="n">m1</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npixy</span><span class="o">/</span><span class="mf">2.</span> <span class="o">-</span> <span class="n">peaky</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npixy</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">uvres</span><span class="p">)</span>
-</div>
-        <span class="k">return</span> <span class="n">l1</span><span class="p">,</span> <span class="n">m1</span>
+        <span class="n">l1</span><span class="p">,</span> <span class="n">m1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calclm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">npixx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">npixy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">uvres</span><span class="p">,</span> <span class="n">peakx</span><span class="p">,</span> <span class="n">peaky</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">l1</span><span class="p">,</span> <span class="n">m1</span></div>
+
+<div class="viewcode-block" id="State.calclm"><a class="viewcode-back" href="../../State.html#rfpipe.state.State.calclm">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">calclm</span><span class="p">(</span><span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">,</span> <span class="n">uvres</span><span class="p">,</span> <span class="n">peakx</span><span class="p">,</span> <span class="n">peaky</span><span class="p">):</span>
+        <span class="n">l1</span> <span class="o">=</span> <span class="p">(</span><span class="n">npixx</span><span class="o">/</span><span class="mf">2.</span> <span class="o">-</span> <span class="n">peakx</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">npixx</span><span class="o">*</span><span class="n">uvres</span><span class="p">)</span>
+        <span class="n">m1</span> <span class="o">=</span> <span class="p">(</span><span class="n">npixy</span><span class="o">/</span><span class="mf">2.</span> <span class="o">-</span> <span class="n">peaky</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">npixy</span><span class="o">*</span><span class="n">uvres</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">l1</span><span class="p">,</span> <span class="n">m1</span></div>
 
 <div class="viewcode-block" id="State.get_segmenttime_string"><a class="viewcode-back" href="../../State.html#rfpipe.state.State.get_segmenttime_string">[docs]</a>    <span class="k">def</span> <span class="nf">get_segmenttime_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">segment</span><span class="p">):</span>
-        <span class="n">mid_mjd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">segmenttimes</span><span class="p">[</span><span class="n">segment</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span></div>
-        <span class="k">return</span> <span class="n">qa</span><span class="o">.</span><span class="n">time</span><span class="p">(</span><span class="n">qa</span><span class="o">.</span><span class="n">quantity</span><span class="p">(</span><span class="n">mid_mjd</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">),</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;ymd&#39;</span><span class="p">,</span> <span class="n">prec</span><span class="o">=</span><span class="mi">8</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">mid_mjd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">segmenttimes</span><span class="p">[</span><span class="n">segment</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">qa</span><span class="o">.</span><span class="n">time</span><span class="p">(</span><span class="n">qa</span><span class="o">.</span><span class="n">quantity</span><span class="p">(</span><span class="n">mid_mjd</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">),</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;ymd&#39;</span><span class="p">,</span> <span class="n">prec</span><span class="o">=</span><span class="mi">8</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">nints</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -748,12 +688,47 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">searchints</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Number of integrations searched</span>
+        <span class="sd">&quot;&quot;&quot; Number of integrations searched per scan</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">readints</span> <span class="o">+</span> \
-        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">readints</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t_overlap</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">inttime</span><span class="p">)))</span> <span class="o">*</span> \
-        <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsegment</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+               <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">readints</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t_overlap</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">inttime</span><span class="p">)))</span> <span class="o">*</span> \
+               <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsegment</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ntrials</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Number of search trials per scan</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">dtfactor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">([</span><span class="mi">1</span><span class="o">/</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtarr</span><span class="p">])</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">searchints</span> <span class="o">*</span> <span class="n">dtfactor</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dmarr</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">npixx</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">npixy</span>
+
+<div class="viewcode-block" id="State.nfalse"><a class="viewcode-back" href="../../State.html#rfpipe.state.State.nfalse">[docs]</a>    <span class="k">def</span> <span class="nf">nfalse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sigma</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Number of thermal-noise false positives per scan at given sigma</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">qfrac</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">erf</span><span class="p">(</span><span class="n">sigma</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">qfrac</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">ntrials</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="State.thresholdlevel"><a class="viewcode-back" href="../../State.html#rfpipe.state.State.thresholdlevel">[docs]</a>    <span class="k">def</span> <span class="nf">thresholdlevel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nfalse</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Sigma threshold for a given number of false positives per scan</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">erfinv</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">nfalse</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ntrials</span><span class="p">))</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">sigma_image1</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Use either sigma_image1 or nfalse</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">sigma_image1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">nfalse</span>  <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">),</span> <span class="s2">&quot;Must set either prefs.sigma_image1 or prefs.nfalse&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">sigma_image1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">sigma_image1</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">nfalse</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">thresholdlevel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">nfalse</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Cannot set sigma_image1 from given preferences&quot;</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">datashape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -762,7 +737,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">datasize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">datashape</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">datashape</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">datashape_orig</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -771,19 +746,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">datasize_orig</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">datashape_orig</span><span class="p">))</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">nfalse</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Calculate the number of thermal-noise false positives per segment.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="c1"># assumes dedisperse-all algorithm</span>
-        <span class="n">dtfactor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">([</span><span class="mi">1</span><span class="o">/</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtarr</span><span class="p">])</span>
-        <span class="n">ntrials</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">readints</span> <span class="o">*</span> <span class="n">dtfactor</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dmarr</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">npixx</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">npixy</span>
-        <span class="n">qfrac</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">erf</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">sigma_image1</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span>
-        <span class="n">nfalse</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">qfrac</span><span class="o">*</span><span class="n">ntrials</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">nfalse</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">datashape_orig</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">search_dimensions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -899,8 +862,8 @@
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">readints</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">defined</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></div>
-        <span class="k">return</span> <span class="p">[</span><span class="n">key</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="k">if</span> <span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;_&#39;</span><span class="p">]</span>
+    <span class="k">def</span> <span class="nf">defined</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">key</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="k">if</span> <span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;_&#39;</span><span class="p">]</span></div>
 
 <span class="c1"># **not sure we need this</span>
 <span class="c1">#</span>
@@ -963,21 +926,44 @@
     <span class="k">return</span> <span class="n">st</span>
 </pre></div>
 
-    </div>
-      
-  </div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../index.html">
+              <img class="logo" src="../../_static/favicon.ico.png" alt="Logo"/>
+            </a></p>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
 </div>
-<footer class="footer">
-  <div class="container">
-    <p class="pull-right">
-      <a href="#">Back to top</a>
-      
-    </p>
-    <p>
-        &copy; Copyright 2017, Casey Law.<br/>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.1.<br/>
-    </p>
-  </div>
-</footer>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">rfpipe 0.9.6 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Casey Law.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.
+    </div>
   </body>
 </html>

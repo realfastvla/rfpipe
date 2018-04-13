@@ -1,0 +1,157 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Getting Started &#8212; rfpipe 0.9.6 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.9.6',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Concepts" href="Concepts.html" />
+    <link rel="prev" title="rfpipe: radio interferometric transient search library" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Concepts.html" title="Concepts"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="rfpipe: radio interferometric transient search library"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">rfpipe 0.9.6 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="getting-started">
+<h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="installation">
+<span id="id1"></span><h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<p>Rfpipe requires the <a class="reference external" href="https://conda.io/docs/user-guide/install/download.html">anaconda installer</a>. The installation usually works best by adding two channels to find dependencies. To install rfpipe in a dedicated software environment, try the following:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">config</span> <span class="o">--</span><span class="n">add</span> <span class="n">channels</span> <span class="n">pkgw</span><span class="o">-</span><span class="n">forge</span>
+<span class="n">conda</span> <span class="n">config</span> <span class="o">--</span><span class="n">add</span> <span class="n">channels</span> <span class="n">conda</span><span class="o">-</span><span class="n">forge</span>
+<span class="n">conda</span> <span class="n">create</span> <span class="o">-</span><span class="n">n</span> <span class="n">realfast</span> <span class="n">numpy</span> <span class="n">scipy</span> <span class="n">cython</span> <span class="n">matplotlib</span> <span class="n">pwkit</span> <span class="n">casa</span><span class="o">-</span><span class="n">tools</span> <span class="n">casa</span><span class="o">-</span><span class="n">python</span> <span class="n">casa</span><span class="o">-</span><span class="n">data</span> <span class="n">numba</span> <span class="n">astropy</span> <span class="n">pyfftw</span>
+<span class="n">source</span> <span class="n">activate</span> <span class="n">realfast</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="n">git</span><span class="o">+</span><span class="n">ssh</span><span class="p">:</span><span class="o">//</span><span class="n">git</span><span class="nd">@github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">realfastvla</span><span class="o">/</span><span class="n">rfpipe</span>
+</pre></div>
+</div>
+<p>If you intend to contribute to rfpipe, you should instead install rfpipe from source. To do so, replace the “pip install” line with:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">git</span><span class="nd">@github</span><span class="o">.</span><span class="n">com</span><span class="p">:</span><span class="n">realfastvla</span><span class="o">/</span><span class="n">rfpipe</span><span class="o">.</span><span class="n">git</span>
+<span class="n">cd</span> <span class="n">rfpipe</span>
+<span class="n">python</span> <span class="n">setup</span><span class="o">.</span><span class="n">py</span> <span class="n">install</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="quick-start">
+<span id="quickstart"></span><h2>Quick Start<a class="headerlink" href="#quick-start" title="Permalink to this headline">¶</a></h2>
+<p>As a quick validation of the installation and search capability, one can create a mock observation filled with random numbers. To do so, run:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">rfpipe</span>
+<span class="n">t0</span> <span class="o">=</span> <span class="mf">0.</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="mf">10.</span><span class="o">/</span><span class="p">(</span><span class="mi">24</span><span class="o">*</span><span class="mi">3600</span><span class="p">)</span>
+<span class="n">inmeta</span> <span class="o">=</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">mock_metadata</span><span class="p">(</span><span class="n">t0</span><span class="p">,</span> <span class="n">t1</span><span class="p">,</span> <span class="mi">27</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">100000</span><span class="p">,</span> <span class="n">datasource</span><span class="o">=</span><span class="s1">&#39;sim&#39;</span><span class="p">)</span>
+<span class="n">st</span> <span class="o">=</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">State</span><span class="p">(</span><span class="n">inmeta</span><span class="o">=</span><span class="n">inmeta</span><span class="p">,</span> <span class="n">inprefs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;maxdm&#39;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span> <span class="s1">&#39;memory_limit&#39;</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;fftmode&#39;</span><span class="p">:</span> <span class="s1">&#39;fftw&#39;</span><span class="p">,</span> <span class="s1">&#39;npix_max&#39;</span><span class="p">:</span> <span class="mi">512</span><span class="p">})</span>
+<span class="n">candcollection</span> <span class="o">=</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">pipeline</span><span class="o">.</span><span class="n">pipeline_scan</span><span class="p">(</span><span class="n">st</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The inmeta object is a Python dict that defines metadata for an observation that, among other parameters, has a duration of 10 seconds with visibilities sampled at 100000 microsecond cadence. The inprefs definition defines a set of preferences on how the pipeline should be run; in this case, we define a maximum dm and a few other parameters for a modest, CPU-based search.</p>
+<p>The logging statements should show the parameters of the search as defined in the pipeline “state”. The state is used to dynamically calculate parameters of the search based on the input metadata and preferences (see <a class="reference internal" href="State.html#state"><span class="std std-ref">Search State</span></a> for details). The logging of the pipeline_scan function will show the reading (in this case simulating) of data and iterating the search over the data.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/favicon.ico.png" alt="Logo"/>
+            </a></p>
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Getting Started</a><ul>
+<li><a class="reference internal" href="#installation">Installation</a></li>
+<li><a class="reference internal" href="#quick-start">Quick Start</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">rfpipe: radio interferometric transient search library</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="Concepts.html"
+                        title="next chapter">Concepts</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/GettingStarted.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Concepts.html" title="Concepts"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="rfpipe: radio interferometric transient search library"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">rfpipe 0.9.6 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Casey Law.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,147 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Concepts &#8212; rfpipe 0.9.6 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.9.6',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Search State" href="State.html" />
+    <link rel="prev" title="Getting Started" href="GettingStarted.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="State.html" title="Search State"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="GettingStarted.html" title="Getting Started"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">rfpipe 0.9.6 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="concepts">
+<h1>Concepts<a class="headerlink" href="#concepts" title="Permalink to this headline">¶</a></h1>
+<p>The standard use case for rfpipe is to read visibility data, prepare it, search it, and save transient radio source information. The search work flow shown below and drives the concepts behind the rfpipe design. (Note references to databases are specific to the realfast system at the VLA.)</p>
+<img alt="_images/rf-pipeline.png" src="_images/rf-pipeline.png" />
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="State.html">Search State</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="State.html#scans-and-segments">Scans and Segments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="State.html#state-api">State API</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Preferences.html">Search Preferences</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Preferences.html#preferences-api">Preferences API</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Metadata.html">Observational Metadata</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Metadata.html#metadata-api">Metadata API</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Searching.html">Transient Search</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Searching.html#module-rfpipe.source">Source API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Searching.html#module-rfpipe.search">Search API</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Candidates.html">Candidates</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Candidates.html#candcollection">CandCollection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Candidates.html#candidate-visualization">Candidate Visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Candidates.html#candidates-api">Candidates API</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/favicon.ico.png" alt="Logo"/>
+            </a></p>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="GettingStarted.html"
+                        title="previous chapter">Getting Started</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="State.html"
+                        title="next chapter">Search State</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Concepts.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="State.html" title="Search State"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="GettingStarted.html" title="Getting Started"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">rfpipe 0.9.6 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Casey Law.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.
+    </div>
+  </body>
+</html>
