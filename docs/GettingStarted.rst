@@ -7,7 +7,7 @@ Getting Started
 Installation
 ==============
 
-Rfpipe requires the `anaconda installer`<https://conda.io/docs/user-guide/install/download.html>. The installation usually works best by adding two channels to find dependencies. To install rfpipe in a dedicated software environment, try the following::
+Rfpipe requires the `anaconda installer <https://conda.io/docs/user-guide/install/download.html>`_. The installation usually works best by adding two channels to find dependencies. To install rfpipe in a dedicated software environment, try the following::
 
   conda config --add channels pkgw-forge
   conda config --add channels conda-forge
