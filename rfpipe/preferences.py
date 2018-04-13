@@ -17,11 +17,9 @@ logger = logging.getLogger(__name__)
 
 @attr.s
 class Preferences(object):
-    """ Preferences *should* be immutable and express half of info needed to
+    """ Preferences express half of info needed to
     define state. Using preferences with metadata produces a unique state and
     pipeline outcome.
-
-    TODO: can we freeze attributes while still having cached values?
     """
 
     rfpipe_version = attr.ib(default=__version__)

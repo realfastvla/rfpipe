@@ -2,11 +2,12 @@
 Candidates
 ==============
 
-The search functions (or the pipeline) will return objects that summarize the candidates detected. The goal of the search process is to reduce the data volume (e.g., the TB per hour of visibilities) into a manageable summary of candidate transients. This out product is known as a candcollection.
+.. _candcollection:
 
-.. autoclass:: rfpipe.candidates.CandCollection
-   :members:
-   :undoc-members:
+CandCollection
+================
+
+The search functions (or the pipeline) will return objects that summarize the candidates detected. The goal of the search process is to reduce the data volume (e.g., the TB per hour of visibilities) into a manageable summary of candidate transients. This out product is known as a candcollection.
 
 Each candcollection has an ``array`` object that is a numpy array that summarizes the candidate transients. The ``array`` is defined with the first five columns for the location of the candidate (sometimes referred to as the "candidate location"):
 
@@ -32,10 +33,17 @@ Users have the option of generating visualizations of candidates from a search. 
 
 Since the generation of candidate visualizations takes longer than the basic analysis and takes up disk space, we (currently) only generate visualizations for a subset of all candidates. The current approach is the generate a candidate plot only at the maximum SNR in a segment.
 
-The data used to generate the plot come from a ``CandData`` class:
+The data used to generate the plot come from a ``CandData`` class. The ``loc``, ``image``, and ``data`` objects contain numpy arrays used to generate the plot. They may also be useful for modifying the plot or some simple reanalysis of the candidate.
+
+.. _candidatesapi:
+
+Candidates API
+===============
+
+.. autoclass:: rfpipe.candidates.CandCollection
+   :members:
+   :undoc-members:
 
 .. autoclass:: rfpipe.candidates.CandData
    :members:
    :undoc-members:
-
-The ``loc``, ``image``, and ``data`` objects contain numpy arrays used to generate the plot. They may also be useful for modifying the plot or some simple reanalysis of the candidate.
