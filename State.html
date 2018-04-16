@@ -55,428 +55,54 @@
   <div class="section" id="search-state">
 <span id="state"></span><h1>Search State<a class="headerlink" href="#search-state" title="Permalink to this headline">¶</a></h1>
 <p>The definition of a search in rfpipe is controlled with a <code class="docutils literal"><span class="pre">State</span></code> object. The state object is passed to many of the core functions that run the search, which then defines how the functions operate (e.g., values of DM to search, memory limits of the computer, number of pixels in an image, thresholds to apply, etc.).</p>
-<p>A transient search is uniquely defined by the combination of metadata and preferences (see <a class="reference internal" href="Metadata.html#metadataapi"><span class="std std-ref">Metadata API</span></a> <a class="reference internal" href="Preferences.html#preferencesapi"><span class="std std-ref">Preferences API</span></a>). Metadata is fixed, while preferences are defined by the user. Separating these two concepts allows the definition of a <code class="docutils literal"><span class="pre">State</span></code> object that defines the search. Separating these concepts also makes the state portable, so preferences from a search conducted in realtime at the VLA can be reproduced by others in a different computing environment.</p>
+<p>A transient search is uniquely defined by the combination of metadata and preferences (see <a class="reference internal" href="api.html#metadataapi"><span class="std std-ref">Metadata API</span></a> <a class="reference internal" href="api.html#preferencesapi"><span class="std std-ref">Preferences API</span></a>). Metadata is fixed, while preferences are defined by the user. Separating these two concepts allows the definition of a <code class="docutils literal"><span class="pre">State</span></code> object that defines the search. Separating these concepts also makes the state portable, so preferences from a search conducted in realtime at the VLA can be reproduced by others offline.</p>
 <p>Examples of how preferences can be used to control the search behavior:</p>
 <ul class="simple">
 <li>Set memory_limit or maxdm to define time windows for a search (segmenttimes),</li>
 <li>Set dmarr or maxdm to define dispersion measures to search, and</li>
 <li>Set uvoversample and npix_max to calculate the image size optimally with a preferred maximum.</li>
 </ul>
+<p>Here is an example of how to create a <code class="docutils literal"><span class="pre">State</span></code> with 1 second of 10 ms-sampled data and default preferences:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">&gt;</span> <span class="kn">import</span> <span class="nn">rfpipe</span><span class="p">;</span> <span class="kn">from</span> <span class="nn">astropy</span> <span class="k">import</span> <span class="n">time</span>
+<span class="o">&gt;</span> <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">Time</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">mjd</span>
+<span class="o">&gt;</span> <span class="n">t1</span> <span class="o">=</span> <span class="n">t0</span><span class="o">+</span><span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="mi">24</span><span class="o">*</span><span class="mf">3600.</span><span class="p">)</span>
+<span class="o">&gt;</span> <span class="n">inmeta</span> <span class="o">=</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">mock_metadata</span><span class="p">(</span><span class="n">t0</span><span class="p">,</span> <span class="n">t1</span><span class="p">,</span> <span class="mi">27</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mf">10e3</span><span class="p">,</span> <span class="n">datasource</span><span class="o">=</span><span class="s1">&#39;vys&#39;</span><span class="p">,</span> <span class="n">datasetid</span><span class="o">=</span><span class="s1">&#39;test&#39;</span><span class="p">)</span>
+<span class="o">&gt;</span> <span class="n">st</span> <span class="o">=</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">State</span><span class="p">(</span><span class="n">inmeta</span><span class="o">=</span><span class="n">inmeta</span><span class="p">)</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mi">55</span><span class="p">,</span><span class="mi">045</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">metadata</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="n">Generating</span> <span class="n">mock</span> <span class="n">metadata</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mi">55</span><span class="p">,</span><span class="mi">101</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">state</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="n">Metadata</span> <span class="n">summary</span><span class="p">:</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mi">55</span><span class="p">,</span><span class="mi">101</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">state</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span>      <span class="n">Working</span> <span class="n">directory</span> <span class="ow">and</span> <span class="n">fileroot</span><span class="p">:</span> <span class="o">/</span><span class="n">lustre</span><span class="o">/</span><span class="n">evla</span><span class="o">/</span><span class="n">test</span><span class="o">/</span><span class="n">realfast</span><span class="p">,</span> <span class="n">test</span><span class="o">.</span><span class="mf">1.1</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mi">55</span><span class="p">,</span><span class="mi">101</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">state</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span>      <span class="n">Using</span> <span class="n">scan</span> <span class="mi">1</span><span class="p">,</span> <span class="n">source</span> <span class="n">testsource</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mi">55</span><span class="p">,</span><span class="mi">102</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">state</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span>      <span class="n">nants</span><span class="p">,</span> <span class="n">nbl</span><span class="p">:</span> <span class="mi">27</span><span class="p">,</span> <span class="mi">351</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mi">55</span><span class="p">,</span><span class="mi">102</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">state</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span>      <span class="n">nchan</span><span class="p">,</span> <span class="n">nspw</span><span class="p">:</span> <span class="mi">1024</span><span class="p">,</span> <span class="mi">32</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mi">55</span><span class="p">,</span><span class="mi">104</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">state</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span>      <span class="n">Freq</span> <span class="nb">range</span><span class="p">:</span> <span class="mf">2.000</span> <span class="o">--</span> <span class="mf">4.000</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mi">55</span><span class="p">,</span><span class="mi">104</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">state</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span>      <span class="n">Scan</span> <span class="n">has</span> <span class="mi">100</span> <span class="n">ints</span> <span class="p">(</span><span class="mf">1.0</span> <span class="n">s</span><span class="p">)</span> <span class="ow">and</span> <span class="n">inttime</span> <span class="mf">0.010</span> <span class="n">s</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mi">55</span><span class="p">,</span><span class="mi">105</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">state</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span>      <span class="mi">4</span> <span class="n">polarizations</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;A*A&#39;</span><span class="p">,</span> <span class="s1">&#39;A*B&#39;</span><span class="p">,</span> <span class="s1">&#39;B*A&#39;</span><span class="p">,</span> <span class="s1">&#39;B*B&#39;</span><span class="p">]</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mi">55</span><span class="p">,</span><span class="mi">106</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">state</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span>      <span class="n">Ideal</span> <span class="n">uvgrid</span> <span class="n">npix</span><span class="o">=</span><span class="p">(</span><span class="mi">2592</span><span class="p">,</span> <span class="mi">2304</span><span class="p">)</span> <span class="ow">and</span> <span class="n">res</span><span class="o">=</span><span class="mi">83</span> <span class="p">(</span><span class="n">oversample</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mi">55</span><span class="p">,</span><span class="mi">106</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">state</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="n">Pipeline</span> <span class="n">summary</span><span class="p">:</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mi">55</span><span class="p">,</span><span class="mi">106</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">state</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span>      <span class="n">Using</span> <span class="mi">1</span> <span class="n">segment</span> <span class="n">of</span> <span class="mi">100</span> <span class="n">ints</span> <span class="p">(</span><span class="mf">1.0</span> <span class="n">s</span><span class="p">)</span> <span class="k">with</span> <span class="n">overlap</span> <span class="n">of</span> <span class="mf">0.0</span> <span class="n">s</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mi">55</span><span class="p">,</span><span class="mi">106</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">state</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span>      <span class="n">Searching</span> <span class="mi">100</span> <span class="n">of</span> <span class="mi">100</span> <span class="n">ints</span> <span class="ow">in</span> <span class="n">scan</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mi">55</span><span class="p">,</span><span class="mi">106</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">state</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span>      <span class="n">Using</span> <span class="n">pols</span> <span class="p">[</span><span class="s1">&#39;A*A&#39;</span><span class="p">,</span> <span class="s1">&#39;B*B&#39;</span><span class="p">]</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mi">55</span><span class="p">,</span><span class="mi">108</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">state</span> <span class="o">-</span> <span class="n">WARNING</span> <span class="o">-</span>   <span class="n">Gainfile</span> <span class="n">preference</span> <span class="p">(</span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">mchammer</span><span class="o">/</span><span class="n">evladata</span><span class="o">/</span><span class="n">telcal</span><span class="o">/</span><span class="mi">2018</span><span class="o">/</span><span class="mi">04</span><span class="o">/</span><span class="n">test</span><span class="o">.</span><span class="n">GN</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">a</span> <span class="n">telcal</span> <span class="n">file</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mi">55</span><span class="p">,</span><span class="mi">108</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">state</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mi">55</span><span class="p">,</span><span class="mi">108</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">state</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span>      <span class="n">Using</span> <span class="n">fftw</span> <span class="k">for</span> <span class="n">image1</span> <span class="n">search</span> <span class="n">at</span> <span class="mi">7</span> <span class="n">sigma</span> <span class="n">using</span> <span class="mi">1</span> <span class="n">thread</span><span class="o">.</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mi">55</span><span class="p">,</span><span class="mi">108</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">state</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span>      <span class="n">Using</span> <span class="mi">1</span> <span class="n">DMs</span> <span class="kn">from</span> <span class="mi">0</span> <span class="n">to</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">dts</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mi">55</span><span class="p">,</span><span class="mi">109</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">state</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span>      <span class="n">Using</span> <span class="n">uvgrid</span> <span class="n">npix</span><span class="o">=</span><span class="p">(</span><span class="mi">2592</span><span class="p">,</span> <span class="mi">2304</span><span class="p">)</span> <span class="ow">and</span> <span class="n">res</span><span class="o">=</span><span class="mi">83</span> <span class="k">with</span> <span class="mi">100</span> <span class="nb">int</span> <span class="n">chunks</span><span class="o">.</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mi">55</span><span class="p">,</span><span class="mi">109</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">state</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span>      <span class="n">Expect</span> <span class="mi">0</span> <span class="n">thermal</span> <span class="n">false</span> <span class="n">positives</span> <span class="n">per</span> <span class="n">scan</span><span class="o">.</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mi">55</span><span class="p">,</span><span class="mi">110</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">state</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">02</span><span class="p">:</span><span class="mi">55</span><span class="p">,</span><span class="mi">111</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">state</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span>      <span class="n">Visibility</span><span class="o">/</span><span class="n">image</span> <span class="n">memory</span> <span class="n">usage</span> <span class="ow">is</span> <span class="mf">1.1501568</span><span class="o">/</span><span class="mf">4.777574400000001</span> <span class="n">GB</span><span class="o">/</span><span class="n">segment</span> <span class="n">when</span> <span class="n">using</span> <span class="n">fftw</span> <span class="n">imaging</span><span class="o">.</span>
+</pre></div>
+</div>
 <div class="section" id="scans-and-segments">
 <span id="segments"></span><h2>Scans and Segments<a class="headerlink" href="#scans-and-segments" title="Permalink to this headline">¶</a></h2>
 <p>One of the key concepts of rfpipe is the division of data into time windows called segments. A fast transient search is unique in that the integration time is much smaller than typical. In particular, “slow” interferometry typically samples close to the inverse fringe rate of the longest baseline, since that defines the slowest sampling that preserves image quality and sensitivity. “Fast” interferometry instead can assume that it can search many integrations as if the array was stationary.</p>
-<p>In rfpipe this is used to define a <code class="docutils literal"><span class="pre">segment</span></code>, a time window that is at most equal to the inverse fringe rate of the longest baseline. The calculation of the segment times is made during the definition of the <code class="docutils literal"><span class="pre">State</span></code> and is kept as a property of that object. The fringe rate is nominally defined by the <code class="docutils literal"><span class="pre">Metadata</span></code> (e.g., by defining the baseline lengths), but the <code class="docutils literal"><span class="pre">Preferences</span></code> also influence the definition of segments by controlling the search algorithm (e.g., by limiting the size of the image).</p>
+<p>Rfpipe defines a time window called a <code class="docutils literal"><span class="pre">segment</span></code> that is at most equal to the inverse fringe rate of the longest baseline. The calculation of the segment times is made during the definition of the <code class="docutils literal"><span class="pre">State</span></code> and is kept as a property of that object. The fringe rate is nominally defined by the <code class="docutils literal"><span class="pre">Metadata</span></code> (e.g., by defining the baseline lengths), but the <code class="docutils literal"><span class="pre">Preferences</span></code> also influence the definition of segments by controlling the search algorithm (e.g., by limiting the size of the image or memory usage).</p>
+<p>Using the <code class="docutils literal"><span class="pre">State</span></code> generated above, we can see how the segments were defined with properties:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">&gt;</span> <span class="n">st</span><span class="o">.</span><span class="n">nsegment</span>
+<span class="mi">1</span>
+<span class="o">&gt;</span> <span class="n">st</span><span class="o">.</span><span class="n">segmenttimes</span>
+<span class="n">array</span><span class="p">([[</span><span class="mf">58224.83535931</span><span class="p">,</span> <span class="mf">58224.83537088</span><span class="p">]])</span>
+</pre></div>
 </div>
-<div class="section" id="state-api">
-<span id="stateapi"></span><h2>State API<a class="headerlink" href="#state-api" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="rfpipe.state.State">
-<em class="property">class </em><code class="descclassname">rfpipe.state.</code><code class="descname">State</code><span class="sig-paren">(</span><em>config=None</em>, <em>sdmfile=None</em>, <em>sdmscan=None</em>, <em>bdfdir=None</em>, <em>inprefs=None</em>, <em>inmeta=None</em>, <em>preffile=None</em>, <em>name=None</em>, <em>showsummary=True</em>, <em>lock=None</em>, <em>validate=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defines initial search from preferences and methods.
-State properties are used to calculate quantities for the search.</p>
-<p>Approach:
-1) initial preferences can overload state properties
-2) read metadata from observation for given scan
-3) set state (and a few cached values)
-4) state can optionally include attributes for later convenience
-5) run search on a segment.</p>
-<dl class="attribute">
-<dt id="rfpipe.state.State.ants">
-<code class="descname">ants</code><a class="headerlink" href="#rfpipe.state.State.ants" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.beamsize_deg">
-<code class="descname">beamsize_deg</code><a class="headerlink" href="#rfpipe.state.State.beamsize_deg" title="Permalink to this definition">¶</a></dt>
-<dd><p>Takes gridding spec to estimate beam size in degrees
-** TODO: check for accuracy</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.blarr">
-<code class="descname">blarr</code><a class="headerlink" href="#rfpipe.state.State.blarr" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.blarr_names">
-<code class="descname">blarr_names</code><a class="headerlink" href="#rfpipe.state.State.blarr_names" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="staticmethod">
-<dt id="rfpipe.state.State.calclm">
-<em class="property">static </em><code class="descname">calclm</code><span class="sig-paren">(</span><em>npixx</em>, <em>npixy</em>, <em>uvres</em>, <em>peakx</em>, <em>peaky</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State.calclm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State.calclm" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.candsfile">
-<code class="descname">candsfile</code><a class="headerlink" href="#rfpipe.state.State.candsfile" title="Permalink to this definition">¶</a></dt>
-<dd><p>File name to write candidates into</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.chans">
-<code class="descname">chans</code><a class="headerlink" href="#rfpipe.state.State.chans" title="Permalink to this definition">¶</a></dt>
-<dd><p>List of channel indices to use. Drawn from preferences,
-with backup to take all defined in metadata.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.chunksize">
-<code class="descname">chunksize</code><a class="headerlink" href="#rfpipe.state.State.chunksize" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="rfpipe.state.State.clearcache">
-<code class="descname">clearcache</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State.clearcache"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State.clearcache" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.datashape">
-<code class="descname">datashape</code><a class="headerlink" href="#rfpipe.state.State.datashape" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.datashape_orig">
-<code class="descname">datashape_orig</code><a class="headerlink" href="#rfpipe.state.State.datashape_orig" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.datasize">
-<code class="descname">datasize</code><a class="headerlink" href="#rfpipe.state.State.datasize" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.datasize_orig">
-<code class="descname">datasize_orig</code><a class="headerlink" href="#rfpipe.state.State.datasize_orig" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.defined">
-<code class="descname">defined</code><a class="headerlink" href="#rfpipe.state.State.defined" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.dmarr">
-<code class="descname">dmarr</code><a class="headerlink" href="#rfpipe.state.State.dmarr" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.dmshifts">
-<code class="descname">dmshifts</code><a class="headerlink" href="#rfpipe.state.State.dmshifts" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculate max DM delay in units of integrations for each dm trial.
-Gets cached.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.dtarr">
-<code class="descname">dtarr</code><a class="headerlink" href="#rfpipe.state.State.dtarr" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.features">
-<code class="descname">features</code><a class="headerlink" href="#rfpipe.state.State.features" title="Permalink to this definition">¶</a></dt>
-<dd><p>Given searchtype, return features to be extracted in initial
-analysis</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.fftmode">
-<code class="descname">fftmode</code><a class="headerlink" href="#rfpipe.state.State.fftmode" title="Permalink to this definition">¶</a></dt>
-<dd><p>Should the FFT be done with fftw or cuda?
-<em>Could overload here based on local configuration</em></p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.fieldsize_deg">
-<code class="descname">fieldsize_deg</code><a class="headerlink" href="#rfpipe.state.State.fieldsize_deg" title="Permalink to this definition">¶</a></dt>
-<dd><p>Takes gridding spec to estimate field of view in degrees</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.fileroot">
-<code class="descname">fileroot</code><a class="headerlink" href="#rfpipe.state.State.fileroot" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.freq">
-<code class="descname">freq</code><a class="headerlink" href="#rfpipe.state.State.freq" title="Permalink to this definition">¶</a></dt>
-<dd><p>Frequencies for each channel in increasing order.
-Metadata may be out of order, but state/data reading order is sorted.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.fringetime">
-<code class="descname">fringetime</code><a class="headerlink" href="#rfpipe.state.State.fringetime" title="Permalink to this definition">¶</a></dt>
-<dd><p>Same as fringetime_orig, but rounded to integer multiple of
-integration time.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.fringetime_orig">
-<code class="descname">fringetime_orig</code><a class="headerlink" href="#rfpipe.state.State.fringetime_orig" title="Permalink to this definition">¶</a></dt>
-<dd><p>Estimate largest time span of a “segment”.
-A segment is the maximal time span that can be have a single bg fringe
-subtracted and uv grid definition.  Max fringe window estimated for
-5% amp loss at first null averaged over all baselines. Assumes dec=+90,
-which is conservative. Also can be optimized for memory/compute limits.
-Returns time in seconds that defines good window.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.gainfile">
-<code class="descname">gainfile</code><a class="headerlink" href="#rfpipe.state.State.gainfile" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calibration file (telcal) from preferences or found from “.GN”
-suffix</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="rfpipe.state.State.get_search_ints">
-<code class="descname">get_search_ints</code><span class="sig-paren">(</span><em>segment</em>, <em>dmind</em>, <em>dtind</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State.get_search_ints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State.get_search_ints" title="Permalink to this definition">¶</a></dt>
-<dd><p>Helper function to get list of integrations
-to be searched after correcting for DM and resampling.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="rfpipe.state.State.get_segmenttime_string">
-<code class="descname">get_segmenttime_string</code><span class="sig-paren">(</span><em>segment</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State.get_segmenttime_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State.get_segmenttime_string" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.immem">
-<code class="descname">immem</code><a class="headerlink" href="#rfpipe.state.State.immem" title="Permalink to this definition">¶</a></dt>
-<dd><p>Memory required to create all images in a chunk of read integrations</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.immem_limit">
-<code class="descname">immem_limit</code><a class="headerlink" href="#rfpipe.state.State.immem_limit" title="Permalink to this definition">¶</a></dt>
-<dd><p>Memory required to create all images in a chunk of read integrations
-Limit defined for all threads.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.inttime">
-<code class="descname">inttime</code><a class="headerlink" href="#rfpipe.state.State.inttime" title="Permalink to this definition">¶</a></dt>
-<dd><p>Integration time</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.memory_total">
-<code class="descname">memory_total</code><a class="headerlink" href="#rfpipe.state.State.memory_total" title="Permalink to this definition">¶</a></dt>
-<dd><p>Total memory (in GB) required to read and process.
-Depends on data source and search algorithm.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.memory_total_limit">
-<code class="descname">memory_total_limit</code><a class="headerlink" href="#rfpipe.state.State.memory_total_limit" title="Permalink to this definition">¶</a></dt>
-<dd><p>Minimum memory (in GB) required to read and process.
-Depends on data source and search algorithm.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.mockfile">
-<code class="descname">mockfile</code><a class="headerlink" href="#rfpipe.state.State.mockfile" title="Permalink to this definition">¶</a></dt>
-<dd><p>File name to write mocks into</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.nants">
-<code class="descname">nants</code><a class="headerlink" href="#rfpipe.state.State.nants" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.nbl">
-<code class="descname">nbl</code><a class="headerlink" href="#rfpipe.state.State.nbl" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.nchan">
-<code class="descname">nchan</code><a class="headerlink" href="#rfpipe.state.State.nchan" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="rfpipe.state.State.nfalse">
-<code class="descname">nfalse</code><span class="sig-paren">(</span><em>sigma</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State.nfalse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State.nfalse" title="Permalink to this definition">¶</a></dt>
-<dd><p>Number of thermal-noise false positives per scan at given sigma</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.nints">
-<code class="descname">nints</code><a class="headerlink" href="#rfpipe.state.State.nints" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.noisefile">
-<code class="descname">noisefile</code><a class="headerlink" href="#rfpipe.state.State.noisefile" title="Permalink to this definition">¶</a></dt>
-<dd><p>File name to write noises into</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.npixx">
-<code class="descname">npixx</code><a class="headerlink" href="#rfpipe.state.State.npixx" title="Permalink to this definition">¶</a></dt>
-<dd><p>Number of x pixels in uv/image grid.
-First defined by input preference set with default to npixx_full</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.npixx_full">
-<code class="descname">npixx_full</code><a class="headerlink" href="#rfpipe.state.State.npixx_full" title="Permalink to this definition">¶</a></dt>
-<dd><p>Finds optimal uv/image pixel extent in powers of 2 and 3</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.npixy">
-<code class="descname">npixy</code><a class="headerlink" href="#rfpipe.state.State.npixy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Number of y pixels in uv/image grid.
-First defined by input preference set with default to npixy_full</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.npixy_full">
-<code class="descname">npixy_full</code><a class="headerlink" href="#rfpipe.state.State.npixy_full" title="Permalink to this definition">¶</a></dt>
-<dd><p>Finds optimal uv/image pixel extent in powers of 2 and 3</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.npol">
-<code class="descname">npol</code><a class="headerlink" href="#rfpipe.state.State.npol" title="Permalink to this definition">¶</a></dt>
-<dd><p>Number of polarization products selected. Cached.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.nsegment">
-<code class="descname">nsegment</code><a class="headerlink" href="#rfpipe.state.State.nsegment" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.nspw">
-<code class="descname">nspw</code><a class="headerlink" href="#rfpipe.state.State.nspw" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.ntrials">
-<code class="descname">ntrials</code><a class="headerlink" href="#rfpipe.state.State.ntrials" title="Permalink to this definition">¶</a></dt>
-<dd><p>Number of search trials per scan</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="rfpipe.state.State.pixtolm">
-<code class="descname">pixtolm</code><span class="sig-paren">(</span><em>pix</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State.pixtolm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State.pixtolm" title="Permalink to this definition">¶</a></dt>
-<dd><p>Helper function to calculate (l,m) coords of given pixel.
-Example: st.pixtolm(np.where(im == im.max()))</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.pols">
-<code class="descname">pols</code><a class="headerlink" href="#rfpipe.state.State.pols" title="Permalink to this definition">¶</a></dt>
-<dd><p>Polarizations to use based on preference in prefs.selectpol</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.readints">
-<code class="descname">readints</code><a class="headerlink" href="#rfpipe.state.State.readints" title="Permalink to this definition">¶</a></dt>
-<dd><p>Number of integrations read per segment.
-Defines shape of numpy array for visibilities.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.search_dimensions">
-<code class="descname">search_dimensions</code><a class="headerlink" href="#rfpipe.state.State.search_dimensions" title="Permalink to this definition">¶</a></dt>
-<dd><p>Define dimensions searched for a given piece of data.
-Actual algorithm defined in pipeline iteration.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.searchints">
-<code class="descname">searchints</code><a class="headerlink" href="#rfpipe.state.State.searchints" title="Permalink to this definition">¶</a></dt>
-<dd><p>Number of integrations searched per scan</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.segmenttimes">
-<code class="descname">segmenttimes</code><a class="headerlink" href="#rfpipe.state.State.segmenttimes" title="Permalink to this definition">¶</a></dt>
-<dd><p>Array of float pairs containing MJD times defining segment start and stop.
-Calculated from prefs.nsegment first.
-Alternately, best times found based on fringe time and memory limit</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.sigma_image1">
-<code class="descname">sigma_image1</code><a class="headerlink" href="#rfpipe.state.State.sigma_image1" title="Permalink to this definition">¶</a></dt>
-<dd><p>Use either sigma_image1 or nfalse</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.spw">
-<code class="descname">spw</code><a class="headerlink" href="#rfpipe.state.State.spw" title="Permalink to this definition">¶</a></dt>
-<dd><p>List of spectral windows used.
-** TODO: update for proper naming “basband”+”swindex”</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="rfpipe.state.State.summarize">
-<code class="descname">summarize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State.summarize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State.summarize" title="Permalink to this definition">¶</a></dt>
-<dd><p>Print summary of pipeline state</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.t_overlap">
-<code class="descname">t_overlap</code><a class="headerlink" href="#rfpipe.state.State.t_overlap" title="Permalink to this definition">¶</a></dt>
-<dd><p>Max DM delay in seconds that is fixed to int mult of integration time.
-Gets cached.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.t_segment">
-<code class="descname">t_segment</code><a class="headerlink" href="#rfpipe.state.State.t_segment" title="Permalink to this definition">¶</a></dt>
-<dd><p>Time read per segment in seconds
-Assumes first segment is same size as all others.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="rfpipe.state.State.thresholdlevel">
-<code class="descname">thresholdlevel</code><span class="sig-paren">(</span><em>nfalse</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State.thresholdlevel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State.thresholdlevel" title="Permalink to this definition">¶</a></dt>
-<dd><p>Sigma threshold for a given number of false positives per scan</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.uvres">
-<code class="descname">uvres</code><a class="headerlink" href="#rfpipe.state.State.uvres" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.uvres_full">
-<code class="descname">uvres_full</code><a class="headerlink" href="#rfpipe.state.State.uvres_full" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="rfpipe.state.State.validate">
-<code class="descname">validate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State.validate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State.validate" title="Permalink to this definition">¶</a></dt>
-<dd><p>Test validity of state (metadata + preferences) with a few assertions</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.version">
-<code class="descname">version</code><a class="headerlink" href="#rfpipe.state.State.version" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.vismem">
-<code class="descname">vismem</code><a class="headerlink" href="#rfpipe.state.State.vismem" title="Permalink to this definition">¶</a></dt>
-<dd><p>Memory required to store read data (in GB)</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.state.State.vismem_limit">
-<code class="descname">vismem_limit</code><a class="headerlink" href="#rfpipe.state.State.vismem_limit" title="Permalink to this definition">¶</a></dt>
-<dd><p>Memory required to store read data (in GB)
-Limit defined for time range equal to the overlap time between
-segments.</p>
-</dd></dl>
-
-</dd></dl>
-
 </div>
 </div>
 
@@ -493,7 +119,6 @@ segments.</p>
   <ul>
 <li><a class="reference internal" href="#">Search State</a><ul>
 <li><a class="reference internal" href="#scans-and-segments">Scans and Segments</a></li>
-<li><a class="reference internal" href="#state-api">State API</a></li>
 </ul>
 </li>
 </ul>

@@ -127,7 +127,7 @@
         <span class="k">return</span> <span class="n">data_read</span></div>
 
 
-<div class="viewcode-block" id="prep_standard"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.prep_standard">[docs]</a><span class="k">def</span> <span class="nf">prep_standard</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+<div class="viewcode-block" id="prep_standard"><a class="viewcode-back" href="../../api.html#rfpipe.source.prep_standard">[docs]</a><span class="k">def</span> <span class="nf">prep_standard</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Common first data prep stages, incl</span>
 <span class="sd">    online flags, resampling, and mock transients.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -203,7 +203,7 @@
     <span class="k">return</span> <span class="n">data</span></div>
 
 
-<div class="viewcode-block" id="read_vys_segment"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.read_vys_segment">[docs]</a><span class="k">def</span> <span class="nf">read_vys_segment</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">seg</span><span class="p">,</span> <span class="n">cfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">default_timeout</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+<div class="viewcode-block" id="read_vys_segment"><a class="viewcode-back" href="../../api.html#rfpipe.source.read_vys_segment">[docs]</a><span class="k">def</span> <span class="nf">read_vys_segment</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">seg</span><span class="p">,</span> <span class="n">cfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">default_timeout</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Read segment seg defined by state st from vys stream.</span>
 <span class="sd">    Uses vysmaw application timefilter to receive multicast messages and pull</span>
 <span class="sd">    spectra on the CBE.</span>
@@ -261,7 +261,7 @@
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span></div>
 
 
-<div class="viewcode-block" id="read_bdf_segment"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.read_bdf_segment">[docs]</a><span class="k">def</span> <span class="nf">read_bdf_segment</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">):</span>
+<div class="viewcode-block" id="read_bdf_segment"><a class="viewcode-back" href="../../api.html#rfpipe.source.read_bdf_segment">[docs]</a><span class="k">def</span> <span class="nf">read_bdf_segment</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Uses sdmpy to reads bdf (sdm) format data into numpy array in given</span>
 <span class="sd">    segment. Each segment has st.readints integrations.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -283,7 +283,7 @@
     <span class="k">return</span> <span class="n">data</span></div>
 
 
-<div class="viewcode-block" id="read_bdf"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.read_bdf">[docs]</a><span class="k">def</span> <span class="nf">read_bdf</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">nskip</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="read_bdf"><a class="viewcode-back" href="../../api.html#rfpipe.source.read_bdf">[docs]</a><span class="k">def</span> <span class="nf">read_bdf</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">nskip</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Uses sdmpy to read a given range of integrations from sdm of given scan.</span>
 <span class="sd">    readints=0 will read all of bdf (skipping nskip).</span>
 <span class="sd">    Returns data in increasing frequency order.</span>
@@ -313,7 +313,7 @@
     <span class="k">return</span> <span class="n">data</span></div>
 
 
-<div class="viewcode-block" id="save_noise"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.save_noise">[docs]</a><span class="k">def</span> <span class="nf">save_noise</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">chunk</span><span class="o">=</span><span class="mi">200</span><span class="p">):</span>
+<div class="viewcode-block" id="save_noise"><a class="viewcode-back" href="../../api.html#rfpipe.source.save_noise">[docs]</a><span class="k">def</span> <span class="nf">save_noise</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">chunk</span><span class="o">=</span><span class="mi">200</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Calculates noise properties and save values to pickle.</span>
 <span class="sd">    chunk defines window for measurement. at least one measurement always made.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -352,7 +352,7 @@
                     <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">),</span> <span class="s1">&#39;s&#39;</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">segment</span><span class="p">,</span> <span class="n">noisefile</span><span class="p">))</span></div>
 
 
-<div class="viewcode-block" id="estimate_noiseperbl"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.estimate_noiseperbl">[docs]</a><span class="k">def</span> <span class="nf">estimate_noiseperbl</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+<div class="viewcode-block" id="estimate_noiseperbl"><a class="viewcode-back" href="../../api.html#rfpipe.source.estimate_noiseperbl">[docs]</a><span class="k">def</span> <span class="nf">estimate_noiseperbl</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Takes large data array and sigma clips it to find noise per bl for</span>
 <span class="sd">    input to detect_bispectra.</span>
 <span class="sd">    Takes mean across pols and channels for now, as in detect_bispectra.</span>
@@ -365,7 +365,7 @@
     <span class="k">return</span> <span class="n">noiseperbl</span></div>
 
 
-<div class="viewcode-block" id="flag_data"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.flag_data">[docs]</a><span class="k">def</span> <span class="nf">flag_data</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+<div class="viewcode-block" id="flag_data"><a class="viewcode-back" href="../../api.html#rfpipe.source.flag_data">[docs]</a><span class="k">def</span> <span class="nf">flag_data</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Identifies bad data and flags it to 0.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -384,7 +384,7 @@
     <span class="k">return</span> <span class="n">data</span><span class="o">*</span><span class="n">flags</span></div>
 
 
-<div class="viewcode-block" id="flag_blstd"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.flag_blstd">[docs]</a><span class="k">def</span> <span class="nf">flag_blstd</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">convergence</span><span class="p">):</span>
+<div class="viewcode-block" id="flag_blstd"><a class="viewcode-back" href="../../api.html#rfpipe.source.flag_blstd">[docs]</a><span class="k">def</span> <span class="nf">flag_blstd</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">convergence</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Use data (4d) to calculate (int, chan, pol) to be flagged.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -415,7 +415,7 @@
     <span class="k">return</span> <span class="n">flags</span></div>
 
 
-<div class="viewcode-block" id="flag_badchtslide"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.flag_badchtslide">[docs]</a><span class="k">def</span> <span class="nf">flag_badchtslide</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">win</span><span class="p">):</span>
+<div class="viewcode-block" id="flag_badchtslide"><a class="viewcode-back" href="../../api.html#rfpipe.source.flag_badchtslide">[docs]</a><span class="k">def</span> <span class="nf">flag_badchtslide</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">win</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Use data (4d) to calculate (int, chan, pol) to be flagged</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -448,7 +448,7 @@
     <span class="k">return</span> <span class="n">flags</span></div>
 
 
-<div class="viewcode-block" id="slidedev"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.slidedev">[docs]</a><span class="nd">@jit</span>
+<div class="viewcode-block" id="slidedev"><a class="viewcode-back" href="../../api.html#rfpipe.source.slidedev">[docs]</a><span class="nd">@jit</span>
 <span class="k">def</span> <span class="nf">slidedev</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">win</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Given a (len x 2) array, calculate the deviation from the median per pol.</span>
 <span class="sd">    Calculates median over a window, win.</span>
@@ -463,7 +463,7 @@
     <span class="k">return</span> <span class="n">arr</span><span class="o">-</span><span class="n">med</span></div>
 
 
-<div class="viewcode-block" id="flag_data_rtpipe"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.flag_data_rtpipe">[docs]</a><span class="k">def</span> <span class="nf">flag_data_rtpipe</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+<div class="viewcode-block" id="flag_data_rtpipe"><a class="viewcode-back" href="../../api.html#rfpipe.source.flag_data_rtpipe">[docs]</a><span class="k">def</span> <span class="nf">flag_data_rtpipe</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Flagging data in single process</span>
 <span class="sd">    Deprecated.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -502,7 +502,7 @@
     <span class="k">return</span> <span class="n">data</span></div>
 
 
-<div class="viewcode-block" id="simulate_segment"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.simulate_segment">[docs]</a><span class="k">def</span> <span class="nf">simulate_segment</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+<div class="viewcode-block" id="simulate_segment"><a class="viewcode-back" href="../../api.html#rfpipe.source.simulate_segment">[docs]</a><span class="k">def</span> <span class="nf">simulate_segment</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Simulates visibilities for a segment.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -516,7 +516,7 @@
     <span class="k">return</span> <span class="n">data</span></div>
 
 
-<div class="viewcode-block" id="sdm_sources"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.sdm_sources">[docs]</a><span class="k">def</span> <span class="nf">sdm_sources</span><span class="p">(</span><span class="n">sdmname</span><span class="p">):</span>
+<div class="viewcode-block" id="sdm_sources"><a class="viewcode-back" href="../../api.html#rfpipe.source.sdm_sources">[docs]</a><span class="k">def</span> <span class="nf">sdm_sources</span><span class="p">(</span><span class="n">sdmname</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Use sdmpy to get all sources and ra,dec per scan as dict &quot;&quot;&quot;</span>
 
     <span class="n">sdm</span> <span class="o">=</span> <span class="n">getsdm</span><span class="p">(</span><span class="n">sdmname</span><span class="p">)</span>
@@ -537,7 +537,7 @@
     <span class="k">return</span> <span class="n">sourcedict</span></div>
 
 
-<div class="viewcode-block" id="getsdm"><a class="viewcode-back" href="../../Searching.html#rfpipe.source.getsdm">[docs]</a><span class="k">def</span> <span class="nf">getsdm</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="getsdm"><a class="viewcode-back" href="../../api.html#rfpipe.source.getsdm">[docs]</a><span class="k">def</span> <span class="nf">getsdm</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Wrap sdmpy.SDM to get around schema change error &quot;&quot;&quot;</span>
 
     <span class="k">try</span><span class="p">:</span>
@@ -549,7 +549,7 @@
     <span class="k">return</span> <span class="n">sdm</span></div>
 
 
-<div class="viewcode-block" id="generate_transient"><a class="viewcode-back" href="../../Simulating.html#rfpipe.source.generate_transient">[docs]</a><span class="k">def</span> <span class="nf">generate_transient</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">amp</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+<div class="viewcode-block" id="generate_transient"><a class="viewcode-back" href="../../api.html#rfpipe.source.generate_transient">[docs]</a><span class="k">def</span> <span class="nf">generate_transient</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">amp</span><span class="p">,</span> <span class="n">i0</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Create a dynamic spectrum for given parameters</span>
 <span class="sd">    amp is in system units (post calibration)</span>
 <span class="sd">    i0 is a float for integration relative to start of segment.</span>

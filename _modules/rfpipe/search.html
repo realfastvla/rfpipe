@@ -65,7 +65,7 @@
     <span class="k">pass</span>
 
 
-<div class="viewcode-block" id="dedisperse"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.dedisperse">[docs]</a><span class="k">def</span> <span class="nf">dedisperse</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">delay</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="dedisperse"><a class="viewcode-back" href="../../api.html#rfpipe.search.dedisperse">[docs]</a><span class="k">def</span> <span class="nf">dedisperse</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">delay</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Shift data in time (axis=0) by channel-dependent value given in</span>
 <span class="sd">    delay. Returns new array with time length shortened by max delay in</span>
 <span class="sd">    integrations. wraps _dedisperse to add logging.</span>
@@ -118,7 +118,7 @@
                     <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">iprime</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="resample"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.resample">[docs]</a><span class="k">def</span> <span class="nf">resample</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="resample"><a class="viewcode-back" href="../../api.html#rfpipe.search.resample">[docs]</a><span class="k">def</span> <span class="nf">resample</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Resample (integrate) by factor dt and return new data structure</span>
 <span class="sd">    wraps _resample to add logging.</span>
 <span class="sd">    Can set mode to &quot;single&quot; or &quot;multi&quot; to use different functions.</span>
@@ -177,7 +177,7 @@
             <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">/</span><span class="n">dt</span>
 
 
-<div class="viewcode-block" id="dedisperseresample"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.dedisperseresample">[docs]</a><span class="k">def</span> <span class="nf">dedisperseresample</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">delay</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="dedisperseresample"><a class="viewcode-back" href="../../api.html#rfpipe.search.dedisperseresample">[docs]</a><span class="k">def</span> <span class="nf">dedisperseresample</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">delay</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Dedisperse and resample in single function.</span>
 <span class="sd">    parallel controls use of multicore versions of algorithms.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -454,7 +454,7 @@
     <span class="k">return</span> <span class="n">candcollection</span></div>
 
 
-<div class="viewcode-block" id="search_thresh_fftw"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.search_thresh_fftw">[docs]</a><span class="k">def</span> <span class="nf">search_thresh_fftw</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">,</span> <span class="n">integrations</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="search_thresh_fftw"><a class="viewcode-back" href="../../api.html#rfpipe.search.search_thresh_fftw">[docs]</a><span class="k">def</span> <span class="nf">search_thresh_fftw</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">,</span> <span class="n">integrations</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                        <span class="n">beamnum</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">wisdom</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Take dedispersed, resampled data, image with fftw and threshold.</span>
 <span class="sd">    Returns list of CandData objects that define candidates with</span>
@@ -545,7 +545,7 @@
     <span class="k">return</span> <span class="n">candcollection</span></div>
 
 
-<div class="viewcode-block" id="grid_image"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.grid_image">[docs]</a><span class="k">def</span> <span class="nf">grid_image</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">,</span> <span class="n">uvres</span><span class="p">,</span> <span class="n">fftmode</span><span class="p">,</span> <span class="n">nthread</span><span class="p">,</span> <span class="n">wisdom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<div class="viewcode-block" id="grid_image"><a class="viewcode-back" href="../../api.html#rfpipe.search.grid_image">[docs]</a><span class="k">def</span> <span class="nf">grid_image</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">,</span> <span class="n">uvres</span><span class="p">,</span> <span class="n">fftmode</span><span class="p">,</span> <span class="n">nthread</span><span class="p">,</span> <span class="n">wisdom</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                <span class="n">integrations</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Grid and image data.</span>
 <span class="sd">    Optionally image integrations in list i.</span>
@@ -572,7 +572,7 @@
     <span class="k">return</span> <span class="n">images</span></div>
 
 
-<div class="viewcode-block" id="image_cuda"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.image_cuda">[docs]</a><span class="k">def</span> <span class="nf">image_cuda</span><span class="p">():</span>
+<div class="viewcode-block" id="image_cuda"><a class="viewcode-back" href="../../api.html#rfpipe.search.image_cuda">[docs]</a><span class="k">def</span> <span class="nf">image_cuda</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot; Run grid and image with rfgpu</span>
 <span class="sd">    TODO: update to use rfgpu</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -580,7 +580,7 @@
     <span class="k">pass</span></div>
 
 
-<div class="viewcode-block" id="image_fftw"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.image_fftw">[docs]</a><span class="k">def</span> <span class="nf">image_fftw</span><span class="p">(</span><span class="n">grids</span><span class="p">,</span> <span class="n">nthread</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">wisdom</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="image_fftw"><a class="viewcode-back" href="../../api.html#rfpipe.search.image_fftw">[docs]</a><span class="k">def</span> <span class="nf">image_fftw</span><span class="p">(</span><span class="n">grids</span><span class="p">,</span> <span class="n">nthread</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">wisdom</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Plan pyfftw ifft2 and run it on uv grids (time, npixx, npixy)</span>
 <span class="sd">    Returns time images.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -609,7 +609,7 @@
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">fftshift</span><span class="p">(</span><span class="n">images</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span></div>
 
 
-<div class="viewcode-block" id="grid_visibilities"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.grid_visibilities">[docs]</a><span class="k">def</span> <span class="nf">grid_visibilities</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">,</span> <span class="n">uvres</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="grid_visibilities"><a class="viewcode-back" href="../../api.html#rfpipe.search.grid_visibilities">[docs]</a><span class="k">def</span> <span class="nf">grid_visibilities</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">,</span> <span class="n">uvres</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Grid visibilities into rounded uv coordinates &quot;&quot;&quot;</span>
 
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Gridding </span><span class="si">{0}</span><span class="s1"> ints at (</span><span class="si">{1}</span><span class="s1">, </span><span class="si">{2}</span><span class="s1">) pix and </span><span class="si">{3}</span><span class="s1"> &#39;</span>
@@ -676,13 +676,13 @@
                     <span class="n">grid</span><span class="p">[</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">]</span> <span class="o">+=</span> <span class="n">data</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="image_arm"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.image_arm">[docs]</a><span class="k">def</span> <span class="nf">image_arm</span><span class="p">():</span>
+<div class="viewcode-block" id="image_arm"><a class="viewcode-back" href="../../api.html#rfpipe.search.image_arm">[docs]</a><span class="k">def</span> <span class="nf">image_arm</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot; Takes visibilities and images arms of VLA &quot;&quot;&quot;</span>
 
     <span class="k">pass</span></div>
 
 
-<div class="viewcode-block" id="set_wisdom"><a class="viewcode-back" href="../../Searching.html#rfpipe.search.set_wisdom">[docs]</a><span class="k">def</span> <span class="nf">set_wisdom</span><span class="p">(</span><span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">):</span>
+<div class="viewcode-block" id="set_wisdom"><a class="viewcode-back" href="../../api.html#rfpipe.search.set_wisdom">[docs]</a><span class="k">def</span> <span class="nf">set_wisdom</span><span class="p">(</span><span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Run single 2d ifft like image to prep fftw wisdom in worker cache &quot;&quot;&quot;</span>
 
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating FFT wisdom...&#39;</span><span class="p">)</span>

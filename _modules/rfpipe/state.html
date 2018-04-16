@@ -64,7 +64,7 @@
 <span class="n">qa</span> <span class="o">=</span> <span class="n">casautil</span><span class="o">.</span><span class="n">tools</span><span class="o">.</span><span class="n">quanta</span><span class="p">()</span>
 
 
-<div class="viewcode-block" id="State"><a class="viewcode-back" href="../../State.html#rfpipe.state.State">[docs]</a><span class="k">class</span> <span class="nc">State</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="State"><a class="viewcode-back" href="../../api.html#rfpipe.state.State">[docs]</a><span class="k">class</span> <span class="nc">State</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Defines initial search from preferences and methods.</span>
 <span class="sd">    State properties are used to calculate quantities for the search.</span>
 
@@ -149,7 +149,7 @@
         <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;rfpipe state with metadata/prefs (</span><span class="si">{0}</span><span class="s1">/</span><span class="si">{1}</span><span class="s1">)&#39;</span>
                 <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">datasetId</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefs</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
 
-<div class="viewcode-block" id="State.validate"><a class="viewcode-back" href="../../State.html#rfpipe.state.State.validate">[docs]</a>    <span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="State.validate"><a class="viewcode-back" href="../../api.html#rfpipe.state.State.validate">[docs]</a>    <span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Test validity of state (metadata + preferences) with a few assertions</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
@@ -175,7 +175,7 @@
                                                          <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inttime</span><span class="p">,</span>
                                                                  <span class="bp">self</span><span class="o">.</span><span class="n">fringetime</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="State.summarize"><a class="viewcode-back" href="../../State.html#rfpipe.state.State.summarize">[docs]</a>    <span class="k">def</span> <span class="nf">summarize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="State.summarize"><a class="viewcode-back" href="../../api.html#rfpipe.state.State.summarize">[docs]</a>    <span class="k">def</span> <span class="nf">summarize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Print summary of pipeline state &quot;&quot;&quot;</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">atdefaults</span><span class="p">():</span>
@@ -259,7 +259,7 @@
                             <span class="s1">&#39;GB/segment when using cuda imaging.&#39;</span>
                             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vismem</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="State.clearcache"><a class="viewcode-back" href="../../State.html#rfpipe.state.State.clearcache">[docs]</a>    <span class="k">def</span> <span class="nf">clearcache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="State.clearcache"><a class="viewcode-back" href="../../api.html#rfpipe.state.State.clearcache">[docs]</a>    <span class="k">def</span> <span class="nf">clearcache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">cached</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;_dmarr&#39;</span><span class="p">,</span> <span class="s1">&#39;_dmshifts&#39;</span><span class="p">,</span> <span class="s1">&#39;_npol&#39;</span><span class="p">,</span> <span class="s1">&#39;_blarr&#39;</span><span class="p">,</span>
                   <span class="s1">&#39;_segmenttimes&#39;</span><span class="p">,</span> <span class="s1">&#39;_npixx_full&#39;</span><span class="p">,</span> <span class="s1">&#39;_npixy_full&#39;</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">cached</span><span class="p">:</span>
@@ -268,7 +268,7 @@
             <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
                 <span class="k">pass</span></div>
 
-<div class="viewcode-block" id="State.get_search_ints"><a class="viewcode-back" href="../../State.html#rfpipe.state.State.get_search_ints">[docs]</a>    <span class="k">def</span> <span class="nf">get_search_ints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">):</span>
+<div class="viewcode-block" id="State.get_search_ints"><a class="viewcode-back" href="../../api.html#rfpipe.state.State.get_search_ints">[docs]</a>    <span class="k">def</span> <span class="nf">get_search_ints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">segment</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Helper function to get list of integrations</span>
 <span class="sd">        to be searched after correcting for DM and resampling.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -632,7 +632,7 @@
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_segmenttimes</span>
 
-<div class="viewcode-block" id="State.pixtolm"><a class="viewcode-back" href="../../State.html#rfpipe.state.State.pixtolm">[docs]</a>    <span class="k">def</span> <span class="nf">pixtolm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pix</span><span class="p">):</span>
+<div class="viewcode-block" id="State.pixtolm"><a class="viewcode-back" href="../../api.html#rfpipe.state.State.pixtolm">[docs]</a>    <span class="k">def</span> <span class="nf">pixtolm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pix</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Helper function to calculate (l,m) coords of given pixel.</span>
 <span class="sd">        Example: st.pixtolm(np.where(im == im.max()))</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -652,13 +652,13 @@
 
         <span class="k">return</span> <span class="n">l1</span><span class="p">,</span> <span class="n">m1</span></div>
 
-<div class="viewcode-block" id="State.calclm"><a class="viewcode-back" href="../../State.html#rfpipe.state.State.calclm">[docs]</a>    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="State.calclm"><a class="viewcode-back" href="../../api.html#rfpipe.state.State.calclm">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">calclm</span><span class="p">(</span><span class="n">npixx</span><span class="p">,</span> <span class="n">npixy</span><span class="p">,</span> <span class="n">uvres</span><span class="p">,</span> <span class="n">peakx</span><span class="p">,</span> <span class="n">peaky</span><span class="p">):</span>
         <span class="n">l1</span> <span class="o">=</span> <span class="p">(</span><span class="n">npixx</span><span class="o">/</span><span class="mf">2.</span> <span class="o">-</span> <span class="n">peakx</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">npixx</span><span class="o">*</span><span class="n">uvres</span><span class="p">)</span>
         <span class="n">m1</span> <span class="o">=</span> <span class="p">(</span><span class="n">npixy</span><span class="o">/</span><span class="mf">2.</span> <span class="o">-</span> <span class="n">peaky</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">npixy</span><span class="o">*</span><span class="n">uvres</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">l1</span><span class="p">,</span> <span class="n">m1</span></div>
 
-<div class="viewcode-block" id="State.get_segmenttime_string"><a class="viewcode-back" href="../../State.html#rfpipe.state.State.get_segmenttime_string">[docs]</a>    <span class="k">def</span> <span class="nf">get_segmenttime_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">segment</span><span class="p">):</span>
+<div class="viewcode-block" id="State.get_segmenttime_string"><a class="viewcode-back" href="../../api.html#rfpipe.state.State.get_segmenttime_string">[docs]</a>    <span class="k">def</span> <span class="nf">get_segmenttime_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">segment</span><span class="p">):</span>
         <span class="n">mid_mjd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">segmenttimes</span><span class="p">[</span><span class="n">segment</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">qa</span><span class="o">.</span><span class="n">time</span><span class="p">(</span><span class="n">qa</span><span class="o">.</span><span class="n">quantity</span><span class="p">(</span><span class="n">mid_mjd</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">),</span> <span class="n">form</span><span class="o">=</span><span class="s1">&#39;ymd&#39;</span><span class="p">,</span> <span class="n">prec</span><span class="o">=</span><span class="mi">8</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
 
@@ -703,14 +703,14 @@
         <span class="n">dtfactor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">([</span><span class="mi">1</span><span class="o">/</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtarr</span><span class="p">])</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">searchints</span> <span class="o">*</span> <span class="n">dtfactor</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dmarr</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">npixx</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">npixy</span>
 
-<div class="viewcode-block" id="State.nfalse"><a class="viewcode-back" href="../../State.html#rfpipe.state.State.nfalse">[docs]</a>    <span class="k">def</span> <span class="nf">nfalse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sigma</span><span class="p">):</span>
+<div class="viewcode-block" id="State.nfalse"><a class="viewcode-back" href="../../api.html#rfpipe.state.State.nfalse">[docs]</a>    <span class="k">def</span> <span class="nf">nfalse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sigma</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Number of thermal-noise false positives per scan at given sigma</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">qfrac</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">erf</span><span class="p">(</span><span class="n">sigma</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span>
         <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">qfrac</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">ntrials</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="State.thresholdlevel"><a class="viewcode-back" href="../../State.html#rfpipe.state.State.thresholdlevel">[docs]</a>    <span class="k">def</span> <span class="nf">thresholdlevel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nfalse</span><span class="p">):</span>
+<div class="viewcode-block" id="State.thresholdlevel"><a class="viewcode-back" href="../../api.html#rfpipe.state.State.thresholdlevel">[docs]</a>    <span class="k">def</span> <span class="nf">thresholdlevel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nfalse</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Sigma threshold for a given number of false positives per scan</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 

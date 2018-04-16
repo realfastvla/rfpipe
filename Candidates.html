@@ -72,93 +72,22 @@
 <li>l1 (peak pixel location offset in x in radians)</li>
 <li>m1 (peak pixel location offset in y in radians).</li>
 </ul>
+<p>The <code class="docutils literal"><span class="pre">CandCollection</span></code> class has a few convenience features built in. They have a length and can be added together, which is equivalent to adding their respective <code class="docutils literal"><span class="pre">array</span></code> together. For example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">&gt;</span> <span class="nb">print</span><span class="p">(</span><span class="n">cc</span><span class="p">)</span>
+<span class="n">CandCollection</span> <span class="k">for</span> <span class="n">test</span><span class="p">,</span> <span class="n">scan</span> <span class="mi">1</span> <span class="k">with</span> <span class="mi">0</span> <span class="n">candidates</span>
+<span class="o">&gt;</span> <span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cc</span><span class="p">))</span>
+<span class="mi">0</span>
+<span class="o">&gt;</span> <span class="n">cc2</span> <span class="o">=</span> <span class="n">cc</span> <span class="o">+</span> <span class="n">cc</span>
+<span class="o">&gt;</span> <span class="nb">print</span><span class="p">(</span><span class="n">cc2</span><span class="p">)</span>
+<span class="n">CandCollection</span> <span class="k">for</span> <span class="n">test</span><span class="p">,</span> <span class="n">scan</span> <span class="mi">1</span> <span class="k">with</span> <span class="mi">0</span> <span class="n">candidates</span>
+</pre></div>
+</div>
 </div>
 <div class="section" id="candidate-visualization">
 <span id="candplots"></span><h2>Candidate Visualization<a class="headerlink" href="#candidate-visualization" title="Permalink to this headline">¶</a></h2>
 <p>Users have the option of generating visualizations of candidates from a search. This is done during the search, since the visualization includes the original data, images, and spectra for the candidate transient. A candidate visualization is saved as a png with a name that includes the input dataset, plus the location of the candidate in the data (e.g., segment, integration, etc.).</p>
 <p>Since the generation of candidate visualizations takes longer than the basic analysis and takes up disk space, we (currently) only generate visualizations for a subset of all candidates. The current approach is the generate a candidate plot only at the maximum SNR in a segment.</p>
 <p>The data used to generate the plot come from a <code class="docutils literal"><span class="pre">CandData</span></code> class. The <code class="docutils literal"><span class="pre">loc</span></code>, <code class="docutils literal"><span class="pre">image</span></code>, and <code class="docutils literal"><span class="pre">data</span></code> objects contain numpy arrays used to generate the plot. They may also be useful for modifying the plot or some simple reanalysis of the candidate.</p>
-</div>
-<div class="section" id="candidates-api">
-<span id="candidatesapi"></span><h2>Candidates API<a class="headerlink" href="#candidates-api" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="rfpipe.candidates.CandCollection">
-<em class="property">class </em><code class="descclassname">rfpipe.candidates.</code><code class="descname">CandCollection</code><span class="sig-paren">(</span><em>array=array([]</em>, <em>dtype=float64)</em>, <em>prefs=None</em>, <em>metadata=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/candidates.html#CandCollection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.candidates.CandCollection" title="Permalink to this definition">¶</a></dt>
-<dd><p>Wrap candidate array with metadata and
-prefs to be attached and pickled.</p>
-<dl class="attribute">
-<dt id="rfpipe.candidates.CandCollection.canddm">
-<code class="descname">canddm</code><a class="headerlink" href="#rfpipe.candidates.CandCollection.canddm" title="Permalink to this definition">¶</a></dt>
-<dd><p>Candidate DM in pc/cm3</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.candidates.CandCollection.canddt">
-<code class="descname">canddt</code><a class="headerlink" href="#rfpipe.candidates.CandCollection.canddt" title="Permalink to this definition">¶</a></dt>
-<dd><p>Candidate dt in seconds</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.candidates.CandCollection.candl">
-<code class="descname">candl</code><a class="headerlink" href="#rfpipe.candidates.CandCollection.candl" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return l1 for candidate (offset from phase center in RA direction)</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.candidates.CandCollection.candm">
-<code class="descname">candm</code><a class="headerlink" href="#rfpipe.candidates.CandCollection.candm" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return m1 for candidate (offset from phase center in Dec direction)</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.candidates.CandCollection.candmjd">
-<code class="descname">candmjd</code><a class="headerlink" href="#rfpipe.candidates.CandCollection.candmjd" title="Permalink to this definition">¶</a></dt>
-<dd><p>Candidate MJD at top of band</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.candidates.CandCollection.scan">
-<code class="descname">scan</code><a class="headerlink" href="#rfpipe.candidates.CandCollection.scan" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.candidates.CandCollection.segment">
-<code class="descname">segment</code><a class="headerlink" href="#rfpipe.candidates.CandCollection.segment" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.candidates.CandCollection.state">
-<code class="descname">state</code><a class="headerlink" href="#rfpipe.candidates.CandCollection.state" title="Permalink to this definition">¶</a></dt>
-<dd><p>Sets state by regenerating from the metadata and prefs.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="rfpipe.candidates.CandData">
-<em class="property">class </em><code class="descclassname">rfpipe.candidates.</code><code class="descname">CandData</code><span class="sig-paren">(</span><em>state</em>, <em>loc</em>, <em>image</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/candidates.html#CandData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.candidates.CandData" title="Permalink to this definition">¶</a></dt>
-<dd><p>Object that bundles data from search stage to candidate visualization.
-Provides some properties for the state of the phased data and candidate.</p>
-<dl class="attribute">
-<dt id="rfpipe.candidates.CandData.peak_lm">
-<code class="descname">peak_lm</code><a class="headerlink" href="#rfpipe.candidates.CandData.peak_lm" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.candidates.CandData.peak_xy">
-<code class="descname">peak_xy</code><a class="headerlink" href="#rfpipe.candidates.CandData.peak_xy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Peak pixel in image
-Only supports positive peaks for now.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.candidates.CandData.time_top">
-<code class="descname">time_top</code><a class="headerlink" href="#rfpipe.candidates.CandData.time_top" title="Permalink to this definition">¶</a></dt>
-<dd><p>Time in mjd where burst is at top of band</p>
-</dd></dl>
-
-</dd></dl>
-
 </div>
 </div>
 
@@ -176,7 +105,6 @@ Only supports positive peaks for now.</p>
 <li><a class="reference internal" href="#">Candidates</a><ul>
 <li><a class="reference internal" href="#candcollection">CandCollection</a></li>
 <li><a class="reference internal" href="#candidate-visualization">Candidate Visualization</a></li>
-<li><a class="reference internal" href="#candidates-api">Candidates API</a></li>
 </ul>
 </li>
 </ul>

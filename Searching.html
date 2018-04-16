@@ -63,42 +63,21 @@
 </ul>
 <p>Given a state object that defines the data source, one can read a single segment with <code class="docutils literal"><span class="pre">rfpipe.source.read_segment</span></code>.</p>
 <dl class="function">
-<dt id="rfpipe.source.read_segment">
-<code class="descclassname">rfpipe.source.</code><code class="descname">read_segment</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>cfile=None</em>, <em>timeout=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#read_segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.read_segment" title="Permalink to this definition">¶</a></dt>
+<dt>
+<code class="descclassname">rfpipe.source.</code><code class="descname">read_segment</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>cfile=None</em>, <em>timeout=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#read_segment"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>Read a segment of data.
 cfile and timeout are specific to vys data.
 Returns data as defined in metadata (no downselection yet)</p>
 </dd></dl>
 
+<p>This function will read data according to how the source of data is defined in the <code class="docutils literal"><span class="pre">Metadata</span></code> object. For a given state, you can display the data source and read data like this:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">&gt;</span> <span class="n">st</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">datasource</span>
+<span class="s1">&#39;sim&#39;</span>
+<span class="o">&gt;</span> <span class="n">data</span> <span class="o">=</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">read_segment</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="n">Simulating</span> <span class="n">data</span> <span class="k">with</span> <span class="n">shape</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">351</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+</pre></div>
+</div>
 <p>There are several functions for preparing the data for a search, but most importantly the data will probably need to be calibrated and flagged. Again, given a state that defines the data preparation steps, one can prepare data with <code class="docutils literal"><span class="pre">rfpipesource.data_prep</span></code>.</p>
-<dl class="function">
-<dt id="rfpipe.source.data_prep">
-<code class="descclassname">rfpipe.source.</code><code class="descname">data_prep</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em>, <em>flagversion=u'latest'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#data_prep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.data_prep" title="Permalink to this definition">¶</a></dt>
-<dd><p>Applies calibration, flags, and subtracts time mean for data.
-flagversion can be “latest” or “rtpipe”.
-Optionally prepares data with antenna flags, fixing out of order data,
-calibration, downsampling, etc..</p>
-</dd></dl>
-
-<p>The transient search is similarly defined by the state and search functions take it as input. A range of data correction and search functions are available in the search module. Many algorithms have been implemented both for CPU (using the FFTW library) and GPU (using CUDA) environments.</p>
-<dl class="function">
-<dt id="rfpipe.search.dedisperse_image_fftw">
-<code class="descclassname">rfpipe.search.</code><code class="descname">dedisperse_image_fftw</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em>, <em>wisdom=None</em>, <em>integrations=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#dedisperse_image_fftw"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.dedisperse_image_fftw" title="Permalink to this definition">¶</a></dt>
-<dd><p>Fuse the dediserpse, resample, search, threshold functions.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rfpipe.search.dedisperse_image_cuda">
-<code class="descclassname">rfpipe.search.</code><code class="descname">dedisperse_image_cuda</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em>, <em>devicenum=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#dedisperse_image_cuda"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.dedisperse_image_cuda" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run dedispersion, resample for all dm and dt.
-Grid and image on GPU.
-rfgpu is built from separate repo.
-Uses state to define integrations to image based on segment, dm, and dt.
-devicenum can force the gpu to use, but can be inferred via distributed.</p>
-</dd></dl>
-
-<div class="section" id="module-rfpipe.source">
-<span id="source-api"></span><span id="sourceapi"></span><h2>Source API<a class="headerlink" href="#module-rfpipe.source" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt>
 <code class="descclassname">rfpipe.source.</code><code class="descname">data_prep</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em>, <em>flagversion=u'latest'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#data_prep"><span class="viewcode-link">[source]</span></a></dt>
@@ -108,130 +87,11 @@ Optionally prepares data with antenna flags, fixing out of order data,
 calibration, downsampling, etc..</p>
 </dd></dl>
 
-<dl class="function">
-<dt id="rfpipe.source.estimate_noiseperbl">
-<code class="descclassname">rfpipe.source.</code><code class="descname">estimate_noiseperbl</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#estimate_noiseperbl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.estimate_noiseperbl" title="Permalink to this definition">¶</a></dt>
-<dd><p>Takes large data array and sigma clips it to find noise per bl for
-input to detect_bispectra.
-Takes mean across pols and channels for now, as in detect_bispectra.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rfpipe.source.flag_badchtslide">
-<code class="descclassname">rfpipe.source.</code><code class="descname">flag_badchtslide</code><span class="sig-paren">(</span><em>data</em>, <em>sigma</em>, <em>win</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#flag_badchtslide"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.flag_badchtslide" title="Permalink to this definition">¶</a></dt>
-<dd><p>Use data (4d) to calculate (int, chan, pol) to be flagged</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rfpipe.source.flag_blstd">
-<code class="descclassname">rfpipe.source.</code><code class="descname">flag_blstd</code><span class="sig-paren">(</span><em>data</em>, <em>sigma</em>, <em>convergence</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#flag_blstd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.flag_blstd" title="Permalink to this definition">¶</a></dt>
-<dd><p>Use data (4d) to calculate (int, chan, pol) to be flagged.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rfpipe.source.flag_data">
-<code class="descclassname">rfpipe.source.</code><code class="descname">flag_data</code><span class="sig-paren">(</span><em>st</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#flag_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.flag_data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Identifies bad data and flags it to 0.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rfpipe.source.flag_data_rtpipe">
-<code class="descclassname">rfpipe.source.</code><code class="descname">flag_data_rtpipe</code><span class="sig-paren">(</span><em>st</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#flag_data_rtpipe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.flag_data_rtpipe" title="Permalink to this definition">¶</a></dt>
-<dd><p>Flagging data in single process
-Deprecated.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rfpipe.source.generate_transient">
-<code class="descclassname">rfpipe.source.</code><code class="descname">generate_transient</code><span class="sig-paren">(</span><em>st</em>, <em>amp</em>, <em>i0</em>, <em>dm</em>, <em>dt</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#generate_transient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.generate_transient" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create a dynamic spectrum for given parameters
-amp is in system units (post calibration)
-i0 is a float for integration relative to start of segment.
-dm/dt are in units of pc/cm3 and seconds, respectively</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rfpipe.source.getsdm">
-<code class="descclassname">rfpipe.source.</code><code class="descname">getsdm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#getsdm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.getsdm" title="Permalink to this definition">¶</a></dt>
-<dd><p>Wrap sdmpy.SDM to get around schema change error</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rfpipe.source.prep_standard">
-<code class="descclassname">rfpipe.source.</code><code class="descname">prep_standard</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#prep_standard"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.prep_standard" title="Permalink to this definition">¶</a></dt>
-<dd><p>Common first data prep stages, incl
-online flags, resampling, and mock transients.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rfpipe.source.read_bdf">
-<code class="descclassname">rfpipe.source.</code><code class="descname">read_bdf</code><span class="sig-paren">(</span><em>st</em>, <em>nskip=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#read_bdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.read_bdf" title="Permalink to this definition">¶</a></dt>
-<dd><p>Uses sdmpy to read a given range of integrations from sdm of given scan.
-readints=0 will read all of bdf (skipping nskip).
-Returns data in increasing frequency order.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rfpipe.source.read_bdf_segment">
-<code class="descclassname">rfpipe.source.</code><code class="descname">read_bdf_segment</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#read_bdf_segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.read_bdf_segment" title="Permalink to this definition">¶</a></dt>
-<dd><p>Uses sdmpy to reads bdf (sdm) format data into numpy array in given
-segment. Each segment has st.readints integrations.</p>
-</dd></dl>
-
+<p>The transient search is similarly defined by the state and search functions take it as input. A range of data correction and search functions are available in the search module. Many algorithms have been implemented both for CPU (using the FFTW library) and GPU (using CUDA) environments. These are wrapped by <code class="docutils literal"><span class="pre">rfpipe.search.prep_and_search</span></code>, which uses the <code class="docutils literal"><span class="pre">Preferences</span></code> to decide which function to use.</p>
 <dl class="function">
 <dt>
-<code class="descclassname">rfpipe.source.</code><code class="descname">read_segment</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>cfile=None</em>, <em>timeout=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#read_segment"><span class="viewcode-link">[source]</span></a></dt>
-<dd><p>Read a segment of data.
-cfile and timeout are specific to vys data.
-Returns data as defined in metadata (no downselection yet)</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rfpipe.source.read_vys_segment">
-<code class="descclassname">rfpipe.source.</code><code class="descname">read_vys_segment</code><span class="sig-paren">(</span><em>st</em>, <em>seg</em>, <em>cfile=None</em>, <em>timeout=10</em>, <em>offset=4</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#read_vys_segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.read_vys_segment" title="Permalink to this definition">¶</a></dt>
-<dd><p>Read segment seg defined by state st from vys stream.
-Uses vysmaw application timefilter to receive multicast messages and pull
-spectra on the CBE.
-timeout is a multiple of read time in seconds to wait.
-offset is extra time in seconds to keep vys reader open.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rfpipe.source.save_noise">
-<code class="descclassname">rfpipe.source.</code><code class="descname">save_noise</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em>, <em>chunk=200</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#save_noise"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.save_noise" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculates noise properties and save values to pickle.
-chunk defines window for measurement. at least one measurement always made.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rfpipe.source.sdm_sources">
-<code class="descclassname">rfpipe.source.</code><code class="descname">sdm_sources</code><span class="sig-paren">(</span><em>sdmname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#sdm_sources"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.sdm_sources" title="Permalink to this definition">¶</a></dt>
-<dd><p>Use sdmpy to get all sources and ra,dec per scan as dict</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rfpipe.source.simulate_segment">
-<code class="descclassname">rfpipe.source.</code><code class="descname">simulate_segment</code><span class="sig-paren">(</span><em>st</em>, <em>loc=0.0</em>, <em>scale=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#simulate_segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.simulate_segment" title="Permalink to this definition">¶</a></dt>
-<dd><p>Simulates visibilities for a segment.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="rfpipe.source.slidedev">
-<code class="descclassname">rfpipe.source.</code><code class="descname">slidedev</code><a class="reference internal" href="_modules/rfpipe/source.html#slidedev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.slidedev" title="Permalink to this definition">¶</a></dt>
-<dd><p>Given a (len x 2) array, calculate the deviation from the median per pol.
-Calculates median over a window, win.</p>
-</dd></dl>
-
-</div>
-<div class="section" id="module-rfpipe.search">
-<span id="search-api"></span><span id="searchapi"></span><h2>Search API<a class="headerlink" href="#module-rfpipe.search" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="rfpipe.search.dedisperse">
-<code class="descclassname">rfpipe.search.</code><code class="descname">dedisperse</code><span class="sig-paren">(</span><em>data</em>, <em>delay</em>, <em>parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#dedisperse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.dedisperse" title="Permalink to this definition">¶</a></dt>
-<dd><p>Shift data in time (axis=0) by channel-dependent value given in
-delay. Returns new array with time length shortened by max delay in
-integrations. wraps _dedisperse to add logging.
-Can set mode to “single” or “multi” to use different functions.</p>
+<code class="descclassname">rfpipe.search.</code><code class="descname">dedisperse_image_fftw</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em>, <em>wisdom=None</em>, <em>integrations=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#dedisperse_image_fftw"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Fuse the dediserpse, resample, search, threshold functions.</p>
 </dd></dl>
 
 <dl class="function">
@@ -246,84 +106,41 @@ devicenum can force the gpu to use, but can be inferred via distributed.</p>
 
 <dl class="function">
 <dt>
-<code class="descclassname">rfpipe.search.</code><code class="descname">dedisperse_image_fftw</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em>, <em>wisdom=None</em>, <em>integrations=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#dedisperse_image_fftw"><span class="viewcode-link">[source]</span></a></dt>
-<dd><p>Fuse the dediserpse, resample, search, threshold functions.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rfpipe.search.dedisperseresample">
-<code class="descclassname">rfpipe.search.</code><code class="descname">dedisperseresample</code><span class="sig-paren">(</span><em>data</em>, <em>delay</em>, <em>dt</em>, <em>parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#dedisperseresample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.dedisperseresample" title="Permalink to this definition">¶</a></dt>
-<dd><p>Dedisperse and resample in single function.
-parallel controls use of multicore versions of algorithms.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rfpipe.search.grid_image">
-<code class="descclassname">rfpipe.search.</code><code class="descname">grid_image</code><span class="sig-paren">(</span><em>data</em>, <em>uvw</em>, <em>npixx</em>, <em>npixy</em>, <em>uvres</em>, <em>fftmode</em>, <em>nthread</em>, <em>wisdom=None</em>, <em>integrations=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#grid_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.grid_image" title="Permalink to this definition">¶</a></dt>
-<dd><p>Grid and image data.
-Optionally image integrations in list i.
-fftmode can be fftw or cuda.
-nthread is number of threads to use</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rfpipe.search.grid_visibilities">
-<code class="descclassname">rfpipe.search.</code><code class="descname">grid_visibilities</code><span class="sig-paren">(</span><em>data</em>, <em>uvw</em>, <em>npixx</em>, <em>npixy</em>, <em>uvres</em>, <em>parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#grid_visibilities"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.grid_visibilities" title="Permalink to this definition">¶</a></dt>
-<dd><p>Grid visibilities into rounded uv coordinates</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rfpipe.search.image_arm">
-<code class="descclassname">rfpipe.search.</code><code class="descname">image_arm</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#image_arm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.image_arm" title="Permalink to this definition">¶</a></dt>
-<dd><p>Takes visibilities and images arms of VLA</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rfpipe.search.image_cuda">
-<code class="descclassname">rfpipe.search.</code><code class="descname">image_cuda</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#image_cuda"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.image_cuda" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run grid and image with rfgpu
-TODO: update to use rfgpu</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rfpipe.search.image_fftw">
-<code class="descclassname">rfpipe.search.</code><code class="descname">image_fftw</code><span class="sig-paren">(</span><em>grids</em>, <em>nthread=1</em>, <em>wisdom=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#image_fftw"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.image_fftw" title="Permalink to this definition">¶</a></dt>
-<dd><p>Plan pyfftw ifft2 and run it on uv grids (time, npixx, npixy)
-Returns time images.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rfpipe.search.prep_and_search">
-<code class="descclassname">rfpipe.search.</code><code class="descname">prep_and_search</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#prep_and_search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.prep_and_search" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">rfpipe.search.</code><code class="descname">prep_and_search</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#prep_and_search"><span class="viewcode-link">[source]</span></a></dt>
 <dd><p>Bundles prep and search functions to improve performance in distributed.</p>
 </dd></dl>
 
-<dl class="function">
-<dt id="rfpipe.search.resample">
-<code class="descclassname">rfpipe.search.</code><code class="descname">resample</code><span class="sig-paren">(</span><em>data</em>, <em>dt</em>, <em>parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#resample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.resample" title="Permalink to this definition">¶</a></dt>
-<dd><p>Resample (integrate) by factor dt and return new data structure
-wraps _resample to add logging.
-Can set mode to “single” or “multi” to use different functions.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rfpipe.search.search_thresh_fftw">
-<code class="descclassname">rfpipe.search.</code><code class="descname">search_thresh_fftw</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em>, <em>dmind</em>, <em>dtind</em>, <em>integrations=None</em>, <em>beamnum=0</em>, <em>wisdom=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#search_thresh_fftw"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.search_thresh_fftw" title="Permalink to this definition">¶</a></dt>
-<dd><p>Take dedispersed, resampled data, image with fftw and threshold.
-Returns list of CandData objects that define candidates with
-candloc, image, and phased visibility data.
-Integrations can define subset of all available in data to search.
-Default will take integrations not searched in neighboring segments.</p>
-<p>** only supports threshold &gt; image max (no min)
-** dmind, dtind, beamnum assumed to represent current state of data</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="rfpipe.search.set_wisdom">
-<code class="descclassname">rfpipe.search.</code><code class="descname">set_wisdom</code><span class="sig-paren">(</span><em>npixx</em>, <em>npixy</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#set_wisdom"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.set_wisdom" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run single 2d ifft like image to prep fftw wisdom in worker cache</p>
-</dd></dl>
-
+<p>For a given state, you can search a given data array like this:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="o">&gt;</span> <span class="n">cc</span> <span class="o">=</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">search</span><span class="o">.</span><span class="n">prep_and_search</span><span class="p">(</span><span class="n">st</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">22</span><span class="p">:</span><span class="mi">59</span><span class="p">,</span><span class="mi">173</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">source</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="n">Not</span> <span class="n">applying</span> <span class="n">online</span> <span class="n">flags</span><span class="o">.</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">22</span><span class="p">:</span><span class="mi">59</span><span class="p">,</span><span class="mi">175</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">calibration</span> <span class="o">-</span> <span class="n">WARNING</span> <span class="o">-</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">mchammer</span><span class="o">/</span><span class="n">evladata</span><span class="o">/</span><span class="n">telcal</span><span class="o">/</span><span class="mi">2018</span><span class="o">/</span><span class="mi">04</span><span class="o">/</span><span class="n">test</span><span class="o">.</span><span class="n">GN</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">a</span> <span class="n">telcal</span> <span class="n">file</span><span class="o">.</span> <span class="n">No</span> <span class="n">forward</span> <span class="n">calibration</span> <span class="n">to</span> <span class="n">apply</span><span class="o">.</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">01</span><span class="p">,</span><span class="mi">491</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">source</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="n">flag</span> <span class="n">by</span> <span class="n">badchtslide</span><span class="p">:</span> <span class="mi">0</span><span class="o">/</span><span class="mi">32</span> <span class="n">pol</span><span class="o">-</span><span class="n">times</span> <span class="ow">and</span> <span class="mi">2</span><span class="o">/</span><span class="mi">2048</span> <span class="n">pol</span><span class="o">-</span><span class="n">chans</span> <span class="n">flagged</span><span class="o">.</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">01</span><span class="p">,</span><span class="mi">653</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">source</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="n">flag</span> <span class="n">by</span> <span class="n">blstd</span><span class="p">:</span> <span class="mi">52</span> <span class="n">of</span> <span class="mi">32768</span> <span class="n">total</span> <span class="n">channel</span><span class="o">/</span><span class="n">time</span><span class="o">/</span><span class="n">pol</span> <span class="n">cells</span> <span class="n">flagged</span><span class="o">.</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">01</span><span class="p">,</span><span class="mi">726</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">source</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="n">No</span> <span class="n">visibility</span> <span class="n">subtraction</span> <span class="n">done</span><span class="o">.</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">01</span><span class="p">,</span><span class="mi">821</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">search</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="n">Correcting</span> <span class="n">by</span> <span class="n">delay</span><span class="o">/</span><span class="n">resampling</span> <span class="mi">0</span><span class="o">/</span><span class="mi">1</span> <span class="n">ints</span> <span class="ow">in</span> <span class="n">single</span> <span class="n">mode</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">02</span><span class="p">,</span><span class="mi">554</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">search</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="n">Imaging</span> <span class="mi">16</span> <span class="n">ints</span> <span class="p">(</span><span class="mi">0</span><span class="o">-</span><span class="mi">15</span><span class="p">)</span> <span class="ow">in</span> <span class="n">seg</span> <span class="mi">0</span> <span class="n">at</span> <span class="n">DM</span><span class="o">/</span><span class="n">dt</span> <span class="mf">0.0</span><span class="o">/</span><span class="mi">1</span> <span class="k">with</span> <span class="n">image</span> <span class="mi">2592</span><span class="n">x2304</span> <span class="p">(</span><span class="n">uvres</span> <span class="mi">83</span><span class="p">)</span> <span class="k">with</span> <span class="n">fftw</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">10</span><span class="p">,</span><span class="mi">902</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">search</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="mi">0</span> <span class="n">candidates</span> <span class="n">returned</span> <span class="k">for</span> <span class="p">(</span><span class="n">seg</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">10</span><span class="p">,</span><span class="mi">956</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">search</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="n">Correcting</span> <span class="n">by</span> <span class="n">delay</span><span class="o">/</span><span class="n">resampling</span> <span class="mi">1</span><span class="o">/</span><span class="mi">1</span> <span class="n">ints</span> <span class="ow">in</span> <span class="n">single</span> <span class="n">mode</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">11</span><span class="p">,</span><span class="mi">308</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">search</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="n">Imaging</span> <span class="mi">15</span> <span class="n">ints</span> <span class="p">(</span><span class="mi">0</span><span class="o">-</span><span class="mi">14</span><span class="p">)</span> <span class="ow">in</span> <span class="n">seg</span> <span class="mi">0</span> <span class="n">at</span> <span class="n">DM</span><span class="o">/</span><span class="n">dt</span> <span class="mf">16.2</span><span class="o">/</span><span class="mi">1</span> <span class="k">with</span> <span class="n">image</span> <span class="mi">2592</span><span class="n">x2304</span> <span class="p">(</span><span class="n">uvres</span> <span class="mi">83</span><span class="p">)</span> <span class="k">with</span> <span class="n">fftw</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">16</span><span class="p">,</span><span class="mi">603</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">search</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="mi">0</span> <span class="n">candidates</span> <span class="n">returned</span> <span class="k">for</span> <span class="p">(</span><span class="n">seg</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">16</span><span class="p">,</span><span class="mi">655</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">search</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="n">Correcting</span> <span class="n">by</span> <span class="n">delay</span><span class="o">/</span><span class="n">resampling</span> <span class="mi">3</span><span class="o">/</span><span class="mi">1</span> <span class="n">ints</span> <span class="ow">in</span> <span class="n">single</span> <span class="n">mode</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">16</span><span class="p">,</span><span class="mi">949</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">search</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="n">Imaging</span> <span class="mi">13</span> <span class="n">ints</span> <span class="p">(</span><span class="mi">0</span><span class="o">-</span><span class="mi">12</span><span class="p">)</span> <span class="ow">in</span> <span class="n">seg</span> <span class="mi">0</span> <span class="n">at</span> <span class="n">DM</span><span class="o">/</span><span class="n">dt</span> <span class="mf">32.5</span><span class="o">/</span><span class="mi">1</span> <span class="k">with</span> <span class="n">image</span> <span class="mi">2592</span><span class="n">x2304</span> <span class="p">(</span><span class="n">uvres</span> <span class="mi">83</span><span class="p">)</span> <span class="k">with</span> <span class="n">fftw</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">21</span><span class="p">,</span><span class="mi">546</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">search</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="mi">0</span> <span class="n">candidates</span> <span class="n">returned</span> <span class="k">for</span> <span class="p">(</span><span class="n">seg</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">21</span><span class="p">,</span><span class="mi">597</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">search</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="n">Correcting</span> <span class="n">by</span> <span class="n">delay</span><span class="o">/</span><span class="n">resampling</span> <span class="mi">4</span><span class="o">/</span><span class="mi">1</span> <span class="n">ints</span> <span class="ow">in</span> <span class="n">single</span> <span class="n">mode</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">21</span><span class="p">,</span><span class="mi">866</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">search</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="n">Imaging</span> <span class="mi">12</span> <span class="n">ints</span> <span class="p">(</span><span class="mi">0</span><span class="o">-</span><span class="mi">11</span><span class="p">)</span> <span class="ow">in</span> <span class="n">seg</span> <span class="mi">0</span> <span class="n">at</span> <span class="n">DM</span><span class="o">/</span><span class="n">dt</span> <span class="mf">48.8</span><span class="o">/</span><span class="mi">1</span> <span class="k">with</span> <span class="n">image</span> <span class="mi">2592</span><span class="n">x2304</span> <span class="p">(</span><span class="n">uvres</span> <span class="mi">83</span><span class="p">)</span> <span class="k">with</span> <span class="n">fftw</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">26</span><span class="p">,</span><span class="mi">196</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">search</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="mi">0</span> <span class="n">candidates</span> <span class="n">returned</span> <span class="k">for</span> <span class="p">(</span><span class="n">seg</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">26</span><span class="p">,</span><span class="mi">246</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">search</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="n">Correcting</span> <span class="n">by</span> <span class="n">delay</span><span class="o">/</span><span class="n">resampling</span> <span class="mi">5</span><span class="o">/</span><span class="mi">1</span> <span class="n">ints</span> <span class="ow">in</span> <span class="n">single</span> <span class="n">mode</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">26</span><span class="p">,</span><span class="mi">491</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">search</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="n">Imaging</span> <span class="mi">11</span> <span class="n">ints</span> <span class="p">(</span><span class="mi">0</span><span class="o">-</span><span class="mi">10</span><span class="p">)</span> <span class="ow">in</span> <span class="n">seg</span> <span class="mi">0</span> <span class="n">at</span> <span class="n">DM</span><span class="o">/</span><span class="n">dt</span> <span class="mf">65.0</span><span class="o">/</span><span class="mi">1</span> <span class="k">with</span> <span class="n">image</span> <span class="mi">2592</span><span class="n">x2304</span> <span class="p">(</span><span class="n">uvres</span> <span class="mi">83</span><span class="p">)</span> <span class="k">with</span> <span class="n">fftw</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">30</span><span class="p">,</span><span class="mi">486</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">search</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="mi">0</span> <span class="n">candidates</span> <span class="n">returned</span> <span class="k">for</span> <span class="p">(</span><span class="n">seg</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">30</span><span class="p">,</span><span class="mi">535</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">search</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="n">Correcting</span> <span class="n">by</span> <span class="n">delay</span><span class="o">/</span><span class="n">resampling</span> <span class="mi">6</span><span class="o">/</span><span class="mi">1</span> <span class="n">ints</span> <span class="ow">in</span> <span class="n">single</span> <span class="n">mode</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">30</span><span class="p">,</span><span class="mi">757</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">search</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="n">Imaging</span> <span class="mi">10</span> <span class="n">ints</span> <span class="p">(</span><span class="mi">0</span><span class="o">-</span><span class="mi">9</span><span class="p">)</span> <span class="ow">in</span> <span class="n">seg</span> <span class="mi">0</span> <span class="n">at</span> <span class="n">DM</span><span class="o">/</span><span class="n">dt</span> <span class="mf">81.2</span><span class="o">/</span><span class="mi">1</span> <span class="k">with</span> <span class="n">image</span> <span class="mi">2592</span><span class="n">x2304</span> <span class="p">(</span><span class="n">uvres</span> <span class="mi">83</span><span class="p">)</span> <span class="k">with</span> <span class="n">fftw</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">34</span><span class="p">,</span><span class="mi">302</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">search</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="mi">0</span> <span class="n">candidates</span> <span class="n">returned</span> <span class="k">for</span> <span class="p">(</span><span class="n">seg</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">34</span><span class="p">,</span><span class="mi">349</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">search</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="n">Correcting</span> <span class="n">by</span> <span class="n">delay</span><span class="o">/</span><span class="n">resampling</span> <span class="mi">8</span><span class="o">/</span><span class="mi">1</span> <span class="n">ints</span> <span class="ow">in</span> <span class="n">single</span> <span class="n">mode</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">34</span><span class="p">,</span><span class="mi">527</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">search</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="n">Imaging</span> <span class="mi">8</span> <span class="n">ints</span> <span class="p">(</span><span class="mi">0</span><span class="o">-</span><span class="mi">7</span><span class="p">)</span> <span class="ow">in</span> <span class="n">seg</span> <span class="mi">0</span> <span class="n">at</span> <span class="n">DM</span><span class="o">/</span><span class="n">dt</span> <span class="mf">97.5</span><span class="o">/</span><span class="mi">1</span> <span class="k">with</span> <span class="n">image</span> <span class="mi">2592</span><span class="n">x2304</span> <span class="p">(</span><span class="n">uvres</span> <span class="mi">83</span><span class="p">)</span> <span class="k">with</span> <span class="n">fftw</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">37</span><span class="p">,</span><span class="mi">369</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">search</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="mi">0</span> <span class="n">candidates</span> <span class="n">returned</span> <span class="k">for</span> <span class="p">(</span><span class="n">seg</span><span class="p">,</span> <span class="n">dmind</span><span class="p">,</span> <span class="n">dtind</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">37</span><span class="p">,</span><span class="mi">378</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">search</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="mi">0</span> <span class="n">candidates</span> <span class="n">returned</span> <span class="k">for</span> <span class="n">seg</span> <span class="mi">0</span>
+<span class="mi">2018</span><span class="o">-</span><span class="mi">04</span><span class="o">-</span><span class="mi">16</span> <span class="mi">14</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mi">37</span><span class="p">,</span><span class="mi">381</span> <span class="o">-</span> <span class="n">rfpipe</span><span class="o">.</span><span class="n">candidates</span> <span class="o">-</span> <span class="n">INFO</span> <span class="o">-</span> <span class="n">Not</span> <span class="n">saving</span> <span class="n">candidates</span><span class="o">.</span>
+</pre></div>
 </div>
 </div>
 
@@ -336,15 +153,6 @@ Default will take integrations not searched in neighboring segments.</p>
             <p class="logo"><a href="index.html">
               <img class="logo" src="_static/favicon.ico.png" alt="Logo"/>
             </a></p>
-  <h3><a href="index.html">Table Of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">Transient Search</a><ul>
-<li><a class="reference internal" href="#module-rfpipe.source">Source API</a></li>
-<li><a class="reference internal" href="#module-rfpipe.search">Search API</a></li>
-</ul>
-</li>
-</ul>
-
   <h4>Previous topic</h4>
   <p class="topless"><a href="Metadata.html"
                         title="previous chapter">Observational Metadata</a></p>
