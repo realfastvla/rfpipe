@@ -24,6 +24,17 @@ The ``Preferences`` support the definition of "features" that can be calculated 
 * l1 (peak pixel location offset in x in radians)
 * m1 (peak pixel location offset in y in radians).
 
+The ``CandCollection`` class has a few convenience features built in. They have a length and can be added together, which is equivalent to adding their respective ``array`` together. For example::
+
+  > print(cc)
+  CandCollection for test, scan 1 with 0 candidates
+  > print(len(cc))
+  0
+  > cc2 = cc + cc
+  > print(cc2)
+  CandCollection for test, scan 1 with 0 candidates
+
+
 .. _candplots:
 
 Candidate Visualization
@@ -34,16 +45,3 @@ Users have the option of generating visualizations of candidates from a search. 
 Since the generation of candidate visualizations takes longer than the basic analysis and takes up disk space, we (currently) only generate visualizations for a subset of all candidates. The current approach is the generate a candidate plot only at the maximum SNR in a segment.
 
 The data used to generate the plot come from a ``CandData`` class. The ``loc``, ``image``, and ``data`` objects contain numpy arrays used to generate the plot. They may also be useful for modifying the plot or some simple reanalysis of the candidate.
-
-.. _candidatesapi:
-
-Candidates API
-===============
-
-.. autoclass:: rfpipe.candidates.CandCollection
-   :members:
-   :undoc-members:
-
-.. autoclass:: rfpipe.candidates.CandData
-   :members:
-   :undoc-members:

@@ -23,7 +23,7 @@ Contents:
    GettingStarted
    Concepts
    UseCases
-
+   api
 
 * :ref:`genindex`
 
