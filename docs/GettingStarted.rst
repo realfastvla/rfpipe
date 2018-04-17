@@ -23,6 +23,10 @@ If you intend to contribute to rfpipe, you should instead install rfpipe from so
   cd rfpipe
   python setup.py install
 
+Furthermore, you can run the latest test suite with ``pytest``::
+  pip install pytest
+  pytest
+
 .. _quickstart:
 
 Test Your Installation
