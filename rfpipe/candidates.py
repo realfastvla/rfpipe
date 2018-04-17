@@ -179,7 +179,7 @@ class CandCollection(object):
 
         if self._state is None:
             self._state = state.State(inmeta=self.metadata, inprefs=self.prefs,
-                                      showsummary=False)
+                                      showsummary=False, validate=False)
 
         return self._state
 
