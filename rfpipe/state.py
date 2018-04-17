@@ -108,13 +108,13 @@ class State(object):
 
         assert self.t_overlap < self.nints*self.inttime, ('t_overlap must be'
                                                           ' less than scan '
-                                                          'length ({0} < {1}) '
+                                                          'length ({0:.3f} < {1:.3f}) '
                                                           .format(self.t_overlap,
                                                                   self.nints*self.inttime))
 
-        assert self.t_overlap < self.t_segment, ('Max DM sweep ({0:.1f} s)'
+        assert self.t_overlap < self.t_segment, ('Max DM sweep ({0:.3f} s)'
                                                  ' is larger than segment '
-                                                 'size ({1:.1f} s). '
+                                                 'size ({1:.3f} s). '
                                                  'Pipeline will fail!'
                                                  .format(self.t_overlap,
                                                          self.t_segment))
@@ -123,7 +123,7 @@ class State(object):
             assert self.inttime < self.fringetime_orig, ('Integration time '
                                                          'must be less than '
                                                          'fringe time '
-                                                         '({0} < {1}) for vis '
+                                                         '({0:.3f} < {1:.3f}) for vis '
                                                          'subtraction'
                                                          .format(self.inttime,
                                                                  self.fringetime))

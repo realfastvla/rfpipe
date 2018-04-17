@@ -632,7 +632,7 @@ def candplot(canddatalist, snrs=[], outname=''):
 
         pt_ra, pt_dec = st.metadata.radec
         src_ra, src_dec = source_location(pt_ra, pt_dec, l1, m1)
-        logger.info('Peak (RA, Dec): %s, %s' % (src_ra, src_dec))
+        logger.info('Peak (RA, Dec): ({0:.3f}, {1:.3f})'.format(src_ra, src_dec))
 
         # convert l1 and m1 from radians to arcminutes
         l1arcm = np.degrees(l1)*60
@@ -1022,8 +1022,9 @@ def candplot(canddatalist, snrs=[], outname=''):
         try:
             canvas = FigureCanvasAgg(fig)
             canvas.print_figure(outname)
+            logger.info('Wrote candidate plot to {0}'.format(outname))
         except ValueError:
-            logger.warn('Could not write figure to %s' % outname)
+            logger.warn('Could not write figure to {0}'.format(outname))
 
 
 def source_location(pt_ra, pt_dec, l1, m1):
