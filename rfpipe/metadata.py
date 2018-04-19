@@ -9,6 +9,7 @@ import attr
 import numpy as np
 from rfpipe import source, util
 import pwkit.environments.casa.util as casautil
+import sdmpy
 
 import logging
 logger = logging.getLogger(__name__)
@@ -275,6 +276,25 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
         logger.warn("No BDF found. spworder not defined.")
 
     return meta
+
+
+def getfirstscan(sdmfile):
+    """ Function that returns first scan with bdf
+    """
+
+    sdm = sdmpy.SDM(sdmfile)
+    scannum = 1
+    while True:
+        try:
+            if sdm.scan(scannum).bdf.exists:
+                break
+            else:
+                scannum += 1
+        except KeyError:
+            logger.info("Reached last scan but found no bdf.")
+            break
+
+    return scannum
 
 
 def mock_metadata(t0, t1, nants, nspw, chans, npol, inttime_micros, scan=1,
