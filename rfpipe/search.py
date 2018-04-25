@@ -7,7 +7,7 @@ import numpy as np
 from numba import jit, guvectorize, int64
 import pyfftw
 from rfpipe import util, candidates, source
-#from time import sleep
+import scipy.stats
 
 import logging
 logger = logging.getLogger(__name__)
@@ -627,6 +627,122 @@ def _grid_visibilities_gu(data, us, vs, ws, npixx, npixy, uvres, grid):
                 v = np.mod(vbl[j, k], npixy)
                 for l in range(data.shape[2]):
                     grid[u, v] += data[j, k, l]
+
+
+def calc_kalman_significance(canddata, sig_ts=[]):
+    """ Go from canddata to significance adding kalman significance
+    Wraps kalman_significance 
+    """
+
+    offints = list(range(0, 10))+list(range(20, 30))
+    spec_std = canddata.data.mean(axis=2).take(offints, axis=0).real.std(axis=0)
+
+    if not len(sig_ts):
+        sig_ts = [x*np.median(spec_std) for x in [0.3, 0.1, 0.03, 0.01]]
+
+    # TODO check how to automate candidate integration 15
+    spec = canddata.data.mean(axis=2)[15].real
+    coeffs = kalman_prepare_coeffs(spec_std, sig_ts)
+    significance_kalman = kalman_significance(spec, spec_std, sig_ts=sig_ts, coeffs=coeffs)
+
+    # TODO: better pixel std calculation needed?
+    snr_image = canddata.image.max()/canddata.image.std()
+    significance_image = -scipy.stats.norm.logsf(snr_image)
+
+#   snr = scipy.stats.norm.isf(significance)
+    snr = np.sqrt(2*(significance_kalman + significance_image))
+    return snr
+
+
+def kalman_significance(data, data_std, sig_ts=[], coeffs=[]):
+    """
+    If no coeffs input, it will calculate with random number generation.
+    From Barak Zackay
+    """
+
+    if not len(sig_ts):
+        sig_ts = [x*np.median(data_std) for x in [0.3, 0.1, 0.03, 0.01]]
+
+    significances = []
+    for i, sig_t in enumerate(sig_ts):
+        if not len(coeffs):
+            coeff = kalman_significance_fitting_coeff(data_std, sig_t)
+        else:
+            assert len(sig_ts) == len(coeffs)
+            coeff = coeffs[i]
+
+        x_coeff, const_coeff = coeff
+        score = kalman_filter_detector(data, data_std, sig_t)
+
+        significances.append(x_coeff * score + const_coeff)
+
+    return np.max(significances) * np.log(2)  # given in units of nats
+
+
+@jit(nopython=True)
+def kalman_filter_detector(data, data_std, sig_t, A_0=None, sig_0=None):
+    """ 
+    data/data_std are 1d spectra in same units.
+    sig_t sets the smoothness scale of model (A) change.
+    Number of changes is sqrt(nchan)*sig_t/mean(data_std).
+    Frequency scale is 1/sig_t**2
+    A_0/sig_0 are initial guesses of model value in first channel.
+    Returns likelihood of H1 over H0.
+    From Barak Zackay
+    """
+
+    if A_0 is None:
+        A_0 = data.mean()
+    if sig_0 is None:
+        sig_0 = np.median(data_std)
+
+    data = data - np.mean(data)  # must be zero mean
+
+    cur_mu, cur_state_v = A_0, sig_0**2
+    cur_log_l = 0
+    for i in range(len(data)):
+        cur_z = data[i]
+        cur_data_v = data_std[i]**2
+        # computing consistency with the data
+        cur_log_l += -(cur_z-cur_mu)**2 / (cur_state_v + cur_data_v + sig_t**2)/2 - 0.5*np.log(2*np.pi*(cur_state_v + cur_data_v + sig_t**2))
+
+        # computing the best state estimate
+        cur_mu = (cur_mu / cur_state_v + cur_z/cur_data_v) / (1/cur_state_v + 1/cur_data_v)
+        cur_state_v = cur_data_v * cur_state_v / (cur_data_v + cur_state_v) + sig_t**2
+
+    H_0_log_likelihood = -np.sum(data**2 / data_std**2 / 2) - np.sum(0.5*np.log(2*np.pi * data_std**2))
+    return cur_log_l - H_0_log_likelihood
+
+
+def kalman_prepare_coeffs(data_std, sig_ts, n_trial=10000):
+    """ Set up coeffs for each sig_t
+    """
+
+    coeffs = []
+    for sig_t in sig_ts:
+        coeffs.append(kalman_significance_fitting_coeff(data_std, sig_t, n_trial=n_trial))
+
+    return coeffs
+
+
+def kalman_significance_fitting_coeff(data_std, sig_t, n_trial=10000):
+    """ Measure kalman significance distribution in random data
+    data_std is the noise vector per channel.
+    TODO: could also do this with real data: normaldist -> sample noise spectrum
+    """
+
+    nchan = len(data_std)
+    random_scores = []
+    for i in range(n_trial):
+        normaldist = np.random.normal(0, data_std, size=nchan)
+        normaldist -= normaldist.mean()
+        random_scores.append(kalman_filter_detector(normaldist, data_std, sig_t))
+
+    # Approximating the tail of the distribution as an  exponential tail (probably is justified)
+    x_coeff, const_coeff = np.polyfit([np.percentile(random_scores, 100 * (1 - 2 ** (-i))) for i in range(3, 10)], range(3, 10), 1)
+    # TODO: check distribution out to 1/1e6
+
+    return x_coeff, const_coeff
 
 
 def image_arm():
