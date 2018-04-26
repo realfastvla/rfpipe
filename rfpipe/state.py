@@ -128,6 +128,11 @@ class State(object):
                                                          .format(self.inttime,
                                                                  self.fringetime))
 
+        if self.prefs.searchtype == 'sigma1k':
+            assert self.prefs.sigma_kalman is not None
+        elif self.prefs.searchtype == 'sigma1':
+            assert self.prefs.sigma_image1 is not None
+
     def summarize(self):
         """ Print summary of pipeline state """
 
@@ -712,11 +717,13 @@ class State(object):
     @property
     def features(self):
         """ Given searchtype, return features to be extracted in initial
-        analysis
+        analysis.
         """
 
         if self.prefs.searchtype == 'image1':
             return ('snr1', 'immax1', 'l1', 'm1')
+        elif self.prefs.searchtype == 'image1k':
+            return ('snr1', 'snrk', 'immax1', 'l1', 'm1')
         elif self.prefs.searchtype == 'image1stats':
             # note: spec statistics are all or nothing.
             return ('snr1', 'immax1', 'l1', 'm1', 'specstd', 'specskew',

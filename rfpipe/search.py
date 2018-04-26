@@ -441,6 +441,14 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
     minint = min(integrations)
     maxint = max(integrations)
 
+    # some prep if kalman filter is to be applied
+    if st.prefs.searchtype == 'image1k':
+        # TODO: check that this is ok if pointing at bright source
+        offints = np.random.choice(len(data), max(10, len(data)//10),
+                                   replace=False)
+        spec_std = data.real.mean(axis=1).mean(axis=2).take(offints, axis=0).std(axis=0)
+        sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
+
     # TODO: add check that manually set integrations are safe for given dt
 
     logger.info('Imaging {0} ints ({1}-{2}) in seg {3} at DM/dt {4:.1f}/{5} with '
@@ -451,31 +459,51 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
 
     uvw = util.get_uvw_segment(st, segment)
 
-    if 'image1' in st.prefs.searchtype:
+    if st.prefs.searchtype in ['image1', 'image1k']:
         images = grid_image(data, uvw, st.npixx, st.npixy, st.uvres,
                             'fftw', st.prefs.nthread, wisdom=wisdom,
                             integrations=integrations)
 
-        logger.debug('Thresholding at {0} sigma.'
-                     .format(st.sigma_image1))
-
-        # TODO: the following is really slow
         canddatalist = []
-        for i in range(len(images)):
-            peak_snr = images[i].max()/util.madtostd(images[i])
+        for i, image in enumerate(images):
+            peak_snr = image.max()/util.madtostd(image)
             if peak_snr > st.sigma_image1:
                 candloc = (segment, integrations[i], dmind, dtind, beamnum)
-                candim = images[i]
-                l, m = st.pixtolm(np.where(candim == candim.max()))
-                logger.info("Got one! SNR {0:.1f} candidate at {1} and (l,m) = ({2},{3})"
-                            .format(peak_snr, candloc, l, m))
-                util.phase_shift(data, uvw, l, m)
-                dataph = data[max(0, integrations[i]-st.prefs.timewindow//2):
-                              min(integrations[i]+st.prefs.timewindow//2, len(data))].mean(axis=1)
-                util.phase_shift(data, uvw, -l, -m)
-                canddatalist.append(candidates.CandData(state=st, loc=candloc,
-                                                        image=candim,
-                                                        data=dataph))
+                l, m = st.pixtolm(np.where(image == image.max()))
+
+                # if set, use sigma_kalman as second stage filter
+                if st.prefs.searchtype == 'image1k':
+                    spec = data.take([integrations[i]], axis=0)
+                    util.phase_shift(spec, uvw, l, m)
+                    spec = spec[0].real.mean(axis=2).mean(axis=0)
+                    significance_kalman = kalman_significance(spec, spec_std,
+                                                              sig_ts=sig_ts,
+                                                              coeffs=kalman_coeffs)
+                    significance_image = -scipy.stats.norm.logsf(peak_snr)
+                    total_snr = np.sqrt(2*(significance_kalman + significance_image))
+                    if total_snr > st.prefs.sigma_kalman:
+                        logger.info("Got one! SNR1 {0:.1f} and SNRK {1:.1f} candidate at {2} and (l,m) = ({3},{4})"
+                                    .format(peak_snr, total_snr, candloc, l, m))
+                        dataph = data[max(0, integrations[i]-st.prefs.timewindow//2):
+                                      min(integrations[i]+st.prefs.timewindow//2, len(data))].copy()
+                        util.phase_shift(dataph, uvw, l, m)
+                        dataph = dataph.mean(axis=1)
+                        canddatalist.append(candidates.CandData(state=st,
+                                                                loc=candloc,
+                                                                image=image,
+                                                                data=dataph,
+                                                                snrk=total_snr))
+                else:
+                    logger.info("Got one! SNR1 {0:.1f} candidate at {1} and (l, m) = ({2},{3})"
+                                .format(peak_snr, candloc, l, m))
+                    dataph = data[max(0, integrations[i]-st.prefs.timewindow//2):
+                                  min(integrations[i]+st.prefs.timewindow//2, len(data))].copy()
+                    util.phase_shift(dataph, uvw, l, m)
+                    dataph = dataph.mean(axis=1)
+                    canddatalist.append(candidates.CandData(state=st,
+                                                            loc=candloc,
+                                                            image=image,
+                                                            data=dataph))
 
                 if len(canddatalist)*bytespercd/1000**3 > st.prefs.memory_limit:
                     logger.info("Accumulated CandData size is {0:.1f} GB, "
@@ -489,7 +517,7 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
         candcollection += candidates.calc_features(canddatalist)
 
     else:
-        raise NotImplemented("only searchtype=image1 implemented")
+        raise NotImplemented("only searchtype=image1 or image1k implemented")
 
     logger.info("{0} candidates returned for (seg, dmind, dtind) = "
                 "({1}, {2}, {3})".format(len(candcollection), segment, dmind,
@@ -629,20 +657,112 @@ def _grid_visibilities_gu(data, us, vs, ws, npixx, npixy, uvres, grid):
                     grid[u, v] += data[j, k, l]
 
 
-def calc_kalman_significance(canddata, sig_ts=[]):
-    """ Go from canddata to significance adding kalman significance
-    Wraps kalman_significance 
+def kalman_significance(spec, spec_std, sig_ts=[], coeffs=[]):
+    """ Calculate kalman significance for given 1d spec and per-channel error.
+    If no coeffs input, it will calculate with random number generation.
+    From Barak Zackay
     """
-
-    offints = list(range(0, 10))+list(range(20, 30))
-    spec_std = canddata.data.mean(axis=2).take(offints, axis=0).real.std(axis=0)
 
     if not len(sig_ts):
         sig_ts = [x*np.median(spec_std) for x in [0.3, 0.1, 0.03, 0.01]]
+    if not len(coeffs):
+        coeffs = kalman_prepare_coeffs(spec_std, sig_ts)
 
-    # TODO check how to automate candidate integration 15
-    spec = canddata.data.mean(axis=2)[15].real
-    coeffs = kalman_prepare_coeffs(spec_std, sig_ts)
+    assert len(sig_ts) == len(coeffs)
+    logger.debug("Calculating max Kalman significance for {0} channel spectrum"
+                 .format(len(spec)))
+
+    significances = []
+    for i, sig_t in enumerate(sig_ts):
+        score = kalman_filter_detector(spec, spec_std, sig_t)
+        coeff = coeffs[i]
+        x_coeff, const_coeff = coeff
+        significances.append(x_coeff * score + const_coeff)
+
+    return np.max(significances) * np.log(2)  # given in units of nats
+
+
+@jit(nopython=True)
+def kalman_filter_detector(spec, spec_std, sig_t, A_0=None, sig_0=None):
+    """ Core calculation of Kalman estimator of input 1d spectrum data.
+    spec/spec_std are 1d spectra in same units.
+    sig_t sets the smoothness scale of model (A) change.
+    Number of changes is sqrt(nchan)*sig_t/mean(spec_std).
+    Frequency scale is 1/sig_t**2
+    A_0/sig_0 are initial guesses of model value in first channel.
+    Returns score, which is the likelihood of presence of signal.
+    From Barak Zackay
+    """
+
+    if A_0 is None:
+        A_0 = spec.mean()
+    if sig_0 is None:
+        sig_0 = np.median(spec_std)
+
+    spec = spec - np.mean(spec)  # likelihood calc expects zero mean spec
+
+    cur_mu, cur_state_v = A_0, sig_0**2
+    cur_log_l = 0
+    for i in range(len(spec)):
+        cur_z = spec[i]
+        cur_spec_v = spec_std[i]**2
+        # computing consistency with the data
+        cur_log_l += -(cur_z-cur_mu)**2 / (cur_state_v + cur_spec_v + sig_t**2)/2 - 0.5*np.log(2*np.pi*(cur_state_v + cur_spec_v + sig_t**2))
+
+        # computing the best state estimate
+        cur_mu = (cur_mu / cur_state_v + cur_z/cur_spec_v) / (1/cur_state_v + 1/cur_spec_v)
+        cur_state_v = cur_spec_v * cur_state_v / (cur_spec_v + cur_state_v) + sig_t**2
+
+    H_0_log_likelihood = -np.sum(spec**2 / spec_std**2 / 2) - np.sum(0.5*np.log(2*np.pi * spec_std**2))
+    return cur_log_l - H_0_log_likelihood
+
+
+def kalman_prepare_coeffs(data_std, sig_ts=None, n_trial=10000):
+    """ Measure kalman significance distribution in random data.
+    data_std is the noise vector per channel.
+    sig_ts can be single float or list of values.
+    returns tuple (sig_ts, coeffs)
+    From Barak Zackay
+    """
+
+    if sig_ts is None:
+        sig_ts = [x*np.median(data_std) for x in [0.3, 0.1, 0.03, 0.01]]
+    elif not isinstance(sig_ts, list):
+        sig_ts = [sig_ts]
+    else:
+        logger.warn("Not sure what to do with sig_ts {0}".format(sig_ts))
+
+    logger.info("Measuring Kalman significance distribution for sig_ts {0}".format(sig_ts))
+
+    coeffs = []
+    for sig_t in sig_ts:
+        nchan = len(data_std)
+        random_scores = []
+        for i in range(n_trial):
+            normaldist = np.random.normal(0, data_std, size=nchan)
+            normaldist -= normaldist.mean()
+            random_scores.append(kalman_filter_detector(normaldist, data_std, sig_t))
+
+        # Approximating the tail of the distribution as an  exponential tail (probably is justified)
+        coeffs.append(np.polyfit([np.percentile(random_scores, 100 * (1 - 2 ** (-i))) for i in range(3, 10)], range(3, 10), 1))
+        # TODO: check distribution out to 1/1e6
+
+    return sig_ts, coeffs
+
+
+def kalman_significance_canddata(canddata, sig_ts=[]):
+    """ Go from canddata to total ignificance with kalman significance
+    Calculates coefficients from data and then adds significance to image snr.
+    From Barak Zackay
+    """
+
+    # TODO check how to automate candidate selection of on/off integrations
+    onint = 15
+    offints = list(range(0, 10))+list(range(20, 30))
+    spec_std = canddata.data.real.mean(axis=2).take(offints, axis=0).std(axis=0)
+    spec = canddata.data.real.mean(axis=2)[onint]
+
+    sig_ts, coeffs = kalman_prepare_coeffs(spec_std)
     significance_kalman = kalman_significance(spec, spec_std, sig_ts=sig_ts, coeffs=coeffs)
 
     # TODO: better pixel std calculation needed?
@@ -654,99 +774,10 @@ def calc_kalman_significance(canddata, sig_ts=[]):
     return snr
 
 
-def kalman_significance(data, data_std, sig_ts=[], coeffs=[]):
-    """
-    If no coeffs input, it will calculate with random number generation.
-    From Barak Zackay
-    """
-
-    if not len(sig_ts):
-        sig_ts = [x*np.median(data_std) for x in [0.3, 0.1, 0.03, 0.01]]
-
-    significances = []
-    for i, sig_t in enumerate(sig_ts):
-        if not len(coeffs):
-            coeff = kalman_significance_fitting_coeff(data_std, sig_t)
-        else:
-            assert len(sig_ts) == len(coeffs)
-            coeff = coeffs[i]
-
-        x_coeff, const_coeff = coeff
-        score = kalman_filter_detector(data, data_std, sig_t)
-
-        significances.append(x_coeff * score + const_coeff)
-
-    return np.max(significances) * np.log(2)  # given in units of nats
-
-
-@jit(nopython=True)
-def kalman_filter_detector(data, data_std, sig_t, A_0=None, sig_0=None):
-    """ 
-    data/data_std are 1d spectra in same units.
-    sig_t sets the smoothness scale of model (A) change.
-    Number of changes is sqrt(nchan)*sig_t/mean(data_std).
-    Frequency scale is 1/sig_t**2
-    A_0/sig_0 are initial guesses of model value in first channel.
-    Returns likelihood of H1 over H0.
-    From Barak Zackay
-    """
-
-    if A_0 is None:
-        A_0 = data.mean()
-    if sig_0 is None:
-        sig_0 = np.median(data_std)
-
-    data = data - np.mean(data)  # must be zero mean
-
-    cur_mu, cur_state_v = A_0, sig_0**2
-    cur_log_l = 0
-    for i in range(len(data)):
-        cur_z = data[i]
-        cur_data_v = data_std[i]**2
-        # computing consistency with the data
-        cur_log_l += -(cur_z-cur_mu)**2 / (cur_state_v + cur_data_v + sig_t**2)/2 - 0.5*np.log(2*np.pi*(cur_state_v + cur_data_v + sig_t**2))
-
-        # computing the best state estimate
-        cur_mu = (cur_mu / cur_state_v + cur_z/cur_data_v) / (1/cur_state_v + 1/cur_data_v)
-        cur_state_v = cur_data_v * cur_state_v / (cur_data_v + cur_state_v) + sig_t**2
-
-    H_0_log_likelihood = -np.sum(data**2 / data_std**2 / 2) - np.sum(0.5*np.log(2*np.pi * data_std**2))
-    return cur_log_l - H_0_log_likelihood
-
-
-def kalman_prepare_coeffs(data_std, sig_ts, n_trial=10000):
-    """ Set up coeffs for each sig_t
-    """
-
-    coeffs = []
-    for sig_t in sig_ts:
-        coeffs.append(kalman_significance_fitting_coeff(data_std, sig_t, n_trial=n_trial))
-
-    return coeffs
-
-
-def kalman_significance_fitting_coeff(data_std, sig_t, n_trial=10000):
-    """ Measure kalman significance distribution in random data
-    data_std is the noise vector per channel.
-    TODO: could also do this with real data: normaldist -> sample noise spectrum
-    """
-
-    nchan = len(data_std)
-    random_scores = []
-    for i in range(n_trial):
-        normaldist = np.random.normal(0, data_std, size=nchan)
-        normaldist -= normaldist.mean()
-        random_scores.append(kalman_filter_detector(normaldist, data_std, sig_t))
-
-    # Approximating the tail of the distribution as an  exponential tail (probably is justified)
-    x_coeff, const_coeff = np.polyfit([np.percentile(random_scores, 100 * (1 - 2 ** (-i))) for i in range(3, 10)], range(3, 10), 1)
-    # TODO: check distribution out to 1/1e6
-
-    return x_coeff, const_coeff
-
-
 def image_arm():
-    """ Takes visibilities and images arms of VLA """
+    """ Takes visibilities and images arms of VLA
+    From Barak Zackay
+    """
 
     pass
 

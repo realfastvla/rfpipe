@@ -26,7 +26,7 @@ class CandData(object):
     Provides some properties for the state of the phased data and candidate.
     """
 
-    def __init__(self, state, loc, image, data):
+    def __init__(self, state, loc, image, data, **kwargs):
         """ Instantiate with pipeline state, candidate location tuple,
         image, and resampled data phased to candidate.
         TODO: Need to use search_dimensions to infer candloc meaning
@@ -36,6 +36,10 @@ class CandData(object):
         self.loc = tuple(loc)
         self.image = image
         self.data = data
+        if 'snrk' in kwargs:  # hack to allow detection level calculation in
+            self.snrk = kwargs['snrk']
+        else:
+            self.snrk = None
 
         assert len(loc) == len(state.search_dimensions), ("candidate location "
                                                           "should set each of "
@@ -210,15 +214,14 @@ def calc_features(canddatalist):
     dtype = list(zip(fields, types))
     features = np.zeros(len(canddatalist), dtype=dtype)
 
-    for i in range(len(canddatalist)):
-        canddata = canddatalist[i]
+    for i, canddata in enumerate(canddatalist):
         st = canddata.state
         image = canddata.image
         dataph = canddata.data
 #        candloc = canddata.loc
         ff = list(canddata.loc)
 
-        # assemble feature in requested order. Order matters!
+        # Order matters! features assembled in listed order.
         # TODO: fill out more features
         for feat in st.features:
             if feat == 'snr1':
@@ -229,6 +232,8 @@ def calc_features(canddatalist):
                 snrmin = image.min()/imstd
                 snr = snrmax if snrmax >= snrmin else snrmin
                 ff.append(snr)
+            elif feat == 'snrk':
+                ff.append(canddata.snrk)
             elif feat == 'immax1':
                 if snr > 0:
                     ff.append(image.max())
