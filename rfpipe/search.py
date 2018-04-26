@@ -747,27 +747,28 @@ def image_arms(st, data, uvw):
 
     # TODO: check if there is a center ant that can be counted in all arms
     ind_narm = np.where(np.all(st.blarr_arms == 'N', axis=1))[0]
-    grids_narm = image_arm(data, uvw, ind_narm, npix, st.uvres)
+    grids_narm = grid_arm(data, uvw, ind_narm, npix, st.uvres)
     images_narm = image_fftw(grids_narm, axes=(1,))
 
     ind_earm = np.where(np.all(st.blarr_arms == 'E', axis=1))[0]
-    grids_earm = image_arm(data, uvw, ind_earm, npix, st.uvres)
+    grids_earm = grid_arm(data, uvw, ind_earm, npix, st.uvres)
     images_earm = image_fftw(grids_earm, axes=(1,))
 
     ind_warm = np.where(np.all(st.blarr_arms == 'W', axis=1))[0]
-    grids_warm = image_arm(data, uvw, ind_warm, npix, st.uvres)
+    grids_warm = grid_arm(data, uvw, ind_warm, npix, st.uvres)
     images_warm = image_fftw(grids_warm, axes=(1,))
 
     return images_narm, images_earm, images_warm
 
 
-def image_arm(data, uvw, arminds, npix, uvres):
+def grid_arm(data, uvw, arminds, npix, uvres):
     """ Grids visibilities along 1d arms of array.
     arminds defines a subset of baselines that for a linear array.
     Returns FFT output (time vs pixel) from gridded 1d visibilities.
     """
 
     u, v, w = uvw
+    # TODO: check colinearity, "w", and definition of uv distance
     uvd = np.sqrt(u.take(arminds, axis=0)**2 + v.take(arminds, axis=0)**2)
 
     grids = np.zeros(shape=(data.shape[0], npix), dtype=np.complex64)
@@ -777,12 +778,52 @@ def image_arm(data, uvw, arminds, npix, uvres):
     return grids
 
 
-def calc_arm_peak(armimage):
-    """ Takes standard armimage and finds peak snr and its location (l, m)
-    From Barak Zackay
+@jit(nopython=True)
+def one_arm_cascading(arm1, arm2, arm3, arm12_to_3, eta_arm1, eta_arm2,
+                      eta_trigger, stds=None):
+
+    # TODO: assure stds is calculated over larger sample than 1 int
+    std_arm1 = arm1.std()
+    std_arm2 = arm2.std()
+    std_arm3 = arm3.std()
+    if stds is not None:
+        std_arm1, std_arm2, std_arm3 = stds
+
+    indices_arr1 = np.nonzero(arm1 > eta_arm1*std_arm1)[0]
+    indices_arr2 = np.nonzero(arm2 > eta_arm2*std_arm2)[0]
+    effective_eta_trigger = eta_trigger * (std_arm1**2+ std_arm2**2 + std_arm3**2)**0.5
+
+    # TODO: add iteration over integration?
+    results_arr = []
+    for ind1 in indices_arr1:
+        for ind2 in indices_arr2:
+            ind3 = arm12_to_3[ind1, ind2]
+            score = arm1[ind1]+arm2[ind2]+arm3[ind3]
+            if score > effective_eta_trigger:
+                results_arr.append((ind1, ind2))
+
+    return results_arr
+
+
+@jit
+def change_table_indices(table, indices_out):
+    """
+    changes a table that takes T[i,j] = k and returns
+    T[i,k] = j if indices_out == (1,3) or
+    T[j,k] = i if indices_out == (2,3) or
+    :param table:
+    :param indices_out: (either (1,3) or (2,3))
+    :return:
     """
 
-    pass
+    output_table = np.zeros_like(table)
+    for i in range(output_table.shape[0]):
+        for j in range(output_table.shape[1]):
+            if indices_out == (1, 3):
+                output_table[i][table[i, j]] = j
+            if indices_out == (2, 3):
+                output_table[j][table[i, j]] = i
+    return output_table
 
 
 def kalman_significance(spec, spec_std, sig_ts=[], coeffs=[]):
