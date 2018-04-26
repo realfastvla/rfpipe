@@ -128,10 +128,14 @@ class State(object):
                                                          .format(self.inttime,
                                                                  self.fringetime))
 
-        if self.prefs.searchtype == 'sigma1k':
+        if self.prefs.searchtype == 'image1k':
             assert self.prefs.sigma_kalman is not None
-        elif self.prefs.searchtype == 'sigma1':
+        elif self.prefs.searchtype == 'image1':
             assert self.prefs.sigma_image1 is not None
+        elif self.prefs.searchtype == 'imagearm':
+            assert self.prefs.sigma_image1 is not None
+        elif self.prefs.searchtype == 'imagearmk':
+            assert self.prefs.sigma_kalman is not None
 
     def summarize(self):
         """ Print summary of pipeline state """
@@ -554,6 +558,11 @@ class State(object):
     @property
     def blarr_names(self):
         return np.array([[self.ants[i], self.ants[j]]
+                         for j in range(self.nants) for i in range(0, j)])
+
+    @property
+    def blarr_arms(self):
+        return np.array([[self.metadata.stationids[i][0], self.metadata.stationids[j][0]]
                          for j in range(self.nants) for i in range(0, j)])
 
     @property

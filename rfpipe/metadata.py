@@ -48,7 +48,7 @@ class Metadata(object):
     dishdiameter = attr.ib(default=None)
     intent = attr.ib(default=None)
     antids = attr.ib(default=None)
-#    stationids = attr.ib(default=None) # needed?
+    stationids = attr.ib(default=None) # needed?
     xyz = attr.ib(default=None)  # in m, geocentric
 
     # spectral info
@@ -190,7 +190,7 @@ def config_metadata(config, datasource='vys'):
     meta['telescope'] = str(config.telescope)
     antennas = config.get_antennas()
     meta['antids'] = [str(ant.name) for ant in antennas]
-#    meta['stationids'] = config.listOfStations
+    meta['stationids'] = config.listOfStations  # TODO: check type
     meta['xyz'] = np.array([ant.xyz for ant in antennas])
 
     meta['radec'] = (np.radians(config.ra_deg), np.radians(config.dec_deg))
@@ -247,7 +247,7 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     meta['intent'] = ' '.join(scanobj.intents)
     meta['telescope'] = str(sdm['ExecBlock'][0]['telescopeName']).strip()
     meta['antids'] = [str(ant) for ant in scanobj.antennas]
-#    meta['stationids'] = scanobj.stations
+    meta['stationids'] = [str(station) for station in scanobj.stations]
     meta['xyz'] = np.array(scanobj.positions)
 
     meta['radec'] = scanobj.coordinates.tolist()
@@ -322,7 +322,10 @@ def mock_metadata(t0, t1, nants, nspw, chans, npol, inttime_micros, scan=1,
     meta['intent'] = 'OBSERVE_TARGET'
     meta['telescope'] = 'VLA'
     meta['antids'] = ['ea{0:02}'.format(ant) for ant in range(1, nants+1)]
-#    meta['stationids'] = range(nants)
+    meta['stationids'] = ['W24', 'W04', 'W28', 'E04', 'E36', 'N12', 'N16',
+                          'W12', 'N28', 'E20', 'N20', 'E28', 'E08', 'N24',
+                          'W20', 'N04', 'W36', 'W16', 'E16', 'E24', 'W32',
+                          'E12', 'W08', 'N08', 'E32', 'N36', 'N32'][:nants]
     meta['xyz'] = np.array([[-1604008.7444, -5042135.8251,  3553403.7108],
                             [-1601315.9005, -5041985.30747,  3554808.311],
                             [-1604865.6575, -5042190.032,  3552962.3635],
