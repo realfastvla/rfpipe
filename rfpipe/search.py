@@ -520,10 +520,9 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
         candcollection += candidates.calc_features(canddatalist)
 
     elif st.prefs.searchtype in ['imagearm', 'imagearmk']:
-        arm1, arm2, arm3 = image_arms(st, data, uvw, integrations=integrations)
-        # TODO: fix!
-        map_arm123 = fakemap(len(arm1[0]))
-        candisnr = search_thresh_arms(arm1, arm2, arm3, map_arm123,
+        arm0, arm1, arm2 = image_arms(st, data, uvw, integrations=integrations)
+        T012 = mapper012(st, uvw)
+        candisnr = search_thresh_arms(arm0, arm1, arm2, T012,
                                       st.prefs.sigma_arm,
                                       st.prefs.sigma_arms)
         canddatalist = []
@@ -720,38 +719,65 @@ def _grid_visibilities_gu(data, us, vs, ws, npixx, npixy, uvres, grid):
                     grid[u, v] += data[j, k, l]
 
 
-def fakemap(npix):
-    return np.random.normal(0, 1, size=(npix, npix))
+def mapper012(st, uvw, order=['N', 'E', 'W']):
+    """ Generates a function for geometric mapping between arms.
+    0,1,2 indiced are marking the order of the arms.
+    dot(T012,(A0,A1)) = A2, where A0,A1 are locations on arm 0,1 "image
+    and A2 is the location on arm 2.
+    """
+
+    u, v, w = uvw
+    ch0 = 0
+    u = u[:, ch0]
+    v = v[:, ch0]
+    w = w[:, ch0]
+    ind_arm0 = np.where(np.all(st.blarr_arms == order[0], axis=1))[0]
+    ind_arm1 = np.where(np.all(st.blarr_arms == order[1], axis=1))[0]
+    ind_arm2 = np.where(np.all(st.blarr_arms == order[2], axis=1))[0]
+
+    ind0 = ind_arm0[np.argmax(u.take(ind_arm0, axis=0)**2 + v.take(ind_arm0, axis=0)**2)]
+    l0 = (u[ind0]**2 + v[ind0]**2)**0.5
+    e0 = (u[ind0]/l0, v[ind0]/l0)
+
+    ind1 = ind_arm1[np.argmax(u.take(ind_arm1, axis=0)**2 + v.take(ind_arm1, axis=0)**2)]
+    l1 = (u[ind1]**2 + v[ind1]**2)**0.5
+    e1 = (u[ind1]/l1, v[ind1]/l1)
+
+    ind2 = ind_arm2[np.argmax(u.take(ind_arm2, axis=0)**2 + v.take(ind_arm2, axis=0)**2)]
+    l2 = (u[ind2]**2 + v[ind2]**2)**0.5
+    e2 = (u[ind2]/l2, v[ind2]/l2)
+
+    T012 = np.dot(e2, np.linalg.inv(np.array((e0, e1))))
+    return T012
 
 
 @jit(nopython=True)
-def search_thresh_arms(arm1, arm2, arm3, map_arm123, sigma_arm, sigma_arms, stds=None):
+def search_thresh_arms(arm0, arm1, arm2, T012, sigma_arm, sigma_arms, stds=None):
     """
     """
 
     # TODO: assure stds is calculated over larger sample than 1 int
     if stds is not None:
-        std_arm1, std_arm2, std_arm3 = stds
+        std_arm0, std_arm1, std_arm2 = stds
     else:
-        std_arm1 = arm1.std()  # over all ints and pixels
+        std_arm0 = arm0.std()  # over all ints and pixels
+        std_arm1 = arm1.std()
         std_arm2 = arm2.std()
-        std_arm3 = arm3.std()
 
-    print(std_arm1, std_arm2, std_arm3)
+    eta_arm0 = -scipy.stats.norm.logsf(sigma_arm)
     eta_arm1 = -scipy.stats.norm.logsf(sigma_arm)
-    eta_arm2 = -scipy.stats.norm.logsf(sigma_arm)
     eta_trigger = -scipy.stats.norm.logsf(sigma_arms)
 
-    effective_eta_trigger = eta_trigger * (std_arm1**2 + std_arm2**2 + std_arm3**2)**0.5
+    effective_eta_trigger = eta_trigger * (std_arm0**2 + std_arm1**2 + std_arm2**2)**0.5
 
+    indices_arr0 = np.nonzero(arm0 > eta_arm0*std_arm0)[0]
     indices_arr1 = np.nonzero(arm1 > eta_arm1*std_arm1)[0]
-    indices_arr2 = np.nonzero(arm2 > eta_arm2*std_arm2)[0]
     candisnr = []
-    for i in range(len(arm1)):
-        for ind1 in indices_arr1:
-            for ind2 in indices_arr2:
-                ind3 = map_arm123[ind1, ind2]
-                score = arm1[i, ind1]+arm2[i, ind2]+arm3[i, ind3]
+    for i in range(len(arm0)):
+        for ind0 in indices_arr0:
+            for ind1 in indices_arr1:
+                ind2 = T012[ind0, ind1]
+                score = arm0[i, ind0] + arm1[i, ind1] + arm2[i, ind2]
                 if score > effective_eta_trigger:
                     snrarm = np.sqrt(2*score)  # TODO: check on definition of score
                     candisnr.append((i, snrarm))
@@ -769,7 +795,7 @@ def image_arms(st, data, uvw, integrations=None):
         integrations = [integrations]
 
     # TODO: calculate npix properly
-    npix = max(st.npixx, st.npixy)
+    npix = max(st.npixx_full, st.npixy_full)
 
     # TODO: check if there is a center ant that can be counted in all arms
     ind_narm = np.where(np.all(st.blarr_arms == 'N', axis=1))[0]
@@ -793,39 +819,21 @@ def image_arms(st, data, uvw, integrations=None):
 def grid_arm(data, uvw, arminds, npix, uvres):
     """ Grids visibilities along 1d arms of array.
     arminds defines a subset of baselines that for a linear array.
+    grids as radius with sign of the u coordinate.
     Returns FFT output (time vs pixel) from gridded 1d visibilities.
     """
 
     u, v, w = uvw
-    # TODO: check colinearity, "w", and definition of uv distance
-    uvd = np.sqrt(u.take(arminds, axis=0)**2 + v.take(arminds, axis=0)**2)
+    # TODO: check colinearity and "w"
+    # TODO: integrate with unit vector approach in mapper function?
+    sign = np.sign(u.take(arminds, axis=0))
+    uvd = sign*np.sqrt(u.take(arminds, axis=0)**2 + v.take(arminds, axis=0)**2)
 
     grids = np.zeros(shape=(data.shape[0], npix), dtype=np.complex64)
     grid_visibilities_arm_jit(data.take(arminds, axis=1), uvd, npix,
                               uvres, grids)
 
     return grids
-
-
-@jit(nopython=True)
-def change_table_indices(table, indices_out):
-    """
-    changes a table that takes T[i,j] = k and returns
-    T[i,k] = j if indices_out == (1,3) or
-    T[j,k] = i if indices_out == (2,3) or
-    :param table:
-    :param indices_out: (either (1,3) or (2,3))
-    :return:
-    """
-
-    output_table = np.zeros_like(table)
-    for i in range(output_table.shape[0]):
-        for j in range(output_table.shape[1]):
-            if indices_out == (1, 3):
-                output_table[i][table[i, j]] = j
-            if indices_out == (2, 3):
-                output_table[j][table[i, j]] = i
-    return output_table
 
 
 @jit(nogil=True, nopython=True)
