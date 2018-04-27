@@ -482,7 +482,7 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
                     significance_image = -scipy.stats.norm.logsf(peak_snr)
                     total_snr = np.sqrt(2*(significance_kalman + significance_image))
                     if total_snr > st.prefs.sigma_kalman:
-                        logger.info("Got one! SNR1 {0:.1f} and SNRK {1:.1f} candidate at {2} and (l,m) = ({3},{4})"
+                        logger.info("Got one! SNR1 {0:.1f} and SNRk {1:.1f} candidate at {2} and (l,m) = ({3},{4})"
                                     .format(peak_snr, total_snr, candloc, l, m))
                         dataph = data[max(0, integrations[i]-st.prefs.timewindow//2):
                                       min(integrations[i]+st.prefs.timewindow//2, len(data))].copy()
@@ -520,16 +520,22 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
         candcollection += candidates.calc_features(canddatalist)
 
     elif st.prefs.searchtype in ['imagearm', 'imagearmk']:
-        # an armimage is a 3 by npix array for an integration in stokes i
-        armimages = image_arm(data, uvw, st.npixx, st.npixy, st.uvres,
-                              'fftw', st.prefs.nthread, wisdom=wisdom,
-                              integrations=integrations)
+        arm1, arm2, arm3 = image_arms(st, data, uvw, integrations=integrations)
+        # TODO: fix!
+        map_arm123 = fakemap(len(arm1[0]))
+        candisnr = search_thresh_arms(arm1, arm2, arm3, map_arm123,
+                                      st.prefs.sigma_arm,
+                                      st.prefs.sigma_arms)
         canddatalist = []
-        for i, armimage in enumerate(armimages):
+        for i, snrarm in candisnr:
             candloc = (segment, integrations[i], dmind, dtind, beamnum)
-            peak_snr, l, m = calc_arm_peak(armimage)
-            if peak_snr > st.sigma_image1:
+            image = grid_image(data, uvw, st.npixx, st.npixy, st.uvres,
+                               'fftw', st.prefs.nthread, wisdom=wisdom,
+                               integrations=integrations[i])
+            peak_snr = image.max()/util.madtostd(image)
+            l, m = st.pixtolm(np.where(image == image.max()))
 
+            if peak_snr > st.sigma_image1:
                 # if set, use sigma_kalman as second stage filter
                 if st.prefs.searchtype == 'imagearmk':
                     spec = data.take([integrations[i]], axis=0)
@@ -541,30 +547,30 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
                     significance_image = -scipy.stats.norm.logsf(peak_snr)
                     total_snr = np.sqrt(2*(significance_kalman + significance_image))
                     if total_snr > st.prefs.sigma_kalman:
-                        logger.info("Got one! SNR1 {0:.1f} and SNRK {1:.1f} candidate at {2} and (l,m) = ({3},{4})"
-                                    .format(peak_snr, total_snr, candloc, l, m))
+                        logger.info("Got one! SNRarm {0:.1f} and SNR1 {1:.1f} and SNRk {2:.1f} candidate at {3} and (l,m) = ({4},{5})"
+                                    .format(snrarm, peak_snr, total_snr, candloc, l, m))
                         dataph = data[max(0, integrations[i]-st.prefs.timewindow//2):
                                       min(integrations[i]+st.prefs.timewindow//2, len(data))].copy()
                         util.phase_shift(dataph, uvw, l, m)
                         dataph = dataph.mean(axis=1)
-                        # TODO: make full 2d image?
                         canddatalist.append(candidates.CandData(state=st,
                                                                 loc=candloc,
-                                                                image=armimage,
+                                                                image=image,
                                                                 data=dataph,
+                                                                snrarm=snrarm,
                                                                 snrk=total_snr))
                 elif st.prefs.searchtype == 'imagearm':
-                    logger.info("Got one! SNR1 {0:.1f} candidate at {1} and (l, m) = ({2},{3})"
-                                .format(peak_snr, candloc, l, m))
+                    logger.info("Got one! SNRarm {0:.1f} and SNR1 {1:.1f} candidate at {2} and (l, m) = ({3},{4})"
+                                .format(snrarm, peak_snr, candloc, l, m))
                     dataph = data[max(0, integrations[i]-st.prefs.timewindow//2):
                                   min(integrations[i]+st.prefs.timewindow//2, len(data))].copy()
                     util.phase_shift(dataph, uvw, l, m)
                     dataph = dataph.mean(axis=1)
-                    # TODO: make full 2d image?
                     canddatalist.append(candidates.CandData(state=st,
                                                             loc=candloc,
                                                             image=armimage,
-                                                            data=dataph))
+                                                            data=dataph,
+                                                            snrarm=snrarm))
                 else:
                     logger.warn("searchtype {0} not recognized"
                                 .format(st.prefs.searchtype))
@@ -714,48 +720,71 @@ def _grid_visibilities_gu(data, us, vs, ws, npixx, npixy, uvres, grid):
                     grid[u, v] += data[j, k, l]
 
 
-@jit(nogil=True, nopython=True)
-def grid_visibilities_arm_jit(data, uvd, npix, uvres, grids):
-    b""" Grid visibilities into rounded uvd coordinates using jit on single core.
-    data/uvd are selected for a single arm
+def fakemap(npix):
+    return np.random.normal(0, 1, size=(npix, npix))
+
+
+@jit(nopython=True)
+def search_thresh_arms(arm1, arm2, arm3, map_arm123, sigma_arm, sigma_arms, stds=None):
+    """
     """
 
-    nint, nbl, nchan, npol = data.shape
+    # TODO: assure stds is calculated over larger sample than 1 int
+    if stds is not None:
+        std_arm1, std_arm2, std_arm3 = stds
+    else:
+        std_arm1 = arm1.std()  # over all ints and pixels
+        std_arm2 = arm2.std()
+        std_arm3 = arm3.std()
 
-# rounding not available in numba
-#    ubl = np.round(us/uvres, 0).astype(np.int32)
-#    vbl = np.round(vs/uvres, 0).astype(np.int32)
+    print(std_arm1, std_arm2, std_arm3)
+    eta_arm1 = -scipy.stats.norm.logsf(sigma_arm)
+    eta_arm2 = -scipy.stats.norm.logsf(sigma_arm)
+    eta_trigger = -scipy.stats.norm.logsf(sigma_arms)
 
-    for j in range(nbl):
-        for k in range(nchan):
-            uvbl = int64(uvd[j, k]/uvres)
-            if (np.abs(uvbl < npix//2)):
-                uvmod = int64(np.mod(uvbl, npix))
-                for i in range(nint):
-                    for l in range(npol):
-                        grids[i, uvmod] += data[i, j, k, l]
+    effective_eta_trigger = eta_trigger * (std_arm1**2 + std_arm2**2 + std_arm3**2)**0.5
 
-    return grids
+    indices_arr1 = np.nonzero(arm1 > eta_arm1*std_arm1)[0]
+    indices_arr2 = np.nonzero(arm2 > eta_arm2*std_arm2)[0]
+    candisnr = []
+    for i in range(len(arm1)):
+        for ind1 in indices_arr1:
+            for ind2 in indices_arr2:
+                ind3 = map_arm123[ind1, ind2]
+                score = arm1[i, ind1]+arm2[i, ind2]+arm3[i, ind3]
+                if score > effective_eta_trigger:
+                    snrarm = np.sqrt(2*score)  # TODO: check on definition of score
+                    candisnr.append((i, snrarm))
+
+    return candisnr
 
 
-def image_arms(st, data, uvw):
+def image_arms(st, data, uvw, integrations=None):
     """ Calculate grids for all three arms of VLA.
     """
+
+    if integrations is None:
+        integrations = list(range(len(data)))
+    elif isinstance(integrations, int):
+        integrations = [integrations]
 
     # TODO: calculate npix properly
     npix = max(st.npixx, st.npixy)
 
     # TODO: check if there is a center ant that can be counted in all arms
     ind_narm = np.where(np.all(st.blarr_arms == 'N', axis=1))[0]
-    grids_narm = grid_arm(data, uvw, ind_narm, npix, st.uvres)
+    grids_narm = grid_arm(data.take(integrations, axis=0), uvw, ind_narm, npix,
+                          st.uvres)
     images_narm = image_fftw(grids_narm, axes=(1,))
 
     ind_earm = np.where(np.all(st.blarr_arms == 'E', axis=1))[0]
-    grids_earm = grid_arm(data, uvw, ind_earm, npix, st.uvres)
+    grids_earm = grid_arm(data.take(integrations, axis=0), uvw, ind_earm, npix,
+                          st.uvres)
     images_earm = image_fftw(grids_earm, axes=(1,))
 
     ind_warm = np.where(np.all(st.blarr_arms == 'W', axis=1))[0]
-    grids_warm = grid_arm(data, uvw, ind_warm, npix, st.uvres)
+    grids_warm = grid_arm(data.take(integrations, axis=0), uvw, ind_warm, npix,
+                          st.uvres)
     images_warm = image_fftw(grids_warm, axes=(1,))
 
     return images_narm, images_earm, images_warm
@@ -779,33 +808,6 @@ def grid_arm(data, uvw, arminds, npix, uvres):
 
 
 @jit(nopython=True)
-def one_arm_cascading(arm1, arm2, arm3, arm12_to_3, eta_arm1, eta_arm2,
-                      eta_trigger, stds=None):
-
-    # TODO: assure stds is calculated over larger sample than 1 int
-    std_arm1 = arm1.std()
-    std_arm2 = arm2.std()
-    std_arm3 = arm3.std()
-    if stds is not None:
-        std_arm1, std_arm2, std_arm3 = stds
-
-    indices_arr1 = np.nonzero(arm1 > eta_arm1*std_arm1)[0]
-    indices_arr2 = np.nonzero(arm2 > eta_arm2*std_arm2)[0]
-    effective_eta_trigger = eta_trigger * (std_arm1**2+ std_arm2**2 + std_arm3**2)**0.5
-
-    # TODO: add iteration over integration?
-    results_arr = []
-    for ind1 in indices_arr1:
-        for ind2 in indices_arr2:
-            ind3 = arm12_to_3[ind1, ind2]
-            score = arm1[ind1]+arm2[ind2]+arm3[ind3]
-            if score > effective_eta_trigger:
-                results_arr.append((ind1, ind2))
-
-    return results_arr
-
-
-@jit
 def change_table_indices(table, indices_out):
     """
     changes a table that takes T[i,j] = k and returns
@@ -824,6 +826,30 @@ def change_table_indices(table, indices_out):
             if indices_out == (2, 3):
                 output_table[j][table[i, j]] = i
     return output_table
+
+
+@jit(nogil=True, nopython=True)
+def grid_visibilities_arm_jit(data, uvd, npix, uvres, grids):
+    b""" Grid visibilities into rounded uvd coordinates using jit on single core.
+    data/uvd are selected for a single arm
+    """
+
+    nint, nbl, nchan, npol = data.shape
+
+# rounding not available in numba
+#    ubl = np.round(us/uvres, 0).astype(np.int32)
+#    vbl = np.round(vs/uvres, 0).astype(np.int32)
+
+    for j in range(nbl):
+        for k in range(nchan):
+            uvbl = int64(uvd[j, k]/uvres)
+            if (np.abs(uvbl < npix//2)):
+                uvmod = int64(np.mod(uvbl, npix))
+                for i in range(nint):
+                    for l in range(npol):
+                        grids[i, uvmod] += data[i, j, k, l]
+
+    return grids
 
 
 def kalman_significance(spec, spec_std, sig_ts=[], coeffs=[]):

@@ -40,6 +40,10 @@ class CandData(object):
             self.snrk = kwargs['snrk']
         else:
             self.snrk = None
+        if 'snrarm' in kwargs:  # hack to allow detection level calculation in
+            self.snrarm = kwargs['snrarm']
+        else:
+            self.snrarm = None
 
         assert len(loc) == len(state.search_dimensions), ("candidate location "
                                                           "should set each of "
@@ -232,6 +236,8 @@ def calc_features(canddatalist):
                 snrmin = image.min()/imstd
                 snr = snrmax if snrmax >= snrmin else snrmin
                 ff.append(snr)
+            elif feat == 'snrarm':
+                ff.append(canddata.snrarm)
             elif feat == 'snrk':
                 ff.append(canddata.snrk)
             elif feat == 'immax1':

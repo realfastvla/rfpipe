@@ -63,7 +63,8 @@ class Preferences(object):
     dm_pulsewidth = attr.ib(default=3000)   # in microsec
     searchtype = attr.ib(default='image1')  # supported: image1, image1stat, image1k, imagearm, imagearmk
     sigma_image1 = attr.ib(default=7)  # threshold for image1 and imagearm algorithms
-    sigma_image2 = attr.ib(default=None)  # second threshold (no algo yet)
+    sigma_arm = attr.ib(default=None)  # 1arm threshold
+    sigma_arms = attr.ib(default=None)  # all-arm threshold
     sigma_kalman = attr.ib(default=None)  # second threshold using kalman filter
     nfalse = attr.ib(default=None)  # number of thermal false positives per scan
     uvres = attr.ib(default=0)  # in lambda

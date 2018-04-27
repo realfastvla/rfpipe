@@ -135,8 +135,11 @@ class State(object):
         elif self.prefs.searchtype == 'image1':
             assert self.prefs.sigma_image1 is not None
         elif self.prefs.searchtype == 'imagearm':
-            assert self.prefs.sigma_image1 is not None
+            assert self.prefs.sigma_arm is not None
+            assert self.prefs.sigma_arms is not None
         elif self.prefs.searchtype == 'imagearmk':
+            assert self.prefs.sigma_arm is not None
+            assert self.prefs.sigma_arms is not None
             assert self.prefs.sigma_kalman is not None
 
     def summarize(self):
