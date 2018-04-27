@@ -522,11 +522,11 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
     elif st.prefs.searchtype in ['imagearm', 'imagearmk']:
         arm0, arm1, arm2 = image_arms(st, data, uvw, integrations=integrations)
         T012 = mapper012(st, uvw)
-        candisnr = search_thresh_arms(arm0, arm1, arm2, T012,
-                                      st.prefs.sigma_arm,
-                                      st.prefs.sigma_arms)
+        candinds, armlocs, snrarms = search_thresh_arms(arm0, arm1, arm2, T012,
+                                                        st.prefs.sigma_arm,
+                                                        st.prefs.sigma_arms)
         canddatalist = []
-        for i, snrarm in candisnr:
+        for i in candinds:
             candloc = (segment, integrations[i], dmind, dtind, beamnum)
             image = grid_image(data, uvw, st.npixx, st.npixy, st.uvres,
                                'fftw', st.prefs.nthread, wisdom=wisdom,
@@ -628,7 +628,7 @@ def image_fftw(grids, nthread=1, wisdom=None, axes=(1, 2)):
     Returns recentered fftoutput for each integration.
     """
 
-    if wisdom:
+    if wisdom is not None:
         logger.debug('Importing wisdom...')
         pyfftw.import_wisdom(wisdom)
 
@@ -719,11 +719,16 @@ def _grid_visibilities_gu(data, us, vs, ws, npixx, npixy, uvres, grid):
                     grid[u, v] += data[j, k, l]
 
 
+###
+# cascading 3arm imaging
+###
+
 def mapper012(st, uvw, order=['N', 'E', 'W']):
     """ Generates a function for geometric mapping between arms.
     0,1,2 indiced are marking the order of the arms.
     dot(T012,(A0,A1)) = A2, where A0,A1 are locations on arm 0,1 "image
     and A2 is the location on arm 2.
+    Convention defined in gridding for vectors to be positive in u direction.
     """
 
     u, v, w = uvw
@@ -737,55 +742,79 @@ def mapper012(st, uvw, order=['N', 'E', 'W']):
 
     ind0 = ind_arm0[np.argmax(u.take(ind_arm0, axis=0)**2 + v.take(ind_arm0, axis=0)**2)]
     l0 = (u[ind0]**2 + v[ind0]**2)**0.5
-    e0 = (u[ind0]/l0, v[ind0]/l0)
+    e0 = (u[ind0]/l0 * np.sign(u[ind0]), v[ind0]/l0 * np.sign(u[ind0]))  # positive u convention
 
-    ind1 = ind_arm1[np.argmax(u.take(ind_arm1, axis=0)**2 + v.take(ind_arm1, axis=0)**2)]
+    ind1 = ind_arm1[np.argmax((u.take(ind_arm1, axis=0)**2 + v.take(ind_arm1, axis=0)**2))]
     l1 = (u[ind1]**2 + v[ind1]**2)**0.5
-    e1 = (u[ind1]/l1, v[ind1]/l1)
+    e1 = (u[ind1]/l1 * np.sign(u[ind1]), v[ind1]/l1 * np.sign(u[ind1]))
 
     ind2 = ind_arm2[np.argmax(u.take(ind_arm2, axis=0)**2 + v.take(ind_arm2, axis=0)**2)]
     l2 = (u[ind2]**2 + v[ind2]**2)**0.5
-    e2 = (u[ind2]/l2, v[ind2]/l2)
+    e2 = (u[ind2]/l2 * np.sign(u[ind2]), v[ind2]/l2 * np.sign(u[ind2]))
 
     T012 = np.dot(e2, np.linalg.inv(np.array((e0, e1))))
     return T012
 
 
 @jit(nopython=True)
-def search_thresh_arms(arm0, arm1, arm2, T012, sigma_arm, sigma_arms, stds=None):
+def search_thresh_arms(arm0, arm1, arm2, T012, sigma_arm, sigma_trigger, n_max_cands):
+    """ Run 3-arm search with sigma_arm per arm and sigma_trigger overall.
+    arm0/1/2 are the 1d arm "images" and T012 is the coefficients to map arm0/1
+    positions to arm2.
+    Number of candidates is limit to n_max_cands per integration.
+    Highest snrarm candidates returned up to n_max_cands per integration.
     """
-    """
+
+    assert len(arm0[0]) == len(arm1[0])
+    assert len(arm2[0]) == len(arm1[0])
 
     # TODO: assure stds is calculated over larger sample than 1 int
-    if stds is not None:
-        std_arm0, std_arm1, std_arm2 = stds
-    else:
-        std_arm0 = arm0.std()  # over all ints and pixels
-        std_arm1 = arm1.std()
-        std_arm2 = arm2.std()
+    std_arm0 = arm0.std()  # over all ints and pixels
+    std_arm1 = arm1.std()
+    std_arm2 = arm2.std()
 
-    eta_arm0 = -scipy.stats.norm.logsf(sigma_arm)
-    eta_arm1 = -scipy.stats.norm.logsf(sigma_arm)
-    eta_trigger = -scipy.stats.norm.logsf(sigma_arms)
+    nint = len(arm0)
+    npix = len(arm0[0])
 
-    effective_eta_trigger = eta_trigger * (std_arm0**2 + std_arm1**2 + std_arm2**2)**0.5
+    effective_3arm_sigma = (std_arm0**2 + std_arm1**2 + std_arm2**2)**0.5
+    effective_eta_trigger = sigma_trigger * effective_3arm_sigma
 
-    indices_arr0 = np.nonzero(arm0 > eta_arm0*std_arm0)[0]
-    indices_arr1 = np.nonzero(arm1 > eta_arm1*std_arm1)[0]
-    candisnr = []
+    candinds = np.zeros(shape=(nint, n_max_cands), dtype=np.int64)
+    armlocs = np.zeros(shape=(nint, n_max_cands, 3), dtype=np.int64)
+    snrarms = np.zeros(shape=(nint, n_max_cands), dtype=np.float64)
     for i in range(len(arm0)):
+        success_counter = 0
+        indices_arr0 = np.nonzero(arm0[i] > sigma_arm*std_arm0)[0]
+        indices_arr1 = np.nonzero(arm1[i] > sigma_arm*std_arm1)[0]
         for ind0 in indices_arr0:
             for ind1 in indices_arr1:
-                ind2 = T012[ind0, ind1]
+                ind2 = int(round(np.dot(np.array([float(ind0 - npix//2),
+                                                  float(ind1 - npix//2)]),
+                                        T012) + npix//2))
                 score = arm0[i, ind0] + arm1[i, ind1] + arm2[i, ind2]
                 if score > effective_eta_trigger:
-                    snrarm = np.sqrt(2*score)  # TODO: check on definition of score
-                    candisnr.append((i, snrarm))
+                    snr_3arm = score/effective_3arm_sigma
 
-    return candisnr
+                    # TODO find better logic (heap?)
+                    success_counter0 = success_counter
+                    while snrarms[i, success_counter] > snr_3arm:
+                        success_counter += 1
+                        if success_counter >= n_max_cands:
+                            success_counter = 0
+                        if success_counter == success_counter0:
+                            break
+                    if snrarms[i, success_counter] < snr_3arm:
+                        snrarms[i, success_counter] = snr_3arm
+                        armlocs[i, success_counter] = (ind0, ind1, ind2)
+                        candinds[i, success_counter] = i
+                        success_counter += 1
+                        if success_counter >= n_max_cands:
+                            success_counter = 0
+
+    return candinds, armlocs, snrarms
 
 
-def image_arms(st, data, uvw, integrations=None):
+def image_arms(st, data, uvw, integrations=None, wisdom=None):
     """ Calculate grids for all three arms of VLA.
     """
 
@@ -801,17 +830,17 @@ def image_arms(st, data, uvw, integrations=None):
     ind_narm = np.where(np.all(st.blarr_arms == 'N', axis=1))[0]
     grids_narm = grid_arm(data.take(integrations, axis=0), uvw, ind_narm, npix,
                           st.uvres)
-    images_narm = image_fftw(grids_narm, axes=(1,))
+    images_narm = image_fftw(grids_narm, axes=(1,), wisdom=wisdom)
 
     ind_earm = np.where(np.all(st.blarr_arms == 'E', axis=1))[0]
     grids_earm = grid_arm(data.take(integrations, axis=0), uvw, ind_earm, npix,
                           st.uvres)
-    images_earm = image_fftw(grids_earm, axes=(1,))
+    images_earm = image_fftw(grids_earm, axes=(1,), wisdom=wisdom)
 
     ind_warm = np.where(np.all(st.blarr_arms == 'W', axis=1))[0]
     grids_warm = grid_arm(data.take(integrations, axis=0), uvw, ind_warm, npix,
                           st.uvres)
-    images_warm = image_fftw(grids_warm, axes=(1,))
+    images_warm = image_fftw(grids_warm, axes=(1,), wisdom=wisdom)
 
     return images_narm, images_earm, images_warm
 
@@ -820,6 +849,7 @@ def grid_arm(data, uvw, arminds, npix, uvres):
     """ Grids visibilities along 1d arms of array.
     arminds defines a subset of baselines that for a linear array.
     grids as radius with sign of the u coordinate.
+    defines a convention of uv distance as positive in u direction.
     Returns FFT output (time vs pixel) from gridded 1d visibilities.
     """
 
@@ -859,6 +889,10 @@ def grid_visibilities_arm_jit(data, uvd, npix, uvres, grids):
 
     return grids
 
+
+###
+# Kalman significance
+###
 
 def kalman_significance(spec, spec_std, sig_ts=[], coeffs=[]):
     """ Calculate kalman significance for given 1d spec and per-channel error.
@@ -977,12 +1011,21 @@ def kalman_significance_canddata(canddata, sig_ts=[]):
     return snr
 
 
-def set_wisdom(npixx, npixy):
-    """ Run single 2d ifft like image to prep fftw wisdom in worker cache """
+def set_wisdom(npixx, npixy=None):
+    """ Run single ifft to prep fftw wisdom in worker cache
+    Supports 1d and 2d ifft.
+    """
 
     logger.info('Calculating FFT wisdom...')
-    arr = pyfftw.empty_aligned((npixx, npixy), dtype='complex64', n=16)
-    fft_arr = pyfftw.interfaces.numpy_fft.ifft2(arr, auto_align_input=True,
-                                                auto_contiguous=True,
-                                                planner_effort='FFTW_MEASURE')
+
+    if npixy is not None:
+        arr = pyfftw.empty_aligned((npixx, npixy), dtype='complex64', n=16)
+        fft_arr = pyfftw.interfaces.numpy_fft.ifft2(arr, auto_align_input=True,
+                                                    auto_contiguous=True,
+                                                    planner_effort='FFTW_MEASURE')
+    else:
+        arr = pyfftw.empty_aligned((npixx), dtype='complex64', n=16)
+        fft_arr = pyfftw.interfaces.numpy_fft.ifft(arr, auto_align_input=True,
+                                                   auto_contiguous=True,
+                                                   planner_effort='FFTW_MEASURE')
     return pyfftw.export_wisdom()
