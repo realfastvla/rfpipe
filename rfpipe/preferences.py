@@ -61,7 +61,7 @@ class Preferences(object):
     mindm = attr.ib(default=0)  # in pc/cm3
     maxdm = attr.ib(default=0)  # in pc/cm3
     dm_pulsewidth = attr.ib(default=3000)   # in microsec
-    searchtype = attr.ib(default='image1')  # supported: image1, image1stat, image1k, imagearm, imagearmk
+    searchtype = attr.ib(default='image1')  # supported: image1, image1stat, image1k, armkimage
     sigma_image1 = attr.ib(default=7)  # threshold for image1 and imagearm algorithms
     sigma_arm = attr.ib(default=None)  # 1arm threshold
     sigma_arms = attr.ib(default=None)  # all-arm threshold

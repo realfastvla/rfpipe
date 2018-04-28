@@ -570,6 +570,12 @@ class State(object):
         return np.array([[self.metadata.stationids[i][0], self.metadata.stationids[j][0]]
                          for j in range(self.nants) for i in range(0, j)])
 
+    def blind_arm(self, arm):
+        """ Give the index of baseline with given arm "N", "E", or "W".
+        """
+
+        return np.where(np.all(self.blarr_arms == arm, axis=1))[0]
+
     @property
     def nsegment(self):
         #       if self.prefs.nsegment:

@@ -442,7 +442,7 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
     maxint = max(integrations)
 
     # some prep if kalman filter is to be applied
-    if st.prefs.searchtype in ['image1k', 'imagearmk']:
+    if st.prefs.searchtype in ['image1k', 'armk']:
         # TODO: check that this is ok if pointing at bright source
         offints = np.random.choice(len(data), max(10, len(data)//10),
                                    replace=False)
@@ -519,35 +519,26 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
 
         candcollection += candidates.calc_features(canddatalist)
 
-    elif st.prefs.searchtype in ['imagearm', 'imagearmk']:
-        arm0, arm1, arm2 = image_arms(st, data, uvw, integrations=integrations)
-        T012 = mapper012(st, uvw)
-        candinds, armlocs, snrarms = search_thresh_arms(arm0, arm1, arm2, T012,
-                                                        st.prefs.sigma_arm,
-                                                        st.prefs.sigma_arms)
+    elif st.prefs.searchtype in ['armkimage']:
+        candinds, armlocs, snrarms = search_thresh_arms(st, data, uvw, spec_std,
+                                                        integrations=integrations,
+                                                        sig_ts=sig_ts,
+                                                        coeffs=kalman_coeffs)
         canddatalist = []
-        for i in candinds:
-            candloc = (segment, integrations[i], dmind, dtind, beamnum)
-            image = grid_image(data, uvw, st.npixx, st.npixy, st.uvres,
-                               'fftw', st.prefs.nthread, wisdom=wisdom,
-                               integrations=integrations[i])
-            peak_snr = image.max()/util.madtostd(image)
-            l, m = st.pixtolm(np.where(image == image.max()))
+        for i, candind in enumerate(candinds):
+            candloc = (segment, candind, dmind, dtind, beamnum)
+            l, m = st.armtolm(armlocs[i])
 
-            if peak_snr > st.sigma_image1:
-                # if set, use sigma_kalman as second stage filter
-                if st.prefs.searchtype == 'imagearmk':
-                    spec = data.take([integrations[i]], axis=0)
-                    util.phase_shift(spec, uvw, l, m)
-                    spec = spec[0].real.mean(axis=2).mean(axis=0)
-                    significance_kalman = kalman_significance(spec, spec_std,
-                                                              sig_ts=sig_ts,
-                                                              coeffs=kalman_coeffs)
-                    significance_image = -scipy.stats.norm.logsf(peak_snr)
-                    total_snr = np.sqrt(2*(significance_kalman + significance_image))
-                    if total_snr > st.prefs.sigma_kalman:
-                        logger.info("Got one! SNRarm {0:.1f} and SNR1 {1:.1f} and SNRk {2:.1f} candidate at {3} and (l,m) = ({4},{5})"
-                                    .format(snrarm, peak_snr, total_snr, candloc, l, m))
+            # if set, use sigma_kalman as second stage filter
+            if st.prefs.searchtype == 'imagearmk':
+                    image = grid_image(data, uvw, st.npixx, st.npixy, st.uvres,
+                                       'fftw', st.prefs.nthread, wisdom=wisdom,
+                                       integrations=i)
+                    peak_snr = image.max()/util.madtostd(image)
+                    if peak_snr > st.prefs.sigma_image1:
+                        logger.info("Got one! SNRarm {0:.1f} and SNRk {1:.1f} and SNR1 {2:.1f} candidate at {3} and (l,m) = ({4},{5})"
+                                    .format(snrarms[i], total_snr, peak_snr,
+                                            candloc, l, m))
                         dataph = data[max(0, integrations[i]-st.prefs.timewindow//2):
                                       min(integrations[i]+st.prefs.timewindow//2, len(data))].copy()
                         util.phase_shift(dataph, uvw, l, m)
@@ -556,20 +547,10 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
                                                                 loc=candloc,
                                                                 image=image,
                                                                 data=dataph,
-                                                                snrarm=snrarm,
+                                                                snrarm=snrarms[i],
                                                                 snrk=total_snr))
                 elif st.prefs.searchtype == 'imagearm':
-                    logger.info("Got one! SNRarm {0:.1f} and SNR1 {1:.1f} candidate at {2} and (l, m) = ({3},{4})"
-                                .format(snrarm, peak_snr, candloc, l, m))
-                    dataph = data[max(0, integrations[i]-st.prefs.timewindow//2):
-                                  min(integrations[i]+st.prefs.timewindow//2, len(data))].copy()
-                    util.phase_shift(dataph, uvw, l, m)
-                    dataph = dataph.mean(axis=1)
-                    canddatalist.append(candidates.CandData(state=st,
-                                                            loc=candloc,
-                                                            image=armimage,
-                                                            data=dataph,
-                                                            snrarm=snrarm))
+                    raise NotImplementedError
                 else:
                     logger.warn("searchtype {0} not recognized"
                                 .format(st.prefs.searchtype))
@@ -723,6 +704,87 @@ def _grid_visibilities_gu(data, us, vs, ws, npixx, npixy, uvres, grid):
 # cascading 3arm imaging
 ###
 
+def search_thresh_arms(st, data, uvw, spec_std, integrations=None, sig_ts=None, coeffs=None):
+    """
+    """
+
+    if integrations is None:
+        integrations = list(range(len(data)))
+    elif isinstance(integrations, int):
+        integrations = [integrations]
+
+
+    n_max_cands = 10  # should be set according to sigma_arms
+
+    arm0, arm1, arm2 = image_arms(st, data.take(integrations, axis=0), uvw)
+    T012 = mapper012(st, uvw)
+    candinds, armlocs, snrarms = thresh_arms(arm0, arm1, arm2, T012,
+                                             st.prefs.sigma_arm,
+                                             st.prefs.sigma_arms,
+                                             n_max_cands)
+
+    # kalman filter integrated for now
+    kpeak = []
+    candind, candnum = np.nonzero(snrarms)
+    for i in range(len(candind)):
+        # TODO: check that int selection is accurate
+        spec = data.take([integrations[candind[i]]], axis=0)
+        l, m = ...  # should use T012 or unit vectors
+        util.phase_shift(spec, uvw, l, m)
+        spec = spec[0].real.mean(axis=2).mean(axis=0)
+        significance_kalman = kalman_significance(spec, spec_std,
+                                                  sig_ts=sig_ts,
+                                                  coeffs=kalman_coeffs)
+
+        significance_arm = -scipy.stats.norm.logsf(snrarms[i])
+        total_snr = np.sqrt(2*(significance_kalman + significance_arm))
+        if total_snr > st.prefs.sigma_kalman:
+            kpeak.appen( (candinds[candind[i], candnum[i]], snrarms[candind[i], candnum[i]]))
+
+    return kpeak
+
+
+def image_arms(st, data, uvw, wisdom=None):
+    """ Calculate grids for all three arms of VLA.
+    """
+
+    # TODO: calculate npix properly
+    npix = max(st.npixx_full, st.npixy_full)
+
+    # TODO: check if there is a center ant that can be counted in all arms
+    grids_narm = grid_arm(data, uvw, st.blind_arm('N'), npix, st.uvres)
+    images_narm = image_fftw(grids_narm, axes=(1,), wisdom=wisdom)
+
+    grids_earm = grid_arm(data, uvw, st.blind_arm('E'), npix, st.uvres)
+    images_earm = image_fftw(grids_earm, axes=(1,), wisdom=wisdom)
+
+    grids_warm = grid_arm(data, uvw, st.blind_arm('W'), npix, st.uvres)
+    images_warm = image_fftw(grids_warm, axes=(1,), wisdom=wisdom)
+
+    return images_narm, images_earm, images_warm
+
+
+def grid_arm(data, uvw, arminds, npix, uvres):
+    """ Grids visibilities along 1d arms of array.
+    arminds defines a subset of baselines that for a linear array.
+    grids as radius with sign of the u coordinate.
+    defines a convention of uv distance as positive in u direction.
+    Returns FFT output (time vs pixel) from gridded 1d visibilities.
+    """
+
+    u, v, w = uvw
+    # TODO: check colinearity and "w"
+    # TODO: integrate with unit vector approach in mapper function?
+    sign = np.sign(u.take(arminds, axis=0))
+    uvd = sign*np.sqrt(u.take(arminds, axis=0)**2 + v.take(arminds, axis=0)**2)
+
+    grids = np.zeros(shape=(data.shape[0], npix), dtype=np.complex64)
+    grid_visibilities_arm_jit(data.take(arminds, axis=1), uvd, npix,
+                              uvres, grids)
+
+    return grids
+
+
 def mapper012(st, uvw, order=['N', 'E', 'W']):
     """ Generates a function for geometric mapping between arms.
     0,1,2 indiced are marking the order of the arms.
@@ -736,28 +798,29 @@ def mapper012(st, uvw, order=['N', 'E', 'W']):
     u = u[:, ch0]
     v = v[:, ch0]
     w = w[:, ch0]
-    ind_arm0 = np.where(np.all(st.blarr_arms == order[0], axis=1))[0]
-    ind_arm1 = np.where(np.all(st.blarr_arms == order[1], axis=1))[0]
-    ind_arm2 = np.where(np.all(st.blarr_arms == order[2], axis=1))[0]
 
-    ind0 = ind_arm0[np.argmax(u.take(ind_arm0, axis=0)**2 + v.take(ind_arm0, axis=0)**2)]
-    l0 = (u[ind0]**2 + v[ind0]**2)**0.5
-    e0 = (u[ind0]/l0 * np.sign(u[ind0]), v[ind0]/l0 * np.sign(u[ind0]))  # positive u convention
-
-    ind1 = ind_arm1[np.argmax((u.take(ind_arm1, axis=0)**2 + v.take(ind_arm1, axis=0)**2))]
-    l1 = (u[ind1]**2 + v[ind1]**2)**0.5
-    e1 = (u[ind1]/l1 * np.sign(u[ind1]), v[ind1]/l1 * np.sign(u[ind1]))
-
-    ind2 = ind_arm2[np.argmax(u.take(ind_arm2, axis=0)**2 + v.take(ind_arm2, axis=0)**2)]
-    l2 = (u[ind2]**2 + v[ind2]**2)**0.5
-    e2 = (u[ind2]/l2 * np.sign(u[ind2]), v[ind2]/l2 * np.sign(u[ind2]))
+    e0 = get_uvunit(st.blind_arm(order[0]), u, v)
+    e1 = get_uvunit(st.blind_arm(order[1]), u, v)
+    e2 = get_uvunit(st.blind_arm(order[2]), u, v)
 
     T012 = np.dot(e2, np.linalg.inv(np.array((e0, e1))))
     return T012
 
 
+def get_uvunit(blind, u, v):
+    """ Calculate uv unit vector for indices blind of u/v.
+    """
+    # positive u convention
+
+    ind = blind[np.argmax(u.take(blind, axis=0)**2 + v.take(blind, axis=0)**2)]
+    l = (u[ind]**2 + v[ind]**2)**0.5
+    e = (u[ind]/l * np.sign(u[ind]), v[ind]/l * np.sign(u[ind]))
+
+    return e
+
+
 @jit(nopython=True)
-def search_thresh_arms(arm0, arm1, arm2, T012, sigma_arm, sigma_trigger, n_max_cands):
+def thresh_arms(arm0, arm1, arm2, T012, sigma_arm, sigma_trigger, n_max_cands):
     """ Run 3-arm search with sigma_arm per arm and sigma_trigger overall.
     arm0/1/2 are the 1d arm "images" and T012 is the coefficients to map arm0/1
     positions to arm2.
@@ -812,58 +875,6 @@ def search_thresh_arms(arm0, arm1, arm2, T012, sigma_arm, sigma_trigger, n_max_c
                             success_counter = 0
 
     return candinds, armlocs, snrarms
-
-
-def image_arms(st, data, uvw, integrations=None, wisdom=None):
-    """ Calculate grids for all three arms of VLA.
-    """
-
-    if integrations is None:
-        integrations = list(range(len(data)))
-    elif isinstance(integrations, int):
-        integrations = [integrations]
-
-    # TODO: calculate npix properly
-    npix = max(st.npixx_full, st.npixy_full)
-
-    # TODO: check if there is a center ant that can be counted in all arms
-    ind_narm = np.where(np.all(st.blarr_arms == 'N', axis=1))[0]
-    grids_narm = grid_arm(data.take(integrations, axis=0), uvw, ind_narm, npix,
-                          st.uvres)
-    images_narm = image_fftw(grids_narm, axes=(1,), wisdom=wisdom)
-
-    ind_earm = np.where(np.all(st.blarr_arms == 'E', axis=1))[0]
-    grids_earm = grid_arm(data.take(integrations, axis=0), uvw, ind_earm, npix,
-                          st.uvres)
-    images_earm = image_fftw(grids_earm, axes=(1,), wisdom=wisdom)
-
-    ind_warm = np.where(np.all(st.blarr_arms == 'W', axis=1))[0]
-    grids_warm = grid_arm(data.take(integrations, axis=0), uvw, ind_warm, npix,
-                          st.uvres)
-    images_warm = image_fftw(grids_warm, axes=(1,), wisdom=wisdom)
-
-    return images_narm, images_earm, images_warm
-
-
-def grid_arm(data, uvw, arminds, npix, uvres):
-    """ Grids visibilities along 1d arms of array.
-    arminds defines a subset of baselines that for a linear array.
-    grids as radius with sign of the u coordinate.
-    defines a convention of uv distance as positive in u direction.
-    Returns FFT output (time vs pixel) from gridded 1d visibilities.
-    """
-
-    u, v, w = uvw
-    # TODO: check colinearity and "w"
-    # TODO: integrate with unit vector approach in mapper function?
-    sign = np.sign(u.take(arminds, axis=0))
-    uvd = sign*np.sqrt(u.take(arminds, axis=0)**2 + v.take(arminds, axis=0)**2)
-
-    grids = np.zeros(shape=(data.shape[0], npix), dtype=np.complex64)
-    grid_visibilities_arm_jit(data.take(arminds, axis=1), uvd, npix,
-                              uvres, grids)
-
-    return grids
 
 
 @jit(nogil=True, nopython=True)
