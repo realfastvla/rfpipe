@@ -753,8 +753,10 @@ def search_thresh_armk(st, data, uvw, integrations=None, spec_std=None,
 
     # kalman filter integrated for now
     npix = max(st.npixx_full, st.npixy_full)
-    kpeak = []
+    kpeaks = []
     candind, candnum = np.nonzero(snrarms)
+#    uniqueints = np.unique(candind)
+#    kpeaks = np.zeros(shape=(len(uniqueints), 3), dtype=float)
     for i in range(len(candind)):
         spec = data.take([integrations[candind[i]]], axis=0).copy()
         armloc0, armloc1, armloc2 = armlocs[candind[i], candnum[i]]
@@ -768,14 +770,17 @@ def search_thresh_armk(st, data, uvw, integrations=None, spec_std=None,
                                                   sig_ts=sig_ts,
                                                   coeffs=coeffs)
 
-        significance_arm = -scipy.stats.norm.logsf(snrarms[candind[i], candnum[i]])
+        significance_arm = -scipy.stats.norm.logsf(snrarms[candind[i],
+                                                   candnum[i]])
         total_snr = (2*(significance_kalman + significance_arm))**0.5
         if total_snr > st.prefs.sigma_kalman:
-            kpeak.append((integrations[candind[i]], snrarms[candind[i], candnum[i]], total_snr))
+#            if integrations[candind[i]] > kpeaks[uind, 0]:
+#                uind += 1
+#            if total_snr > kpeaks[uind, 2]:
+            kpeaks.append((integrations[candind[i]], snrarms[candind[i],
+                           candnum[i]], total_snr))
 
-    # TODO: add logic to pick peak SNR per integration after kalman
-
-    return kpeak
+    return kpeaks
 
 
 def image_arms(st, data, uvw, wisdom=None):
@@ -837,13 +842,13 @@ def mapper012(st=None, u0=None, v0=None, e0=None, e1=None, e2=None,
         e0 = get_uvunit(st.blind_arm(order[0]), u0, v0)
     if e1 is None and len(order) >= 2:
         e1 = get_uvunit(st.blind_arm(order[1]), u0, v0)
-    if e2 is None and len(order) >= 3 :
+    if e2 is None and len(order) == 3:
         e2 = get_uvunit(st.blind_arm(order[2]), u0, v0)
 
-    # they should be unit vectors
-    assert np.linalg.norm(e0) == 1.0
-    assert np.linalg.norm(e1) == 1.0
-    assert np.linalg.norm(e2) == 1.0
+    # they should be unit vectors (within rounding errors)
+    assert np.linalg.norm(e0) > 0.99
+    assert np.linalg.norm(e1) > 0.99
+    assert np.linalg.norm(e2) > 0.99
 
     T012 = np.dot(e2, np.linalg.inv(np.array((e0, e1))))
     return T012
