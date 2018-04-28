@@ -746,6 +746,10 @@ class State(object):
             return ('snr1', 'immax1', 'l1', 'm1')
         elif self.prefs.searchtype == 'image1k':
             return ('snr1', 'snrk', 'immax1', 'l1', 'm1')
+        elif self.prefs.searchtype == 'armk':
+            return ('snrarm', 'snrk', 'l1', 'm1')
+        elif self.prefs.searchtype == 'armkimage':
+            return ('snrarm', 'snrk', 'snr1', 'immax1', 'l1', 'm1')
         elif self.prefs.searchtype == 'image1stats':
             # note: spec statistics are all or nothing.
             return ('snr1', 'immax1', 'l1', 'm1', 'specstd', 'specskew',
