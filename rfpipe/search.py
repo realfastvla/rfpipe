@@ -442,7 +442,7 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
     maxint = max(integrations)
 
     # some prep if kalman filter is to be applied
-    if st.prefs.searchtype in ['image1k', 'armk']:
+    if st.prefs.searchtype in ['image1k', 'armkimage']:
         # TODO: check that this is ok if pointing at bright source
         offints = np.random.choice(len(data), max(10, len(data)//10),
                                    replace=False)
@@ -520,7 +520,8 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
         candcollection += candidates.calc_features(canddatalist)
 
     elif st.prefs.searchtype in ['armkimage']:
-        candinds, armlocs, snrarms = search_thresh_arms(st, data, uvw, spec_std,
+        candinds, armlocs, snrarms = search_thresh_armk(st, data, uvw,
+                                                        spec_std,
                                                         integrations=integrations,
                                                         sig_ts=sig_ts,
                                                         coeffs=kalman_coeffs)
@@ -701,10 +702,10 @@ def _grid_visibilities_gu(data, us, vs, ws, npixx, npixy, uvres, grid):
 
 
 ###
-# cascading 3arm imaging
+# cascading 3arm imaging with kalman filter
 ###
 
-def search_thresh_arms(st, data, uvw, spec_std, integrations=None, sig_ts=None, coeffs=None):
+def search_thresh_armk(st, data, uvw, spec_std, integrations=None, sig_ts=None, coeffs=None):
     """
     """
 
@@ -713,11 +714,16 @@ def search_thresh_arms(st, data, uvw, spec_std, integrations=None, sig_ts=None, 
     elif isinstance(integrations, int):
         integrations = [integrations]
 
+    n_max_cands = 10  # TODO set with function of sigma_arms
 
-    n_max_cands = 10  # should be set according to sigma_arms
+    u, v, w = uvw
+    ch0 = 0
+    u0 = u[:, ch0]
+    v0 = v[:, ch0]
+    w0 = w[:, ch0]
 
     arm0, arm1, arm2 = image_arms(st, data.take(integrations, axis=0), uvw)
-    T012 = mapper012(st, uvw)
+    T012 = mapper012(st, u0, v0)
     candinds, armlocs, snrarms = thresh_arms(arm0, arm1, arm2, T012,
                                              st.prefs.sigma_arm,
                                              st.prefs.sigma_arms,
@@ -727,9 +733,10 @@ def search_thresh_arms(st, data, uvw, spec_std, integrations=None, sig_ts=None, 
     kpeak = []
     candind, candnum = np.nonzero(snrarms)
     for i in range(len(candind)):
-        # TODO: check that int selection is accurate
-        spec = data.take([integrations[candind[i]]], axis=0)
-        l, m = ...  # should use T012 or unit vectors
+        combinedind = [candind[i], candnum[i]]
+        spec = data.take([integrations[candind[i]]], axis=0).copy()
+        peakx, peaky = armpeaktoxy(armlocs[combinedind], u0, v0)
+        l, m = calclm(st.npixx, st.npixy, st.uvres, peakx, peaky)
         util.phase_shift(spec, uvw, l, m)
         spec = spec[0].real.mean(axis=2).mean(axis=0)
         significance_kalman = kalman_significance(spec, spec_std,
@@ -739,7 +746,7 @@ def search_thresh_arms(st, data, uvw, spec_std, integrations=None, sig_ts=None, 
         significance_arm = -scipy.stats.norm.logsf(snrarms[i])
         total_snr = np.sqrt(2*(significance_kalman + significance_arm))
         if total_snr > st.prefs.sigma_kalman:
-            kpeak.appen( (candinds[candind[i], candnum[i]], snrarms[candind[i], candnum[i]]))
+            kpeak.append( (integrations[candind[i]], snrarms[combinedind]) )
 
     return kpeak
 
@@ -785,26 +792,34 @@ def grid_arm(data, uvw, arminds, npix, uvres):
     return grids
 
 
-def mapper012(st, uvw, order=['N', 'E', 'W']):
+def mapper012(st, u0, v0, order=['N', 'E', 'W']):
     """ Generates a function for geometric mapping between arms.
     0,1,2 indiced are marking the order of the arms.
     dot(T012,(A0,A1)) = A2, where A0,A1 are locations on arm 0,1 "image
     and A2 is the location on arm 2.
     Convention defined in gridding for vectors to be positive in u direction.
+    u,v are 1d of length nbl chosen at channel 0 (TODO: check sensitivity to choice)
     """
 
-    u, v, w = uvw
-    ch0 = 0
-    u = u[:, ch0]
-    v = v[:, ch0]
-    w = w[:, ch0]
-
-    e0 = get_uvunit(st.blind_arm(order[0]), u, v)
-    e1 = get_uvunit(st.blind_arm(order[1]), u, v)
-    e2 = get_uvunit(st.blind_arm(order[2]), u, v)
+    e0 = get_uvunit(st.blind_arm(order[0]), u0, v0)
+    e1 = get_uvunit(st.blind_arm(order[1]), u0, v0)
+    e2 = get_uvunit(st.blind_arm(order[2]), u0, v0)
 
     T012 = np.dot(e2, np.linalg.inv(np.array((e0, e1))))
     return T012
+
+
+def armpeaktoxy(armloc, u0, v0):
+    """ Convert 3-tuple of peaks in N,E,W arms into x,y pixels.
+    Takes u0,v0 as 1d arrays of len nbl chosen at channel 0
+    """
+
+    nbl = len(u0)
+    eu = get_uvunit(np.arange(nbl), u0, np.zeros_like(v0))
+    ev = get_uvunit(np.arange(nbl), np.zeros_like(u0), v0)
+
+    peakx = np.dot
+    peaky = 
 
 
 def get_uvunit(blind, u, v):

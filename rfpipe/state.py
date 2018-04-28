@@ -130,14 +130,12 @@ class State(object):
                                                          .format(self.inttime,
                                                                  self.fringetime))
 
-        if self.prefs.searchtype == 'image1k':
-            assert self.prefs.sigma_kalman is not None
-        elif self.prefs.searchtype == 'image1':
+        if self.prefs.searchtype == 'image1':
             assert self.prefs.sigma_image1 is not None
-        elif self.prefs.searchtype == 'imagearm':
-            assert self.prefs.sigma_arm is not None
-            assert self.prefs.sigma_arms is not None
-        elif self.prefs.searchtype == 'imagearmk':
+        elif self.prefs.searchtype == 'image1k':
+            assert self.prefs.sigma_image1 is not None
+            assert self.prefs.sigma_kalman is not None
+        elif self.prefs.searchtype == 'armkimage':
             assert self.prefs.sigma_arm is not None
             assert self.prefs.sigma_arms is not None
             assert self.prefs.sigma_kalman is not None
