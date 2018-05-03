@@ -132,16 +132,25 @@ def prep_standard(st, segment, data):
 
         uvw = util.get_uvw_segment(st, segment)
         for params in st.prefs.simulated_transient:
-            assert len(params) == 7, ("Transient requires 7 parameters: "
+            assert len(params) == 7 or len(params) == 8, ("Transient requires 7 or 8 parameters: "
                                       "(segment, i0/int, dm/pc/cm3, dt/s, "
-                                      "amp/sys, dl/rad, dm/rad)")
-            (mock_segment, i0, dm, dt, amp, l, m) = params
-            if segment == mock_segment:
+                                      "amp/sys, dl/rad, dm/rad) and optionally "
+                                      "ampslope/sys")
+            if len(params) == 7:
+                (mock_segment, i0, dm, dt, amp, l, m) = params
+                ampslope = 0
                 logger.info("Adding transient to segment {0} at int {1}, DM {2}, "
                             "dt {3} with amp {4} and l,m={5},{6}"
                             .format(mock_segment, i0, dm, dt, amp, l, m))
+            elif len(params) == 8:
+                (mock_segment, i0, dm, dt, amp, l, m, ampslope) = params
+                logger.info("Adding transient to segment {0} at int {1}, DM {2}, "
+                            "dt {3} with amp {4}-{5} and l,m={6},{7}"
+                            .format(mock_segment, i0, dm, dt, amp,
+                                    amp+ampslope, l, m))
+            if segment == mock_segment:
                 try:
-                    model = np.require(np.broadcast_to(generate_transient(st, amp, i0, dm, dt)
+                    model = np.require(np.broadcast_to(generate_transient(st, amp, i0, dm, dt, ampslope=ampslope)
                                                        .transpose()[:, None, :, None],
                                                        data.shape),
                                        requirements='W')
@@ -502,15 +511,17 @@ def getsdm(*args, **kwargs):
     return sdm
 
 
-def generate_transient(st, amp, i0, dm, dt):
+def generate_transient(st, amp, i0, dm, dt, ampslope=0.):
     """ Create a dynamic spectrum for given parameters
     amp is in system units (post calibration)
     i0 is a float for integration relative to start of segment.
     dm/dt are in units of pc/cm3 and seconds, respectively
+    ampslope adds to a linear slope up to amp+ampslope at last channel.
     """
 
     model = np.zeros((st.metadata.nchan_orig, st.readints), dtype='complex64')
     chans = np.arange(st.nchan)
+    ampspec = amp + ampslope*(np.linspace(0, 1, num=st.nchan))
 
     i = i0 + util.calc_delay2(st.freq, st.freq.max(), dm)/st.inttime
 #    print(i)
@@ -522,7 +533,7 @@ def generate_transient(st, amp, i0, dm, dt):
     if np.any(i_r == 1):
         ir1 = np.where(i_r == 1)
 #        print(ir1)
-        model[chans[ir1], i_f[ir1]] += amp
+        model[chans[ir1], i_f[ir1]] += ampspec[chans[ir1]]
 
     if np.any(i_r == 2):
         ir2 = np.where(i_r == 2)
@@ -530,8 +541,8 @@ def generate_transient(st, amp, i0, dm, dt):
         f1 = (dt/st.inttime - (i_c - i))/(dt/st.inttime)
         f0 = 1 - f1
 #        print(np.vstack((ir2, f0[ir2], f1[ir2])).transpose())
-        model[chans[ir2], i_f[ir2]] += f0[ir2]*amp
-        model[chans[ir2], i_f[ir2]+1] += f1[ir2]*amp
+        model[chans[ir2], i_f[ir2]] += f0[ir2]*ampspec[chans[ir2]]
+        model[chans[ir2], i_f[ir2]+1] += f1[ir2]*ampspec[chans[ir2]]
 
     if np.any(i_r == 3):
         ir3 = np.where(i_r == 3)
@@ -539,8 +550,8 @@ def generate_transient(st, amp, i0, dm, dt):
         f0 = ((i_f + 1) - i)/(dt/st.inttime)
         f1 = 1 - f2 - f0
 #        print(np.vstack((ir3, f0[ir3], f1[ir3], f2[ir3])).transpose())
-        model[chans[ir3], i_f[ir3]] += f0[ir3]*amp
-        model[chans[ir3], i_f[ir3]+1] += f1[ir3]*amp
-        model[chans[ir3], i_f[ir3]+2] += f2[ir3]*amp
+        model[chans[ir3], i_f[ir3]] += f0[ir3]*ampspec[chans[ir3]]
+        model[chans[ir3], i_f[ir3]+1] += f1[ir3]*ampspec[chans[ir3]]
+        model[chans[ir3], i_f[ir3]+2] += f2[ir3]*ampspec[chans[ir3]]
 
     return model

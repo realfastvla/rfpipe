@@ -474,14 +474,15 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
                     spec = data.take([integrations[i]], axis=0)
                     util.phase_shift(spec, uvw, l, m)
                     spec = spec[0].real.mean(axis=2).mean(axis=0)
-                    significance_kalman = kalman_significance(spec, spec_std,
-                                                              sig_ts=sig_ts,
+                    significance_kalman = kalman_significance(spec, spec_std, sig_ts=sig_ts,
                                                               coeffs=kalman_coeffs)
-                    significance_image = -scipy.stats.norm.logsf(peak_snr)
-                    total_snr = (2*(significance_kalman + significance_image))**0.5
-                    if total_snr > st.prefs.sigma_kalman:
+                    snrk = (2*significance_kalman)**0.5
+
+#                    significance_image = -scipy.stats.norm.logsf(peak_snr)
+#                    total_snr = (2*(significance_kalman + significance_image))**0.5
+                    if snrk > st.prefs.sigma_kalman:
                         logger.info("Got one! SNR1 {0:.1f} and SNRk {1:.1f} candidate at {2} and (l,m) = ({3},{4})"
-                                    .format(peak_snr, total_snr, candloc, l, m))
+                                    .format(peak_snr, snrk, candloc, l, m))
                         dataph = data[max(0, integrations[i]-st.prefs.timewindow//2):
                                       min(integrations[i]+st.prefs.timewindow//2, len(data))].copy()
                         util.phase_shift(dataph, uvw, l, m)
@@ -490,7 +491,7 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
                                                                 loc=candloc,
                                                                 image=image,
                                                                 data=dataph,
-                                                                snrk=total_snr))
+                                                                snrk=snrk))
                 elif st.prefs.searchtype == 'image1':
                     logger.info("Got one! SNR1 {0:.1f} candidate at {1} and (l, m) = ({2},{3})"
                                 .format(peak_snr, candloc, l, m))
@@ -524,9 +525,9 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
                                              sig_ts=sig_ts,
                                              coeffs=kalman_coeffs)
         canddatalist = []
-        for candind, snrarm, total_snr in armk_candidates:
+#        for candind, snrarm, snrk in armk_candidates:
+        for candind, snrarm, snrk, armloc, peakxy, lm in armk_candidates:
             candloc = (segment, candind, dmind, dtind, beamnum)
-
             # if set, use sigma_kalman as second stage filter
             if st.prefs.searchtype == 'armkimage':
                 image = grid_image(data, uvw, st.npixx_full, st.npixy_full,
@@ -538,7 +539,7 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
                 peak_snr = image.max()/util.madtostd(image)
                 if peak_snr > st.prefs.sigma_image1:
                     logger.info("Got one! SNRarm {0:.1f} and SNRk {1:.1f} and SNR1 {2:.1f} candidate at {3} and (l,m) = ({4},{5})"
-                                .format(snrarm, total_snr, peak_snr, candloc, l, m))
+                                .format(snrarm, snrk, peak_snr, candloc, l, m))
                     dataph = data[max(0, candind-st.prefs.timewindow//2):
                                   min(candind+st.prefs.timewindow//2, len(data))].copy()
                     util.phase_shift(dataph, uvw, l, m)
@@ -548,7 +549,7 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
                                                             image=image[0],
                                                             data=dataph,
                                                             snrarm=snrarm,
-                                                            snrk=total_snr))
+                                                            snrk=snrk))
             elif st.prefs.searchtype == 'armk':
                 raise NotImplementedError
             else:
@@ -754,31 +755,33 @@ def search_thresh_armk(st, data, uvw, integrations=None, spec_std=None,
     # kalman filter integrated for now
     npix = max(st.npixx_full, st.npixy_full)
     kpeaks = []
-    candind, candnum = np.nonzero(snrarms)
-#    uniqueints = np.unique(candind)
-#    kpeaks = np.zeros(shape=(len(uniqueints), 3), dtype=float)
-    for i in range(len(candind)):
-        spec = data.take([integrations[candind[i]]], axis=0).copy()
-        armloc0, armloc1, armloc2 = armlocs[candind[i], candnum[i]]
-        peakx = projectarms(armloc0, armloc1, T01U, npix)
-        peaky = projectarms(armloc0, armloc1, T01V, npix)
-        # TODO; full or just npixx?
-        l, m = st.calclm(st.npixx_full, st.npixy_full, st.uvres, peakx, peaky)
-        util.phase_shift(spec, uvw, l, m)
-        spec = spec[0].real.mean(axis=2).mean(axis=0)
-        significance_kalman = kalman_significance(spec, spec_std,
-                                                  sig_ts=sig_ts,
-                                                  coeffs=coeffs)
-
-        significance_arm = -scipy.stats.norm.logsf(snrarms[candind[i],
-                                                   candnum[i]])
-        total_snr = (2*(significance_kalman + significance_arm))**0.5
-        if total_snr > st.prefs.sigma_kalman:
-#            if integrations[candind[i]] > kpeaks[uind, 0]:
-#                uind += 1
-#            if total_snr > kpeaks[uind, 2]:
-            kpeaks.append((integrations[candind[i]], snrarms[candind[i],
-                           candnum[i]], total_snr))
+    for i in range(len(candinds)):
+        kpeak = ()
+        snrlast = 0.  # initialize snr to find max per i
+        for j in range(n_max_cands):
+            if snrarms[i, j] > 0.:
+                spec = data.take([integrations[candinds[i, j]]], axis=0).copy()
+                armloc0, armloc1, armloc2 = armlocs[i, j]
+                # TODO: check on optimal peak finding over all three arms
+                peakx = projectarms(armloc0-npix//2, armloc1-npix//2, T01U,
+                                    st.npixx_full)
+                peaky = projectarms(armloc0-npix//2, armloc1-npix//2, T01V,
+                                    st.npixy_full)
+                l, m = st.calclm(st.npixx_full, st.npixy_full, st.uvres, peakx,
+                                 peaky)
+                util.phase_shift(spec, uvw, l, m)
+                spec = spec[0].real.mean(axis=2).mean(axis=0)
+                significance_kalman = kalman_significance(spec, spec_std,
+                                                          sig_ts=sig_ts,
+                                                          coeffs=coeffs)
+                snrk = (2*significance_kalman)**0.5
+                if (snrk > st.prefs.sigma_kalman) and (snrk > snrlast):
+                    kpeak = (integrations[candinds[i, j]], snrarms[i, j],
+                             snrk, (armloc0, armloc1, armloc2), (peakx, peaky),
+                             (l, m))
+                    snrlast = snrk  # TODO: maybe change to a "total" SNR?
+        if len(kpeak):
+            kpeaks.append(kpeak)
 
     return kpeaks
 
@@ -867,14 +870,13 @@ def get_uvunit(blind, u, v):
 
 
 @jit(nopython=True)
-def projectarms(pix0, pix1, T012, npix):
-    """ Take any two peak pixels and project in a new direction 2
-    Assumes arms are same size.
+def projectarms(dpix0, dpix1, T012, npix2):
+    """ Take any two locations relative to center and project in a new direction.
+    npix2 is size of direction2.
     """
 
-    return int(round(np.dot(np.array([float(pix0 - npix//2),
-                                      float(pix1 - npix//2)]),
-                            T012) + npix//2))
+    return int(round(np.dot(np.array([float(dpix0), float(dpix1)]),
+                            T012) + npix2//2))
 
 
 @jit(nopython=True)
@@ -909,7 +911,7 @@ def thresh_arms(arm0, arm1, arm2, T012, sigma_arm, sigma_trigger, n_max_cands):
         indices_arr1 = np.nonzero(arm1[i] > sigma_arm*std_arm1)[0]
         for ind0 in indices_arr0:
             for ind1 in indices_arr1:
-                ind2 = projectarms(ind0, ind1, T012, npix)
+                ind2 = projectarms(ind0-npix//2, ind1-npix//2, T012, npix)
                 score = arm0[i, ind0] + arm1[i, ind1] + arm2[i, ind2]
                 if score > effective_eta_trigger:
                     snr_3arm = score/effective_3arm_sigma
@@ -1072,14 +1074,14 @@ def kalman_significance_canddata(canddata, sig_ts=[]):
 
     sig_ts, coeffs = kalman_prepare_coeffs(spec_std)
     significance_kalman = kalman_significance(spec, spec_std, sig_ts=sig_ts, coeffs=coeffs)
+    snrk = (2*significance_kalman)**0.5
 
     # TODO: better pixel std calculation needed?
     snr_image = canddata.image.max()/canddata.image.std()
     significance_image = -scipy.stats.norm.logsf(snr_image)
 
-#   snr = scipy.stats.norm.isf(significance)
-    snr = (2*(significance_kalman + significance_image))**0.5
-    return snr
+    snr_total = (2*(snrk + significance_image))**0.5
+    return snr_total
 
 
 def set_wisdom(npixx, npixy=None):

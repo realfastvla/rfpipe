@@ -65,7 +65,7 @@ class Preferences(object):
     sigma_image1 = attr.ib(default=7)  # threshold for image1 and imagearm algorithms
     sigma_arm = attr.ib(default=None)  # 1arm threshold
     sigma_arms = attr.ib(default=None)  # all-arm threshold
-    sigma_kalman = attr.ib(default=None)  # second threshold using kalman filter
+    sigma_kalman = attr.ib(default=None)  # threshold on kalman prediction alone
     nfalse = attr.ib(default=None)  # number of thermal false positives per scan
     uvres = attr.ib(default=0)  # in lambda
     npixx = attr.ib(default=0)  # set number of x pixels in image
