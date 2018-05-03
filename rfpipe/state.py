@@ -130,9 +130,9 @@ class State(object):
                                                          .format(self.inttime,
                                                                  self.fringetime))
 
-        if self.prefs.searchtype == 'image1':
+        if self.prefs.searchtype == 'image':
             assert self.prefs.sigma_image1 is not None
-        elif self.prefs.searchtype == 'image1k':
+        elif self.prefs.searchtype == 'imagek':
             assert self.prefs.sigma_image1 is not None
             assert self.prefs.sigma_kalman is not None
         elif self.prefs.searchtype == 'armkimage':
@@ -742,15 +742,15 @@ class State(object):
         analysis.
         """
 
-        if self.prefs.searchtype == 'image1':
+        if self.prefs.searchtype == 'image':
             return ('snr1', 'immax1', 'l1', 'm1')
-        elif self.prefs.searchtype == 'image1k':
+        elif self.prefs.searchtype == 'imagek':
             return ('snr1', 'snrk', 'immax1', 'l1', 'm1')
         elif self.prefs.searchtype == 'armk':
             return ('snrarm', 'snrk', 'l1', 'm1')
         elif self.prefs.searchtype == 'armkimage':
             return ('snrarm', 'snrk', 'snr1', 'immax1', 'l1', 'm1')
-        elif self.prefs.searchtype == 'image1stats':
+        elif self.prefs.searchtype == 'imagestats':
             # note: spec statistics are all or nothing.
             return ('snr1', 'immax1', 'l1', 'm1', 'specstd', 'specskew',
                     'speckurtosis', 'imskew', 'imkurtosis')

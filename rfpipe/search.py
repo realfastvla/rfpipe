@@ -442,7 +442,7 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
     maxint = max(integrations)
 
     # some prep if kalman filter is to be applied
-    if st.prefs.searchtype in ['image1k', 'armkimage']:
+    if st.prefs.searchtype in ['imagek', 'armkimage']:
         # TODO: check that this is ok if pointing at bright source
         spec_std = data.real.mean(axis=1).mean(axis=2).std(axis=0)
         sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
@@ -457,7 +457,7 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
 
     uvw = util.get_uvw_segment(st, segment)
 
-    if st.prefs.searchtype in ['image1', 'image1k']:
+    if st.prefs.searchtype in ['image', 'imagek']:
         images = grid_image(data, uvw, st.npixx, st.npixy, st.uvres,
                             'fftw', st.prefs.nthread, wisdom=wisdom,
                             integrations=integrations)
@@ -470,7 +470,7 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
                 l, m = st.pixtolm(np.where(image == image.max()))
 
                 # if set, use sigma_kalman as second stage filter
-                if st.prefs.searchtype == 'image1k':
+                if st.prefs.searchtype == 'imagek':
                     spec = data.take([integrations[i]], axis=0)
                     util.phase_shift(spec, uvw, l, m)
                     spec = spec[0].real.mean(axis=2).mean(axis=0)
@@ -492,7 +492,7 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
                                                                 image=image,
                                                                 data=dataph,
                                                                 snrk=snrk))
-                elif st.prefs.searchtype == 'image1':
+                elif st.prefs.searchtype == 'image':
                     logger.info("Got one! SNR1 {0:.1f} candidate at {1} and (l, m) = ({2},{3})"
                                 .format(peak_snr, candloc, l, m))
                     dataph = data[max(0, integrations[i]-st.prefs.timewindow//2):
@@ -567,7 +567,7 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
 
         candcollection += candidates.calc_features(canddatalist)
     else:
-        raise NotImplemented("only searchtype=image1 or image1k implemented")
+        raise NotImplemented("only searchtype=image or imagek implemented")
 
     logger.info("{0} candidates returned for (seg, dmind, dtind) = "
                 "({1}, {2}, {3})".format(len(candcollection), segment, dmind,
