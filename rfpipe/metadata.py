@@ -298,18 +298,21 @@ def getfirstscan(sdmfile):
 
 
 def mock_metadata(t0, t1, nants, nspw, chans, npol, inttime_micros, scan=1,
-                  subscan=1, datasource='vys', datasetid='test', **kwargs):
+                  subscan=1, datasource='vys', datasetid=None, **kwargs):
     """ Wraps Metadata call to provide immutable, attribute-filled class instance.
     Parallel structure to sdm_metadata, so this inherits some of its
     nomenclature. t0, t1 are times in mjd. Supports up to nant=27, npol=4, and
     nspw=32. chans is total number of channels over all spw (equal per spw).
     datasource is expected source of data (typically vys when mocking).
+    datasetid default is "test_<t0>".
     """
 
     logger.info('Generating mock metadata')
 
     meta = {}
     meta['datasource'] = datasource
+    if datasetid is None:
+        datasetid = 'test_{0}'.format(t0)
     meta['datasetId'] = datasetid
     meta['scan'] = scan
     meta['subscan'] = subscan

@@ -474,12 +474,12 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
                     spec = data.take([integrations[i]], axis=0)
                     util.phase_shift(spec, uvw, l, m)
                     spec = spec[0].real.mean(axis=2).mean(axis=0)
-                    significance_kalman = kalman_significance(spec, spec_std, sig_ts=sig_ts,
+                    # TODO: this significance can be biased low if averaging in long baselines that are not phased well
+                    # TODO: spec should be calculated from baselines used to measure l,m?
+                    significance_kalman = kalman_significance(spec, spec_std,
+                                                              sig_ts=sig_ts,
                                                               coeffs=kalman_coeffs)
                     snrk = (2*significance_kalman)**0.5
-
-#                    significance_image = -scipy.stats.norm.logsf(peak_snr)
-#                    total_snr = (2*(significance_kalman + significance_image))**0.5
                     if snrk > st.prefs.sigma_kalman:
                         logger.info("Got one! SNR1 {0:.1f} and SNRk {1:.1f} candidate at {2} and (l,m) = ({3},{4})"
                                     .format(peak_snr, snrk, candloc, l, m))
