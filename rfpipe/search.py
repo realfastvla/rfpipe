@@ -742,17 +742,28 @@ def search_thresh_armk(st, data, uvw, integrations=None, spec_std=None,
     v0 = v[:, ch0]
     w0 = w[:, ch0]
 
-    # choosing to project from N and E arms. TODO: check accuracy.
-    T012 = mapper012(st=st, u0=u0, v0=v0, order=['N', 'E', 'W'])
-    T01U = mapper012(st=st, u0=u0, v0=v0, order=['N', 'E'], e2=(1., 0.))
-    T01V = mapper012(st=st, u0=u0, v0=v0, order=['N', 'E'], e2=(0., 1.))
-    arm0, arm1, arm2 = image_arms(st, data.take(integrations, axis=0), uvw)
+    order = ['N', 'E', 'W']
+    T012 = maparms(st=st, u0=u0, v0=v0, order=order)
+    arm0, arm1, arm2 = image_arms(st, data.take(integrations, axis=0), uvw,
+                                  order=order)
     candinds, armlocs, snrarms = thresh_arms(arm0, arm1, arm2, T012,
                                              st.prefs.sigma_arm,
                                              st.prefs.sigma_arms,
                                              n_max_cands)
 
     # kalman filter integrated for now
+    T01U = maparms(st=st, u0=u0, v0=v0, order=[order[0], order[1]],
+                   e2=(1., 0.))
+    T01V = maparms(st=st, u0=u0, v0=v0, order=[order[0], order[1]],
+                   e2=(0., 1.))
+    T12U = maparms(st=st, u0=u0, v0=v0, order=[order[1], order[2]],
+                   e2=(1., 0.))
+    T12V = maparms(st=st, u0=u0, v0=v0, order=[order[1], order[2]],
+                   e2=(0., 1.))
+    T20U = maparms(st=st, u0=u0, v0=v0, order=[order[2], order[0]],
+                   e2=(1., 0.))
+    T20V = maparms(st=st, u0=u0, v0=v0, order=[order[2], order[0]],
+                   e2=(0., 1.))
     npix = max(st.npixx_full, st.npixy_full)
     kpeaks = []
     for i in range(len(candinds)):
@@ -762,11 +773,22 @@ def search_thresh_armk(st, data, uvw, integrations=None, spec_std=None,
             if snrarms[i, j] > 0.:
                 spec = data.take([integrations[candinds[i, j]]], axis=0).copy()
                 armloc0, armloc1, armloc2 = armlocs[i, j]
-                # TODO: check on optimal peak finding over all three arms
-                peakx = projectarms(armloc0-npix//2, armloc1-npix//2, T01U,
-                                    st.npixx_full)
-                peaky = projectarms(armloc0-npix//2, armloc1-npix//2, T01V,
-                                    st.npixy_full)
+
+                # find x,y loc from common loc inferred from each arm pair
+                peakx01 = projectarms(armloc0-npix//2, armloc1-npix//2, T01U,
+                                      st.npixx_full)
+                peaky01 = projectarms(armloc0-npix//2, armloc1-npix//2, T01V,
+                                      st.npixy_full)
+                peakx12 = projectarms(armloc1-npix//2, armloc2-npix//2, T12U,
+                                      st.npixx_full)
+                peaky12 = projectarms(armloc1-npix//2, armloc2-npix//2, T12V,
+                                      st.npixy_full)
+                peakx20 = projectarms(armloc2-npix//2, armloc0-npix//2, T20U,
+                                      st.npixx_full)
+                peaky20 = projectarms(armloc2-npix//2, armloc0-npix//2, T20V,
+                                      st.npixy_full)
+                peakx = np.sort([peakx01, peakx12, peakx20])[1]
+                peaky = np.sort([peaky01, peaky12, peaky20])[1]
                 l, m = st.calclm(st.npixx_full, st.npixy_full, st.uvres, peakx,
                                  peaky)
                 util.phase_shift(spec, uvw, l, m)
@@ -779,31 +801,31 @@ def search_thresh_armk(st, data, uvw, integrations=None, spec_std=None,
                     kpeak = (integrations[candinds[i, j]], snrarms[i, j],
                              snrk, (armloc0, armloc1, armloc2), (peakx, peaky),
                              (l, m))
-                    snrlast = snrk  # TODO: maybe change to a "total" SNR?
+                    snrlast = (snrk**2 + snrarms[i, j]**2)  # max significance
         if len(kpeak):
             kpeaks.append(kpeak)
 
     return kpeaks
 
 
-def image_arms(st, data, uvw, wisdom=None):
+def image_arms(st, data, uvw, wisdom=None, order=['N', 'E', 'W']):
     """ Calculate grids for all three arms of VLA.
+    Uses maximum of ideal number of pixels on side of image.
     """
 
-    # TODO: calculate npix properly
     npix = max(st.npixx_full, st.npixy_full)
 
     # TODO: check if there is a center ant that can be counted in all arms
-    grids_narm = grid_arm(data, uvw, st.blind_arm('N'), npix, st.uvres)
-    images_narm = image_fftw(grids_narm, axes=(1,), wisdom=wisdom)
+    grids_arm0 = grid_arm(data, uvw, st.blind_arm(order[0]), npix, st.uvres)
+    arm0 = image_fftw(grids_arm0, axes=(1,), wisdom=wisdom)
 
-    grids_earm = grid_arm(data, uvw, st.blind_arm('E'), npix, st.uvres)
-    images_earm = image_fftw(grids_earm, axes=(1,), wisdom=wisdom)
+    grids_arm1 = grid_arm(data, uvw, st.blind_arm(order[1]), npix, st.uvres)
+    arm1 = image_fftw(grids_arm1, axes=(1,), wisdom=wisdom)
 
-    grids_warm = grid_arm(data, uvw, st.blind_arm('W'), npix, st.uvres)
-    images_warm = image_fftw(grids_warm, axes=(1,), wisdom=wisdom)
+    grids_arm2 = grid_arm(data, uvw, st.blind_arm(order[2]), npix, st.uvres)
+    arm2 = image_fftw(grids_arm2, axes=(1,), wisdom=wisdom)
 
-    return images_narm, images_earm, images_warm
+    return arm0, arm1, arm2
 
 
 def grid_arm(data, uvw, arminds, npix, uvres):
@@ -827,31 +849,31 @@ def grid_arm(data, uvw, arminds, npix, uvres):
     return grids
 
 
-def mapper012(st=None, u0=None, v0=None, e0=None, e1=None, e2=None,
-              order=['N', 'E', 'W']):
+def maparms(st=None, u0=None, v0=None, e0=None, e1=None, e2=None,
+            order=['N', 'E', 'W']):
     """ Generates a function for geometric mapping between three unit vectors.
     0,1,2 indiced are marking the order of the vectors.
     They can be measured with (st, u0, v0) or given with e0, e1, e2.
     dot(T012,(A0,A1)) = A2, where A0,A1 are locations on arms 0,1
     and A2 is the location on arm 2.
     Convention defined in gridding for vectors to be positive in u direction.
-    u,v are 1d of length nbl chosen at channel 0 (TODO: check sensitivity to choice)
+    u,v are 1d of length nbl chosen at channel 0
     order can be arm names N, E, W
     """
 
     assert all([o in ['N', 'E', 'W'] for o in order])
 
-    if e0 is None and len(order) >= 1:
+    if e0 is None:
         e0 = get_uvunit(st.blind_arm(order[0]), u0, v0)
-    if e1 is None and len(order) >= 2:
+    if e1 is None:
         e1 = get_uvunit(st.blind_arm(order[1]), u0, v0)
-    if e2 is None and len(order) == 3:
+    if e2 is None:
         e2 = get_uvunit(st.blind_arm(order[2]), u0, v0)
 
     # they should be unit vectors (within rounding errors)
-    assert np.linalg.norm(e0) > 0.99
-    assert np.linalg.norm(e1) > 0.99
-    assert np.linalg.norm(e2) > 0.99
+    assert np.linalg.norm(e0) > 0.99, "Problem with unit vector"
+    assert np.linalg.norm(e1) > 0.99, "Problem with unit vector"
+    assert np.linalg.norm(e2) > 0.99, "Problem with unit vector"
 
     T012 = np.dot(e2, np.linalg.inv(np.array((e0, e1))))
     return T012
@@ -1073,11 +1095,11 @@ def kalman_significance_canddata(canddata, sig_ts=[]):
     spec = canddata.data.real.mean(axis=2)[onint]
 
     sig_ts, coeffs = kalman_prepare_coeffs(spec_std)
-    significance_kalman = kalman_significance(spec, spec_std, sig_ts=sig_ts, coeffs=coeffs)
+    significance_kalman = kalman_significance(spec, spec_std, sig_ts=sig_ts,
+                                              coeffs=coeffs)
     snrk = (2*significance_kalman)**0.5
 
-    # TODO: better pixel std calculation needed?
-    snr_image = canddata.image.max()/canddata.image.std()
+    snr_image = canddata.image.max()/util.madtostd(canddata.image)
     significance_image = -scipy.stats.norm.logsf(snr_image)
 
     snr_total = (2*(snrk + significance_image))**0.5
