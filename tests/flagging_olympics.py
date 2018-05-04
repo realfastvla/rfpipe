@@ -13,19 +13,25 @@ import os.path
 # insert transients at first, middle, and last integration of simulated data
 transients = [(0, i, 50, 5e-3, 0.1, -0.001, -0.001) for i in [0, 20, 42]]
 
+searchtype = 'armkimage'
+
 # With/without flagging/timesub
 inprefs = [{'dmarr': [50], 'dtarr': [1], 'npix_max': 1024,
             'simulated_transient': transients, 'memory_limit': 0.4,
-            'timesub': None, 'flaglist': []},
+            'timesub': None, 'flaglist': [], 'searchtype': searchtype,
+            'sigma_arm': 3, 'sigma_arms': 5, 'sigma_kalman': 1},
            {'dmarr': [50], 'dtarr': [1], 'npix_max': 1024,
             'simulated_transient': transients, 'memory_limit': 0.4,
-            'timesub': 'mean', 'flaglist': []},
+            'timesub': 'mean', 'flaglist': [], 'searchtype': searchtype,
+            'sigma_arm': 3, 'sigma_arms': 5, 'sigma_kalman': 1},
            {'dmarr': [50], 'dtarr': [1], 'npix_max': 1024,
             'simulated_transient': transients, 'memory_limit': 0.4,
-            'timesub': None},
+            'timesub': None, 'searchtype': searchtype,
+            'sigma_arm': 3, 'sigma_arms': 5, 'sigma_kalman': 1},
            {'dmarr': [50], 'dtarr': [1], 'npix_max': 1024,
             'simulated_transient': transients, 'memory_limit': 0.4,
-            'timesub': 'mean'}]
+            'timesub': 'mean', 'searchtype': searchtype,
+            'sigma_arm': 3, 'sigma_arms': 5, 'sigma_kalman': 1}]
 
 # FRB 121102 data
 indata = [('16A-459_TEST_1hr.57623.72670021991.cut', 6, '16A-459_TEST_1hr.57623.72670021991.GN'),
@@ -51,6 +57,7 @@ snrs = {'16A-459_TEST_1hr.57623.72670021991.cut': 37.,
 
 needsdata = pytest.mark.skipif('repeater' not in os.getcwd(),
                                reason='Must be in repeater data directory')
+
 
 # (1) simulated data
 
@@ -107,7 +114,8 @@ def stdata(request):
     sdmname, sdmscan, gainfile = request.param
     inmeta = rfpipe.metadata.sdm_metadata(sdmname, sdmscan)
     inprefs = {'dmarr': [555, 565], 'dtarr': [1], 'npix_max': 1024,
-               'timesub': 'mean', 'gainfile': gainfile, 'sigma_image1': 6.}
+               'timesub': 'mean', 'gainfile': gainfile, 'sigma_image1': 6.,
+               'sigma_arm': 3, 'sigma_arms': 5, 'sigma_kalman': 1}
     return rfpipe.state.State(inmeta=inmeta, inprefs=inprefs)
 
 

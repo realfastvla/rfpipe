@@ -131,14 +131,14 @@ class State(object):
                                                                  self.fringetime))
 
         if self.prefs.searchtype == 'image':
-            assert self.prefs.sigma_image1 is not None
+            assert self.prefs.sigma_image1 is not None, "Must set sigma_image1"
         elif self.prefs.searchtype == 'imagek':
-            assert self.prefs.sigma_image1 is not None
-            assert self.prefs.sigma_kalman is not None
+            assert self.prefs.sigma_image1 is not None, "Must set sigma_image1"
+            assert self.prefs.sigma_kalman is not None, "Must set sigma_kalman"
         elif self.prefs.searchtype == 'armkimage':
-            assert self.prefs.sigma_arm is not None
-            assert self.prefs.sigma_arms is not None
-            assert self.prefs.sigma_kalman is not None
+            assert self.prefs.sigma_arm is not None, "Must set sigma_arm"
+            assert self.prefs.sigma_arms is not None, "Must set sigma_arms"
+            assert self.prefs.sigma_kalman is not None, "Must set sigma_kalman"
 
     def summarize(self):
         """ Print summary of pipeline state """
