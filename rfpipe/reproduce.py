@@ -112,6 +112,7 @@ def oldcands_readone(candsfile, scan=None):
     if locind0 == 1:
         loc = loc[np.where(loc[:, 0] == scan)][:, locind0:]
 
+    print(st.features, st.prefs.searchtype)
     fields = [str(ff) for ff in st.search_dimensions + st.features]
     types = [str(tt) for tt in len(st.search_dimensions)*['<i4'] + len(st.features)*['<f4']]
     dtype = list(zip(fields, types))
