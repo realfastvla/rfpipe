@@ -24,7 +24,7 @@ Planned future development include:
 ```
 conda config --add channels pkgw-forge
 conda config --add channels conda-forge
-conda create -n realfast numpy scipy cython matplotlib pwkit casa-tools casa-python casa-data numba astropy pyfftw
+conda create -n realfast numpy scipy cython matplotlib pwkit casa-tools casa-python casa-data numba pyfftw
 source activate realfast
 pip install -e git+git://github.com/realfastvla/rfpipe#egg=rfpipe
 ```
@@ -35,7 +35,7 @@ pip install -e git+git://github.com/realfastvla/rfpipe#egg=rfpipe
 - pwkit casa environment (for quanta and measures)
 - numba (for multi-core and gpu acceleration)
 - rtpipe (for flagging; will be removed soon)
-- astropy
+- astropy (<3.0; for Python2 and 3 compatibility)
 - sdmpy
 - pyfftw
 - pyyaml
