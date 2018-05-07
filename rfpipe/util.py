@@ -4,6 +4,8 @@ from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
 import numpy as np
+import math
+import random
 from numba import cuda, guvectorize
 from numba import jit, complex64, int64
 import pwkit.environments.casa.util as casautil
@@ -306,3 +308,55 @@ def find_segment_times(state):
 
 def madtostd(array):
     return 1.4826*np.median(np.abs(array-np.median(array)))
+
+
+def make_transient(st, ntr=1, segment=None, dmind=None, dtind=None, i0=None,
+                   amp=None, snr=None, data=None, lm=None):
+    """ Given a state, create ntr randomized detectable transients.
+    Returns list of ntr tuples of parameters.
+    data can be used to estimate noise and inject transient at fixed SNR.
+    samples uniformly over dm range and dt range.
+    Mock transient will have either l or m equal to 0.
+    Option exists to overload random selection with fixed segment, dmind, etc.
+    """
+
+    mocks = []
+    for i in range(ntr):
+        if segment is None:
+            segment = random.choice(range(st.nsegment))
+
+        if dmind is None:
+            dmind = random.choice(range(len(st.dmarr)))
+            dm = random.uniform(min(st.dmarr), max(st.dmarr))
+
+        if dtind is None:
+            dtind = random.uniform(min(st.dtarr), max(st.dtarr))
+            dt = st.metadata.inttime*dtind
+
+        if i0 is None:
+            i0 = random.choice(st.get_search_ints(segment, dmind, 0))  # dt=0 is ok
+
+        if amp is None:
+            if (data is None) or (snr is None):
+                amp = 0.1
+            else:
+                sig = data.real.std()
+                amp = snr*sig
+
+        if lm is None:
+            # flip a coin to set either l or m
+            if random.choice([0, 1]):
+                l = math.radians(random.uniform(-st.fieldsize_deg/2,
+                                                st.fieldsize_deg/2))
+                m = 0.
+            else:
+                l = 0.
+                m = math.radians(random.uniform(-st.fieldsize_deg/2,
+                                                st.fieldsize_deg/2))
+        else:
+            assert len(lm) == 2, "lm must be 2-tuple"
+
+        mocks.append((segment, i0, dm, dt, amp, l, m))
+        segment, dmind, dm, dtind, dt, i0, amp, sig, lm, l, m = [None]*11
+
+    return mocks
