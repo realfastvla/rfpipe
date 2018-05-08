@@ -133,22 +133,23 @@ def prep_standard(st, segment, data):
         uvw = util.get_uvw_segment(st, segment)
         for params in st.prefs.simulated_transient:
             assert len(params) == 7 or len(params) == 8, ("Transient requires 7 or 8 parameters: "
-                                      "(segment, i0/int, dm/pc/cm3, dt/s, "
-                                      "amp/sys, dl/rad, dm/rad) and optionally "
-                                      "ampslope/sys")
-            if len(params) == 7:
-                (mock_segment, i0, dm, dt, amp, l, m) = params
-                ampslope = 0
-                logger.info("Adding transient to segment {0} at int {1}, DM {2}, "
-                            "dt {3} with amp {4} and l,m={5},{6}"
-                            .format(mock_segment, i0, dm, dt, amp, l, m))
-            elif len(params) == 8:
-                (mock_segment, i0, dm, dt, amp, l, m, ampslope) = params
-                logger.info("Adding transient to segment {0} at int {1}, DM {2}, "
-                            "dt {3} with amp {4}-{5} and l,m={6},{7}"
-                            .format(mock_segment, i0, dm, dt, amp,
-                                    amp+ampslope, l, m))
-            if segment == mock_segment:
+                                                          "(segment, i0/int, dm/pc/cm3, dt/s, "
+                                                          "amp/sys, dl/rad, dm/rad) and optionally "
+                                                          "ampslope/sys")
+            if segment == params[0]:
+                if len(params) == 7:
+                    (mock_segment, i0, dm, dt, amp, l, m) = params
+                    ampslope = 0
+
+                    logger.info("Adding transient to segment {0} at int {1}, DM {2}, "
+                                "dt {3} with amp {4} and l,m={5},{6}"
+                                .format(mock_segment, i0, dm, dt, amp, l, m))
+                elif len(params) == 8:
+                    (mock_segment, i0, dm, dt, amp, l, m, ampslope) = params
+                    logger.info("Adding transient to segment {0} at int {1}, DM {2}, "
+                                "dt {3} with amp {4}-{5} and l,m={6},{7}"
+                                .format(mock_segment, i0, dm, dt, amp,
+                                        amp+ampslope, l, m))
                 try:
                     model = np.require(np.broadcast_to(generate_transient(st, amp, i0, dm, dt, ampslope=ampslope)
                                                        .transpose()[:, None, :, None],

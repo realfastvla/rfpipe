@@ -87,6 +87,7 @@ class CandCollection(object):
         self.metadata = metadata
         self.rfpipe_version = version.__version__
         self._state = None
+        # TODO: pass in segmenttimes here to avoid recalculating during search?
 
     def __repr__(self):
         if self.metadata is not None:
@@ -229,6 +230,7 @@ def calc_features(canddatalist):
         # TODO: fill out more features
         for feat in st.features:
             if feat == 'snr1':
+# TODO: find good estimate for both CPU and GPU
 #                imstd = util.madtostd(image)  # outlier resistant
                 imstd = image.std()  # consistent with rfgpu
                 logger.debug('{0} {1}'.format(image.shape, imstd))

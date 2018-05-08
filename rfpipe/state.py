@@ -240,9 +240,11 @@ class State(object):
 
         if segment == 0:
             return list(range((self.readints-self.dmshifts[dmind])//self.dtarr[dtind]))
-        else:
+        elif segment < self.nsegment:
             return list(range((self.dmshifts[-1]-self.dmshifts[dmind])//self.dtarr[dtind],
                               (self.readints-self.dmshifts[dmind])//self.dtarr[dtind]))
+        else:
+            logger.warn("No segment {0} in scan".format(segment))
 
     @property
     def version(self):

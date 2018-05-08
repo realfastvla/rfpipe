@@ -310,37 +310,48 @@ def madtostd(array):
     return 1.4826*np.median(np.abs(array-np.median(array)))
 
 
-def make_transient(st, ntr=1, segment=None, dmind=None, dtind=None, i0=None,
-                   amp=None, snr=None, data=None, lm=None):
+def make_transient(st, ntr=1, segment=None, dmind=None, dtind=None, i=None,
+                   amp=None, lm=None, snr=None, data=None):
     """ Given a state, create ntr randomized detectable transients.
     Returns list of ntr tuples of parameters.
     data can be used to estimate noise and inject transient at fixed SNR.
-    samples uniformly over dm range and dt range.
+    selects random value from dmarr and dtarr.
     Mock transient will have either l or m equal to 0.
     Option exists to overload random selection with fixed segment, dmind, etc.
     """
 
+    segment0 = segment
+    dmind0 = dmind
+    dtind0 = dtind
+    i0 = i
+    amp0 = amp
+    lm0 = lm
+
     mocks = []
-    for i in range(ntr):
+    for tr in range(ntr):
         if segment is None:
             segment = random.choice(range(st.nsegment))
 
         if dmind is None:
             dmind = random.choice(range(len(st.dmarr)))
-            dm = random.uniform(min(st.dmarr), max(st.dmarr))
+        dm = st.dmarr[dmind]
 
         if dtind is None:
-            dtind = random.uniform(min(st.dtarr), max(st.dtarr))
-            dt = st.metadata.inttime*dtind
+            dtind = random.choice(range(len(st.dtarr)))
+        dt = st.metadata.inttime*st.dtarr[dtind]
 
-        if i0 is None:
-            i0 = random.choice(st.get_search_ints(segment, dmind, 0))  # dt=0 is ok
+# TODO: add support for arb dm/dt
+#        dm = random.uniform(min(st.dmarr), max(st.dmarr))
+#        dt = random.uniform(min(st.dtarr), max(st.dtarr))
+
+        if i is None:
+            i = random.choice(st.get_search_ints(segment, dmind, 0))  # dt=0 is ok
 
         if amp is None:
             if (data is None) or (snr is None):
                 amp = 0.1
             else:
-                sig = data.real.std()
+                sig = madtostd(data[i].real)/np.sqrt(np.size(data[i] > 0))
                 amp = snr*sig
 
         if lm is None:
@@ -355,8 +366,10 @@ def make_transient(st, ntr=1, segment=None, dmind=None, dtind=None, i0=None,
                                                 st.fieldsize_deg/2))
         else:
             assert len(lm) == 2, "lm must be 2-tuple"
+            l, m = lm
 
-        mocks.append((segment, i0, dm, dt, amp, l, m))
-        segment, dmind, dm, dtind, dt, i0, amp, sig, lm, l, m = [None]*11
+        mocks.append((segment, i, dm, dt, amp, l, m))
+        (segment, dmind, dtind, i, amp, lm) = (segment0, dmind0, dtind0, i0,
+                                               amp0, lm0)
 
     return mocks
