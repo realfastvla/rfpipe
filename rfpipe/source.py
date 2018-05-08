@@ -456,7 +456,7 @@ def flag_data_rtpipe(st, data):
                 spwpol[(spw, pol)] = np.abs(data[:, :, chans, pol]).std()
 
         meanstd = np.mean(list(spwpol.values()))
-        for (spw,pol) in spwpol:
+        for (spw, pol) in spwpol:
             if spwpol[(spw, pol)] > st.prefs.badspwpol*meanstd:
                 logger.info('Flagging all of (spw %d, pol %d) for excess noise.' % (spw, pol))
                 chans = np.arange(st.metadata.spw_nchan[spw]*spw, st.metadata.spw_nchan[spw]*(1+spw))

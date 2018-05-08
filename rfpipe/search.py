@@ -465,7 +465,8 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
         canddatalist = []
         for i, image in enumerate(images):
             candloc = (segment, integrations[i], dmind, dtind, beamnum)
-            peak_snr = image.max()/util.madtostd(image)
+#            peak_snr = image.max()/util.madtostd(image)
+            peak_snr = image.max()/image.std()
             if peak_snr > st.sigma_image1:
                 l, m = st.pixtolm(np.where(image == image.max()))
 
@@ -536,7 +537,8 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
                 peakx, peaky = np.where(image[0] == image[0].max())
                 l, m = st.calclm(st.npixx_full, st.npixy_full, st.uvres,
                                  peakx[0], peaky[0])
-                peak_snr = image.max()/util.madtostd(image)
+#                peak_snr = image.max()/util.madtostd(image)
+                peak_snr = image.max()/image.std()
                 if peak_snr > st.prefs.sigma_image1:
                     logger.info("Got one! SNRarm {0:.1f} and SNRk {1:.1f} and SNR1 {2:.1f} candidate at {3} and (l,m) = ({4},{5})"
                                 .format(snrarm, snrk, peak_snr, candloc, l, m))
@@ -1099,7 +1101,8 @@ def kalman_significance_canddata(canddata, sig_ts=[]):
                                               coeffs=coeffs)
     snrk = (2*significance_kalman)**0.5
 
-    snr_image = canddata.image.max()/util.madtostd(canddata.image)
+#    snr_image = canddata.image.max()/util.madtostd(canddata.image)
+    snr_image = canddata.image.max()/canddata.image.std()
     significance_image = -scipy.stats.norm.logsf(snr_image)
 
     snr_total = (2*(snrk + significance_image))**0.5

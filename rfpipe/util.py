@@ -351,7 +351,8 @@ def make_transient(st, ntr=1, segment=None, dmind=None, dtind=None, i=None,
             if (data is None) or (snr is None):
                 amp = 0.1
             else:
-                sig = madtostd(data[i].real)/np.sqrt(np.size(data[i] > 0))
+                # TODO: support flagged data in size calc and injection
+                sig = madtostd(data[i].real)/np.sqrt(data[i].size)
                 amp = snr*sig
 
         if lm is None:
