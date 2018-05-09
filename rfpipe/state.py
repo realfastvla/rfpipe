@@ -6,9 +6,7 @@ from io import open
 import os
 from datetime import date
 import numpy as np
-from scipy.special import erf, erfinv
-#TODO check this
-#import scipy.stats
+import scipy.stats
 from astropy import time
 from rfpipe import util, preferences, metadata, version
 import pwkit.environments.casa.util as casautil
@@ -685,18 +683,14 @@ class State(object):
         """ Number of thermal-noise false positives per scan at given sigma
         """
 
-        qfrac = 1 - (erf(sigma/np.sqrt(2)) + 1)/2
-        # TODO: check this instead
-#        qfrac = scipy.stats.norm.sf(sigma)
+        qfrac = scipy.stats.norm.sf(sigma)
         return int(qfrac*self.ntrials)
 
     def thresholdlevel(self, nfalse):
         """ Sigma threshold for a given number of false positives per scan
         """
 
-        #TODO: check this
-#        return scipy.stats.norm.isf(nfalse/self.ntrials)
-        return erfinv(2*(1 - nfalse/float(self.ntrials)) - 1)*np.sqrt(2)
+        return scipy.stats.norm.isf(nfalse/self.ntrials)
 
     @property
     def sigma_image1(self):

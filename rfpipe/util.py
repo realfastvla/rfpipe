@@ -314,7 +314,7 @@ def make_transient(st, ntr=1, segment=None, dmind=None, dtind=None, i=None,
                    amp=None, lm=None, snr=None, data=None):
     """ Given a state, create ntr randomized detectable transients.
     Returns list of ntr tuples of parameters.
-    data can be used to estimate noise and inject transient at fixed SNR.
+    If data provided, it is used to inject transient at fixed SNR.
     selects random value from dmarr and dtarr.
     Mock transient will have either l or m equal to 0.
     Option exists to overload random selection with fixed segment, dmind, etc.
@@ -348,9 +348,11 @@ def make_transient(st, ntr=1, segment=None, dmind=None, dtind=None, i=None,
             i = random.choice(st.get_search_ints(segment, dmind, 0))  # dt=0 is ok
 
         if amp is None:
-            if (data is None) or (snr is None):
+            if data is None:
                 amp = 0.1
             else:
+                if snr is None:
+                    snr = 20.
                 # TODO: support flagged data in size calc and injection
                 sig = madtostd(data[i].real)/np.sqrt(data[i].size)
                 amp = snr*sig
