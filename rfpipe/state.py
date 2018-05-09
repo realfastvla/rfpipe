@@ -140,13 +140,9 @@ class State(object):
 
         # supported algorithms for gpu/cpu
         if self.prefs.fftmode == 'cuda':
-            import rfgpu
             assert self.prefs.searchtype in ['image', 'imagek']
         elif self.prefs.fftmode == 'fftw':
             assert self.prefs.searchtype in ['image', 'imagek', 'armkimage']
-
-        if self.metadata.datasource == 'vys':
-            import vysmaw_reader
 
     def summarize(self):
         """ Print summary of pipeline state """
