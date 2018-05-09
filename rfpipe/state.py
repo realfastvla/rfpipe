@@ -215,18 +215,18 @@ class State(object):
                                 self.prefs.nthread,
                                 's'[not self.prefs.nthread-1:]))
             if self.prefs.searchtype == 'image':
-                logger.info('Image threshold of {0} sigma.'
+                logger.info('\t Image threshold of {0} sigma.'
                             .format(self.prefs.sigma_image1,
                                     self.prefs.sigma_kalman))
             elif self.prefs.searchtype == 'imagek':
-                logger.info('Image/kalman threshold of {0}/{1} sigma.'
+                logger.info('\t Image/kalman threshold of {0}/{1} sigma.'
                             .format(self.prefs.sigma_image1,
                                     self.prefs.sigma_kalman))
             elif self.prefs.searchtype == 'armkimage':
-                logger.info('Arm/arms/kalman/image thresholds of {0}/{1}/{2}/{3} sigma.'
+                logger.info('\t Arm/arms/kalman/image thresholds of {0}/{1}/{2}/{3} sigma.'
                             .format(self.prefs.sigma_arm,
                                     self.prefs.sigma_arms,
-                                    self.prefs.self.sigma_kalman,
+                                    self.prefs.sigma_kalman,
                                     self.prefs.sigma_image1))
 
             logger.info('\t Using {0} DMs from {1} to {2} and dts {3}.'

@@ -358,14 +358,14 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
                     data_corr = dedisperseresample(data, delay,
                                                    st.dtarr[dtind],
                                                    parallel=st.prefs.nthread > 1)
-                    data_corr = data_corr[max(0, i-st.prefs.timewindow//2):
-                                          min(i+st.prefs.timewindow//2,
-                                          len(data))]
 
                     if st.prefs.searchtype == 'image':
                         logger.info("Got one! SNR {0:.1f} candidate at {1} and (l,m) = ({2},{3})"
                                     .format(peak_snr, candloc, l, m))
 
+                        data_corr = data_corr[max(0, i-st.prefs.timewindow//2):
+                                              min(i+st.prefs.timewindow//2,
+                                              len(data))]
                         util.phase_shift(data_corr, uvw, l, m)
                         data_corr = data_corr.mean(axis=1)
                         canddatalist.append(candidates.CandData(state=st,
@@ -389,6 +389,11 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
                             logger.info("Got one! SNR1 {0:.1f} and SNRk {1:.1f} candidate at {2} and (l,m) = ({3},{4})"
                                         .format(peak_snr, snrk, candloc, l, m))
 
+                            data_corr = data_corr[max(0, i-st.prefs.timewindow//2):
+                                                  min(i+st.prefs.timewindow//2,
+                                                  len(data))]
+                            util.phase_shift(data_corr, uvw, l, m)
+                            data_corr = data_corr.mean(axis=1)
                             canddatalist.append(candidates.CandData(state=st,
                                                                     loc=candloc,
                                                                     image=img_data,
