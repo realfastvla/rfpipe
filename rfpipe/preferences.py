@@ -44,6 +44,7 @@ class Preferences(object):
     gainfile = attr.ib(default=None)
     # simulate transients from list of tuples with
     # values/units: (segment, i0/int, dm/pc/cm3, dt/s, amp/sys, dl/rad, dm/rad)
+    # or an int that defines number of mocks to create per scan
     simulated_transient = attr.ib(default=None)
 
     # processing

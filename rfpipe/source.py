@@ -128,6 +128,14 @@ def prep_standard(st, segment, data):
 
     # optionally add transients
     if st.prefs.simulated_transient is not None:
+        # for an int type, overload prefs.simulated_transient random mocks
+        if isinstance(st.prefs.simulated_transient, int):
+            logger.info("Filling simulated_transient with {0} random transients"
+                        .format(st.prefs.simulated_transient))
+            st.prefs.simulated_transient = util.make_transient(st,
+                                                               ntr=st.prefs.simulated_transient,
+                                                               data=data)
+
         assert isinstance(st.prefs.simulated_transient, list), "Simulated transient must be list of tuples."
 
         uvw = util.get_uvw_segment(st, segment)
