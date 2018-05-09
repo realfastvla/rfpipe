@@ -308,6 +308,12 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
 
     grid.conjugate(vis_raw)
 
+    # some prep if kalman filter is to be applied
+    if st.prefs.searchtype in ['imagek']:
+        # TODO: check that this is ok if pointing at bright source
+        spec_std = data.real.mean(axis=1).mean(axis=2).std(axis=0)
+        sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
+
     canddatalist = []
     for dtind in range(len(st.dtarr)):
         for dmind in range(len(st.dmarr)):
@@ -345,26 +351,53 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
 
                 # threshold image on GPU and optionally save it
                 if peak_snr > st.sigma_image1:
-                    img_grid.d2h()
+                    img_grid.d2h()  # TODO: implement l,m and phasing on GPU
                     img_data = np.fft.fftshift(img_grid.data)  # shift zero pixel in middle
                     l, m = st.pixtolm(np.where(img_data == img_data.max()))
                     candloc = (segment, i, dmind, dtind, beamnum)
-
-                    logger.info("Got one! SNR {0:.1f} candidate at {1} and (l,m) = ({2},{3})"
-                                .format(peak_snr, candloc, l, m))
-
                     data_corr = dedisperseresample(data, delay,
                                                    st.dtarr[dtind],
                                                    parallel=st.prefs.nthread > 1)
                     data_corr = data_corr[max(0, i-st.prefs.timewindow//2):
                                           min(i+st.prefs.timewindow//2,
                                           len(data))]
-                    util.phase_shift(data_corr, uvw, l, m)
-                    data_corr = data_corr.mean(axis=1)
-                    canddatalist.append(candidates.CandData(state=st,
-                                                            loc=candloc,
-                                                            image=img_data,
-                                                            data=data_corr))
+
+                    if st.prefs.searchtype == 'image':
+                        logger.info("Got one! SNR {0:.1f} candidate at {1} and (l,m) = ({2},{3})"
+                                    .format(peak_snr, candloc, l, m))
+
+                        util.phase_shift(data_corr, uvw, l, m)
+                        data_corr = data_corr.mean(axis=1)
+                        canddatalist.append(candidates.CandData(state=st,
+                                                                loc=candloc,
+                                                                image=img_data,
+                                                                data=data_corr))
+
+                    elif st.prefs.searchtype == 'imagek':
+                        spec = data_corr.take([i], axis=0)
+                        util.phase_shift(spec, uvw, l, m)
+                        spec = spec[0].real.mean(axis=2).mean(axis=0)
+
+                        # TODO: this significance can be biased low if averaging in long baselines that are not phased well
+                        # TODO: spec should be calculated from baselines used to measure l,m?
+                        significance_kalman = kalman_significance(spec,
+                                                                  spec_std,
+                                                                  sig_ts=sig_ts,
+                                                                  coeffs=kalman_coeffs)
+                        snrk = (2*significance_kalman)**0.5
+                        if snrk > st.prefs.sigma_kalman:
+                            logger.info("Got one! SNR1 {0:.1f} and SNRk {1:.1f} candidate at {2} and (l,m) = ({3},{4})"
+                                        .format(peak_snr, snrk, candloc, l, m))
+
+                            canddatalist.append(candidates.CandData(state=st,
+                                                                    loc=candloc,
+                                                                    image=img_data,
+                                                                    data=data_corr,
+                                                                    snrk=snrk))
+
+                    else:
+                        logger.warn("searchtype {0} not recognized"
+                                    .format(st.prefs.searchtype))
 
                     # TODO: add safety against triggering return of all images
                     if len(canddatalist)*bytespercd/1000**3 > st.prefs.memory_limit:
@@ -569,7 +602,7 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
 
         candcollection += candidates.calc_features(canddatalist)
     else:
-        raise NotImplemented("only searchtype=image or imagek implemented")
+        raise NotImplemented("only searchtype=image, imagek, armkimage implemented")
 
     logger.info("{0} candidates returned for (seg, dmind, dtind) = "
                 "({1}, {2}, {3})".format(len(candcollection), segment, dmind,
