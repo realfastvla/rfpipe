@@ -103,7 +103,8 @@ class State(object):
                 .format(self.metadata.datasetId, self.prefs.name))
 
     def validate(self):
-        """ Test validity of state (metadata + preferences) with a few assertions
+        """ Test validity of state (metadata + preferences) with a assertions
+        and module imports.
         """
 
         # limits on time boundaries/sizes
@@ -139,9 +140,13 @@ class State(object):
 
         # supported algorithms for gpu/cpu
         if self.prefs.fftmode == 'cuda':
+            import rfgpu
             assert self.prefs.searchtype in ['image', 'imagek']
         elif self.prefs.fftmode == 'fftw':
             assert self.prefs.searchtype in ['image', 'imagek', 'armkimage']
+
+        if self.metadata.datasource == 'vys':
+            import vysmaw_reader
 
     def summarize(self):
         """ Print summary of pipeline state """
@@ -205,17 +210,32 @@ class State(object):
 
             logger.info('')
 
-            logger.info('\t Using {0} for {1} search at {2} sigma using {3} thread{4}.'
+            logger.info('\t Using {0} for {1} search using {2} thread{3}.'
                         .format(self.fftmode, self.prefs.searchtype,
-                                self.sigma_image1, self.prefs.nthread,
+                                self.prefs.nthread,
                                 's'[not self.prefs.nthread-1:]))
+            if self.prefs.searchtype == 'image':
+                logger.info('Image threshold of {0} sigma.'
+                            .format(self.prefs.sigma_image1,
+                                    self.prefs.sigma_kalman))
+            elif self.prefs.searchtype == 'imagek':
+                logger.info('Image/kalman threshold of {0}/{1} sigma.'
+                            .format(self.prefs.sigma_image1,
+                                    self.prefs.sigma_kalman))
+            elif self.prefs.searchtype == 'armkimage':
+                logger.info('Arm/arms/kalman/image thresholds of {0}/{1}/{2}/{3} sigma.'
+                            .format(self.prefs.sigma_arm,
+                                    self.prefs.sigma_arms,
+                                    self.prefs.self.sigma_kalman,
+                                    self.prefs.sigma_image1))
+
             logger.info('\t Using {0} DMs from {1} to {2} and dts {3}.'
                         .format(len(self.dmarr), min(self.dmarr),
                                 max(self.dmarr), self.dtarr))
             logger.info('\t Using uvgrid npix=({0}, {1}) and res={2} with {3} int chunks.'
                         .format(self.npixx, self.npixy, self.uvres, self.chunksize))
             logger.info('\t Expect {0} thermal false positives per scan.'
-                        .format(self.nfalse(self.sigma_image1)))
+                        .format(self.nfalse(self.prefs.sigma_image1)))
 
             logger.info('')
             if self.fftmode == "fftw":
@@ -697,19 +717,21 @@ class State(object):
 
         return scipy.stats.norm.isf(nfalse/self.ntrials)
 
-    @property
-    def sigma_image1(self):
-        """ Use either sigma_image1 or nfalse
-        """
-
-        assert (self.prefs.sigma_image1 is not None) or (self.prefs.nfalse  is not None), "Must set either prefs.sigma_image1 or prefs.nfalse"
-
-        if self.prefs.sigma_image1 is not None:
-            return self.prefs.sigma_image1
-        elif self.prefs.nfalse is not None:
-            return self.thresholdlevel(self.prefs.nfalse)
-        else:
-            logger.warn("Cannot set sigma_image1 from given preferences")
+#    @property
+#    def sigma_image1(self):
+#        """ Use either sigma_image1 or nfalse
+#        nfalse value calculates total number of pixels formed if imaging all
+#        data, which is not true for some searchtypes.
+#        """
+#
+#        assert (self.prefs.sigma_image1 is not None) or (self.prefs.nfalse  is not None), "Must set either prefs.sigma_image1 or prefs.nfalse"
+#
+#        if self.prefs.sigma_image1 is not None:
+#            return self.prefs.sigma_image1
+#        elif self.prefs.nfalse is not None:
+#            return self.thresholdlevel(self.prefs.nfalse)
+#        else:
+#            logger.warn("Cannot set sigma_image1 from given preferences")
 
     @property
     def datashape(self):

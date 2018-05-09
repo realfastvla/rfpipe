@@ -14,6 +14,11 @@ import pickle
 import logging
 logger = logging.getLogger(__name__)
 
+try:
+    import vysmaw_reader
+except ImportError:
+    pass
+
 qa = casautil.tools.quanta()
 default_timeout = 10  # multiple of read time in seconds to wait
 
@@ -183,12 +188,6 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout, offset=4):
     """
 
     # TODO: support for time downsampling
-
-    try:
-        import vysmaw_reader
-    except ImportError:
-        logger.error('ImportError for vysmaw_reader. Cannot '
-                     'consume vys data.')
 
     t0 = time.Time(st.segmenttimes[seg][0], format='mjd', precision=9).unix
     t1 = time.Time(st.segmenttimes[seg][1], format='mjd', precision=9).unix

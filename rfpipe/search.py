@@ -350,7 +350,7 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
                     peak_snr = 0.
 
                 # threshold image on GPU and optionally save it
-                if peak_snr > st.sigma_image1:
+                if peak_snr > st.prefs.sigma_image1:
                     img_grid.d2h()  # TODO: implement l,m and phasing on GPU
                     img_data = np.fft.fftshift(img_grid.data)  # shift zero pixel in middle
                     l, m = st.pixtolm(np.where(img_data == img_data.max()))
@@ -503,7 +503,7 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
             candloc = (segment, integrations[i], dmind, dtind, beamnum)
 #            peak_snr = image.max()/util.madtostd(image)
             peak_snr = image.max()/image.std()
-            if peak_snr > st.sigma_image1:
+            if peak_snr > st.prefs.sigma_image1:
                 l, m = st.pixtolm(np.where(image == image.max()))
 
                 # if set, use sigma_kalman as second stage filter
