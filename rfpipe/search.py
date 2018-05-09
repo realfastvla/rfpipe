@@ -394,7 +394,10 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
                                                                     image=img_data,
                                                                     data=data_corr,
                                                                     snrk=snrk))
-
+                    elif st.prefs.searchtype == 'armkimage':
+                        raise NotImplementedError
+                    elif st.prefs.searchtype == 'armk':
+                        raise NotImplementedError
                     else:
                         logger.warn("searchtype {0} not recognized"
                                     .format(st.prefs.searchtype))

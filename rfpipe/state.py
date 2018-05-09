@@ -106,19 +106,18 @@ class State(object):
         """ Test validity of state (metadata + preferences) with a few assertions
         """
 
+        # limits on time boundaries/sizes
         assert self.t_overlap < self.nints*self.inttime, ('t_overlap must be'
                                                           ' less than scan '
                                                           'length ({0:.3f} < {1:.3f}) '
                                                           .format(self.t_overlap,
                                                                   self.nints*self.inttime))
-
         assert self.t_overlap < self.t_segment, ('Max DM sweep ({0:.3f} s)'
                                                  ' is larger than segment '
                                                  'size ({1:.3f} s). '
                                                  'Pipeline will fail!'
                                                  .format(self.t_overlap,
                                                          self.t_segment))
-
         if self.prefs.timesub is not None:
             assert self.inttime < self.fringetime_orig, ('Integration time '
                                                          'must be less than '
@@ -127,7 +126,7 @@ class State(object):
                                                          'subtraction'
                                                          .format(self.inttime,
                                                                  self.fringetime))
-
+        # required parameters
         if self.prefs.searchtype == 'image':
             assert self.prefs.sigma_image1 is not None, "Must set sigma_image1"
         elif self.prefs.searchtype == 'imagek':
@@ -137,6 +136,12 @@ class State(object):
             assert self.prefs.sigma_arm is not None, "Must set sigma_arm"
             assert self.prefs.sigma_arms is not None, "Must set sigma_arms"
             assert self.prefs.sigma_kalman is not None, "Must set sigma_kalman"
+
+        # supported algorithms for gpu/cpu
+        if self.prefs.fftmode == 'cuda':
+            assert self.prefs.searchtype in ['image', 'imagek']
+        elif self.prefs.fftmode == 'fftw':
+            assert self.prefs.searchtype in ['image', 'imagek', 'armkimage']
 
     def summarize(self):
         """ Print summary of pipeline state """
