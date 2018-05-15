@@ -5,7 +5,7 @@ rfpipe:
     maxdm: 3000
     flagantsol: False
     timesub: 'mean'
-    searchtype: 'image1stats'    # search algorithm: 'image1' is single image snr threshold
+    searchtype: 'image'    # search algorithm: 'image1' is single image snr threshold
     sigma_image1: 6.4
     npix_max: 2048
     badspwpol: 2.
