@@ -385,7 +385,8 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
                                                                   sig_ts=sig_ts,
                                                                   coeffs=kalman_coeffs)
                         snrk = (2*significance_kalman)**0.5
-                        if snrk > st.prefs.sigma_kalman:
+                        snrtot = (snrk**2 + peak_snr)**0.5
+                        if snrtot > (st.prefs.sigma_kalman**2 + st.prefs.sigma_image1**2)**0.5:
                             logger.info("Got one! SNR1 {0:.1f} and SNRk {1:.1f} candidate at {2} and (l,m) = ({3},{4})"
                                         .format(peak_snr, snrk, candloc, l, m))
 
@@ -522,7 +523,8 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
                                                               sig_ts=sig_ts,
                                                               coeffs=kalman_coeffs)
                     snrk = (2*significance_kalman)**0.5
-                    if snrk > st.prefs.sigma_kalman:
+                    snrtot = (snrk**2 + peak_snr)**0.5
+                    if snrtot > (st.prefs.sigma_kalman**2 + st.prefs.sigma_image1**2)**0.5:
                         logger.info("Got one! SNR1 {0:.1f} and SNRk {1:.1f} candidate at {2} and (l,m) = ({3},{4})"
                                     .format(peak_snr, snrk, candloc, l, m))
                         dataph = data[max(0, integrations[i]-st.prefs.timewindow//2):
@@ -840,11 +842,12 @@ def search_thresh_armk(st, data, uvw, integrations=None, spec_std=None,
                                                           sig_ts=sig_ts,
                                                           coeffs=coeffs)
                 snrk = (2*significance_kalman)**0.5
-                if (snrk > st.prefs.sigma_kalman) and (snrk > snrlast):
+                snrtot = (snrk**2 + snrarms[i, j]**2)**0.5
+                if (snrtot > (st.prefs.sigma_kalman**2 + st.prefs.sigma_arm**2)**0.5) and (snrk > snrlast):
                     kpeak = (integrations[candinds[i, j]], snrarms[i, j],
                              snrk, (armloc0, armloc1, armloc2), (peakx, peaky),
                              (l, m))
-                    snrlast = (snrk**2 + snrarms[i, j]**2)  # max significance
+                    snrlast = snrtot
         if len(kpeak):
             kpeaks.append(kpeak)
 

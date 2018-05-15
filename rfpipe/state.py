@@ -769,10 +769,11 @@ class State(object):
             return ('snrarm', 'snrk', 'l1', 'm1')
         elif self.prefs.searchtype == 'armkimage':
             return ('snrarm', 'snrk', 'snr1', 'immax1', 'l1', 'm1')
-        elif self.prefs.searchtype in ['imagestats', 'image1stats']:
-            # note: spec statistics are all or nothing.
-            return ('snr1', 'immax1', 'l1', 'm1', 'specstd', 'specskew',
-                    'speckurtosis', 'imskew', 'imkurtosis')
+# TODO: find better way to set features separately from search algorithm
+#        elif self.prefs.searchtype in ['imagestats', 'image1stats']:
+#            # note: spec statistics are all or nothing.
+#            return ('snr1', 'immax1', 'l1', 'm1', 'specstd', 'specskew',
+#                    'speckurtosis', 'imskew', 'imkurtosis')
 
     @property
     def candsfile(self):

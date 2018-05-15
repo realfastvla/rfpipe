@@ -10,10 +10,20 @@ from numpy import ndarray
 
 # simulate no flag, transient/no flag, transient/flag
 inprefs = [({'flaglist': [], 'npix_max': 512, 'chans': range(32), 'spw': [0],
-            'savenoise': True}, 1),
-           ({'simulated_transient': [(0, 30, 25, 10e-3, 1., 0.001, 0.001)],
-            'dmarr': [0, 100], 'dtarr': [1, 2], 'npix_max': 512,
-            'savecands': True, 'savenoise': True, 'timesub': 'mean'}, 2)]
+            'savenoise': True, 'fftmode': 'fftw', 'searchtype': 'image'}, 1),
+           ({'simulated_transient': 1, 'dmarr': [0, 100], 'dtarr': [1, 2],
+             'npix_max': 512, 'savecands': True, 'savenoise': True,
+             'timesub': 'mean', 'fftmode': 'fftw', 'searchtype': 'image',
+             'sigma_image1': 8}, 2),
+           ({'simulated_transient': 1, 'dmarr': [0, 100], 'dtarr': [1, 2],
+             'npix_max': 512, 'savecands': True, 'savenoise': True,
+             'timesub': 'mean', 'fftmode': 'fftw', 'searchtype': 'imagek',
+             'sigma_image1': 8, 'sigma_kalman': 1}, 2),
+           ({'simulated_transient': 1, 'dmarr': [0, 100], 'dtarr': [1, 2],
+             'npix_max': 512, 'savecands': True, 'savenoise': True,
+             'sigma_image1': 8, 'sigma_kalman': 1, 'sigma_arm': 3,
+             'sigma_arms': 5, 'timesub': 'mean', 'fftmode': 'fftw',
+             'searchtype': 'armkimage'}, 2)]
 #TODO:      support arbitrary channel selection and
 #           {'read_tdownsample': 2, 'read_fdownsample': 2, 'npix_max': 512},
 
