@@ -93,7 +93,7 @@ class State(object):
             self.metadata = metadata.Metadata(**meta)
 
         if validate:
-            self.validate()
+            assert self.validate() is True
 
         if showsummary:
             self.summarize()
@@ -143,6 +143,8 @@ class State(object):
             assert self.prefs.searchtype in ['image', 'imagek']
         elif self.prefs.fftmode == 'fftw':
             assert self.prefs.searchtype in ['image', 'imagek', 'armkimage']
+
+        return True
 
     def summarize(self):
         """ Print summary of pipeline state """

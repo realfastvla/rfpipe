@@ -36,14 +36,17 @@ def test_candidate(mockstate, candloc):
     assert np.all(candcollection.array[0]['integration'] == candloc[1])
 
 
-def test_iter():
-    candsfile = os.path.join(_install_dir,
-                             'data/cands_test_58253.93959741861.2.1.pkl')
-    for cc in rfpipe.candidates.iter_cands(candsfile, select='candcollection'):
-        assert len(cc) > 0
-        assert cc.state.validate()
-
+######
 # TODO: figure out if full backwards compat is possible with python 2/3 compat
+######
+#def test_iter():
+#    candsfile = os.path.join(_install_dir,
+#                             'data/cands_test_58253.93959741861.2.1.pkl')
+#    for cc in rfpipe.candidates.iter_cands(candsfile, select='candcollection'):
+#        assert len(cc) > 0
+#        assert cc.state.validate()
+#
+#
 #def test_parse():
 #    candsfile = os.path.join(_install_dir,
 #                             'data/cands_17A-396_TEST_30m_001.57849.887411006945_merge.pkl')
