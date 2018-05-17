@@ -7,7 +7,6 @@ import rfpipe
 import pytest
 from astropy import time
 import numpy as np
-import os.path
 
 
 @pytest.fixture(scope="module")
@@ -24,6 +23,11 @@ def st():
 def data(st):
         segment = 0
         return rfpipe.source.read_segment(st, segment)
+
+
+def test_prepsearch(st, data):
+    segment = 0
+    cc = rfpipe.search.prep_and_search(st, segment, data)
 
 
 def test_dm_singlemulti(st, data):

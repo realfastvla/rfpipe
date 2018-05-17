@@ -81,7 +81,12 @@ def test_noise(mockstate, mockdata):
         assert len(noises)
 
 
-def test_pipeline(mockstate):
-    res = rfpipe.pipeline.pipeline_seg(mockstate, 0)
+def test_pipelinescan(mockstate):
+    cc = rfpipe.pipeline.pipeline_scan(mockstate)
+    rfpipe.candidates.makesummaryplot(mockstate.candsfile)
 
-#    assert len(res) == len(mockstate.dmarr)*len(mockstate.dtarr)
+
+def test_pipelineseg(mockstate):
+    cc = rfpipe.pipeline.pipeline_seg(mockstate, 0)
+
+#    assert len(cc) == len(mockstate.dmarr)*len(mockstate.dtarr)
