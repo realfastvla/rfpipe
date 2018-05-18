@@ -385,7 +385,7 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
                                                                   sig_ts=sig_ts,
                                                                   coeffs=kalman_coeffs)
                         snrk = (2*significance_kalman)**0.5
-                        snrtot = (snrk**2 + peak_snr)**0.5
+                        snrtot = (snrk**2 + peak_snr**2)**0.5
                         if snrtot > (st.prefs.sigma_kalman**2 + st.prefs.sigma_image1**2)**0.5:
                             logger.info("Got one! SNR1 {0:.1f} and SNRk {1:.1f} candidate at {2} and (l,m) = ({3},{4})"
                                         .format(peak_snr, snrk, candloc, l, m))
@@ -523,7 +523,7 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
                                                               sig_ts=sig_ts,
                                                               coeffs=kalman_coeffs)
                     snrk = (2*significance_kalman)**0.5
-                    snrtot = (snrk**2 + peak_snr)**0.5
+                    snrtot = (snrk**2 + peak_snr**2)**0.5
                     if snrtot > (st.prefs.sigma_kalman**2 + st.prefs.sigma_image1**2)**0.5:
                         logger.info("Got one! SNR1 {0:.1f} and SNRk {1:.1f} candidate at {2} and (l,m) = ({3},{4})"
                                     .format(peak_snr, snrk, candloc, l, m))
