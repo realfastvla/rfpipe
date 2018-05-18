@@ -346,8 +346,13 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
                 stats = image.stats(img_grid)
                 if stats['rms'] != 0.:
                     peak_snr = stats['max']/stats['rms']
+                    # TODO: add lm calc to rfgpu
+                    # l, m = stats['peak_l'], stats['peak_m']
                 else:
                     peak_snr = 0.
+
+                # TODO: collect candlocs/snr and close loops here to find peaks
+                #       then return to create canddata per peak or island
 
                 # threshold image on GPU and optionally save it
                 if peak_snr > st.prefs.sigma_image1:
