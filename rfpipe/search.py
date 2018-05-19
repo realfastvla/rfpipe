@@ -1058,7 +1058,8 @@ def kalman_significance(spec, spec_std, sig_ts=[], coeffs=[]):
         x_coeff, const_coeff = coeff
         significances.append(x_coeff * score + const_coeff)
 
-    return np.max(significances) * np.log(2)  # given in units of nats
+    # return prob in units of nats. ignore negative probs
+    return max(0, np.max(significances) * np.log(2))
 
 
 @jit(nopython=True)

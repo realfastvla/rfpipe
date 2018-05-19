@@ -16,18 +16,16 @@ inprefs = [({'flaglist': [], 'npix_max': 512, 'chans': list(range(32)),
              'dmarr': [0, 100], 'dtarr': [1, 2],
              'npix_max': 1024, 'savecands': True, 'savenoise': True,
              'timesub': 'mean', 'fftmode': 'fftw', 'searchtype': 'image',
-             'sigma_image1': 8, 'flaglist': []}, 2)]
-# TODO: kalman bug?
-#           ({'simulated_transient': 1, 'dmarr': [0], 'dtarr': [1],
-#             'npix_max': 1024, 'savecands': True, 'savenoise': True,
-#             'timesub': 'mean', 'fftmode': 'fftw', 'searchtype': 'imagek',
-#             'sigma_image1': 8, 'sigma_kalman': 0}, 2)]
-# CRASHING!
-#           ({'simulated_transient': 1, 'dmarr': [0, 100], 'dtarr': [1, 2],
-#             'npix_max': 512, 'savecands': True, 'savenoise': True,
-#             'sigma_image1': 8, 'sigma_kalman': 1, 'sigma_arm': 3,
-#             'sigma_arms': 5, 'timesub': 'mean', 'fftmode': 'fftw',
-#             'searchtype': 'armkimage'}, 2)]
+             'sigma_image1': 8, 'flaglist': []}, 2),
+           ({'simulated_transient': 1, 'dmarr': [0], 'dtarr': [1],
+             'npix_max': 1024, 'savecands': True, 'savenoise': True,
+             'timesub': 'mean', 'fftmode': 'fftw', 'searchtype': 'imagek',
+             'sigma_image1': 8, 'sigma_kalman': 0}, 2),
+           ({'simulated_transient': 1, 'dmarr': [0, 100], 'dtarr': [1, 2],
+             'npix_max': 512, 'savecands': True, 'savenoise': True,
+             'sigma_image1': 8, 'sigma_kalman': 1, 'sigma_arm': 3,
+             'sigma_arms': 5, 'timesub': 'mean', 'fftmode': 'fftw',
+             'searchtype': 'armkimage'}, 2)]
 #TODO:      support arbitrary channel selection and
 #           {'read_tdownsample': 2, 'read_fdownsample': 2, 'npix_max': 512},
 
