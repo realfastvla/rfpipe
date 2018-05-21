@@ -272,8 +272,34 @@ def calc_features(canddatalist):
         candplot(canddatalist[maxindex], snrs=snrs)
         save_cands(st, canddata=canddatalist[maxindex])
 
-
     return candcollection  # return tuple as handle on pipeline
+
+
+def make_mincc(st, candlocs, ls, ms, snrs):
+    """ Construct a minimal candcollection needed to do clustering.
+    Minimal cc has candloc (segment, int, dmind, dtind, beamnum) and (l, m).
+    candlocs, ls, ms are lists of equal length.
+    """
+
+    assert isinstance(candlocs, list)
+    assert len(candlocs) == len(ls)
+    assert len(ls) == len(ms)
+    assert len(ls) == len(snrs)
+
+    fields = [str(ff) for ff in st.search_dimensions + ('l1', 'm1', 'snr')]
+    types = [str(tt) for tt in len(st.search_dimensions)*['<i4'] + 3*['<f4']]
+    dtype = list(zip(fields, types))
+    features = np.zeros(len(candlocs), dtype=dtype)
+    for i in range(len(candlocs)):
+        ff = list(candlocs[i])
+        ff.append(ls[i])
+        ff.append(ms[i])
+        features[i] = tuple(ff)
+
+    candcollection = CandCollection(array=features, prefs=st.prefs,
+                                    metadata=st.metadata)
+
+    return CandCollection
 
 
 def save_cands(st, candcollection=None, canddata=None):
