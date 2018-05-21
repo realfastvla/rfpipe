@@ -18,197 +18,9 @@ except ImportError:
     pass
 
 
-def dedisperse(data, delay, parallel=False):
-    """ Shift data in time (axis=0) by channel-dependent value given in
-    delay. Returns new array with time length shortened by max delay in
-    integrations. wraps _dedisperse to add logging.
-    Can set mode to "single" or "multi" to use different functions.
-    """
-
-    if not np.any(data):
-        return np.array([])
-
-    logger.info('Dedispersing up to delay shift of {0} integrations'
-                .format(delay.max()))
-
-    nint, nbl, nchan, npol = data.shape
-    newsh = (nint-delay.max(), nbl, nchan, npol)
-    if parallel:
-        data = data.copy()
-        _ = _dedisperse_gu(np.swapaxes(data, 0, 1), delay)
-        return data[0:len(data)-delay.max()]
-    else:
-        result = np.zeros(shape=newsh, dtype=data.dtype)
-        _dedisperse_jit(np.require(data, requirements='W'), delay, result)
-        return result
-
-
-@jit(nogil=True, nopython=True)
-def _dedisperse_jit(data, delay, result):
-
-    nint, nbl, nchan, npol = data.shape
-    for k in range(nchan):
-        for i in range(nint-delay.max()):
-            iprime = i + delay[k]
-            for l in range(npol):
-                for j in range(nbl):
-                    result[i, j, k, l] = data[iprime, j, k, l]
-
-
-@guvectorize([str("void(complex64[:,:,:], int64[:])")], str("(n,m,l),(m)"),
-             target='parallel', nopython=True)
-def _dedisperse_gu(data, delay):
-    b""" Multicore dedispersion via numpy broadcasting.
-    Requires that data be in axis order (nbl, nint, nchan, npol), so typical
-    input visibility array must have view from "np.swapaxis(data, 0, 1)".
-    """
-
-    if delay.max() > 0:
-        for i in range(data.shape[0]-delay.max()):
-            for j in range(data.shape[1]):
-                iprime = i + delay[j]
-                for k in range(data.shape[2]):
-                    data[i, j, k] = data[iprime, j, k]
-
-
-def resample(data, dt, parallel=False):
-    """ Resample (integrate) by factor dt and return new data structure
-    wraps _resample to add logging.
-    Can set mode to "single" or "multi" to use different functions.
-    """
-
-    if not np.any(data):
-        return np.array([])
-
-    len0 = data.shape[0]
-    logger.info('Resampling data of length {0} by a factor of {1}'
-                .format(len0, dt))
-
-    nint, nbl, nchan, npol = data.shape
-    newsh = (int64(nint//dt), nbl, nchan, npol)
-
-    if parallel:
-        data = data.copy()
-        _ = _resample_gu(np.swapaxes(data, 0, 3), dt)
-        return data[:len0//dt]
-    else:
-        result = np.zeros(shape=newsh, dtype=data.dtype)
-        _resample_jit(np.require(data, requirements='W'), dt, result)
-        return result
-
-
-@jit(nogil=True, nopython=True)
-def _resample_jit(data, dt, result):
-
-    nint, nbl, nchan, npol = data.shape
-    for j in range(nbl):
-        for k in range(nchan):
-            for l in range(npol):
-                for i in range(int64(nint//dt)):
-                    iprime = int64(i*dt)
-                    result[i, j, k, l] = data[iprime, j, k, l]
-                    for r in range(1, dt):
-                        result[i, j, k, l] += data[iprime+r, j, k, l]
-                    result[i, j, k, l] = result[i, j, k, l]/dt
-
-
-@guvectorize([str("void(complex64[:], int64)")], str("(n),()"),
-             target="parallel", nopython=True)
-def _resample_gu(data, dt):
-    b""" Multicore resampling via numpy broadcasting.
-    Requires that data be in nint axisto be last, so input
-    visibility array must have view from "np.swapaxis(data, 0, 3)".
-    *modifies original memory space* (unlike _resample_jit)
-    """
-
-    if dt > 1:
-        for i in range(data.shape[0]//dt):
-            iprime = int64(i*dt)
-            data[i] = data[iprime]
-            for r in range(1, dt):
-                data[i] += data[iprime+r]
-            data[i] = data[i]/dt
-
-
-def dedisperseresample(data, delay, dt, parallel=False):
-    """ Dedisperse and resample in single function.
-    parallel controls use of multicore versions of algorithms.
-    """
-
-    if not np.any(data):
-        return np.array([])
-
-    logger.info('Correcting by delay/resampling {0}/{1} ints in {2} mode'
-                .format(delay.max(), dt, ['single', 'parallel'][parallel]))
-
-    nint, nbl, nchan, npol = data.shape
-    newsh = (int64(nint-delay.max())//dt, nbl, nchan, npol)
-
-    if parallel:
-        data = data.copy()
-        _ = _dedisperseresample_gu(np.swapaxes(data, 0, 1),
-                                   delay, dt)
-        return data[0:(len(data)-delay.max())//dt]
-    else:
-        result = np.zeros(shape=newsh, dtype=data.dtype)
-        _dedisperseresample_jit(data, delay, dt, result)
-        return result
-
-
-@jit(nogil=True, nopython=True)
-def _dedisperseresample_jit(data, delay, dt, result):
-
-    nint, nbl, nchan, npol = data.shape
-    nintout = int64(len(result))
-
-    for j in range(nbl):
-        for l in range(npol):
-            for k in range(nchan):
-                for i in range(nintout):
-                    weight = int64(0)
-                    for r in range(dt):
-                        iprime = int64(i*dt + delay[k] + r)
-                        val = data[iprime, j, k, l]
-                        result[i, j, k, l] += val
-                        if val != 0j:
-                            weight += 1
-
-                    if weight > 0:
-                        result[i, j, k, l] = result[i, j, k, l]/weight
-                    else:
-                        result[i, j, k, l] = weight
-
-    return result
-
-
-@guvectorize([str("void(complex64[:,:,:], int64[:], int64)")],
-             str("(n,m,l),(m),()"), target="parallel", nopython=True)
-def _dedisperseresample_gu(data, delay, dt):
-
-    if delay.max() > 0 or dt > 1:
-        nint, nchan, npol = data.shape
-        for l in range(npol):
-            for k in range(nchan):
-                for i in range((nint-delay.max())//dt):
-                    weight = int64(0)
-                    for r in range(dt):
-                        iprime = int64(i*dt + delay[k] + r)
-                        val = data[iprime, k, l]
-                        if r == 0:
-                            data[i, k, l] = val
-                        else:
-                            data[i, k, l] += val
-                        if val != 0j:
-                            weight += 1
-                    if weight > 0:
-                        data[i, k, l] = data[i, k, l]/weight
-                    else:
-                        data[i, k, l] = weight
-
-
-#
+###
 # searching, imaging, thresholding
-#
+###
 
 def prep_and_search(st, segment, data):
     """ Bundles prep and search functions to improve performance in distributed.
@@ -759,6 +571,198 @@ def _grid_visibilities_gu(data, us, vs, ws, npixx, npixy, uvres, grid):
                 v = np.mod(vbl[j, k], npixy)
                 for l in range(data.shape[2]):
                     grid[u, v] += data[j, k, l]
+
+
+###
+# dedispersion and resampling
+###
+
+def dedisperse(data, delay, parallel=False):
+    """ Shift data in time (axis=0) by channel-dependent value given in
+    delay. Returns new array with time length shortened by max delay in
+    integrations. wraps _dedisperse to add logging.
+    Can set mode to "single" or "multi" to use different functions.
+    """
+
+    if not np.any(data):
+        return np.array([])
+
+    logger.info('Dedispersing up to delay shift of {0} integrations'
+                .format(delay.max()))
+
+    nint, nbl, nchan, npol = data.shape
+    newsh = (nint-delay.max(), nbl, nchan, npol)
+    if parallel:
+        data = data.copy()
+        _ = _dedisperse_gu(np.swapaxes(data, 0, 1), delay)
+        return data[0:len(data)-delay.max()]
+    else:
+        result = np.zeros(shape=newsh, dtype=data.dtype)
+        _dedisperse_jit(np.require(data, requirements='W'), delay, result)
+        return result
+
+
+@jit(nogil=True, nopython=True)
+def _dedisperse_jit(data, delay, result):
+
+    nint, nbl, nchan, npol = data.shape
+    for k in range(nchan):
+        for i in range(nint-delay.max()):
+            iprime = i + delay[k]
+            for l in range(npol):
+                for j in range(nbl):
+                    result[i, j, k, l] = data[iprime, j, k, l]
+
+
+@guvectorize([str("void(complex64[:,:,:], int64[:])")], str("(n,m,l),(m)"),
+             target='parallel', nopython=True)
+def _dedisperse_gu(data, delay):
+    b""" Multicore dedispersion via numpy broadcasting.
+    Requires that data be in axis order (nbl, nint, nchan, npol), so typical
+    input visibility array must have view from "np.swapaxis(data, 0, 1)".
+    """
+
+    if delay.max() > 0:
+        for i in range(data.shape[0]-delay.max()):
+            for j in range(data.shape[1]):
+                iprime = i + delay[j]
+                for k in range(data.shape[2]):
+                    data[i, j, k] = data[iprime, j, k]
+
+
+def resample(data, dt, parallel=False):
+    """ Resample (integrate) by factor dt and return new data structure
+    wraps _resample to add logging.
+    Can set mode to "single" or "multi" to use different functions.
+    """
+
+    if not np.any(data):
+        return np.array([])
+
+    len0 = data.shape[0]
+    logger.info('Resampling data of length {0} by a factor of {1}'
+                .format(len0, dt))
+
+    nint, nbl, nchan, npol = data.shape
+    newsh = (int64(nint//dt), nbl, nchan, npol)
+
+    if parallel:
+        data = data.copy()
+        _ = _resample_gu(np.swapaxes(data, 0, 3), dt)
+        return data[:len0//dt]
+    else:
+        result = np.zeros(shape=newsh, dtype=data.dtype)
+        _resample_jit(np.require(data, requirements='W'), dt, result)
+        return result
+
+
+@jit(nogil=True, nopython=True)
+def _resample_jit(data, dt, result):
+
+    nint, nbl, nchan, npol = data.shape
+    for j in range(nbl):
+        for k in range(nchan):
+            for l in range(npol):
+                for i in range(int64(nint//dt)):
+                    iprime = int64(i*dt)
+                    result[i, j, k, l] = data[iprime, j, k, l]
+                    for r in range(1, dt):
+                        result[i, j, k, l] += data[iprime+r, j, k, l]
+                    result[i, j, k, l] = result[i, j, k, l]/dt
+
+
+@guvectorize([str("void(complex64[:], int64)")], str("(n),()"),
+             target="parallel", nopython=True)
+def _resample_gu(data, dt):
+    b""" Multicore resampling via numpy broadcasting.
+    Requires that data be in nint axisto be last, so input
+    visibility array must have view from "np.swapaxis(data, 0, 3)".
+    *modifies original memory space* (unlike _resample_jit)
+    """
+
+    if dt > 1:
+        for i in range(data.shape[0]//dt):
+            iprime = int64(i*dt)
+            data[i] = data[iprime]
+            for r in range(1, dt):
+                data[i] += data[iprime+r]
+            data[i] = data[i]/dt
+
+
+def dedisperseresample(data, delay, dt, parallel=False):
+    """ Dedisperse and resample in single function.
+    parallel controls use of multicore versions of algorithms.
+    """
+
+    if not np.any(data):
+        return np.array([])
+
+    logger.info('Correcting by delay/resampling {0}/{1} ints in {2} mode'
+                .format(delay.max(), dt, ['single', 'parallel'][parallel]))
+
+    nint, nbl, nchan, npol = data.shape
+    newsh = (int64(nint-delay.max())//dt, nbl, nchan, npol)
+
+    if parallel:
+        data = data.copy()
+        _ = _dedisperseresample_gu(np.swapaxes(data, 0, 1),
+                                   delay, dt)
+        return data[0:(len(data)-delay.max())//dt]
+    else:
+        result = np.zeros(shape=newsh, dtype=data.dtype)
+        _dedisperseresample_jit(data, delay, dt, result)
+        return result
+
+
+@jit(nogil=True, nopython=True)
+def _dedisperseresample_jit(data, delay, dt, result):
+
+    nint, nbl, nchan, npol = data.shape
+    nintout = int64(len(result))
+
+    for j in range(nbl):
+        for l in range(npol):
+            for k in range(nchan):
+                for i in range(nintout):
+                    weight = int64(0)
+                    for r in range(dt):
+                        iprime = int64(i*dt + delay[k] + r)
+                        val = data[iprime, j, k, l]
+                        result[i, j, k, l] += val
+                        if val != 0j:
+                            weight += 1
+
+                    if weight > 0:
+                        result[i, j, k, l] = result[i, j, k, l]/weight
+                    else:
+                        result[i, j, k, l] = weight
+
+    return result
+
+
+@guvectorize([str("void(complex64[:,:,:], int64[:], int64)")],
+             str("(n,m,l),(m),()"), target="parallel", nopython=True)
+def _dedisperseresample_gu(data, delay, dt):
+
+    if delay.max() > 0 or dt > 1:
+        nint, nchan, npol = data.shape
+        for l in range(npol):
+            for k in range(nchan):
+                for i in range((nint-delay.max())//dt):
+                    weight = int64(0)
+                    for r in range(dt):
+                        iprime = int64(i*dt + delay[k] + r)
+                        val = data[iprime, k, l]
+                        if r == 0:
+                            data[i, k, l] = val
+                        else:
+                            data[i, k, l] += val
+                        if val != 0j:
+                            weight += 1
+                    if weight > 0:
+                        data[i, k, l] = data[i, k, l]/weight
+                    else:
+                        data[i, k, l] = weight
 
 
 ###
