@@ -9,20 +9,23 @@ from astropy import time
 from numpy import ndarray
 
 # simulate no flag, transient/no flag, transient/flag
-inprefs = [({'flaglist': [], 'npix_max': 512, 'chans': list(range(32)),
+inprefs = [({'flaglist': [], 'npix_max': 128, 'uvres': 500,
+             'chans': list(range(32)),
              'spw': [0], 'savecands': True, 'savenoise': True,
              'fftmode': 'fftw', 'searchtype': 'image'}, 1),
            ({'simulated_transient': [(0, 10, 0, 0.005, 0.1, 0., 0., 0.2)],
-             'dmarr': [0, 100], 'dtarr': [1, 2],
-             'npix_max': 1024, 'savecands': True, 'savenoise': True,
+             'dmarr': [0, 50], 'dtarr': [1, 2],
+             'npix_max': 128, 'uvres': 500, 'savecands': True,
+             'savenoise': True,
              'timesub': 'mean', 'fftmode': 'fftw', 'searchtype': 'image',
              'sigma_image1': 8, 'flaglist': []}, 2),
            ({'simulated_transient': 1, 'dmarr': [0], 'dtarr': [1],
-             'npix_max': 1024, 'savecands': True, 'savenoise': True,
+             'npix_max': 128, 'uvres': 500, 'savecands': True,
+             'savenoise': True,
              'timesub': 'mean', 'fftmode': 'fftw', 'searchtype': 'imagek',
              'sigma_image1': 8, 'sigma_kalman': 0}, 2),
-           ({'simulated_transient': 1, 'dmarr': [0, 100], 'dtarr': [1, 2],
-             'npix_max': 512, 'savecands': True, 'savenoise': True,
+           ({'simulated_transient': 1, 'dmarr': [0, 50], 'dtarr': [1],
+             'savecands': True, 'savenoise': True,
              'sigma_image1': 8, 'sigma_kalman': 1, 'sigma_arm': 3,
              'sigma_arms': 5, 'timesub': 'mean', 'fftmode': 'fftw',
              'searchtype': 'armkimage'}, 2)]
@@ -34,7 +37,7 @@ inprefs = [({'flaglist': [], 'npix_max': 512, 'chans': list(range(32)),
 def mockstate(request):
     inprefs, scan = request.param
     t0 = time.Time.now().mjd
-    meta = rfpipe.metadata.mock_metadata(t0, t0+0.5/(24*3600), 27, 4, 32*4, 4,
+    meta = rfpipe.metadata.mock_metadata(t0, t0+0.1/(24*3600), 27, 4, 32*4, 2,
                                          5e3, scan=scan, datasource='sim')
     return rfpipe.state.State(inmeta=meta, inprefs=inprefs)
 

@@ -926,10 +926,11 @@ def maparms(st=None, u0=None, v0=None, e0=None, e1=None, e2=None,
         e2 = get_uvunit(st.blind_arm(order[2]), u0, v0)
 
     # they should be unit vectors (within rounding errors)
-    assert np.linalg.norm(e0) > 0.99, "Problem with unit vector"
-    assert np.linalg.norm(e1) > 0.99, "Problem with unit vector"
-    assert np.linalg.norm(e2) > 0.99, "Problem with unit vector"
+    assert (np.linalg.norm(e0) > 0.99) and (np.linalg.norm(e0) < 1.01), "Problem with unit vector e0: {0}".format(e0)
+    assert (np.linalg.norm(e1) > 0.99) and (np.linalg.norm(e1) < 1.01), "Problem with unit vector e1: {1}".format(e1)
+    assert (np.linalg.norm(e2) > 0.99) and (np.linalg.norm(e2) < 1.01), "Problem with unit vector e2: {2}".format(e2)
 
+    # TODO: find out if this should also be ~1.0
     T012 = np.dot(e2, np.linalg.inv(np.array((e0, e1))))
     return T012
 
@@ -952,8 +953,10 @@ def projectarms(dpix0, dpix1, T012, npix2):
     npix2 is size of direction2.
     """
 
-    return int(round(np.dot(np.array([float(dpix0), float(dpix1)]),
-                            T012) + npix2//2))
+    newpix = int(round(np.dot(np.array([float(dpix0), float(dpix1)]),
+                       T012) + npix2//2))
+
+    return newpix
 
 
 @jit(nopython=True)
