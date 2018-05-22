@@ -219,6 +219,8 @@ def calc_features(canddatalist):
     dtype = list(zip(fields, types))
     features = np.zeros(len(canddatalist), dtype=dtype)
 
+    # TODO: restructure to make this "canddata to candcollection"
+    # which calls "minimal cc" function with more general arguments.
     for i, canddata in enumerate(canddatalist):
         st = canddata.state
         image = canddata.image
