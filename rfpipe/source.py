@@ -93,21 +93,22 @@ def prep_standard(st, segment, data):
     if not np.any(data):
         return data
 
-    # read Flag.xml and apply flags for given ant/time range
-    if st.prefs.applyonlineflags and st.metadata.datasource == 'sdm':
-
-        sdm = getsdm(st.metadata.filename, bdfdir=st.metadata.bdfdir)
-        scan = sdm.scan(st.metadata.scan)
-
-        # segment flagged from logical OR from (start, stop) flags
+    # read and apply flags for given ant/time range. 0=bad, 1=good
+    if st.prefs.applyonlineflags and st.metadata.datasource in ['vys', 'sdm']:
         t0, t1 = st.segmenttimes[segment]
-        # 0=bad, 1=good. axis=0 is time axis.
-        flags = scan.flags([t0, t1]).all(axis=0)
+        if st.metadata.datasource == 'sdm':
+            sdm = getsdm(st.metadata.filename, bdfdir=st.metadata.bdfdir)
+            scan = sdm.scan(st.metadata.scan)
+            flags = scan.flags([t0, t1]).all(axis=0)
+        elif st.metadata.datasource == 'vys':
+            from realfast.mcaf_servers import getblflags
+            flags = getblflags(st.metadata.datasetId, st.blarr,
+                               startTime=t0, endTime=t1)
 
         if not flags.all():
             logger.info('Found antennas to flag in time range {0}-{1} '
                         .format(t0, t1))
-            data = np.where(flags[None, :, None, None] == 1,
+            data = np.where(flags[None, :, None, None],
                             np.require(data, requirements='W'), 0j)
         else:
             logger.info('No flagged antennas in time range {0}-{1} '
