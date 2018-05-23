@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
 __all__ = ['search', 'state', 'source', 'pipeline', 'util', 'metadata',
-           'preferences', 'reproduce', 'candidates', 'fileLock', 'calibration']
+           'preferences', 'reproduce', 'candidates', 'fileLock', 'calibration',
+           'flagging']
 
 from rfpipe import *
 from rfpipe.version import __version__

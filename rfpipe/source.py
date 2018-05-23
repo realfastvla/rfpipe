@@ -6,9 +6,8 @@ import os.path
 import numpy as np
 from numba import jit
 from astropy import time
-import sdmpy
 import pwkit.environments.casa.util as casautil
-from rfpipe import util, calibration, fileLock
+from rfpipe import util, calibration, fileLock, flagging
 import pickle
 
 import logging
@@ -43,9 +42,9 @@ def data_prep(st, segment, data, flagversion="latest"):
 
     # support backwards compatibility for reproducible flagging
     if flagversion == "latest":
-        datap = flag_data(st, datap)
+        datap = flagging.flag_data(st, datap)
     elif flagversion == "rtpipe":
-        datap = flag_data_rtpipe(st, datap)
+        datap = flagging.flag_data_rtpipe(st, datap)
 
     if st.prefs.timesub == 'mean':
         logger.info('Subtracting mean visibility in time.')
@@ -95,24 +94,9 @@ def prep_standard(st, segment, data):
 
     # read and apply flags for given ant/time range. 0=bad, 1=good
     if st.prefs.applyonlineflags and st.metadata.datasource in ['vys', 'sdm']:
-        t0, t1 = st.segmenttimes[segment]
-        if st.metadata.datasource == 'sdm':
-            sdm = getsdm(st.metadata.filename, bdfdir=st.metadata.bdfdir)
-            scan = sdm.scan(st.metadata.scan)
-            flags = scan.flags([t0, t1]).all(axis=0)
-        elif st.metadata.datasource == 'vys':
-            from realfast.mcaf_servers import getblflags
-            flags = getblflags(st.metadata.datasetId, st.blarr,
-                               startTime=t0, endTime=t1)
-
-        if not flags.all():
-            logger.info('Found antennas to flag in time range {0}-{1} '
-                        .format(t0, t1))
-            data = np.where(flags[None, :, None, None],
-                            np.require(data, requirements='W'), 0j)
-        else:
-            logger.info('No flagged antennas in time range {0}-{1} '
-                        .format(t0, t1))
+        flags = flagging.getonlineflags(st, segment)
+        data = np.where(flags[None, :, None, None],
+                        np.require(data, requirements='W'), 0j)
     else:
         logger.info('Not applying online flags.')
 
@@ -138,9 +122,9 @@ def prep_standard(st, segment, data):
         if isinstance(st.prefs.simulated_transient, int):
             logger.info("Filling simulated_transient with {0} random transients"
                         .format(st.prefs.simulated_transient))
-            st.prefs.simulated_transient = util.make_transient(st,
-                                                               ntr=st.prefs.simulated_transient,
-                                                               data=data)
+            st.prefs.simulated_transient = util.make_transient_params(st,
+                                                                      ntr=st.prefs.simulated_transient,
+                                                                      data=data)
 
         assert isinstance(st.prefs.simulated_transient, list), "Simulated transient must be list of tuples."
 
@@ -165,7 +149,7 @@ def prep_standard(st, segment, data):
                                 .format(mock_segment, i0, dm, dt, amp,
                                         amp+ampslope, l, m))
                 try:
-                    model = np.require(np.broadcast_to(generate_transient(st, amp, i0, dm, dt, ampslope=ampslope)
+                    model = np.require(np.broadcast_to(util.make_transient_data(st, amp, i0, dm, dt, ampslope=ampslope)
                                                        .transpose()[:, None, :, None],
                                                        data.shape),
                                        requirements='W')
@@ -266,7 +250,7 @@ def read_bdf(st, nskip=0):
                                 .format(st.metadata.scan))
 
     logger.info('Reading %d ints starting at int %d' % (st.readints, nskip))
-    sdm = getsdm(st.metadata.filename, bdfdir=st.metadata.bdfdir)
+    sdm = util.getsdm(st.metadata.filename, bdfdir=st.metadata.bdfdir)
     scan = sdm.scan(st.metadata.scan)
     data = np.empty((st.readints, st.metadata.nbl_orig, st.metadata.nchan_orig,
                      st.metadata.npol_orig), dtype='complex64', order='C')
@@ -336,143 +320,6 @@ def estimate_noiseperbl(data):
     return noiseperbl
 
 
-def flag_data(st, data):
-    """ Identifies bad data and flags it to 0.
-    """
-
-#    data = np.ma.masked_equal(data, 0j)  # TODO remove this and ignore zeros manually
-    flags = np.ones_like(data, dtype=bool)
-
-    for flagparams in st.prefs.flaglist:
-        mode, arg0, arg1 = flagparams
-        if mode == 'blstd':
-            flags *= flag_blstd(data, arg0, arg1)[:, None, :, :]
-        elif mode == 'badchtslide':
-            flags *= flag_badchtslide(data, arg0, arg1)[:, None, :, :]
-        else:
-            logger.warn("Flaging mode {0} not available.".format(mode))
-
-    return data*flags
-
-
-def flag_blstd(data, sigma, convergence):
-    """ Use data (4d) to calculate (int, chan, pol) to be flagged.
-    """
-
-    sh = data.shape
-    flags = np.ones((sh[0], sh[2], sh[3]), dtype=bool)
-
-    blstd = data.std(axis=1)
-
-    # iterate to good median and std values
-    blstdmednew = np.ma.median(blstd)
-    blstdstdnew = blstd.std()
-    blstdstd = blstdstdnew*2  # TODO: is this initialization used?
-    while (blstdstd-blstdstdnew)/blstdstd > convergence:
-        blstdstd = blstdstdnew
-        blstdmed = blstdmednew
-        blstd = np.ma.masked_where(blstd > blstdmed + sigma*blstdstd, blstd, copy=False)
-        blstdmednew = np.ma.median(blstd)
-        blstdstdnew = blstd.std()
-
-    # flag blstd too high
-    badt, badch, badpol = np.where(blstd > blstdmednew + sigma*blstdstdnew)
-    logger.info("flag by blstd: {0} of {1} total channel/time/pol cells flagged."
-                .format(len(badt), sh[0]*sh[2]*sh[3]))
-
-    for i in range(len(badt)):
-        flags[badt[i], badch[i], badpol[i]] = False
-
-    return flags
-
-
-def flag_badchtslide(data, sigma, win):
-    """ Use data (4d) to calculate (int, chan, pol) to be flagged
-    """
-
-    sh = data.shape
-    flags = np.ones((sh[0], sh[2], sh[3]), dtype=bool)
-
-    meanamp = np.abs(data).mean(axis=1)
-    spec = meanamp.mean(axis=0)
-    lc = meanamp.mean(axis=1)
-
-    # calc badch as deviation from median of window
-    specmed = slidedev(spec, win)
-    badch = np.where(specmed > sigma*specmed.std(axis=0))
-
-    # calc badt as deviation from median of window
-    lcmed = slidedev(lc, win)
-    badt = np.where(lcmed > sigma*lcmed.std(axis=0))
-
-    badtcnt = len(np.unique(badt))
-    badchcnt = len(np.unique(badch))
-    logger.info("flag by badchtslide: {0}/{1} pol-times and {2}/{3} pol-chans flagged."
-                .format(badtcnt, sh[0]*sh[3], badchcnt, sh[2]*sh[3]))
-
-    for i in range(len(badch[0])):
-        flags[:, badch[0][i], badch[1][i]] = False
-
-    for i in range(len(badt[0])):
-        flags[badt[0][i], :, badt[1][i]] = False
-
-    return flags
-
-
-@jit
-def slidedev(arr, win):
-    """ Given a (len x 2) array, calculate the deviation from the median per pol.
-    Calculates median over a window, win.
-    """
-
-    med = np.zeros((len(arr), 2))
-    for i in range(len(arr)):
-        inds = list(range(max(0, i-win//2), i)) + list(range(i+1, min(i+win//2, len(arr))))
-        for j in inds:
-            med[j] = np.ma.median(arr.take(inds, axis=0), axis=0)
-
-    return arr-med
-
-
-def flag_data_rtpipe(st, data):
-    """ Flagging data in single process
-    Deprecated.
-    """
-    try:
-        import rtlib_cython as rtlib
-    except ImportError:
-        logger.error("rtpipe not installed. Cannot import rtlib for flagging.")
-
-    # **hack!**
-    d = {'dataformat': 'sdm', 'ants': [int(ant.lstrip('ea')) for ant in st.ants], 'excludeants': st.prefs.excludeants, 'nants': len(st.ants)}
-
-    for flag in st.prefs.flaglist:
-        mode, sig, conv = flag
-        for spw in st.spw:
-            chans = np.arange(st.metadata.spw_nchan[spw]*spw, st.metadata.spw_nchan[spw]*(1+spw))
-            for pol in range(st.npol):
-                status = rtlib.dataflag(data, chans, pol, d, sig, mode, conv)
-                logger.info(status)
-
-    # hack to get rid of bad spw/pol combos whacked by rfi
-    if st.prefs.badspwpol:
-        logger.info('Comparing overall power between spw/pol. Removing those with {0} times typical value'.format(st.prefs.badspwpol))
-        spwpol = {}
-        for spw in st.spw:
-            chans = np.arange(st.metadata.spw_nchan[spw]*spw, st.metadata.spw_nchan[spw]*(1+spw))
-            for pol in range(st.npol):
-                spwpol[(spw, pol)] = np.abs(data[:, :, chans, pol]).std()
-
-        meanstd = np.mean(list(spwpol.values()))
-        for (spw, pol) in spwpol:
-            if spwpol[(spw, pol)] > st.prefs.badspwpol*meanstd:
-                logger.info('Flagging all of (spw %d, pol %d) for excess noise.' % (spw, pol))
-                chans = np.arange(st.metadata.spw_nchan[spw]*spw, st.metadata.spw_nchan[spw]*(1+spw))
-                data[:, :, chans, pol] = 0j
-
-    return data
-
-
 def simulate_segment(st, loc=0., scale=1.):
     """ Simulates visibilities for a segment.
     """
@@ -490,7 +337,7 @@ def simulate_segment(st, loc=0., scale=1.):
 def sdm_sources(sdmname):
     """ Use sdmpy to get all sources and ra,dec per scan as dict """
 
-    sdm = getsdm(sdmname)
+    sdm = util.getsdm(sdmname)
     sourcedict = {}
 
     for row in sdm['Field']:
@@ -506,61 +353,3 @@ def sdm_sources(sdmname):
         sourcedict[sourcenum]['dec'] = dec
 
     return sourcedict
-
-
-def getsdm(*args, **kwargs):
-    """ Wrap sdmpy.SDM to get around schema change error """
-
-    try:
-        sdm = sdmpy.SDM(*args, **kwargs)
-    except:
-        kwargs['use_xsd'] = False
-        sdm = sdmpy.SDM(*args, **kwargs)
-
-    return sdm
-
-
-def generate_transient(st, amp, i0, dm, dt, ampslope=0.):
-    """ Create a dynamic spectrum for given parameters
-    amp is in system units (post calibration)
-    i0 is a float for integration relative to start of segment.
-    dm/dt are in units of pc/cm3 and seconds, respectively
-    ampslope adds to a linear slope up to amp+ampslope at last channel.
-    """
-
-    model = np.zeros((st.metadata.nchan_orig, st.readints), dtype='complex64')
-    chans = np.arange(st.nchan)
-    ampspec = amp + ampslope*(np.linspace(0, 1, num=st.nchan))
-
-    i = i0 + util.calc_delay2(st.freq, st.freq.max(), dm)/st.inttime
-#    print(i)
-    i_f = np.floor(i).astype(int)
-    imax = np.ceil(i + dt/st.inttime).astype(int)
-    imin = i_f
-    i_r = imax - imin
-#    print(i_r)
-    if np.any(i_r == 1):
-        ir1 = np.where(i_r == 1)
-#        print(ir1)
-        model[chans[ir1], i_f[ir1]] += ampspec[chans[ir1]]
-
-    if np.any(i_r == 2):
-        ir2 = np.where(i_r == 2)
-        i_c = np.ceil(i).astype(int)
-        f1 = (dt/st.inttime - (i_c - i))/(dt/st.inttime)
-        f0 = 1 - f1
-#        print(np.vstack((ir2, f0[ir2], f1[ir2])).transpose())
-        model[chans[ir2], i_f[ir2]] += f0[ir2]*ampspec[chans[ir2]]
-        model[chans[ir2], i_f[ir2]+1] += f1[ir2]*ampspec[chans[ir2]]
-
-    if np.any(i_r == 3):
-        ir3 = np.where(i_r == 3)
-        f2 = (i + dt/st.inttime - (imax - 1))/(dt/st.inttime)
-        f0 = ((i_f + 1) - i)/(dt/st.inttime)
-        f1 = 1 - f2 - f0
-#        print(np.vstack((ir3, f0[ir3], f1[ir3], f2[ir3])).transpose())
-        model[chans[ir3], i_f[ir3]] += f0[ir3]*ampspec[chans[ir3]]
-        model[chans[ir3], i_f[ir3]+1] += f1[ir3]*ampspec[chans[ir3]]
-        model[chans[ir3], i_f[ir3]+2] += f2[ir3]*ampspec[chans[ir3]]
-
-    return model
