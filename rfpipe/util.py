@@ -9,6 +9,7 @@ import random
 from numba import cuda, guvectorize
 from numba import jit, complex64, int64
 import pwkit.environments.casa.util as casautil
+import sdmpy
 
 import logging
 logger = logging.getLogger(__name__)
@@ -16,6 +17,17 @@ logger = logging.getLogger(__name__)
 qa = casautil.tools.quanta()
 me = casautil.tools.measures()
 
+
+def getsdm(*args, **kwargs):
+    """ Wrap sdmpy.SDM to get around schema change error """
+
+    try:
+        sdm = sdmpy.SDM(*args, **kwargs)
+    except:
+        kwargs['use_xsd'] = False
+        sdm = sdmpy.SDM(*args, **kwargs)
+
+    return sdm
 
 def phase_shift(data, uvw, dl, dm):
     """ Applies a phase shift to data for a given (dl, dm).
@@ -310,8 +322,8 @@ def madtostd(array):
     return 1.4826*np.median(np.abs(array-np.median(array)))
 
 
-def make_transient(st, ntr=1, segment=None, dmind=None, dtind=None, i=None,
-                   amp=None, lm=None, snr=None, data=None):
+def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None, i=None,
+                          amp=None, lm=None, snr=None, data=None):
     """ Given a state, create ntr randomized detectable transients.
     Returns list of ntr tuples of parameters.
     If data provided, it is used to inject transient at fixed SNR.
@@ -376,3 +388,49 @@ def make_transient(st, ntr=1, segment=None, dmind=None, dtind=None, i=None,
                                                amp0, lm0)
 
     return mocks
+
+
+def make_transient_data(st, amp, i0, dm, dt, ampslope=0.):
+    """ Create a dynamic spectrum for given parameters
+    amp is in system units (post calibration)
+    i0 is a float for integration relative to start of segment.
+    dm/dt are in units of pc/cm3 and seconds, respectively
+    ampslope adds to a linear slope up to amp+ampslope at last channel.
+    """
+
+    model = np.zeros((st.metadata.nchan_orig, st.readints), dtype='complex64')
+    chans = np.arange(st.nchan)
+    ampspec = amp + ampslope*(np.linspace(0, 1, num=st.nchan))
+
+    i = i0 + calc_delay2(st.freq, st.freq.max(), dm)/st.inttime
+#    print(i)
+    i_f = np.floor(i).astype(int)
+    imax = np.ceil(i + dt/st.inttime).astype(int)
+    imin = i_f
+    i_r = imax - imin
+#    print(i_r)
+    if np.any(i_r == 1):
+        ir1 = np.where(i_r == 1)
+#        print(ir1)
+        model[chans[ir1], i_f[ir1]] += ampspec[chans[ir1]]
+
+    if np.any(i_r == 2):
+        ir2 = np.where(i_r == 2)
+        i_c = np.ceil(i).astype(int)
+        f1 = (dt/st.inttime - (i_c - i))/(dt/st.inttime)
+        f0 = 1 - f1
+#        print(np.vstack((ir2, f0[ir2], f1[ir2])).transpose())
+        model[chans[ir2], i_f[ir2]] += f0[ir2]*ampspec[chans[ir2]]
+        model[chans[ir2], i_f[ir2]+1] += f1[ir2]*ampspec[chans[ir2]]
+
+    if np.any(i_r == 3):
+        ir3 = np.where(i_r == 3)
+        f2 = (i + dt/st.inttime - (imax - 1))/(dt/st.inttime)
+        f0 = ((i_f + 1) - i)/(dt/st.inttime)
+        f1 = 1 - f2 - f0
+#        print(np.vstack((ir3, f0[ir3], f1[ir3], f2[ir3])).transpose())
+        model[chans[ir3], i_f[ir3]] += f0[ir3]*ampspec[chans[ir3]]
+        model[chans[ir3], i_f[ir3]+1] += f1[ir3]*ampspec[chans[ir3]]
+        model[chans[ir3], i_f[ir3]+2] += f2[ir3]*ampspec[chans[ir3]]
+
+    return model

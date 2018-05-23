@@ -11,11 +11,11 @@ import numpy as np
 
 @pytest.fixture(scope="module")
 def st():
-        inprefs = {'flaglist': [], 'npix_max': 512, 'nthread': 1,
+        inprefs = {'flaglist': [], 'npix_max': 128, 'uvres': 500, 'nthread': 1,
                    'fftmode': 'fftw'}
         t0 = time.Time.now().mjd
-        meta = rfpipe.metadata.mock_metadata(t0, t0+0.3/(24*3600), 27, 4, 32*4,
-                                             4, 5e3, datasource='sim')
+        meta = rfpipe.metadata.mock_metadata(t0, t0+0.05/(24*3600), 20, 4, 32*4,
+                                             2, 5e3, datasource='sim')
         return rfpipe.state.State(inmeta=meta, inprefs=inprefs)
 
 

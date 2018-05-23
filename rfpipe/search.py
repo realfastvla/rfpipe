@@ -870,7 +870,6 @@ def image_arms(st, data, uvw, wisdom=None, order=['N', 'E', 'W']):
 
     npix = max(st.npixx_full, st.npixy_full)
 
-    # TODO: check if there is a center ant that can be counted in all arms
     grids_arm0 = grid_arm(data, uvw, st.blind_arm(order[0]), npix, st.uvres)
     arm0 = image_fftw(grids_arm0, axes=(1,), wisdom=wisdom)
 
@@ -926,9 +925,9 @@ def maparms(st=None, u0=None, v0=None, e0=None, e1=None, e2=None,
         e2 = get_uvunit(st.blind_arm(order[2]), u0, v0)
 
     # they should be unit vectors (within rounding errors)
-    assert np.linalg.norm(e0) > 0.99, "Problem with unit vector"
-    assert np.linalg.norm(e1) > 0.99, "Problem with unit vector"
-    assert np.linalg.norm(e2) > 0.99, "Problem with unit vector"
+    assert (np.linalg.norm(e0) > 0.99) and (np.linalg.norm(e0) < 1.01), "Problem with unit vector e0: {0}".format(e0)
+    assert (np.linalg.norm(e1) > 0.99) and (np.linalg.norm(e1) < 1.01), "Problem with unit vector e1: {1}".format(e1)
+    assert (np.linalg.norm(e2) > 0.99) and (np.linalg.norm(e2) < 1.01), "Problem with unit vector e2: {2}".format(e2)
 
     T012 = np.dot(e2, np.linalg.inv(np.array((e0, e1))))
     return T012
@@ -952,8 +951,10 @@ def projectarms(dpix0, dpix1, T012, npix2):
     npix2 is size of direction2.
     """
 
-    return int(round(np.dot(np.array([float(dpix0), float(dpix1)]),
-                            T012) + npix2//2))
+    newpix = int(round(np.dot(np.array([float(dpix0), float(dpix1)]),
+                       T012) + npix2//2))
+
+    return newpix
 
 
 @jit(nopython=True)
@@ -989,7 +990,12 @@ def thresh_arms(arm0, arm1, arm2, T012, sigma_arm, sigma_trigger, n_max_cands):
         for ind0 in indices_arr0:
             for ind1 in indices_arr1:
                 ind2 = projectarms(ind0-npix//2, ind1-npix//2, T012, npix)
-                score = arm0[i, ind0] + arm1[i, ind1] + arm2[i, ind2]
+                # check score if intersections are all on grid
+                if ind2 <= npix:
+                    score = arm0[i, ind0] + arm1[i, ind1] + arm2[i, ind2]
+                else:
+                    score = 0.
+
                 if score > effective_eta_trigger:
                     snr_3arm = score/effective_3arm_sigma
 
