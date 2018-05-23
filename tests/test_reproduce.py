@@ -13,8 +13,8 @@ _install_dir = os.path.abspath(os.path.dirname(__file__))
 
 
 # simulate no flag, transient/no flag, transient/flag
-inprefs = [{'flaglist': [], 'npix_max': 128, 'uvres': 500}]
-candlocs = [np.array([0, 10, 0, 0, 0])]
+inprefs = [{'flaglist': [], 'npix_max': 128, 'uvres': 500, 'timesub': None}]
+candlocs = [np.array([0, 5, 0, 0, 0])]
 
 
 @pytest.fixture(scope="module", params=inprefs)
