@@ -991,7 +991,7 @@ def thresh_arms(arm0, arm1, arm2, T012, sigma_arm, sigma_trigger, n_max_cands):
             for ind1 in indices_arr1:
                 ind2 = projectarms(ind0-npix//2, ind1-npix//2, T012, npix)
                 # check score if intersections are all on grid
-                if ind2 <= npix:
+                if ind2 < npix:
                     score = arm0[i, ind0] + arm1[i, ind1] + arm2[i, ind2]
                 else:
                     score = 0.
