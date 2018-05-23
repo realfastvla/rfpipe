@@ -194,7 +194,8 @@ class CandCollection(object):
 
 
 def calc_features(canddatalist):
-    """ Calculates the candidate features for CandData instance(s).
+    """ Converts a canddata list into a candcollection by
+    calculating the candidate features for CandData instance(s).
     Returns structured numpy array of candidate features labels defined in
     st.search_dimensions.
     Generates png plot for peak cands, if so defined in preferences.
@@ -212,58 +213,20 @@ def calc_features(canddatalist):
     logger.info('Calculating features for {0} candidates.'
                 .format(len(canddatalist)))
 
-    # TODO: generate dtype from st.features
     st = canddatalist[0].state
-    fields = [str(ff) for ff in st.search_dimensions + st.features]
-    types = [str(tt) for tt in len(st.search_dimensions)*['<i4'] + len(st.features)*['<f4']]
-    dtype = list(zip(fields, types))
-    features = np.zeros(len(canddatalist), dtype=dtype)
 
-    # TODO: restructure to make this "canddata to candcollection"
-    # which calls "minimal cc" function with more general arguments.
+    featurelists = []
+    for feature in st.features:
+        ff = []
+        for i, canddata in enumerate(canddatalist):
+            ff.append(canddata_feature(canddata, feature))
+        featurelists.append(ff)
+    candlocs = []
     for i, canddata in enumerate(canddatalist):
-        st = canddata.state
-        image = canddata.image
-        dataph = canddata.data
-#        candloc = canddata.loc
-        ff = list(canddata.loc)
+        candlocs.append(canddata_feature(canddata, 'candloc'))
 
-        # Order matters! features assembled in listed order.
-        # TODO: fill out more features
-        for feat in st.features:
-            if feat == 'snr1':
-# TODO: find good estimate for both CPU and GPU
-#                imstd = util.madtostd(image)  # outlier resistant
-                imstd = image.std()  # consistent with rfgpu
-                logger.debug('{0} {1}'.format(image.shape, imstd))
-                snrmax = image.max()/imstd
-                snrmin = image.min()/imstd
-                snr = snrmax if snrmax >= snrmin else snrmin
-                ff.append(snr)
-            elif feat == 'snrarm':
-                ff.append(canddata.snrarm)
-            elif feat == 'snrk':
-                ff.append(canddata.snrk)
-            elif feat == 'immax1':
-                if snr > 0:
-                    ff.append(image.max())
-                else:
-                    ff.append(image.min())
-            elif feat == 'l1':
-                l1, m1 = st.pixtolm(np.where(image == image.max()))
-                ff.append(float(l1))
-            elif feat == 'm1':
-                l1, m1 = st.pixtolm(np.where(image == image.max()))
-                ff.append(float(m1))
-            else:
-                print(feat)
-                raise NotImplementedError("Feature {0} calculation not ready"
-                                          .format(feat))
-
-        features[i] = tuple(ff)
-
-    candcollection = CandCollection(array=features, prefs=st.prefs,
-                                    metadata=st.metadata)
+    kwargs = dict(zip(st.features, featurelists))
+    candcollection = make_candcollection(st, candlocs, **kwargs)
 
     # make plot for peak snr in collection
     # TODO: think about candidate clustering
@@ -277,6 +240,44 @@ def calc_features(canddatalist):
     return candcollection  # return tuple as handle on pipeline
 
 
+def canddata_feature(canddata, feature):
+    """ Calculate a feature (or candloc) from a canddata instance.
+    feature must be name from st.features or 'candloc'.
+    """
+
+    st = canddata.state
+    image = canddata.image
+    dataph = canddata.data
+    candloc = canddata.loc
+
+    if feature == 'candloc':
+        return candloc
+    elif feature == 'snr1':
+# TODO: find good estimate for both CPU and GPU
+#       imstd = util.madtostd(image)  # outlier resistant
+        imstd = image.std()  # consistent with rfgpu
+        logger.debug('{0} {1}'.format(image.shape, imstd))
+        snrmax = image.max()/imstd
+#        snrmin = image.min()/imstd
+#        snr = snrmax if snrmax >= snrmin else snrmin
+        return snrmax
+    elif feature == 'snrarm':
+        return canddata.snrarm
+    elif feature == 'snrk':
+        return canddata.snrk
+    elif feature == 'immax1':
+        return image.max()
+    elif feature == 'l1':
+        l1, m1 = st.pixtolm(np.where(image == image.max()))
+        return float(l1)
+    elif feature == 'm1':
+        l1, m1 = st.pixtolm(np.where(image == image.max()))
+        return float(m1)
+    else:
+        raise NotImplementedError("Feature {0} calculation not implemented"
+                                  .format(feature))
+
+
 def make_candcollection(st, candlocs, **kwargs):
     """ Construct a minimal candcollection needed to do clustering.
     Minimal cc has a candloc (segment, int, dmind, dtind, beamnum).
@@ -286,7 +287,7 @@ def make_candcollection(st, candlocs, **kwargs):
     """
 
     assert isinstance(candlocs, list)
-    assert all([len(v) == len(candlocs) for v in kwargs.itervalues])
+    assert all([len(v) == len(candlocs) for v in itervalues(kwargs)])
     nfeat = len(kwargs)
     features = list(kwargs.keys())
 
