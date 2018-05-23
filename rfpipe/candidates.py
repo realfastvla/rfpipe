@@ -277,31 +277,34 @@ def calc_features(canddatalist):
     return candcollection  # return tuple as handle on pipeline
 
 
-def make_mincc(st, candlocs, ls, ms, snrs):
+def make_candcollection(st, candlocs, **kwargs):
     """ Construct a minimal candcollection needed to do clustering.
-    Minimal cc has candloc (segment, int, dmind, dtind, beamnum) and (l, m).
-    candlocs, ls, ms are lists of equal length.
+    Minimal cc has a candloc (segment, int, dmind, dtind, beamnum).
+    Can also provide features as keyword/value pairs.
+    keyword is the name of the column (e.g., "l1", "snr")
+    and the value is a list of values of equal legnth as candlocs.
     """
 
     assert isinstance(candlocs, list)
-    assert len(candlocs) == len(ls)
-    assert len(ls) == len(ms)
-    assert len(ls) == len(snrs)
+    assert all([len(v) == len(candlocs) for v in kwargs.itervalues])
+    nfeat = len(kwargs)
+    features = list(kwargs.keys())
 
-    fields = [str(ff) for ff in st.search_dimensions + ('l1', 'm1', 'snr')]
-    types = [str(tt) for tt in len(st.search_dimensions)*['<i4'] + 3*['<f4']]
+    fields = [str(ff) for ff in st.search_dimensions + tuple(features)]
+    types = [str(tt) for tt in len(st.search_dimensions)*['<i4'] + nfeat*['<f4']]
     dtype = list(zip(fields, types))
-    features = np.zeros(len(candlocs), dtype=dtype)
+    array = np.zeros(len(candlocs), dtype=dtype)
     for i in range(len(candlocs)):
         ff = list(candlocs[i])
-        ff.append(ls[i])
-        ff.append(ms[i])
-        features[i] = tuple(ff)
+        for feature in features:
+            ff.append(kwargs[feature][i])
 
-    candcollection = CandCollection(array=features, prefs=st.prefs,
+        array[i] = tuple(ff)
+
+    candcollection = CandCollection(array=array, prefs=st.prefs,
                                     metadata=st.metadata)
 
-    return CandCollection
+    return candcollection
 
 
 def save_cands(st, candcollection=None, canddata=None):

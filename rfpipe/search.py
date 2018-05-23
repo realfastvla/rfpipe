@@ -19,7 +19,7 @@ except ImportError:
 
 
 ###
-# searching, imaging, thresholding
+# packaged searching functions
 ###
 
 def prep_and_search(st, segment, data):
