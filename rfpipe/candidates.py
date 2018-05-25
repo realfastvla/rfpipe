@@ -283,16 +283,23 @@ def make_candcollection(st, candlocs, **kwargs):
     Minimal cc has a candloc (segment, int, dmind, dtind, beamnum).
     Can also provide features as keyword/value pairs.
     keyword is the name of the column (e.g., "l1", "snr")
-    and the value is a list of values of equal legnth as candlocs.
+    and the value is a list of values of equal length as candlocs.
     """
 
+    if isinstance(candlocs, tuple) and len(candlocs) == len(st.search_dimensions):
+        candlocs = [candlocs]
     assert isinstance(candlocs, list)
-    assert all([len(v) == len(candlocs) for v in itervalues(kwargs)])
-    nfeat = len(kwargs)
-    features = list(kwargs.keys())
+
+    for v in itervalues(kwargs):
+#        if isinstance(v, list):
+        assert all([len(v) == len(candlocs)])
+
+    features = list(kwargs.keys())  # TODO: confirm that order is ok
+    nfeat = len(features)
 
     fields = [str(ff) for ff in st.search_dimensions + tuple(features)]
-    types = [str(tt) for tt in len(st.search_dimensions)*['<i4'] + nfeat*['<f4']]
+    types = [str(tt)
+             for tt in len(st.search_dimensions)*['<i4'] + nfeat*['<f4']]
     dtype = list(zip(fields, types))
     array = np.zeros(len(candlocs), dtype=dtype)
     for i in range(len(candlocs)):

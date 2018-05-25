@@ -142,7 +142,7 @@ class State(object):
         if self.prefs.fftmode == 'cuda':
             assert self.prefs.searchtype in ['image', 'imagek']
         elif self.prefs.fftmode == 'fftw':
-            assert self.prefs.searchtype in ['image', 'imagek', 'armkimage']
+            assert self.prefs.searchtype in ['image', 'imagek', 'armkimage', 'armk']
 
         return True
 

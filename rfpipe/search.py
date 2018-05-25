@@ -242,33 +242,8 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
     return candcollection
 
 
-def dedisperse_image_fftw(st, segment, data, wisdom=None, integrations=None):
+def dedisperse_image_fftw(st, segment, data, wisdom=None):
     """ Fuse the dediserpse, resample, search, threshold functions.
-    """
-
-    candcollection = candidates.CandCollection(prefs=st.prefs,
-                                               metadata=st.metadata)
-    for dtind in range(len(st.dtarr)):
-        for dmind in range(len(st.dmarr)):
-            delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
-                                    st.inttime)
-
-            data_corr = dedisperseresample(data, delay, st.dtarr[dtind],
-                                           parallel=st.prefs.nthread > 1)
-
-            candcollection += search_thresh_fftw(st, segment, data_corr, dmind,
-                                                 dtind, wisdom=wisdom,
-                                                 integrations=integrations)
-
-    logger.info("{0} candidates returned for seg {1}"
-                .format(len(candcollection), segment))
-
-    return candcollection
-
-
-def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
-                       beamnum=0, wisdom=None):
-    """ Take dedispersed, resampled data, image with fftw and threshold.
     Returns list of CandData objects that define candidates with
     candloc, image, and phased visibility data.
     Integrations can define subset of all available in data to search.
@@ -278,27 +253,10 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
     ** dmind, dtind, beamnum assumed to represent current state of data
     """
 
-    candcollection = candidates.CandCollection(prefs=st.prefs,
-                                               metadata=st.metadata)
-
     if not np.any(data):
         logger.info("Data is all zeros. Skipping search.")
-        return candcollection
-
-    bytespercd = 8*(st.npixx*st.npixy + st.prefs.timewindow*st.nchan*st.npol)
-
-    # assumes dedispersed/resampled data has only back end trimmed off
-    if integrations is None:
-        integrations = st.get_search_ints(segment, dmind, dtind)
-    elif isinstance(integrations, int):
-        integrations = [integrations]
-
-    assert isinstance(integrations, list), ("integrations should be int, list "
-                                            "of ints, or None.")
-    if len(integrations) == 0:
-        return candcollection
-    minint = min(integrations)
-    maxint = max(integrations)
+        return candidates.CandCollection(prefs=st.prefs,
+                                         metadata=st.metadata)
 
     # some prep if kalman filter is to be applied
     if st.prefs.searchtype in ['imagek', 'armkimage']:
@@ -306,136 +264,138 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
         spec_std = data.real.mean(axis=1).mean(axis=2).std(axis=0)
         sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
 
-    # TODO: add check that manually set integrations are safe for given dt
-
-    logger.info('{0} search of {1} ints ({2}-{3}) in seg {4} at DM/dt {5:.1f}/{6} with '
-                'image {7}x{8} (uvres {9}) with fftw'
-                .format(st.prefs.searchtype, len(integrations), minint, maxint,
-                        segment, st.dmarr[dmind], st.dtarr[dtind], st.npixx,
-                        st.npixy, st.uvres))
-
     uvw = util.get_uvw_segment(st, segment)
 
-    if st.prefs.searchtype in ['image', 'imagek']:
-        images = grid_image(data, uvw, st.npixx, st.npixy, st.uvres,
-                            'fftw', st.prefs.nthread, wisdom=wisdom,
-                            integrations=integrations)
+    # place to hold intermediate result lists
+    canddict = {}
+    canddict['candloc'] = []
+    for feat in st.features:
+        canddict[feat] = []
 
-        canddatalist = []
-        for i, image in enumerate(images):
-            candloc = (segment, integrations[i], dmind, dtind, beamnum)
-#            peak_snr = image.max()/util.madtostd(image)
-            peak_snr = image.max()/image.std()
-            if peak_snr > st.prefs.sigma_image1:
-                l, m = st.pixtolm(np.where(image == image.max()))
+    for dtind in range(len(st.dtarr)):
+        for dmind in range(len(st.dmarr)):
+            # set search integrations
+            integrations = st.get_search_ints(segment, dmind, dtind)
+            if len(integrations) == 0:
+                continue
+            minint = min(integrations)
+            maxint = max(integrations)
 
-                # if set, use sigma_kalman as second stage filter
-                if st.prefs.searchtype == 'imagek':
-                    spec = data.take([integrations[i]], axis=0)
-                    util.phase_shift(spec, uvw, l, m)
-                    spec = spec[0].real.mean(axis=2).mean(axis=0)
-                    # TODO: this significance can be biased low if averaging in long baselines that are not phased well
-                    # TODO: spec should be calculated from baselines used to measure l,m?
-                    significance_kalman = kalman_significance(spec, spec_std,
-                                                              sig_ts=sig_ts,
-                                                              coeffs=kalman_coeffs)
-                    snrk = (2*significance_kalman)**0.5
-                    snrtot = (snrk**2 + peak_snr**2)**0.5
-                    if snrtot > (st.prefs.sigma_kalman**2 + st.prefs.sigma_image1**2)**0.5:
-                        logger.info("Got one! SNR1 {0:.1f} and SNRk {1:.1f} candidate at {2} and (l,m) = ({3},{4})"
-                                    .format(peak_snr, snrk, candloc, l, m))
-                        dataph = data[max(0, integrations[i]-st.prefs.timewindow//2):
-                                      min(integrations[i]+st.prefs.timewindow//2, len(data))].copy()
-                        util.phase_shift(dataph, uvw, l, m)
-                        dataph = dataph.mean(axis=1)
-                        canddatalist.append(candidates.CandData(state=st,
-                                                                loc=candloc,
-                                                                image=image,
-                                                                data=dataph,
-                                                                snrk=snrk))
-                elif st.prefs.searchtype == 'image':
-                    logger.info("Got one! SNR1 {0:.1f} candidate at {1} and (l, m) = ({2},{3})"
-                                .format(peak_snr, candloc, l, m))
-                    dataph = data[max(0, integrations[i]-st.prefs.timewindow//2):
-                                  min(integrations[i]+st.prefs.timewindow//2, len(data))].copy()
-                    util.phase_shift(dataph, uvw, l, m)
-                    dataph = dataph.mean(axis=1)
-                    canddatalist.append(candidates.CandData(state=st,
-                                                            loc=candloc,
-                                                            image=image,
-                                                            data=dataph))
-                else:
-                    logger.warn("searchtype {0} not recognized"
-                                .format(st.prefs.searchtype))
+            logger.info('{0} search of {1} ints ({2}-{3}) in seg {4} at DM/dt '
+                        '{5:.1f}/{6} with image {7}x{8} (uvres {9}) with fftw'
+                        .format(st.prefs.searchtype, len(integrations), minint,
+                                maxint, segment, st.dmarr[dmind],
+                                st.dtarr[dtind], st.npixx,
+                                st.npixy, st.uvres))
 
-                if len(canddatalist)*bytespercd/1000**3 > st.prefs.memory_limit:
-                    logger.info("Accumulated CandData size is {0:.1f} GB, "
-                                "which exceeds memory limit of {1:.1f}. "
-                                "Running calc_features..."
-                                .format(len(canddatalist)*bytespercd/1000**3,
-                                        st.prefs.memory_limit))
-                    candcollection += candidates.calc_features(canddatalist)
-                    canddatalist = []
+            # correct data
+            delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
+                                    st.inttime)
+            data_corr = dedisperseresample(data, delay, st.dtarr[dtind],
+                                           parallel=st.prefs.nthread > 1)
 
-        candcollection += candidates.calc_features(canddatalist)
+            # run search
+            if st.prefs.searchtype in ['image', 'imagek']:
+                images = grid_image(data_corr, uvw, st.npixx, st.npixy, st.uvres,
+                                    'fftw', st.prefs.nthread, wisdom=wisdom,
+                                    integrations=integrations)
 
-    elif st.prefs.searchtype in ['armkimage', 'armk']:
-        armk_candidates = search_thresh_armk(st, data, uvw,
-                                             integrations=integrations,
-                                             spec_std=spec_std,
-                                             sig_ts=sig_ts,
-                                             coeffs=kalman_coeffs)
-        canddatalist = []
-#        for candind, snrarm, snrk in armk_candidates:
-        for candind, snrarm, snrk, armloc, peakxy, lm in armk_candidates:
-            candloc = (segment, candind, dmind, dtind, beamnum)
-            # if set, use sigma_kalman as second stage filter
-            if st.prefs.searchtype == 'armkimage':
-                image = grid_image(data, uvw, st.npixx_full, st.npixy_full,
-                                   st.uvres, 'fftw', st.prefs.nthread,
-                                   wisdom=wisdom, integrations=candind)
-                peakx, peaky = np.where(image[0] == image[0].max())
-                l, m = st.calclm(st.npixx_full, st.npixy_full, st.uvres,
-                                 peakx[0], peaky[0])
-#                peak_snr = image.max()/util.madtostd(image)
-                peak_snr = image.max()/image.std()
-                if peak_snr > st.prefs.sigma_image1:
-                    logger.info("Got one! SNRarm {0:.1f} and SNRk {1:.1f} and SNR1 {2:.1f} candidate at {3} and (l,m) = ({4},{5})"
-                                .format(snrarm, snrk, peak_snr, candloc, l, m))
-                    dataph = data[max(0, candind-st.prefs.timewindow//2):
-                                  min(candind+st.prefs.timewindow//2, len(data))].copy()
-                    util.phase_shift(dataph, uvw, l, m)
-                    dataph = dataph.mean(axis=1)
-                    canddatalist.append(candidates.CandData(state=st,
-                                                            loc=candloc,
-                                                            image=image[0],
-                                                            data=dataph,
-                                                            snrarm=snrarm,
-                                                            snrk=snrk))
-            elif st.prefs.searchtype == 'armk':
-                raise NotImplementedError
+                for i, image in enumerate(images):
+                    candloc = (segment, integrations[i], dmind, dtind, beamnum)
+                    immax1 = image.max()
+                    snr1 = immax1/image.std()
+                    if snr1 > st.prefs.sigma_image1:
+                        l1, m1 = st.pixtolm(np.where(image == immax1))
+
+                        # if set, use sigma_kalman as second stage filter
+                        if st.prefs.searchtype == 'imagek':
+                            spec = data_corr.take([integrations[i]], axis=0)
+                            util.phase_shift(spec, uvw, l1, m1)
+                            spec = spec[0].real.mean(axis=2).mean(axis=0)
+                            # TODO: this significance can be biased low if averaging in long baselines that are not phased well
+                            # TODO: spec should be calculated from baselines used to measure l,m?
+                            significance_kalman = kalman_significance(spec,
+                                                                      spec_std,
+                                                                      sig_ts=sig_ts,
+                                                                      coeffs=kalman_coeffs)
+                            snrk = (2*significance_kalman)**0.5
+                            snrtot = (snrk**2 + snr1**2)**0.5
+                            if snrtot > (st.prefs.sigma_kalman**2 + st.prefs.sigma_image1**2)**0.5:
+                                logger.info("Got one! SNR1 {0:.1f} and SNRk {1:.1f} candidate at {2} and (l,m) = ({3},{4})"
+                                            .format(peak_snr, snrk, candloc, l1, m1))
+                                canddict['candloc'].append(candloc)
+                                canddict['l1'].append(l1)
+                                canddict['m1'].append(m1)
+                                canddict['snr1'].append(snr1)
+                                canddict['immax1'].append(immax1)
+                                canddict['snrk'].append(snrk)
+                        elif st.prefs.searchtype == 'image':
+                            logger.info("Got one! SNR1 {0:.1f} candidate at {1} and (l, m) = ({2},{3})"
+                                        .format(peak_snr, candloc, l1, m1))
+                            canddict['candloc'].append(candloc)
+                            canddict['l1'].append(l1)
+                            canddict['m1'].append(m1)
+                            canddict['snr1'].append(snr1)
+                            canddict['immax1'].append(immax1)
+
+            elif st.prefs.searchtype in ['armkimage', 'armk']:
+                armk_candidates = search_thresh_armk(st, data_corr, uvw,
+                                                     integrations=integrations,
+                                                     spec_std=spec_std,
+                                                     sig_ts=sig_ts,
+                                                     coeffs=kalman_coeffs)
+
+                for candind, snrarm, snrk, armloc, peakxy, lm in armk_candidates:
+                    candloc = (segment, candind, dmind, dtind, beamnum)
+
+                    # if set, use sigma_kalman as second stage filter
+                    if st.prefs.searchtype == 'armkimage':
+                        image = grid_image(data_corr, uvw, st.npixx_full,
+                                           st.npixy_full, st.uvres, 'fftw',
+                                           st.prefs.nthread,
+                                           wisdom=wisdom, integrations=candind)
+                        peakx, peaky = np.where(image[0] == image[0].max())
+                        l1, m1 = st.calclm(st.npixx_full, st.npixy_full,
+                                           st.uvres, peakx[0], peaky[0])
+                        immax1 = image.max()
+                        snr1 = immax1/image.std()
+                        if snr1 > st.prefs.sigma_image1:
+                            logger.info("Got one! SNRarm {0:.1f} and SNRk "
+                                        "{1:.1f} and SNR1 {2:.1f} candidate at"
+                                        " {3} and (l,m) = ({4},{5})"
+                                        .format(snrarm, snrk, snr1,
+                                                candloc, l1, m1))
+                            canddict['candloc'].append(candloc)
+                            canddict['l1'].append(l1)
+                            canddict['m1'].append(m1)
+                            canddict['snrarm'].append(snrarm)
+                            canddict['snrk'].append(snrk)
+                            canddict['snr1'].append(snr1)
+                            canddict['immax1'].append(immax1)
+
+                    elif st.prefs.searchtype == 'armk':
+                        logger.info("Got one! SNRarm {0:.1f} and SNRk {1:.1f} "
+                                    "candidate at {2} and (l,m) = ({3},{4})"
+                                    .format(snrarm, snrk, candloc, l1, m1))
+                        l1, m1 = lm
+                        canddict['candloc'].append(candloc)
+                        canddict['l1'].append(l1)
+                        canddict['m1'].append(m1)
+                        canddict['snrarm'].append(snrarm)
+                        canddict['snrk'].append(snrk)
             else:
-                logger.warn("searchtype {0} not recognized"
-                            .format(st.prefs.searchtype))
+                raise NotImplemented("only searchtype=image, imagek, armk, armkimage implemented")
 
-            if len(canddatalist)*bytespercd/1000**3 > st.prefs.memory_limit:
-                logger.info("Accumulated CandData size is {0:.1f} GB, "
-                            "which exceeds memory limit of {1:.1f}. "
-                            "Running calc_features..."
-                            .format(len(canddatalist)*bytespercd/1000**3,
-                                    st.prefs.memory_limit))
-                candcollection += candidates.calc_features(canddatalist)
-                canddatalist = []
+#    kwargs = dict((k, v) for k, v in canddict if k != 'candloc')
+    cc0 = candidates.make_candcollection(st, **canddict)
+    logger.info("Found {0} candidates in seg {1}."
+                .format(len(cc0), segment))
 
-        candcollection += candidates.calc_features(canddatalist)
-    else:
-        raise NotImplemented("only searchtype=image, imagek, armkimage implemented")
+    # TODO: put clustering here
+    # TODO: get canddata for cluster filtered set of candidates
+    # TODO: return new candcollection
 
-    logger.info("{0} candidates returned for (seg, dmind, dtind) = "
-                "({1}, {2}, {3})".format(len(candcollection), segment, dmind,
-                                         dtind))
-
-    return candcollection
+    return cc0
 
 
 def grid_image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,
