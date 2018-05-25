@@ -259,11 +259,12 @@ def dedisperse_image_fftw(st, segment, data, wisdom=None):
                                          metadata=st.metadata)
 
     # some prep if kalman filter is to be applied
-    if st.prefs.searchtype in ['imagek', 'armkimage']:
+    if st.prefs.searchtype in ['imagek', 'armk', 'armkimage']:
         # TODO: check that this is ok if pointing at bright source
         spec_std = data.real.mean(axis=1).mean(axis=2).std(axis=0)
         sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
 
+    beamnum = 0
     uvw = util.get_uvw_segment(st, segment)
 
     # place to hold intermediate result lists
@@ -322,7 +323,7 @@ def dedisperse_image_fftw(st, segment, data, wisdom=None):
                             snrtot = (snrk**2 + snr1**2)**0.5
                             if snrtot > (st.prefs.sigma_kalman**2 + st.prefs.sigma_image1**2)**0.5:
                                 logger.info("Got one! SNR1 {0:.1f} and SNRk {1:.1f} candidate at {2} and (l,m) = ({3},{4})"
-                                            .format(peak_snr, snrk, candloc, l1, m1))
+                                            .format(snr1, snrk, candloc, l1, m1))
                                 canddict['candloc'].append(candloc)
                                 canddict['l1'].append(l1)
                                 canddict['m1'].append(m1)
@@ -331,7 +332,7 @@ def dedisperse_image_fftw(st, segment, data, wisdom=None):
                                 canddict['snrk'].append(snrk)
                         elif st.prefs.searchtype == 'image':
                             logger.info("Got one! SNR1 {0:.1f} candidate at {1} and (l, m) = ({2},{3})"
-                                        .format(peak_snr, candloc, l1, m1))
+                                        .format(snr1, candloc, l1, m1))
                             canddict['candloc'].append(candloc)
                             canddict['l1'].append(l1)
                             canddict['m1'].append(m1)
@@ -374,10 +375,10 @@ def dedisperse_image_fftw(st, segment, data, wisdom=None):
                             canddict['immax1'].append(immax1)
 
                     elif st.prefs.searchtype == 'armk':
+                        l1, m1 = lm
                         logger.info("Got one! SNRarm {0:.1f} and SNRk {1:.1f} "
                                     "candidate at {2} and (l,m) = ({3},{4})"
                                     .format(snrarm, snrk, candloc, l1, m1))
-                        l1, m1 = lm
                         canddict['candloc'].append(candloc)
                         canddict['l1'].append(l1)
                         canddict['m1'].append(m1)

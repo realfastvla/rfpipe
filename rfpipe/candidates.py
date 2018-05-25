@@ -278,7 +278,7 @@ def canddata_feature(canddata, feature):
                                   .format(feature))
 
 
-def make_candcollection(st, candlocs, **kwargs):
+def make_candcollection(st, **kwargs):
     """ Construct a minimal candcollection needed to do clustering.
     Minimal cc has a candloc (segment, int, dmind, dtind, beamnum).
     Can also provide features as keyword/value pairs.
@@ -286,31 +286,34 @@ def make_candcollection(st, candlocs, **kwargs):
     and the value is a list of values of equal length as candlocs.
     """
 
-    if isinstance(candlocs, tuple) and len(candlocs) == len(st.search_dimensions):
-        candlocs = [candlocs]
-    assert isinstance(candlocs, list)
+    if len(kwargs):
+        # assert 1-to-1 mapping of input lists
+        assert 'candloc' in kwargs
+        assert isinstance(kwargs['candloc'], list)
+        for v in itervalues(kwargs):
+            assert len(v) == len(kwargs['candloc'])
 
-    for v in itervalues(kwargs):
-#        if isinstance(v, list):
-        assert all([len(v) == len(candlocs)])
+        candlocs = kwargs['candloc']
+        features = list(kwargs.keys())  # TODO: confirm that order is ok
+        features.remove('candloc')
+        nfeat = len(features)
 
-    features = list(kwargs.keys())  # TODO: confirm that order is ok
-    nfeat = len(features)
+        fields = [str(ff) for ff in st.search_dimensions + tuple(features)]
+        types = [str(tt)
+                 for tt in len(st.search_dimensions)*['<i4'] + nfeat*['<f4']]
+        dtype = list(zip(fields, types))
+        array = np.zeros(len(candlocs), dtype=dtype)
+        for i in range(len(candlocs)):
+            ff = list(candlocs[i])
+            for feature in features:
+                ff.append(kwargs[feature][i])
 
-    fields = [str(ff) for ff in st.search_dimensions + tuple(features)]
-    types = [str(tt)
-             for tt in len(st.search_dimensions)*['<i4'] + nfeat*['<f4']]
-    dtype = list(zip(fields, types))
-    array = np.zeros(len(candlocs), dtype=dtype)
-    for i in range(len(candlocs)):
-        ff = list(candlocs[i])
-        for feature in features:
-            ff.append(kwargs[feature][i])
-
-        array[i] = tuple(ff)
-
-    candcollection = CandCollection(array=array, prefs=st.prefs,
-                                    metadata=st.metadata)
+            array[i] = tuple(ff)
+        candcollection = CandCollection(array=array, prefs=st.prefs,
+                                        metadata=st.metadata)
+    else:
+        candcollection = CandCollection(prefs=st.prefs,
+                                        metadata=st.metadata)
 
     return candcollection
 
