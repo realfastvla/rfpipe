@@ -1,0 +1,956 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>API &#8212; rfpipe 0.9.6 documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.9.6',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Reproducing realfast Candidate Transients" href="Reproduce.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Reproduce.html" title="Reproducing realfast Candidate Transients"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">rfpipe 0.9.6 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="api">
+<h1>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="state-api">
+<span id="stateapi"></span><h2>State API<a class="headerlink" href="#state-api" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="rfpipe.state.State">
+<em class="property">class </em><code class="descclassname">rfpipe.state.</code><code class="descname">State</code><span class="sig-paren">(</span><em>config=None</em>, <em>sdmfile=None</em>, <em>sdmscan=None</em>, <em>bdfdir=None</em>, <em>inprefs=None</em>, <em>inmeta=None</em>, <em>preffile=None</em>, <em>name=None</em>, <em>showsummary=True</em>, <em>lock=None</em>, <em>validate=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines initial search from preferences and methods.
+State properties are used to calculate quantities for the search.</p>
+<p>Approach:
+1) initial preferences can overload state properties
+2) read metadata from observation for given scan
+3) set state (and a few cached values)
+4) state can optionally include attributes for later convenience
+5) run search on a segment.</p>
+<dl class="attribute">
+<dt id="rfpipe.state.State.ants">
+<code class="descname">ants</code><a class="headerlink" href="#rfpipe.state.State.ants" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.beamsize_deg">
+<code class="descname">beamsize_deg</code><a class="headerlink" href="#rfpipe.state.State.beamsize_deg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes gridding spec to estimate beam size in degrees
+** TODO: check for accuracy</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.blarr">
+<code class="descname">blarr</code><a class="headerlink" href="#rfpipe.state.State.blarr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.blarr_names">
+<code class="descname">blarr_names</code><a class="headerlink" href="#rfpipe.state.State.blarr_names" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="rfpipe.state.State.calclm">
+<em class="property">static </em><code class="descname">calclm</code><span class="sig-paren">(</span><em>npixx</em>, <em>npixy</em>, <em>uvres</em>, <em>peakx</em>, <em>peaky</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State.calclm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State.calclm" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.candsfile">
+<code class="descname">candsfile</code><a class="headerlink" href="#rfpipe.state.State.candsfile" title="Permalink to this definition">¶</a></dt>
+<dd><p>File name to write candidates into</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.chans">
+<code class="descname">chans</code><a class="headerlink" href="#rfpipe.state.State.chans" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of channel indices to use. Drawn from preferences,
+with backup to take all defined in metadata.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.chunksize">
+<code class="descname">chunksize</code><a class="headerlink" href="#rfpipe.state.State.chunksize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rfpipe.state.State.clearcache">
+<code class="descname">clearcache</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State.clearcache"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State.clearcache" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.datashape">
+<code class="descname">datashape</code><a class="headerlink" href="#rfpipe.state.State.datashape" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.datashape_orig">
+<code class="descname">datashape_orig</code><a class="headerlink" href="#rfpipe.state.State.datashape_orig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.datasize">
+<code class="descname">datasize</code><a class="headerlink" href="#rfpipe.state.State.datasize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.datasize_orig">
+<code class="descname">datasize_orig</code><a class="headerlink" href="#rfpipe.state.State.datasize_orig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.defined">
+<code class="descname">defined</code><a class="headerlink" href="#rfpipe.state.State.defined" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.dmarr">
+<code class="descname">dmarr</code><a class="headerlink" href="#rfpipe.state.State.dmarr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.dmshifts">
+<code class="descname">dmshifts</code><a class="headerlink" href="#rfpipe.state.State.dmshifts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate max DM delay in units of integrations for each dm trial.
+Gets cached.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.dtarr">
+<code class="descname">dtarr</code><a class="headerlink" href="#rfpipe.state.State.dtarr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.features">
+<code class="descname">features</code><a class="headerlink" href="#rfpipe.state.State.features" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given searchtype, return features to be extracted in initial
+analysis</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.fftmode">
+<code class="descname">fftmode</code><a class="headerlink" href="#rfpipe.state.State.fftmode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Should the FFT be done with fftw or cuda?
+<em>Could overload here based on local configuration</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.fieldsize_deg">
+<code class="descname">fieldsize_deg</code><a class="headerlink" href="#rfpipe.state.State.fieldsize_deg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes gridding spec to estimate field of view in degrees</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.fileroot">
+<code class="descname">fileroot</code><a class="headerlink" href="#rfpipe.state.State.fileroot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.freq">
+<code class="descname">freq</code><a class="headerlink" href="#rfpipe.state.State.freq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Frequencies for each channel in increasing order.
+Metadata may be out of order, but state/data reading order is sorted.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.fringetime">
+<code class="descname">fringetime</code><a class="headerlink" href="#rfpipe.state.State.fringetime" title="Permalink to this definition">¶</a></dt>
+<dd><p>Same as fringetime_orig, but rounded to integer multiple of
+integration time.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.fringetime_orig">
+<code class="descname">fringetime_orig</code><a class="headerlink" href="#rfpipe.state.State.fringetime_orig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Estimate largest time span of a “segment”.
+A segment is the maximal time span that can be have a single bg fringe
+subtracted and uv grid definition.  Max fringe window estimated for
+5% amp loss at first null averaged over all baselines. Assumes dec=+90,
+which is conservative. Also can be optimized for memory/compute limits.
+Returns time in seconds that defines good window.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.gainfile">
+<code class="descname">gainfile</code><a class="headerlink" href="#rfpipe.state.State.gainfile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calibration file (telcal) from preferences or found from “.GN”
+suffix</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rfpipe.state.State.get_search_ints">
+<code class="descname">get_search_ints</code><span class="sig-paren">(</span><em>segment</em>, <em>dmind</em>, <em>dtind</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State.get_search_ints"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State.get_search_ints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper function to get list of integrations
+to be searched after correcting for DM and resampling.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rfpipe.state.State.get_segmenttime_string">
+<code class="descname">get_segmenttime_string</code><span class="sig-paren">(</span><em>segment</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State.get_segmenttime_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State.get_segmenttime_string" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.immem">
+<code class="descname">immem</code><a class="headerlink" href="#rfpipe.state.State.immem" title="Permalink to this definition">¶</a></dt>
+<dd><p>Memory required to create all images in a chunk of read integrations</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.immem_limit">
+<code class="descname">immem_limit</code><a class="headerlink" href="#rfpipe.state.State.immem_limit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Memory required to create all images in a chunk of read integrations
+Limit defined for all threads.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.inttime">
+<code class="descname">inttime</code><a class="headerlink" href="#rfpipe.state.State.inttime" title="Permalink to this definition">¶</a></dt>
+<dd><p>Integration time</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.memory_total">
+<code class="descname">memory_total</code><a class="headerlink" href="#rfpipe.state.State.memory_total" title="Permalink to this definition">¶</a></dt>
+<dd><p>Total memory (in GB) required to read and process.
+Depends on data source and search algorithm.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.memory_total_limit">
+<code class="descname">memory_total_limit</code><a class="headerlink" href="#rfpipe.state.State.memory_total_limit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Minimum memory (in GB) required to read and process.
+Depends on data source and search algorithm.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.mockfile">
+<code class="descname">mockfile</code><a class="headerlink" href="#rfpipe.state.State.mockfile" title="Permalink to this definition">¶</a></dt>
+<dd><p>File name to write mocks into</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.nants">
+<code class="descname">nants</code><a class="headerlink" href="#rfpipe.state.State.nants" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.nbl">
+<code class="descname">nbl</code><a class="headerlink" href="#rfpipe.state.State.nbl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.nchan">
+<code class="descname">nchan</code><a class="headerlink" href="#rfpipe.state.State.nchan" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rfpipe.state.State.nfalse">
+<code class="descname">nfalse</code><span class="sig-paren">(</span><em>sigma</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State.nfalse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State.nfalse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of thermal-noise false positives per scan at given sigma</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.nints">
+<code class="descname">nints</code><a class="headerlink" href="#rfpipe.state.State.nints" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.noisefile">
+<code class="descname">noisefile</code><a class="headerlink" href="#rfpipe.state.State.noisefile" title="Permalink to this definition">¶</a></dt>
+<dd><p>File name to write noises into</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.npixx">
+<code class="descname">npixx</code><a class="headerlink" href="#rfpipe.state.State.npixx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of x pixels in uv/image grid.
+First defined by input preference set with default to npixx_full</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.npixx_full">
+<code class="descname">npixx_full</code><a class="headerlink" href="#rfpipe.state.State.npixx_full" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds optimal uv/image pixel extent in powers of 2 and 3</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.npixy">
+<code class="descname">npixy</code><a class="headerlink" href="#rfpipe.state.State.npixy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of y pixels in uv/image grid.
+First defined by input preference set with default to npixy_full</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.npixy_full">
+<code class="descname">npixy_full</code><a class="headerlink" href="#rfpipe.state.State.npixy_full" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds optimal uv/image pixel extent in powers of 2 and 3</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.npol">
+<code class="descname">npol</code><a class="headerlink" href="#rfpipe.state.State.npol" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of polarization products selected. Cached.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.nsegment">
+<code class="descname">nsegment</code><a class="headerlink" href="#rfpipe.state.State.nsegment" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.nspw">
+<code class="descname">nspw</code><a class="headerlink" href="#rfpipe.state.State.nspw" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.ntrials">
+<code class="descname">ntrials</code><a class="headerlink" href="#rfpipe.state.State.ntrials" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of search trials per scan</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rfpipe.state.State.pixtolm">
+<code class="descname">pixtolm</code><span class="sig-paren">(</span><em>pix</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State.pixtolm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State.pixtolm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper function to calculate (l,m) coords of given pixel.
+Example: st.pixtolm(np.where(im == im.max()))</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.pols">
+<code class="descname">pols</code><a class="headerlink" href="#rfpipe.state.State.pols" title="Permalink to this definition">¶</a></dt>
+<dd><p>Polarizations to use based on preference in prefs.selectpol</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.readints">
+<code class="descname">readints</code><a class="headerlink" href="#rfpipe.state.State.readints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of integrations read per segment.
+Defines shape of numpy array for visibilities.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.search_dimensions">
+<code class="descname">search_dimensions</code><a class="headerlink" href="#rfpipe.state.State.search_dimensions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define dimensions searched for a given piece of data.
+Actual algorithm defined in pipeline iteration.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.searchints">
+<code class="descname">searchints</code><a class="headerlink" href="#rfpipe.state.State.searchints" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of integrations searched per scan</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.segmenttimes">
+<code class="descname">segmenttimes</code><a class="headerlink" href="#rfpipe.state.State.segmenttimes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Array of float pairs containing MJD times defining segment start and stop.
+Calculated from prefs.nsegment first.
+Alternately, best times found based on fringe time and memory limit</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.sigma_image1">
+<code class="descname">sigma_image1</code><a class="headerlink" href="#rfpipe.state.State.sigma_image1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use either sigma_image1 or nfalse</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.spw">
+<code class="descname">spw</code><a class="headerlink" href="#rfpipe.state.State.spw" title="Permalink to this definition">¶</a></dt>
+<dd><p>List of spectral windows used.
+** TODO: update for proper naming “basband”+”swindex”</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rfpipe.state.State.summarize">
+<code class="descname">summarize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State.summarize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State.summarize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print summary of pipeline state</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.t_overlap">
+<code class="descname">t_overlap</code><a class="headerlink" href="#rfpipe.state.State.t_overlap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Max DM delay in seconds that is fixed to int mult of integration time.
+Gets cached.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.t_segment">
+<code class="descname">t_segment</code><a class="headerlink" href="#rfpipe.state.State.t_segment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Time read per segment in seconds
+Assumes first segment is same size as all others.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rfpipe.state.State.thresholdlevel">
+<code class="descname">thresholdlevel</code><span class="sig-paren">(</span><em>nfalse</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State.thresholdlevel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State.thresholdlevel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sigma threshold for a given number of false positives per scan</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.uvres">
+<code class="descname">uvres</code><a class="headerlink" href="#rfpipe.state.State.uvres" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.uvres_full">
+<code class="descname">uvres_full</code><a class="headerlink" href="#rfpipe.state.State.uvres_full" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rfpipe.state.State.validate">
+<code class="descname">validate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/state.html#State.validate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.state.State.validate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test validity of state (metadata + preferences) with a few assertions</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.version">
+<code class="descname">version</code><a class="headerlink" href="#rfpipe.state.State.version" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.vismem">
+<code class="descname">vismem</code><a class="headerlink" href="#rfpipe.state.State.vismem" title="Permalink to this definition">¶</a></dt>
+<dd><p>Memory required to store read data (in GB)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.state.State.vismem_limit">
+<code class="descname">vismem_limit</code><a class="headerlink" href="#rfpipe.state.State.vismem_limit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Memory required to store read data (in GB)
+Limit defined for time range equal to the overlap time between
+segments.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="preferences-api">
+<span id="preferencesapi"></span><h2>Preferences API<a class="headerlink" href="#preferences-api" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="rfpipe.preferences.Preferences">
+<em class="property">class </em><code class="descclassname">rfpipe.preferences.</code><code class="descname">Preferences</code><span class="sig-paren">(</span><em>rfpipe_version='0.9.6', chans=None, spw=None, excludeants=(), selectpol=u'auto', fileroot=None, read_tdownsample=1, read_fdownsample=1, l0=0.0, m0=0.0, timesub=None, flaglist=[(u'badchtslide', 4.0, 10), (u'blstd', 3.0, 0.05)], flagantsol=True, badspwpol=2.0, applyonlineflags=True, gainfile=None, simulated_transient=None, nthread=1, segmenttimes=None, memory_limit=16, maximmem=16, fftmode=u'fftw', dmarr=None, dtarr=None, dm_maxloss=0.05, mindm=0, maxdm=0, dm_pulsewidth=3000, searchtype=u'image1', sigma_image1=7, sigma_image2=None, nfalse=None, uvres=0, npixx=0, npixy=0, npix_max=0, uvoversample=1.0, savenoise=False, savecands=False, candsfile=None, workdir='/Users/caseyjlaw/code/rfpipe', timewindow=30, loglevel=u'INFO'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/preferences.html#Preferences"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.preferences.Preferences" title="Permalink to this definition">¶</a></dt>
+<dd><p>Preferences express half of info needed to
+define state. Using preferences with metadata produces a unique state and
+pipeline outcome.</p>
+<dl class="attribute">
+<dt id="rfpipe.preferences.Preferences.json">
+<code class="descname">json</code><a class="headerlink" href="#rfpipe.preferences.Preferences.json" title="Permalink to this definition">¶</a></dt>
+<dd><p>json string that can be loaded into elasticsearch or hashed.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.preferences.Preferences.name">
+<code class="descname">name</code><a class="headerlink" href="#rfpipe.preferences.Preferences.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unique name for an instance of preferences.
+To be used to look up preference set for a given candidate or data set.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.preferences.Preferences.ordered">
+<code class="descname">ordered</code><a class="headerlink" href="#rfpipe.preferences.Preferences.ordered" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get OrderedDict of preferences sorted by key</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="metadata-api">
+<span id="metadataapi"></span><h2>Metadata API<a class="headerlink" href="#metadata-api" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="rfpipe.metadata.Metadata">
+<em class="property">class </em><code class="descclassname">rfpipe.metadata.</code><code class="descname">Metadata</code><span class="sig-paren">(</span><em>datasource=None</em>, <em>datasetId=None</em>, <em>filename=None</em>, <em>scan=None</em>, <em>subscan=None</em>, <em>bdfdir=None</em>, <em>bdfstr=None</em>, <em>source=None</em>, <em>radec=None</em>, <em>inttime=None</em>, <em>nints_=None</em>, <em>telescope=None</em>, <em>starttime_mjd=None</em>, <em>endtime_mjd_=None</em>, <em>dishdiameter=None</em>, <em>intent=None</em>, <em>antids=None</em>, <em>xyz=None</em>, <em>spworder=None</em>, <em>spw_orig=None</em>, <em>spw_nchan=None</em>, <em>spw_reffreq=None</em>, <em>spw_chansize=None</em>, <em>pols_orig=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/metadata.html#Metadata"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.metadata.Metadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Metadata we need to translate parameters into a pipeline state.
+Called from a function defined for a given source (e.g., an sdm file).
+Built from nominally immutable attributes and properties.
+To modify metadata, use attr.assoc(inst, key=newval)</p>
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.antpos">
+<code class="descname">antpos</code><a class="headerlink" href="#rfpipe.metadata.Metadata.antpos" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rfpipe.metadata.Metadata.atdefaults">
+<code class="descname">atdefaults</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/metadata.html#Metadata.atdefaults"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.metadata.Metadata.atdefaults" title="Permalink to this definition">¶</a></dt>
+<dd><p>Is metadata still set at default values?</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.endtime_mjd">
+<code class="descname">endtime_mjd</code><a class="headerlink" href="#rfpipe.metadata.Metadata.endtime_mjd" title="Permalink to this definition">¶</a></dt>
+<dd><p>If nints_ is defined (e.g., for SDM data), then endtime_mjd is calculated.
+Otherwise (e.g., for scan_config/vys data), it looks for endtime_mjd_
+attribute</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.freq_orig">
+<code class="descname">freq_orig</code><a class="headerlink" href="#rfpipe.metadata.Metadata.freq_orig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Spacing of channel centers in GHz.
+Out of order metadata order is sorted in state/data reading</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.nants_orig">
+<code class="descname">nants_orig</code><a class="headerlink" href="#rfpipe.metadata.Metadata.nants_orig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.nbl_orig">
+<code class="descname">nbl_orig</code><a class="headerlink" href="#rfpipe.metadata.Metadata.nbl_orig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.nchan_orig">
+<code class="descname">nchan_orig</code><a class="headerlink" href="#rfpipe.metadata.Metadata.nchan_orig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.nints">
+<code class="descname">nints</code><a class="headerlink" href="#rfpipe.metadata.Metadata.nints" title="Permalink to this definition">¶</a></dt>
+<dd><p>If endtime_mjd_ is defined (e.g., for scan_config/vys
+data), then endtime_mjd is calculated.
+Otherwise (e.g., for SDM data), it looks for nints_ attribute</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.npol_orig">
+<code class="descname">npol_orig</code><a class="headerlink" href="#rfpipe.metadata.Metadata.npol_orig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.nspw_orig">
+<code class="descname">nspw_orig</code><a class="headerlink" href="#rfpipe.metadata.Metadata.nspw_orig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.scanId">
+<code class="descname">scanId</code><a class="headerlink" href="#rfpipe.metadata.Metadata.scanId" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.starttime_string">
+<code class="descname">starttime_string</code><a class="headerlink" href="#rfpipe.metadata.Metadata.starttime_string" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.metadata.Metadata.uvrange_orig">
+<code class="descname">uvrange_orig</code><a class="headerlink" href="#rfpipe.metadata.Metadata.uvrange_orig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-rfpipe.source">
+<span id="source-api"></span><span id="sourceapi"></span><h2>Source API<a class="headerlink" href="#module-rfpipe.source" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="rfpipe.source.data_prep">
+<code class="descclassname">rfpipe.source.</code><code class="descname">data_prep</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em>, <em>flagversion=u'latest'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#data_prep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.data_prep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies calibration, flags, and subtracts time mean for data.
+flagversion can be “latest” or “rtpipe”.
+Optionally prepares data with antenna flags, fixing out of order data,
+calibration, downsampling, etc..</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.estimate_noiseperbl">
+<code class="descclassname">rfpipe.source.</code><code class="descname">estimate_noiseperbl</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#estimate_noiseperbl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.estimate_noiseperbl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes large data array and sigma clips it to find noise per bl for
+input to detect_bispectra.
+Takes mean across pols and channels for now, as in detect_bispectra.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.flag_badchtslide">
+<code class="descclassname">rfpipe.source.</code><code class="descname">flag_badchtslide</code><span class="sig-paren">(</span><em>data</em>, <em>sigma</em>, <em>win</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#flag_badchtslide"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.flag_badchtslide" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use data (4d) to calculate (int, chan, pol) to be flagged</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.flag_blstd">
+<code class="descclassname">rfpipe.source.</code><code class="descname">flag_blstd</code><span class="sig-paren">(</span><em>data</em>, <em>sigma</em>, <em>convergence</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#flag_blstd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.flag_blstd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use data (4d) to calculate (int, chan, pol) to be flagged.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.flag_data">
+<code class="descclassname">rfpipe.source.</code><code class="descname">flag_data</code><span class="sig-paren">(</span><em>st</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#flag_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.flag_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Identifies bad data and flags it to 0.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.flag_data_rtpipe">
+<code class="descclassname">rfpipe.source.</code><code class="descname">flag_data_rtpipe</code><span class="sig-paren">(</span><em>st</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#flag_data_rtpipe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.flag_data_rtpipe" title="Permalink to this definition">¶</a></dt>
+<dd><p>Flagging data in single process
+Deprecated.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.generate_transient">
+<code class="descclassname">rfpipe.source.</code><code class="descname">generate_transient</code><span class="sig-paren">(</span><em>st</em>, <em>amp</em>, <em>i0</em>, <em>dm</em>, <em>dt</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#generate_transient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.generate_transient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a dynamic spectrum for given parameters
+amp is in system units (post calibration)
+i0 is a float for integration relative to start of segment.
+dm/dt are in units of pc/cm3 and seconds, respectively</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.getsdm">
+<code class="descclassname">rfpipe.source.</code><code class="descname">getsdm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#getsdm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.getsdm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrap sdmpy.SDM to get around schema change error</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.prep_standard">
+<code class="descclassname">rfpipe.source.</code><code class="descname">prep_standard</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#prep_standard"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.prep_standard" title="Permalink to this definition">¶</a></dt>
+<dd><p>Common first data prep stages, incl
+online flags, resampling, and mock transients.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.read_bdf">
+<code class="descclassname">rfpipe.source.</code><code class="descname">read_bdf</code><span class="sig-paren">(</span><em>st</em>, <em>nskip=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#read_bdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.read_bdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uses sdmpy to read a given range of integrations from sdm of given scan.
+readints=0 will read all of bdf (skipping nskip).
+Returns data in increasing frequency order.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.read_bdf_segment">
+<code class="descclassname">rfpipe.source.</code><code class="descname">read_bdf_segment</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#read_bdf_segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.read_bdf_segment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uses sdmpy to reads bdf (sdm) format data into numpy array in given
+segment. Each segment has st.readints integrations.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.read_segment">
+<code class="descclassname">rfpipe.source.</code><code class="descname">read_segment</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>cfile=None</em>, <em>timeout=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#read_segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.read_segment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a segment of data.
+cfile and timeout are specific to vys data.
+Returns data as defined in metadata (no downselection yet)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.read_vys_segment">
+<code class="descclassname">rfpipe.source.</code><code class="descname">read_vys_segment</code><span class="sig-paren">(</span><em>st</em>, <em>seg</em>, <em>cfile=None</em>, <em>timeout=10</em>, <em>offset=4</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#read_vys_segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.read_vys_segment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read segment seg defined by state st from vys stream.
+Uses vysmaw application timefilter to receive multicast messages and pull
+spectra on the CBE.
+timeout is a multiple of read time in seconds to wait.
+offset is extra time in seconds to keep vys reader open.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.save_noise">
+<code class="descclassname">rfpipe.source.</code><code class="descname">save_noise</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em>, <em>chunk=200</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#save_noise"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.save_noise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates noise properties and save values to pickle.
+chunk defines window for measurement. at least one measurement always made.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.sdm_sources">
+<code class="descclassname">rfpipe.source.</code><code class="descname">sdm_sources</code><span class="sig-paren">(</span><em>sdmname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#sdm_sources"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.sdm_sources" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use sdmpy to get all sources and ra,dec per scan as dict</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.source.simulate_segment">
+<code class="descclassname">rfpipe.source.</code><code class="descname">simulate_segment</code><span class="sig-paren">(</span><em>st</em>, <em>loc=0.0</em>, <em>scale=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/source.html#simulate_segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.simulate_segment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simulates visibilities for a segment.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.source.slidedev">
+<code class="descclassname">rfpipe.source.</code><code class="descname">slidedev</code><a class="reference internal" href="_modules/rfpipe/source.html#slidedev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.source.slidedev" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a (len x 2) array, calculate the deviation from the median per pol.
+Calculates median over a window, win.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rfpipe.search">
+<span id="search-api"></span><span id="searchapi"></span><h2>Search API<a class="headerlink" href="#module-rfpipe.search" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="rfpipe.search.dedisperse">
+<code class="descclassname">rfpipe.search.</code><code class="descname">dedisperse</code><span class="sig-paren">(</span><em>data</em>, <em>delay</em>, <em>parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#dedisperse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.dedisperse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shift data in time (axis=0) by channel-dependent value given in
+delay. Returns new array with time length shortened by max delay in
+integrations. wraps _dedisperse to add logging.
+Can set mode to “single” or “multi” to use different functions.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.search.dedisperse_image_cuda">
+<code class="descclassname">rfpipe.search.</code><code class="descname">dedisperse_image_cuda</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em>, <em>devicenum=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#dedisperse_image_cuda"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.dedisperse_image_cuda" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run dedispersion, resample for all dm and dt.
+Grid and image on GPU.
+rfgpu is built from separate repo.
+Uses state to define integrations to image based on segment, dm, and dt.
+devicenum can force the gpu to use, but can be inferred via distributed.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.search.dedisperse_image_fftw">
+<code class="descclassname">rfpipe.search.</code><code class="descname">dedisperse_image_fftw</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em>, <em>wisdom=None</em>, <em>integrations=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#dedisperse_image_fftw"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.dedisperse_image_fftw" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fuse the dediserpse, resample, search, threshold functions.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.search.dedisperseresample">
+<code class="descclassname">rfpipe.search.</code><code class="descname">dedisperseresample</code><span class="sig-paren">(</span><em>data</em>, <em>delay</em>, <em>dt</em>, <em>parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#dedisperseresample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.dedisperseresample" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dedisperse and resample in single function.
+parallel controls use of multicore versions of algorithms.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.search.grid_image">
+<code class="descclassname">rfpipe.search.</code><code class="descname">grid_image</code><span class="sig-paren">(</span><em>data</em>, <em>uvw</em>, <em>npixx</em>, <em>npixy</em>, <em>uvres</em>, <em>fftmode</em>, <em>nthread</em>, <em>wisdom=None</em>, <em>integrations=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#grid_image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.grid_image" title="Permalink to this definition">¶</a></dt>
+<dd><p>Grid and image data.
+Optionally image integrations in list i.
+fftmode can be fftw or cuda.
+nthread is number of threads to use</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.search.grid_visibilities">
+<code class="descclassname">rfpipe.search.</code><code class="descname">grid_visibilities</code><span class="sig-paren">(</span><em>data</em>, <em>uvw</em>, <em>npixx</em>, <em>npixy</em>, <em>uvres</em>, <em>parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#grid_visibilities"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.grid_visibilities" title="Permalink to this definition">¶</a></dt>
+<dd><p>Grid visibilities into rounded uv coordinates</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.search.image_arm">
+<code class="descclassname">rfpipe.search.</code><code class="descname">image_arm</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#image_arm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.image_arm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes visibilities and images arms of VLA</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.search.image_cuda">
+<code class="descclassname">rfpipe.search.</code><code class="descname">image_cuda</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#image_cuda"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.image_cuda" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run grid and image with rfgpu
+TODO: update to use rfgpu</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.search.image_fftw">
+<code class="descclassname">rfpipe.search.</code><code class="descname">image_fftw</code><span class="sig-paren">(</span><em>grids</em>, <em>nthread=1</em>, <em>wisdom=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#image_fftw"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.image_fftw" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plan pyfftw ifft2 and run it on uv grids (time, npixx, npixy)
+Returns time images.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.search.prep_and_search">
+<code class="descclassname">rfpipe.search.</code><code class="descname">prep_and_search</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#prep_and_search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.prep_and_search" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bundles prep and search functions to improve performance in distributed.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.search.resample">
+<code class="descclassname">rfpipe.search.</code><code class="descname">resample</code><span class="sig-paren">(</span><em>data</em>, <em>dt</em>, <em>parallel=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#resample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.resample" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resample (integrate) by factor dt and return new data structure
+wraps _resample to add logging.
+Can set mode to “single” or “multi” to use different functions.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.search.search_thresh_fftw">
+<code class="descclassname">rfpipe.search.</code><code class="descname">search_thresh_fftw</code><span class="sig-paren">(</span><em>st</em>, <em>segment</em>, <em>data</em>, <em>dmind</em>, <em>dtind</em>, <em>integrations=None</em>, <em>beamnum=0</em>, <em>wisdom=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#search_thresh_fftw"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.search_thresh_fftw" title="Permalink to this definition">¶</a></dt>
+<dd><p>Take dedispersed, resampled data, image with fftw and threshold.
+Returns list of CandData objects that define candidates with
+candloc, image, and phased visibility data.
+Integrations can define subset of all available in data to search.
+Default will take integrations not searched in neighboring segments.</p>
+<p>** only supports threshold &gt; image max (no min)
+** dmind, dtind, beamnum assumed to represent current state of data</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rfpipe.search.set_wisdom">
+<code class="descclassname">rfpipe.search.</code><code class="descname">set_wisdom</code><span class="sig-paren">(</span><em>npixx</em>, <em>npixy</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/search.html#set_wisdom"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.search.set_wisdom" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run single 2d ifft like image to prep fftw wisdom in worker cache</p>
+</dd></dl>
+
+</div>
+<div class="section" id="candidates-api">
+<span id="candidatesapi"></span><h2>Candidates API<a class="headerlink" href="#candidates-api" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="rfpipe.candidates.CandCollection">
+<em class="property">class </em><code class="descclassname">rfpipe.candidates.</code><code class="descname">CandCollection</code><span class="sig-paren">(</span><em>array=array([]</em>, <em>dtype=float64)</em>, <em>prefs=None</em>, <em>metadata=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/candidates.html#CandCollection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.candidates.CandCollection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrap candidate array with metadata and
+prefs to be attached and pickled.</p>
+<dl class="attribute">
+<dt id="rfpipe.candidates.CandCollection.canddm">
+<code class="descname">canddm</code><a class="headerlink" href="#rfpipe.candidates.CandCollection.canddm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Candidate DM in pc/cm3</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.candidates.CandCollection.canddt">
+<code class="descname">canddt</code><a class="headerlink" href="#rfpipe.candidates.CandCollection.canddt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Candidate dt in seconds</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.candidates.CandCollection.candl">
+<code class="descname">candl</code><a class="headerlink" href="#rfpipe.candidates.CandCollection.candl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return l1 for candidate (offset from phase center in RA direction)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.candidates.CandCollection.candm">
+<code class="descname">candm</code><a class="headerlink" href="#rfpipe.candidates.CandCollection.candm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return m1 for candidate (offset from phase center in Dec direction)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.candidates.CandCollection.candmjd">
+<code class="descname">candmjd</code><a class="headerlink" href="#rfpipe.candidates.CandCollection.candmjd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Candidate MJD at top of band</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.candidates.CandCollection.scan">
+<code class="descname">scan</code><a class="headerlink" href="#rfpipe.candidates.CandCollection.scan" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.candidates.CandCollection.segment">
+<code class="descname">segment</code><a class="headerlink" href="#rfpipe.candidates.CandCollection.segment" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.candidates.CandCollection.state">
+<code class="descname">state</code><a class="headerlink" href="#rfpipe.candidates.CandCollection.state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets state by regenerating from the metadata and prefs.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="rfpipe.candidates.CandData">
+<em class="property">class </em><code class="descclassname">rfpipe.candidates.</code><code class="descname">CandData</code><span class="sig-paren">(</span><em>state</em>, <em>loc</em>, <em>image</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rfpipe/candidates.html#CandData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rfpipe.candidates.CandData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Object that bundles data from search stage to candidate visualization.
+Provides some properties for the state of the phased data and candidate.</p>
+<dl class="attribute">
+<dt id="rfpipe.candidates.CandData.peak_lm">
+<code class="descname">peak_lm</code><a class="headerlink" href="#rfpipe.candidates.CandData.peak_lm" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.candidates.CandData.peak_xy">
+<code class="descname">peak_xy</code><a class="headerlink" href="#rfpipe.candidates.CandData.peak_xy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Peak pixel in image
+Only supports positive peaks for now.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rfpipe.candidates.CandData.time_top">
+<code class="descname">time_top</code><a class="headerlink" href="#rfpipe.candidates.CandData.time_top" title="Permalink to this definition">¶</a></dt>
+<dd><p>Time in mjd where burst is at top of band</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="index.html">
+              <img class="logo" src="_static/favicon.ico.png" alt="Logo"/>
+            </a></p>
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">API</a><ul>
+<li><a class="reference internal" href="#state-api">State API</a></li>
+<li><a class="reference internal" href="#preferences-api">Preferences API</a></li>
+<li><a class="reference internal" href="#metadata-api">Metadata API</a></li>
+<li><a class="reference internal" href="#module-rfpipe.source">Source API</a></li>
+<li><a class="reference internal" href="#module-rfpipe.search">Search API</a></li>
+<li><a class="reference internal" href="#candidates-api">Candidates API</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="Reproduce.html"
+                        title="previous chapter">Reproducing realfast Candidate Transients</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/api.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Reproduce.html" title="Reproducing realfast Candidate Transients"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">rfpipe 0.9.6 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Casey Law.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.
+    </div>
+  </body>
+</html>
