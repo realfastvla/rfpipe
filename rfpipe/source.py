@@ -191,9 +191,8 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout, offset=4):
                         dtype=np.int32)
 
     assert st.prefs.selectpol in ['auto', 'all'], 'auto and all pol selection supported in vys'
-
-    with vysmaw_reader.Reader(t0, t1, antlist, bbsplist,
-                              st.prefs.selectpol == 'auto',
+    polauto = st.prefs.selectpol == 'auto'
+    with vysmaw_reader.Reader(t0, t1, antlist, bbsplist, polauto,
                               inttime_micros=st.metadata.inttime*1000000.,
                               nchan=st.metadata.spw_nchan[0],
                               cfile=cfile,
