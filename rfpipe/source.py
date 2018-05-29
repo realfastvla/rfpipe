@@ -177,28 +177,23 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout, offset=4):
     t0 = time.Time(st.segmenttimes[seg][0], format='mjd', precision=9).unix
     t1 = time.Time(st.segmenttimes[seg][1], format='mjd', precision=9).unix
 
-#    data = np.empty((st.readints, st.nbl,
-#                     st.metadata.nchan_orig, st.metadata.npol_orig),
-#                    dtype='complex64', order='C')
-
     logger.info('Reading {0} s ints into shape {1} from {2} - {3} unix seconds'
                 .format(st.metadata.inttime, st.datashape_orig, t0, t1))
 
-    polmap_standard = ['A*A', 'A*B', 'B*A', 'B*B']
-    bbmap_standard = ['AC1', 'AC2', 'AC', 'BD1', 'BD2', 'BD']
-
     # TODO: vysmaw currently pulls all data, but allocates buffer based on these.
     # buffer will be too small if taking subset of all data.
-    pollist = np.array([polmap_standard.index(pol)
-                        for pol in st.metadata.pols_orig], dtype=np.int32)  # TODO: use st.pols when vysmaw filter can too
     antlist = np.array([int(ant.lstrip('ea'))
                         for ant in st.ants], dtype=np.int32)
+    bbmap_standard = ['AC1', 'AC2', 'AC', 'BD1', 'BD2', 'BD']
     spwlist = list(zip(*st.metadata.spworder))[0]  # list of strings ["bb-spw"] in increasing freq order
     bbsplist = np.array([(int(bbmap_standard.index(spw.split('-')[0])),
                           int(spw.split('-')[1])) for spw in spwlist],
                         dtype=np.int32)
 
-    with vysmaw_reader.Reader(t0, t1, antlist, pollist, bbsplist,
+    assert st.prefs.selectpol in ['auto', 'all'], 'auto and all pol selection supported in vys'
+
+    with vysmaw_reader.Reader(t0, t1, antlist, bbsplist,
+                              st.prefs.selectpol == 'auto',
                               inttime_micros=st.metadata.inttime*1000000.,
                               nchan=st.metadata.spw_nchan[0],
                               cfile=cfile,
