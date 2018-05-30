@@ -125,6 +125,10 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
         # TODO: check that this is ok if pointing at bright source
         spec_std = data.real.mean(axis=1).mean(axis=2).std(axis=0)
         sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
+        if not np.all(sig_ts):
+            logger.info("sig_ts all zeros. Skipping search.")
+            return candidates.CandCollection(prefs=st.prefs,
+                                             metadata=st.metadata)
 
     canddatalist = []
     for dtind in range(len(st.dtarr)):
@@ -305,6 +309,10 @@ def search_thresh_fftw(st, segment, data, dmind, dtind, integrations=None,
         # TODO: check that this is ok if pointing at bright source
         spec_std = data.real.mean(axis=1).mean(axis=2).std(axis=0)
         sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
+        if not np.all(sig_ts):
+            logger.info("sig_ts all zeros. Skipping search.")
+            return candidates.CandCollection(prefs=st.prefs,
+                                             metadata=st.metadata)
 
     # TODO: add check that manually set integrations are safe for given dt
 
@@ -1125,6 +1133,9 @@ def kalman_prepare_coeffs(data_std, sig_ts=None, n_trial=10000):
         logger.warn("Not sure what to do with sig_ts {0}".format(sig_ts))
 
     assert isinstance(sig_ts, np.ndarray)
+
+    if not np.all(sig_ts):
+        return sig_ts, []
 
     logger.info("Measuring Kalman significance distribution for sig_ts {0}".format(sig_ts))
 
