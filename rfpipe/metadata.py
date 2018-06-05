@@ -198,7 +198,10 @@ def config_metadata(config, datasource='vys'):
     subbands = config.get_subbands()
     subband0 = subbands[0]  # **parsing single subband for now
     meta['inttime'] = subband0.hw_time_res  # assumes vys stream post-hw-integ
-    meta['pols_orig'] = subband0.pp
+    if datasource == 'vys':  # hack to make consistent with vysmaw_reader app
+        meta['pols_orig'] = ['A*A', 'B*B']
+    else:
+        meta['pols_orig'] = subband0.pp
     meta['spw_nchan'] = [sb.spectralChannels for sb in subbands]
     meta['spw_chansize'] = [1e6*sb.bw/subband0.spectralChannels for sb in subbands]
     meta['spw_orig'] = ['{0}-{1}'.format(sb.IFid, sb.sbid) for sb in subbands]
