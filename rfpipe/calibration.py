@@ -41,7 +41,7 @@ def apply_telcal(st, data, threshold=1/50., onlycomplete=True, sign=+1):
     if len(sols):
 #        print(sols, st.blarr, skyfreqs, pols, chansize[0], nchan[0], sign)
 #        print(type(sols), type(st.blarr), type(skyfreqs), type(pols), type(chansize[0]), type(nchan[0]), type(sign))
-        gaindelay = calcgaindelay(sols, st.blarr, skyfreqs, pols, chansize[0],
+        gaindelay = calcgaindelay(sols, st.blarr, skyfreqs, pols, chansize[0]/1e6,
                                   nchan[0], sign=sign)
 
         # data should have nchan_orig because no selection done yet
@@ -212,6 +212,7 @@ def select(sols, time=None, freqs=None, polarization=None):
 def calcgaindelay(sols, bls, freqarr, pols, chansize, nch, sign=1):
     """ Build gain calibraion array with shape to project into data
     freqarr is a list of reffreqs in MHz.
+    chansize is channel size per spw in MHz.
     """
 
     assert sign in [-1, +1], 'sign must be +1 or -1'
@@ -222,7 +223,7 @@ def calcgaindelay(sols, bls, freqarr, pols, chansize, nch, sign=1):
     for bi in range(len(bls)):
         ant1, ant2 = bls[bi]
         for fi in range(len(freqarr)):
-            relfreq = chansize*(np.arange(nch) - nch//2)
+            relfreq = chansize*(np.arange(nch) - nch//2)*1e6
 
             for pi in range(len(pols)):
                 g1 = 0.
