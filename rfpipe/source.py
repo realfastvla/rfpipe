@@ -36,6 +36,7 @@ def data_prep(st, segment, data, flagversion="latest"):
     takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
     logger.debug('Selecting pols {0}'.format(st.pols))
 
+    # TODO: check on reusing 'data' to save memory
     datap = data.take(takepol, axis=3).copy()
     datap = prep_standard(st, segment, datap)
     datap = calibration.apply_telcal(st, datap)

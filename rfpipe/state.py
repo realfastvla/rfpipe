@@ -107,6 +107,9 @@ class State(object):
         and module imports.
         """
 
+        if self.metadata.datasource == 'sdm':
+            assert self.metadata.bdfstr is not None, "No bdf found."            
+
         # limits on time boundaries/sizes
         assert self.t_overlap < self.nints*self.inttime, ('t_overlap must be'
                                                           ' less than scan '

@@ -46,8 +46,7 @@ def apply_telcal(st, data, threshold=1/50., onlycomplete=True, sign=+1):
 
         # data should have nchan_orig because no selection done yet
         # TODO: make nchan, npol, nbl selection consistent for all data types
-        return data*gaindelay.reshape((st.nbl, st.metadata.nchan_orig,
-                                       len(pols)))
+        return data*gaindelay
     else:
         return data
 
@@ -209,7 +208,7 @@ def select(sols, time=None, freqs=None, polarization=None):
     return sols[selection]
 
 
-# @jit  # this fails after unicode_literals change
+@jit
 def calcgaindelay(sols, bls, freqarr, pols, chansize, nch, sign=1):
     """ Build gain calibraion array with shape to project into data
     freqarr is a list of reffreqs in MHz.
@@ -218,7 +217,7 @@ def calcgaindelay(sols, bls, freqarr, pols, chansize, nch, sign=1):
     assert sign in [-1, +1], 'sign must be +1 or -1'
 
     nspw = len(freqarr)
-    gaindelay = np.zeros((len(bls), nspw, nch, len(pols)), dtype=np.complex64)
+    gaindelay = np.zeros((len(bls), nspw*nch, len(pols)), dtype=np.complex64)
 
     for bi in range(len(bls)):
         ant1, ant2 = bls[bi]
@@ -246,9 +245,10 @@ def calcgaindelay(sols, bls, freqarr, pols, chansize, nch, sign=1):
                         g1g2 = (g1*g2)
                 else:
                     g1g2 = 0.
+                    print('No place found for telcal solution at (bi, fi, pi):', bi, fi, pi)
 
                 d1d2 = sign*2*np.pi*((d1-d2) * 1e-9) * relfreq
-                gaindelay[bi, fi, :, pi] = g1g2*np.exp(-1j*d1d2)
+                gaindelay[bi, fi*nch:(fi+1)*nch, pi] = g1g2*np.exp(-1j*d1d2)
 
     return gaindelay
 
