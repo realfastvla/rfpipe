@@ -15,7 +15,7 @@ def st():
                    'fftmode': 'fftw'}
         t0 = time.Time.now().mjd
         meta = rfpipe.metadata.mock_metadata(t0, t0+0.05/(24*3600), 10, 4, 32*4,
-                                             2, 5e3, datasource='sim')
+                                             2, 5e3, datasource='sim', antconfig='D')
         return rfpipe.state.State(inmeta=meta, inprefs=inprefs)
 
 

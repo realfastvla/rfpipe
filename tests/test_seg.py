@@ -22,7 +22,7 @@ inprefs = [{'flaglist': [], 'npix_max': 32, 'sigma_image1': -999,
 def mockstate(request):
     t0 = time.Time.now().mjd
     meta = rfpipe.metadata.mock_metadata(t0, t0+0.1/(24*3600), 27, 4, 32*4, 4,
-                                         10e3, datasource='sim')
+                                         10e3, datasource='sim', antconfig='D')
     return rfpipe.state.State(inmeta=meta, inprefs=request.param)
 
 
