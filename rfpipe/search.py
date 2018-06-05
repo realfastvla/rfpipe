@@ -1134,7 +1134,7 @@ def kalman_prepare_coeffs(data_std, sig_ts=None, n_trial=10000):
 
     assert isinstance(sig_ts, np.ndarray)
 
-    if not np.all(sig_ts):
+    if not np.all(np.nan_to_num(sig_ts)):
         return sig_ts, []
 
     logger.info("Measuring Kalman significance distribution for sig_ts {0}".format(sig_ts))
