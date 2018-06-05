@@ -8,13 +8,11 @@ import pytest
 from astropy import time
 
 # simulate no flag, transient/no flag, transient/flag
-inprefs = [({'flaglist': [], 'npix_max': 128, 'uvres': 500,
-             'chans': list(range(32)),
+inprefs = [({'flaglist': [], 'chans': list(range(32)),
              'spw': [0], 'savecands': True, 'savenoise': True,
              'fftmode': 'fftw', 'searchtype': 'image'}, 1),
            ({'simulated_transient': 1, 'dmarr': [0], 'dtarr': [1],
-             'npix_max': 128, 'uvres': 500, 'savecands': True,
-             'savenoise': True,
+             'savecands': True, 'savenoise': True,
              'timesub': 'mean', 'fftmode': 'fftw', 'searchtype': 'imagek',
              'sigma_image1': 10, 'sigma_kalman': 1}, 2),
            ({'simulated_transient': 1, 'dmarr': [0], 'dtarr': [1],
