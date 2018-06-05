@@ -246,7 +246,7 @@ def calcgaindelay(sols, bls, freqarr, pols, chansize, nch, sign=1):
                         g1g2 = (g1*g2)
                 else:
                     g1g2 = 0.
-                    print('No place found for telcal solution at (bi, fi, pi):', bi, fi, pi)
+                    print('Missed telcal sol at (ant1, ant2, freq, pol):', ant1, ant2, freqarr[fi], pols[pi])
 
                 d1d2 = sign*2*np.pi*((d1-d2) * 1e-9) * relfreq
                 gaindelay[bi, fi*nch:(fi+1)*nch, pi] = g1g2*np.exp(-1j*d1d2)
