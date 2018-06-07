@@ -18,37 +18,41 @@ def apply_telcal(st, data, threshold=1/50., onlycomplete=True, sign=+1):
     sign defines if calibration is applied (+1) or backed out (-1).
     assumes dual pol and that each spw has same nch and chansize.
     Threshold is minimum ratio of gain amp to median gain amp.
+    If no solution or gainfile found, it will blank the data to zeros.
     """
 
     assert sign in [-1, +1], 'sign must be +1 or -1'
 
-    if (not os.path.exists(st.gainfile)) or (not os.path.isfile(st.gainfile)):
-        logger.warn('{0} is not a telcal file. No {1} calibration to apply.'
-                    .format(st.gainfile, ['', 'forward', 'inverse'][sign]))
+    if st.gainfile is None:
         return data
+    else:
+        if (not os.path.exists(st.gainfile)) or (not os.path.isfile(st.gainfile)):
+            logger.warn('{0} is not a telcal file. No {1} calibration to apply.'
+                        .format(st.gainfile, ['', 'forward', 'inverse'][sign]))
+            gaindelay = np.zeros_like(data)
+        else:
+            pols = [0, 1]
+            reffreq = np.array(st.metadata.spw_reffreq)
+            chansize = np.array(st.metadata.spw_chansize)
+            nchan = np.array(st.metadata.spw_nchan)
 
-    pols = [0, 1]
-    reffreq = np.array(st.metadata.spw_reffreq)
-    chansize = np.array(st.metadata.spw_chansize)
-    nchan = np.array(st.metadata.spw_nchan)
+            sols = parseGN(st.gainfile)
+            # must run time select before flagants for complete solutions
+            sols = select(sols, time=st.segmenttimes.mean())
+            sols = flagants(sols, threshold=threshold, onlycomplete=onlycomplete)  
 
-    sols = parseGN(st.gainfile)
-    # must run time select before flagants for complete solutions
-    sols = select(sols, time=st.segmenttimes.mean())
-    sols = flagants(sols, threshold=threshold, onlycomplete=onlycomplete)  
-
-    skyfreqs = np.around(reffreq + (chansize*nchan/2), -6)/1e6  # GN skyfreq is band center
-    if len(sols):
-#        print(sols, st.blarr, skyfreqs, pols, chansize[0], nchan[0], sign)
-#        print(type(sols), type(st.blarr), type(skyfreqs), type(pols), type(chansize[0]), type(nchan[0]), type(sign))
-        gaindelay = calcgaindelay(sols, st.blarr, skyfreqs, pols, chansize[0]/1e6,
-                                  nchan[0], sign=sign)
+            skyfreqs = np.around(reffreq + (chansize*nchan/2), -6)/1e6  # GN skyfreq is band center
+            if len(sols):
+#                print(sols, st.blarr, skyfreqs, pols, chansize[0], nchan[0], sign)
+#                print(type(sols), type(st.blarr), type(skyfreqs), type(pols), type(chansize[0]), type(nchan[0]), type(sign))
+                gaindelay = calcgaindelay(sols, st.blarr, skyfreqs, pols, chansize[0]/1e6,
+                                          nchan[0], sign=sign)
+            else:
+                gaindelay = np.zeros_like(data)
 
         # data should have nchan_orig because no selection done yet
         # TODO: make nchan, npol, nbl selection consistent for all data types
         return data*gaindelay
-    else:
-        return data
 
 
 def parseGN(telcalfile):

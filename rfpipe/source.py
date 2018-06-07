@@ -39,7 +39,17 @@ def data_prep(st, segment, data, flagversion="latest"):
     # TODO: check on reusing 'data' to save memory
     datap = data.take(takepol, axis=3).copy()
     datap = prep_standard(st, segment, datap)
-    datap = calibration.apply_telcal(st, datap)
+    if not np.any(datap):
+        logger.info("All data zeros after prep_standard")
+        return datap
+
+    if st.gainfile is not None:
+        datap = calibration.apply_telcal(st, datap)
+        if not np.any(datap):
+            logger.info("All data zeros after apply_telcal")
+            return datap
+    else:
+        logger.info("No gainfile found, so not applying calibration.")
 
     # support backwards compatibility for reproducible flagging
     if flagversion == "latest":
@@ -101,6 +111,9 @@ def prep_standard(st, segment, data):
     else:
         logger.info('Not applying online flags.')
 
+    if not np.any(data):
+        return data
+
     # optionally integrate (downsample)
     if ((st.prefs.read_tdownsample > 1) or (st.prefs.read_fdownsample > 1)):
         data2 = np.zeros(st.datashape, dtype='complex64')
@@ -158,7 +171,8 @@ def prep_standard(st, segment, data):
                     logger.warn("IndexError while adding transient. Skipping...")
                     continue
 
-                model = calibration.apply_telcal(st, model, sign=-1)
+                if st.gainfile is not None:
+                    model = calibration.apply_telcal(st, model, sign=-1)
                 util.phase_shift(model, uvw, -l, -m)
                 data += model
 
