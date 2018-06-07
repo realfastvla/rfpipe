@@ -37,7 +37,7 @@ def data_prep(st, segment, data, flagversion="latest"):
     logger.debug('Selecting pols {0}'.format(st.pols))
 
     # TODO: check on reusing 'data' to save memory
-    datap = data.take(takepol, axis=3).copy()
+    datap = np.nan_to_num(data.take(takepol, axis=3), copy=True)
     datap = prep_standard(st, segment, datap)
     if not np.any(datap):
         logger.info("All data zeros after prep_standard")

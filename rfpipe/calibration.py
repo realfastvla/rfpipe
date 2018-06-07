@@ -45,8 +45,13 @@ def apply_telcal(st, data, threshold=1/50., onlycomplete=True, sign=+1):
             if len(sols):
 #                print(sols, st.blarr, skyfreqs, pols, chansize[0], nchan[0], sign)
 #                print(type(sols), type(st.blarr), type(skyfreqs), type(pols), type(chansize[0]), type(nchan[0]), type(sign))
-                gaindelay = calcgaindelay(sols, st.blarr, skyfreqs, pols, chansize[0]/1e6,
-                                          nchan[0], sign=sign)
+                gaindelay = np.nan_to_num(calcgaindelay(sols, st.blarr,
+                                                        skyfreqs, pols,
+                                                        chansize[0]/1e6,
+                                                        nchan[0], sign=sign),
+                                          copy=False)
+                blinds, chans, pols = np.where(gaindelay == 0)
+                print('Missed {0} solutions with bls {1}'.format(len(blinds), st.blarr[np.unique(blinds)]))
             else:
                 gaindelay = np.zeros_like(data)
 
@@ -250,7 +255,6 @@ def calcgaindelay(sols, bls, freqarr, pols, chansize, nch, sign=1):
                         g1g2 = (g1*g2)
                 else:
                     g1g2 = 0.
-                    print('Missed telcal sol at (ant1, ant2, freq, pol):', ant1, ant2, freqarr[fi], pols[pi])
 
                 d1d2 = sign*2*np.pi*((d1-d2) * 1e-9) * relfreq
                 gaindelay[bi, fi*nch:(fi+1)*nch, pi] = g1g2*np.exp(-1j*d1d2)
