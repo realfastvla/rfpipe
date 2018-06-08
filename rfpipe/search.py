@@ -1115,16 +1115,17 @@ def kalman_filter_detector(spec, spec_std, sig_t, A_0=None, sig_0=None):
     return cur_log_l - H_0_log_likelihood
 
 
-def kalman_prepare_coeffs(data_std, sig_ts=None, n_trial=10000):
+def kalman_prepare_coeffs(spec_std, sig_ts=None, n_trial=10000):
     """ Measure kalman significance distribution in random data.
-    data_std is the noise vector per channel.
+    spec_std is the noise spectrum (per channel)
     sig_ts can be single float or list of values.
     returns tuple (sig_ts, coeffs)
     From Barak Zackay
     """
 
+    # calculate sig_ts
     if sig_ts is None:
-        sig_ts = np.array([x*np.median(data_std) for x in [0.3, 0.1, 0.03, 0.01]])
+        sig_ts = np.array([x*np.median(spec_std) for x in [0.3, 0.1, 0.03, 0.01]])
     elif isinstance(sig_ts, float):
         sig_ts = np.array([sig_ts])
     elif isinstance(sig_ts, list):
@@ -1137,20 +1138,26 @@ def kalman_prepare_coeffs(data_std, sig_ts=None, n_trial=10000):
     if not np.all(np.nan_to_num(sig_ts)):
         logger.warn("sig_ts are bad. Not estimating coeffs.")
         return sig_ts, []
-    if not np.any(data_std):
-        logger.warn("spectrum std all zeros. Not estimating coeffs.")
-        return sig_ts, []
 
     logger.info("Measuring Kalman significance distribution for sig_ts {0}".format(sig_ts))
 
+    # Are spec_std values ok?
+    if not np.any(spec_std):
+        logger.warn("spectrum std all zeros. Not estimating coeffs.")
+        return sig_ts, []
+    elif len(np.where(spec_std == 0.)[0]) > 0:
+        logger.info("Replacing {0} noise spectrum channels with median noise"
+                    .format(len(np.where(spec_std == 0.)[0])))
+        spec_std = np.where(spec_std == 0, np.median(spec_std), spec_std)
+
     coeffs = []
     for sig_t in sig_ts:
-        nchan = len(data_std)
+        nchan = len(spec_std)
         random_scores = []
         for i in range(n_trial):
-            normaldist = np.random.normal(0, data_std, size=nchan)
+            normaldist = np.random.normal(0, spec_std, size=nchan)
             normaldist -= normaldist.mean()
-            random_scores.append(kalman_filter_detector(normaldist, data_std, sig_t))
+            random_scores.append(kalman_filter_detector(normaldist, spec_std, sig_t))
 
         # Approximating the tail of the distribution as an  exponential tail (probably is justified)
         coeffs.append(np.polyfit([np.percentile(random_scores, 100 * (1 - 2 ** (-i))) for i in range(3, 10)], range(3, 10), 1))
