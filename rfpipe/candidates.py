@@ -117,6 +117,10 @@ class CandCollection(object):
                 self.array = cc.array
         return self
 
+    def __getitem__(self, key):
+        return CandCollection(array=self.array.take(key), prefs=self.prefs,
+                              metadata=self.metadata)
+
     @property
     def scan(self):
         if self.metadata is not None:
@@ -206,7 +210,6 @@ def calc_features(canddatalist):
     """
 
     if isinstance(canddatalist, CandData):
-        logger.debug('Wrapping solo CandData object')
         canddatalist = [canddatalist]
     elif isinstance(canddatalist, list):
         if not len(canddatalist):
@@ -321,6 +324,17 @@ def make_candcollection(st, **kwargs):
                                         metadata=st.metadata)
 
     return candcollection
+
+
+def cluster_candidates(candcollection):
+    """ Use candidate properties to find clusters of candidates from a single event.
+    Returns a subset candcollection that are represenatative of each cluster.
+    Clustering based largely on integration, dm, dt, l, m.
+    """
+
+    logger.warn("test clustering")
+    maxind = np.argmax(candcollection.array['snr1'])
+    return candcollection[maxind]
 
 
 def save_cands(st, candcollection=None, canddata=None):

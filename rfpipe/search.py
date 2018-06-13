@@ -392,22 +392,23 @@ def dedisperse_image_fftw(st, segment, data, wisdom=None):
                 .format(len(cc0), segment))
 
     # TODO: get canddata for cluster filtered set of candidates
-#    cc1 = cluster_candidates(cc0)
-#    cc2 = make_canddata(cc1, data)
+    cc1 = candidates.cluster_candidates(cc0)
+    cc2 = make_canddata(cc1, data)
 #    return cc2
 
     return cc0
 
 
 def make_canddata(candcollection, data, wisdom=None):
-    """
+    """ Iterates through candidates and uses location (e.g., integration, dm, dt)
+    to create canddata 
     """
 
     st = candcollection.state
+    candcollection = candidates.CandCollection(prefs=st.prefs,
+                                               metadata=st.metadata)
     candlocs = candcollection.locs
-    bytespercd = 8*(st.npixx*st.npixy + st.prefs.timewindow*st.nchan*st.npol)
 
-    canddatalist = []
     for candloc in candlocs:
         (segment, integration, dmind, dtind, beamnum) = candloc
         delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
@@ -436,21 +437,11 @@ def make_canddata(candcollection, data, wisdom=None):
         m1 = candcollection['m1']
         util.phase_shift(data_corr, uvw, l1, m1)
         data_corr = data_corr.mean(axis=1)
-        canddatalist.append(candidates.CandData(state=st,
-                                                loc=candloc,
-                                                image=image,
-                                                data=data_corr))
-    # TODO: option to add snrarm, snrk
+        canddata = candidates.CandData(state=st, loc=candloc, image=image,
+                                       data=data_corr)
+        # TODO: option to add snrarm, snrk
 
-        if len(canddatalist)*bytespercd/1000**3 > st.prefs.memory_limit:
-            logger.info("Accumulated CandData size exceeds "
-                        "memory limit of {0:.1f}. "
-                        "Running calc_features..."
-                        .format(st.prefs.memory_limit))
-            candcollection += candidates.calc_features(canddatalist)
-            canddatalist = []
-
-    candcollection = candidates.calc_features(canddatalist)
+        candcollection += candidates.calc_features(canddata)
 
     return candcollection
 
