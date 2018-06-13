@@ -146,7 +146,7 @@ class CandCollection(object):
     @property
     def locs(self):
         if len(self.array):
-            return self.array[['segment', 'integration', 'dmind', 'dtind', 'beamnum']]
+            return self.array[['segment', 'integration', 'dmind', 'dtind', 'beamnum']].astype(int)
         else:
             return np.array([], dtype=int)
 
