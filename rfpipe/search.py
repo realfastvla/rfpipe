@@ -387,16 +387,72 @@ def dedisperse_image_fftw(st, segment, data, wisdom=None):
             else:
                 raise NotImplemented("only searchtype=image, imagek, armk, armkimage implemented")
 
-#    kwargs = dict((k, v) for k, v in canddict if k != 'candloc')
     cc0 = candidates.make_candcollection(st, **canddict)
     logger.info("Found {0} candidates in seg {1}."
                 .format(len(cc0), segment))
 
-    # TODO: put clustering here
     # TODO: get canddata for cluster filtered set of candidates
-    # TODO: return new candcollection
+#    cc1 = cluster_candidates(cc0)
+#    cc2 = make_canddata(cc1, data)
+#    return cc2
 
     return cc0
+
+
+def make_canddata(candcollection, data, wisdom=None):
+    """
+    """
+
+    st = candcollection.state
+    candlocs = candcollection.locs
+    bytespercd = 8*(st.npixx*st.npixy + st.prefs.timewindow*st.nchan*st.npol)
+
+    canddatalist = []
+    for candloc in candlocs:
+        (segment, integration, dmind, dtind, beamnum) = candloc
+        delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
+                                st.inttime)
+        data_corr = dedisperseresample(data, delay,
+                                       st.dtarr[dtind],
+                                       parallel=st.prefs.nthread > 1)
+
+        uvw = util.get_uvw_segment(st, segment)
+        image = grid_image(data_corr, uvw, st.npixx, st.npixy, st.uvres,
+                           'fftw', st.prefs.nthread, wisdom=wisdom,
+                           integrations=integration)
+
+        # TODO: validate that reproduced features match input features?
+#        peakx, peaky = np.where(image[0] == image[0].max())
+#        l1, m1 = st.calclm(st.npixx_full, st.npixy_full,
+#                           st.uvres, peakx[0], peaky[0])
+#        immax1 = image.max()
+#        snr1 = immax1/image.std()
+
+        data_corr = data_corr[max(0, integration-st.prefs.timewindow//2):
+                              min(integration+st.prefs.timewindow//2,
+                              len(data))]
+
+        l1 = candcollection['l1']
+        m1 = candcollection['m1']
+        util.phase_shift(data_corr, uvw, l1, m1)
+        data_corr = data_corr.mean(axis=1)
+        canddatalist.append(candidates.CandData(state=st,
+                                                loc=candloc,
+                                                image=image,
+                                                data=data_corr))
+    # TODO: option to add snrarm, snrk
+
+        if len(canddatalist)*bytespercd/1000**3 > st.prefs.memory_limit:
+            logger.info("Accumulated CandData size exceeds "
+                        "memory limit of {0:.1f}. "
+                        "Running calc_features..."
+                        .format(st.prefs.memory_limit))
+            candcollection += candidates.calc_features(canddatalist)
+            canddatalist = []
+
+    candcollection = candidates.calc_features(canddatalist)
+
+    return candcollection
 
 
 def grid_image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,

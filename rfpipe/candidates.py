@@ -140,6 +140,10 @@ class CandCollection(object):
             return None
 
     @property
+    def locs(self):
+        return self.array[['segment', 'integration', 'dmind', 'dtind', 'beamnum']]
+    
+    @property
     def candmjd(self):
         """ Candidate MJD at top of band
         """
