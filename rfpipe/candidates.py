@@ -230,7 +230,8 @@ def calc_features(canddatalist):
         candlocs.append(canddata_feature(canddata, 'candloc'))
 
     kwargs = dict(zip(st.features, featurelists))
-    candcollection = make_candcollection(st, candlocs, **kwargs)
+    kwargs['candloc'] = candlocs
+    candcollection = make_candcollection(st, **kwargs)
 
     # make plot for peak snr in collection
     # TODO: think about candidate clustering
