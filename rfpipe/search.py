@@ -388,62 +388,65 @@ def dedisperse_image_fftw(st, segment, data, wisdom=None):
                 raise NotImplemented("only searchtype=image, imagek, armk, armkimage implemented")
 
     cc0 = candidates.make_candcollection(st, **canddict)
-    logger.info("Found {0} candidates in seg {1}."
+    logger.info("First pass found {0} candidates in seg {1}."
                 .format(len(cc0), segment))
 
-    # TODO: get canddata for cluster filtered set of candidates
+    # find clusters and save/plot for peak of each cluster
     cc1 = candidates.cluster_candidates(cc0)
     cc2 = make_canddata(cc1, data)
-#    return cc2
 
-    return cc0
+    # TODO: decide how to generate summary plot, which should use cc0
+    # perhaps cc0 gets a column added by cluster_candidates call and make_canddata
+    # then works only on subset that are peak of a cluster?
+
+    return cc2
 
 
 def make_canddata(candcollection, data, wisdom=None):
     """ Iterates through candidates and uses location (e.g., integration, dm, dt)
-    to create canddata 
+    to create canddata for each candidate.
     """
 
     st = candcollection.state
-    candcollection = candidates.CandCollection(prefs=st.prefs,
-                                               metadata=st.metadata)
-    candlocs = candcollection.locs
+    cc0 = candidates.CandCollection(prefs=st.prefs, metadata=st.metadata)
 
-    for candloc in candlocs:
-        (segment, integration, dmind, dtind, beamnum) = candloc
-        delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
-                                st.inttime)
-        data_corr = dedisperseresample(data, delay,
-                                       st.dtarr[dtind],
-                                       parallel=st.prefs.nthread > 1)
+    if len(candcollection):
+        candlocs = candcollection.locs
+        ls = candcollection.array['l1']
+        ms = candcollection.array['m1']
 
-        uvw = util.get_uvw_segment(st, segment)
-        image = grid_image(data_corr, uvw, st.npixx, st.npixy, st.uvres,
-                           'fftw', st.prefs.nthread, wisdom=wisdom,
-                           integrations=integration)
+        for i, candloc in enumerate(candlocs):
+            (segment, integration, dmind, dtind, beamnum) = candloc
+            delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
+                                    st.inttime)
+            data_corr = dedisperseresample(data, delay, st.dtarr[dtind],
+                                           parallel=st.prefs.nthread > 1)
 
-        # TODO: validate that reproduced features match input features?
-#        peakx, peaky = np.where(image[0] == image[0].max())
-#        l1, m1 = st.calclm(st.npixx_full, st.npixy_full,
-#                           st.uvres, peakx[0], peaky[0])
-#        immax1 = image.max()
-#        snr1 = immax1/image.std()
+            uvw = util.get_uvw_segment(st, segment)
+            image = grid_image(data_corr, uvw, st.npixx, st.npixy, st.uvres,
+                               'fftw', st.prefs.nthread, wisdom=wisdom,
+                               integrations=integration)[0]
 
-        data_corr = data_corr[max(0, integration-st.prefs.timewindow//2):
-                              min(integration+st.prefs.timewindow//2,
-                              len(data))]
+            # TODO: validate that reproduced features match input features?
+    #        peakx, peaky = np.where(image[0] == image[0].max())
+    #        l1, m1 = st.calclm(st.npixx_full, st.npixy_full,
+    #                           st.uvres, peakx[0], peaky[0])
+    #        immax1 = image.max()
+    #        snr1 = immax1/image.std()
 
-        l1 = candcollection['l1']
-        m1 = candcollection['m1']
-        util.phase_shift(data_corr, uvw, l1, m1)
-        data_corr = data_corr.mean(axis=1)
-        canddata = candidates.CandData(state=st, loc=candloc, image=image,
-                                       data=data_corr)
-        # TODO: option to add snrarm, snrk
+            data_corr = data_corr[max(0, integration-st.prefs.timewindow//2):
+                                  min(integration+st.prefs.timewindow//2,
+                                  len(data))]
 
-        candcollection += candidates.calc_features(canddata)
+            util.phase_shift(data_corr, uvw, ls[i], ms[i])
+            data_corr = data_corr.mean(axis=1)
+            canddata = candidates.CandData(state=st, loc=candloc, image=image,
+                                           data=data_corr)
+            # TODO: option to add snrarm, snrk
 
-    return candcollection
+            cc0 += candidates.calc_features(canddata)
+
+    return cc0
 
 
 def grid_image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,
@@ -456,7 +459,7 @@ def grid_image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,
 
     if integrations is None:
         integrations = list(range(len(data)))
-    elif isinstance(integrations, int):
+    elif not isinstance(integrations, list):
         integrations = [integrations]
 
     if fftmode == 'fftw':

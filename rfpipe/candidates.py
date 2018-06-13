@@ -91,9 +91,9 @@ class CandCollection(object):
 
     def __repr__(self):
         if self.metadata is not None:
-            return ('CandCollection for {0}, scan {1} with {2} candidates'
+            return ('CandCollection for {0}, scan {1} with {2} candidate{3}'
                     .format(self.metadata.datasetId, self.metadata.scan,
-                            len(self)))
+                            len(self), 's'[not len(self)-1:]))
         else:
             return ('CandCollection with {0} rows'.format(len(self.array)))
 
@@ -118,7 +118,7 @@ class CandCollection(object):
         return self
 
     def __getitem__(self, key):
-        return CandCollection(array=self.array.take(key), prefs=self.prefs,
+        return CandCollection(array=self.array.take([key]), prefs=self.prefs,
                               metadata=self.metadata)
 
     @property
@@ -145,8 +145,11 @@ class CandCollection(object):
 
     @property
     def locs(self):
-        return self.array[['segment', 'integration', 'dmind', 'dtind', 'beamnum']]
-    
+        if len(self.array):
+            return self.array[['segment', 'integration', 'dmind', 'dtind', 'beamnum']]
+        else:
+            return np.array([], dtype=int)
+
     @property
     def candmjd(self):
         """ Candidate MJD at top of band
@@ -217,8 +220,8 @@ def calc_features(canddatalist):
     else:
         logger.warn("argument must be list of CandData object")
 
-    logger.info('Calculating features for {0} candidates.'
-                .format(len(canddatalist)))
+    logger.info('Calculating features for {0} candidate{1}.'
+                .format(len(canddatalist), 's'[not len(canddatalist)-1:]))
 
     st = canddatalist[0].state
 
@@ -328,13 +331,17 @@ def make_candcollection(st, **kwargs):
 
 def cluster_candidates(candcollection):
     """ Use candidate properties to find clusters of candidates from a single event.
-    Returns a subset candcollection that are represenatative of each cluster.
     Clustering based largely on integration, dm, dt, l, m.
+    Returns a subset candcollection that are represenatative of each cluster.
+    TODO: better to return all of input candcollection with extra column of cluster id?
     """
 
-    logger.warn("test clustering")
-    maxind = np.argmax(candcollection.array['snr1'])
-    return candcollection[maxind]
+    logger.warn("test version of clustering")
+    if len(candcollection):
+        maxind = np.argmax(candcollection.array['snr1'])
+        return candcollection[maxind]
+    else:
+        return candcollection
 
 
 def save_cands(st, candcollection=None, canddata=None):
@@ -365,9 +372,10 @@ def save_cands(st, candcollection=None, canddata=None):
             logger.info('Not saving CandData.')
 
     if candcollection is not None:
-        if st.prefs.savecands and len(candcollection.array):
-            logger.info('Saving {0} candidates to {1}.'
-                        .format(len(candcollection.array), st.candsfile))
+        if st.prefs.savecands and len(candcollection):
+            logger.info('Saving {0} candidate{1} to {2}.'
+                        .format(len(candcollection),
+                                's'[not len(candcollection)-1:], st.candsfile))
 
             try:
                 with fileLock.FileLock(st.candsfile+'.lock', timeout=10):
@@ -507,8 +515,8 @@ def makesummaryplot(candsfile):
     htmlfile = candsfile.replace('.pkl', '.html')
     output_file(htmlfile)
     save(combined)
-    logger.info("Saved summary plot {0} with {1} candidates"
-                .format(htmlfile, len(segment)))
+    logger.info("Saved summary plot {0} with {1} candidate{2}"
+                .format(htmlfile, len(segment), 's'[not len(segment)-1:]))
 
 
 def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
