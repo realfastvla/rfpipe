@@ -29,9 +29,9 @@ def prep_and_search(st, segment, data):
     data = source.data_prep(st, segment, data)
 
     if st.prefs.fftmode == "cuda":
-        candcollection = dedisperse_image_cuda(st, segment, data)
+        candcollection = dedisperse_search_cuda(st, segment, data)
     elif st.prefs.fftmode == "fftw":
-        candcollection = dedisperse_image_fftw(st, segment, data)
+        candcollection = dedisperse_search_fftw(st, segment, data)
     else:
         logger.warn("fftmode {0} not recognized (cuda, fftw allowed)"
                     .format(st.prefs.fftmode))
@@ -41,7 +41,7 @@ def prep_and_search(st, segment, data):
     return candcollection
 
 
-def dedisperse_image_cuda(st, segment, data, devicenum=None):
+def dedisperse_search_cuda(st, segment, data, devicenum=None):
     """ Run dedispersion, resample for all dm and dt.
     Grid and image on GPU.
     rfgpu is built from separate repo.
@@ -242,7 +242,7 @@ def dedisperse_image_cuda(st, segment, data, devicenum=None):
     return candcollection
 
 
-def dedisperse_image_fftw(st, segment, data, wisdom=None):
+def dedisperse_search_fftw(st, segment, data, wisdom=None):
     """ Fuse the dediserpse, resample, search, threshold functions.
     Returns list of CandData objects that define candidates with
     candloc, image, and phased visibility data.
@@ -392,30 +392,34 @@ def dedisperse_image_fftw(st, segment, data, wisdom=None):
                 .format(len(cc0), segment))
 
     # find clusters and save/plot for peak of each cluster
-    cc1 = candidates.cluster_candidates(cc0)
-    cc2 = make_canddata(cc1, data)
+    cc1 = candidates.cluster_candidates(cc0)  # adds cluster field to cc0
+    calc_cluster_features(cc1, data)
 
-    # TODO: decide how to generate summary plot, which should use cc0
-    # perhaps cc0 gets a column added by cluster_candidates call and make_canddata
-    # then works only on subset that are peak of a cluster?
-
-    return cc2
+    return cc1
 
 
-def make_canddata(candcollection, data, wisdom=None):
+def calc_cluster_features(candcollection, data, wisdom=None):
     """ Iterates through candidates and uses location (e.g., integration, dm, dt)
     to create canddata for each candidate.
     """
 
-    st = candcollection.state
-    cc0 = candidates.CandCollection(prefs=st.prefs, metadata=st.metadata)
-
     if len(candcollection):
+        assert 'cluster' in candcollection.array.dtype.fields
+        clusters = np.unique(candcollection.array['cluster'].astype(int))
+
+        st = candcollection.state
         candlocs = candcollection.locs
         ls = candcollection.array['l1']
         ms = candcollection.array['m1']
 
-        for i, candloc in enumerate(candlocs):
+        for cluster in clusters:
+            # get max SNR of cluster
+            clusterinds = np.where(cluster == clusters)[0]
+            maxind = np.where(candcollection.array['snr1'] ==
+                              candcollection.array['snr1'][clusterinds].max())[0][0]
+            # TODO: check on best way to find max SNR with kalman, etc
+            candloc = candlocs[maxind]
+
             (segment, integration, dmind, dtind, beamnum) = candloc
             delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
                                     st.inttime)
@@ -427,26 +431,24 @@ def make_canddata(candcollection, data, wisdom=None):
                                'fftw', st.prefs.nthread, wisdom=wisdom,
                                integrations=integration)[0]
 
+            data_corr = data_corr[max(0, integration-st.prefs.timewindow//2):
+                                  min(integration+st.prefs.timewindow//2,
+                                  len(data))]
+
+            util.phase_shift(data_corr, uvw, ls[maxind], ms[maxind])
+            data_corr = data_corr.mean(axis=1)
+            canddata = candidates.CandData(state=st, loc=candloc, image=image,
+                                           data=data_corr)
+            # TODO: option to add snrarm, snrk
+
+            cc = candidates.calc_features(canddata)
+
             # TODO: validate that reproduced features match input features?
     #        peakx, peaky = np.where(image[0] == image[0].max())
     #        l1, m1 = st.calclm(st.npixx_full, st.npixy_full,
     #                           st.uvres, peakx[0], peaky[0])
     #        immax1 = image.max()
     #        snr1 = immax1/image.std()
-
-            data_corr = data_corr[max(0, integration-st.prefs.timewindow//2):
-                                  min(integration+st.prefs.timewindow//2,
-                                  len(data))]
-
-            util.phase_shift(data_corr, uvw, ls[i], ms[i])
-            data_corr = data_corr.mean(axis=1)
-            canddata = candidates.CandData(state=st, loc=candloc, image=image,
-                                           data=data_corr)
-            # TODO: option to add snrarm, snrk
-
-            cc0 += candidates.calc_features(canddata)
-
-    return cc0
 
 
 def grid_image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,

@@ -40,10 +40,10 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default):
 
     if st.fftmode == "fftw":
         wisdom = search.set_wisdom(st.npixx, st.npixy)
-        candcollection = search.dedisperse_image_fftw(st, segment, data_prep,
-                                                      wisdom=wisdom)
+        candcollection = search.dedisperse_search_fftw(st, segment, data_prep,
+                                                       wisdom=wisdom)
     elif st.fftmode == "cuda":
-        candcollection = search.dedisperse_image_cuda(st, segment, data_prep)
+        candcollection = search.dedisperse_search_cuda(st, segment, data_prep)
 
     candidates.save_cands(st, candcollection=candcollection)
 

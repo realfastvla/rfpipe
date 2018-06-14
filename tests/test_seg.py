@@ -39,33 +39,19 @@ def test_dataprep(mockstate):
 def test_search(mockstate):
     wisdom = rfpipe.search.set_wisdom(mockstate.npixx, mockstate.npixy)
 
-    candcollections = []
     times = []
     for segment in range(mockstate.nsegment):
         data_prep = mockdata(mockstate, segment)
+        candcollection = rfpipe.search.dedisperse_search_fftw(mockstate,
+                                                              segment,
+                                                              data_prep,
+                                                              wisdom=wisdom)
 
-        for dmind in range(len(mockstate.dmarr)):
-            delay = rfpipe.util.calc_delay(mockstate.freq,
-                                           mockstate.freq.max(),
-                                           mockstate.dmarr[dmind],
-                                           mockstate.inttime)
-            data_dm = rfpipe.search.dedisperse(data_prep, delay)
+        assert len(candcollection) == sum([len(mockstate.get_search_ints(segment, dmind, dtind))
+                                           for dmind in range(len(mockstate.dmarr))
+                                           for dtind in range(len(mockstate.dtarr))])
 
-            for dtind in range(len(mockstate.dtarr)):
-                data_dmdt = rfpipe.search.resample(data_dm,
-                                                   mockstate.dtarr[dtind])
-
-                candcollection = rfpipe.search.search_thresh_fftw(mockstate,
-                                                                  segment,
-                                                                  data_dmdt,
-                                                                  dmind,
-                                                                  dtind,
-                                                                  wisdom=wisdom)
-
-                assert len(candcollection) == len(mockstate.get_search_ints(segment, dmind, dtind))
-                candcollections.append(candcollection)
-
-    times = np.concatenate([cc.candmjd/(24*3600) for cc in candcollections])
+    times = candcollection.candmjd/(24*3600)
     times = np.sort(times - times.min())
     deltat = np.array([times[i+1] - times[i] for i in range(len(times)-1)])
     assert (deltat < mockstate.inttime).all()
@@ -73,16 +59,14 @@ def test_search(mockstate):
     integs0_0 = []
     integs1_0 = []
     integs0_1 = []
-    for candcollection in candcollections:
-        for i in range(len(candcollection.array)):
-            (seg, integ, dmind, dtind, beamnum) = candcollection.array[[str(ff) for ff in (mockstate.search_dimensions)]][i]
-
-            if dtind == 0 and dmind == 0:
-                integs0_0.append(integ)
-            elif dtind == 1 and dmind == 0:
-                integs1_0.append(integ)
-            elif dtind == 0 and dmind == 1:
-                integs0_1.append(integ)
+    for i in range(len(candcollection)):
+        (seg, integ, dmind, dtind, beamnum) = candcollection.locs[i]
+        if dtind == 0 and dmind == 0:
+            integs0_0.append(integ)
+        elif dtind == 1 and dmind == 0:
+            integs1_0.append(integ)
+        elif dtind == 0 and dmind == 1:
+            integs0_1.append(integ)
 
     assert mockstate.searchints == len(integs0_0)
     if 2 in mockstate.dtarr:

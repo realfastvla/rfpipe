@@ -6,6 +6,7 @@ from io import open
 import pickle
 import os
 import numpy as np
+from numpy.lib.recfunctions import append_fields
 from collections import OrderedDict
 import matplotlib
 matplotlib.use('Agg')
@@ -146,7 +147,7 @@ class CandCollection(object):
     @property
     def locs(self):
         if len(self.array):
-            return self.array[['segment', 'integration', 'dmind', 'dtind', 'beamnum']].astype(int)
+            return self.array[['segment', 'integration', 'dmind', 'dtind', 'beamnum']].tolist()
         else:
             return np.array([], dtype=int)
 
@@ -336,13 +337,15 @@ def cluster_candidates(candcollection):
     TODO: better to return all of input candcollection with extra column of cluster id?
     """
 
-    # TODO: add a column with cluster number?
     logger.warn("test version of clustering")
-    if len(candcollection):
-        maxind = np.argmax(candcollection.array['snr1'])
-        return candcollection[maxind]
-    else:
-        return candcollection
+
+    # TODO: replace with DBSCAN
+    clusters = np.ones(len(candcollection), dtype=np.int32)
+
+    candcollection.array = append_fields(candcollection.array, 'cluster',
+                                         clusters, usemask=False)
+
+    return candcollection
 
 
 def save_cands(st, candcollection=None, canddata=None):
