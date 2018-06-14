@@ -336,6 +336,7 @@ def cluster_candidates(candcollection):
     TODO: better to return all of input candcollection with extra column of cluster id?
     """
 
+    # TODO: add a column with cluster number?
     logger.warn("test version of clustering")
     if len(candcollection):
         maxind = np.argmax(candcollection.array['snr1'])
