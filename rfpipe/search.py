@@ -8,7 +8,7 @@ from numba import jit, guvectorize, int64
 import pyfftw
 from rfpipe import util, candidates, source
 import scipy.stats
-import pandas as pd
+#import pandas as pd
 import hdbscan
 import seaborn as sns
 
@@ -1232,13 +1232,14 @@ def cluster_candidates(candcollection, plot_bokeh = False):
     dtind = cc.array['dtind']
     dmarr = cc.state.dmarr
     time_ind = np.multiply(timearr_ind,np.power(2,dtind))
-    d = {'l': peakx_ind, 'm': peaky_ind, 'dm': dm_ind, 'time': time_ind, 'snr': snr} # forming a dataframe for clustering
-    df = pd.DataFrame(data=d)
+    #d = {'l': peakx_ind, 'm': peaky_ind, 'dm': dm_ind, 'time': time_ind, 'snr': snr} # forming a dataframe for clustering
+    d = np.transpose([peakx_ind, peaky_ind, dm_ind, time_ind, snr])
+    #df = pd.DataFrame(data=d)
 #    d2 = {'l': candl, 'm': candm, 'dm': canddm, 'time': time_ind, 'snr': snr}
 #    df2 = pd.DataFrame(data=d)
 
     min_cluster_size = 10
-    clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, min_samples = 5, cluster_selection_method = 'eom', allow_single_cluster = True).fit(df)
+    clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, min_samples = 5, cluster_selection_method = 'eom', allow_single_cluster = True).fit(d)
     nclusters = np.max(clusterer.labels_ + 1)
     
     logger.info("Number of clusters formed with min cluster size {0} is {1}".format(min_cluster_size, nclusters))
