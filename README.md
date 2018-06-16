@@ -40,7 +40,7 @@ pip install -e git+git://github.com/realfastvla/rfpipe#egg=rfpipe
 - pyfftw
 - pyyaml
 - attrs
-- pycuda and pyfft (optional; for GPU FFTs)
+- rfgpu (optional; for GPU FFTs)
 - vys/vysmaw and vysmaw_reader (optional; to read vys data from VLA correlator)
 
 ## Citation

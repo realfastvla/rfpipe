@@ -372,7 +372,7 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None, i=Non
                 if snr is None:
                     snr = 40.
                 # TODO: support flagged data in size calc and injection
-                sig = madtostd(data[i].real)/np.sqrt(data[i].size)
+                sig = madtostd(data[i].real)/np.sqrt(data[i].size*st.dtarr[dtind])
                 amp = snr*sig
 
         if lm is None:

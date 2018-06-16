@@ -25,7 +25,7 @@ def getonlineflags(st, segment):
             from realfast.mcaf_servers import getblflags
             flags = getblflags(st.metadata.datasetId, st.blarr,
                                startTime=t0, endTime=t1)
-        except ImportError:
+        except (ImportError, Exception):
             logger.warn("No mcaf antenna flag server flags available")
             flags = np.ones(st.nbl)
 
@@ -128,11 +128,10 @@ def slidedev(arr, win):
     Calculates median over a window, win.
     """
 
-    med = np.zeros((len(arr), 2))
+    med = np.zeros_like(arr)
     for i in range(len(arr)):
         inds = list(range(max(0, i-win//2), i)) + list(range(i+1, min(i+win//2, len(arr))))
-        for j in inds:
-            med[j] = np.ma.median(arr.take(inds, axis=0), axis=0)
+        med[i] = np.ma.median(arr.take(inds, axis=0), axis=0)
 
     return arr-med
 

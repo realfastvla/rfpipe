@@ -17,7 +17,7 @@ def test_create():
 def mockstate():
     t0 = time.Time.now().mjd
     meta = rfpipe.metadata.mock_metadata(t0, t0+0.3/(24*3600), 27, 4, 32*4, 4,
-                                         5e3, datasource='sim')
+                                         5e3, datasource='sim', antconfig='D')
     return rfpipe.state.State(inmeta=meta)
 
 

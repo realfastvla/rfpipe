@@ -107,6 +107,9 @@ class State(object):
         and module imports.
         """
 
+        if self.metadata.datasource == 'sdm':
+            assert self.metadata.bdfstr is not None, "No bdf found."            
+
         # limits on time boundaries/sizes
         assert self.t_overlap < self.nints*self.inttime, ('t_overlap must be'
                                                           ' less than scan '
@@ -200,11 +203,14 @@ class State(object):
                             .format(self.prefs.excludeants))
 
             logger.info('\t Using pols {0}'.format(self.pols))
-            if os.path.exists(self.gainfile) and os.path.isfile(self.gainfile):
-                logger.info('\t Found telcal file {0}'.format(self.gainfile))
+            if self.gainfile is not None:
+                if os.path.exists(self.gainfile) and os.path.isfile(self.gainfile):
+                    logger.info('\t Found telcal file {0}'.format(self.gainfile))
+                else:
+                    logger.warn('\t Gainfile preference ({0}) is not a valid telcal file'
+                                .format(self.gainfile))
             else:
-                logger.warn('\t Gainfile preference ({0}) is not a telcal file'
-                            .format(self.gainfile))
+                logger.info("No gainfile specified or found.")
 
             logger.info('')
 
@@ -562,6 +568,8 @@ class State(object):
                                     '{0}/{1:02}/{2}.GN'
                                     .format(today.year, today.month,
                                             self.metadata.datasetId))
+            if (not os.path.exists(gainfile)) or (not os.path.isfile(gainfile)):
+                gainfile = None
         else:
             if os.path.dirname(self.prefs.gainfile):  # use full path if given
                 gainfile = self.prefs.gainfile

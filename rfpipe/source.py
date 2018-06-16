@@ -36,9 +36,20 @@ def data_prep(st, segment, data, flagversion="latest"):
     takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
     logger.debug('Selecting pols {0}'.format(st.pols))
 
-    datap = data.take(takepol, axis=3).copy()
+    # TODO: check on reusing 'data' to save memory
+    datap = np.nan_to_num(data.take(takepol, axis=3), copy=True)
     datap = prep_standard(st, segment, datap)
-    datap = calibration.apply_telcal(st, datap)
+    if not np.any(datap):
+        logger.info("All data zeros after prep_standard")
+        return datap
+
+    if st.gainfile is not None:
+        datap = calibration.apply_telcal(st, datap)
+        if not np.any(datap):
+            logger.info("All data zeros after apply_telcal")
+            return datap
+    else:
+        logger.info("No gainfile found, so not applying calibration.")
 
     # support backwards compatibility for reproducible flagging
     if flagversion == "latest":
@@ -100,6 +111,9 @@ def prep_standard(st, segment, data):
     else:
         logger.info('Not applying online flags.')
 
+    if not np.any(data):
+        return data
+
     # optionally integrate (downsample)
     if ((st.prefs.read_tdownsample > 1) or (st.prefs.read_fdownsample > 1)):
         data2 = np.zeros(st.datashape, dtype='complex64')
@@ -157,7 +171,8 @@ def prep_standard(st, segment, data):
                     logger.warn("IndexError while adding transient. Skipping...")
                     continue
 
-                model = calibration.apply_telcal(st, model, sign=-1)
+                if st.gainfile is not None:
+                    model = calibration.apply_telcal(st, model, sign=-1)
                 util.phase_shift(model, uvw, -l, -m)
                 data += model
 
@@ -177,28 +192,22 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout, offset=4):
     t0 = time.Time(st.segmenttimes[seg][0], format='mjd', precision=9).unix
     t1 = time.Time(st.segmenttimes[seg][1], format='mjd', precision=9).unix
 
-#    data = np.empty((st.readints, st.nbl,
-#                     st.metadata.nchan_orig, st.metadata.npol_orig),
-#                    dtype='complex64', order='C')
-
     logger.info('Reading {0} s ints into shape {1} from {2} - {3} unix seconds'
                 .format(st.metadata.inttime, st.datashape_orig, t0, t1))
 
-    polmap_standard = ['A*A', 'A*B', 'B*A', 'B*B']
-    bbmap_standard = ['AC1', 'AC2', 'AC', 'BD1', 'BD2', 'BD']
-
     # TODO: vysmaw currently pulls all data, but allocates buffer based on these.
     # buffer will be too small if taking subset of all data.
-    pollist = np.array([polmap_standard.index(pol)
-                        for pol in st.metadata.pols_orig], dtype=np.int32)  # TODO: use st.pols when vysmaw filter can too
     antlist = np.array([int(ant.lstrip('ea'))
                         for ant in st.ants], dtype=np.int32)
+    bbmap_standard = ['AC1', 'AC2', 'AC', 'BD1', 'BD2', 'BD']
     spwlist = list(zip(*st.metadata.spworder))[0]  # list of strings ["bb-spw"] in increasing freq order
     bbsplist = np.array([(int(bbmap_standard.index(spw.split('-')[0])),
                           int(spw.split('-')[1])) for spw in spwlist],
                         dtype=np.int32)
 
-    with vysmaw_reader.Reader(t0, t1, antlist, pollist, bbsplist,
+    assert st.prefs.selectpol in ['auto', 'all'], 'auto and all pol selection supported in vys'
+    polauto = st.prefs.selectpol == 'auto'
+    with vysmaw_reader.Reader(t0, t1, antlist, bbsplist, polauto,
                               inttime_micros=st.metadata.inttime*1000000.,
                               nchan=st.metadata.spw_nchan[0],
                               cfile=cfile,
