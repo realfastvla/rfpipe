@@ -8,7 +8,6 @@ from numba import jit, guvectorize, int64
 import pyfftw
 from rfpipe import util, candidates, source
 import scipy.stats
-#import pandas as pd
 import hdbscan
 import seaborn as sns
 
@@ -411,19 +410,19 @@ def calc_cluster_features(candcollection, data, wisdom=None):
     """
 
     if len(candcollection):
-        assert 'cluster' in candcollection.array.dtype.fields
-        clusters = np.unique(candcollection.array['cluster'].astype(int))
+        assert b'cluster' in candcollection.array.dtype.fields
+        clusters = np.unique(candcollection.array[b'cluster'].astype(int))
 
         st = candcollection.state
         candlocs = candcollection.locs
-        ls = candcollection.array['l1']
-        ms = candcollection.array['m1']
+        ls = candcollection.array[b'l1']
+        ms = candcollection.array[b'm1']
 
         for cluster in clusters:
             # get max SNR of cluster
             clusterinds = np.where(cluster == clusters)[0]
-            maxind = np.where(candcollection.array['snr1'] ==
-                              candcollection.array['snr1'][clusterinds].max())[0][0]
+            maxind = np.where(candcollection.array[b'snr1'] ==
+                              candcollection.array[b'snr1'][clusterinds].max())[0][0]
             # TODO: check on best way to find max SNR with kalman, etc
             candloc = candlocs[maxind]
 
@@ -1222,61 +1221,6 @@ def set_wisdom(npixx, npixy=None):
                                                    planner_effort='FFTW_MEASURE')
     return pyfftw.export_wisdom()
 
-def cluster_candidates(candcollection, plot_bokeh = False):
-    """Perform density based clustering on candidates using HDBSCAN
-    parameters used for clustering: dm, time, l,m 
-    """
-    cc = candcollection
-    candl = cc.candl
-    candm = cc.candm
-    npixx = cc.state.npixx
-    npixy = cc.state.npixy
-    uvres = cc.state.uvres
-    
-    peakx_ind, peaky_ind = calcpix(candl, candm, npixx, npixy, uvres) #convert (l,m) to (x,y) pixel numbers
-    
-    dm_ind = cc.array['dmind']
-    timearr_ind = cc.array['integration']  #time index of all the candidates
-    snr = cc.array['snr1']
-    dtind = cc.array['dtind']
-    dmarr = cc.state.dmarr
-    time_ind = np.multiply(timearr_ind,np.power(2,dtind))
-    #d = {'l': peakx_ind, 'm': peaky_ind, 'dm': dm_ind, 'time': time_ind, 'snr': snr} # forming a dataframe for clustering
-    d = np.transpose([peakx_ind, peaky_ind, dm_ind, time_ind, snr])
-    #df = pd.DataFrame(data=d)
-#    d2 = {'l': candl, 'm': candm, 'dm': canddm, 'time': time_ind, 'snr': snr}
-#    df2 = pd.DataFrame(data=d)
-
-    min_cluster_size = 10
-    clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, min_samples = 5, cluster_selection_method = 'eom', allow_single_cluster = True).fit(d)
-    nclusters = np.max(clusterer.labels_ + 1)
-    
-    logger.info("Number of clusters formed with min cluster size {0} is {1}".format(min_cluster_size, nclusters))
-    
-    clustered_cands = []
-    for labels in range(nclusters):
-        max_snr = np.amax(snr[clusterer.labels_ == labels])
-        ind_maxsnr = np.argmax(snr[clusterer.labels_ == labels])
-        dm_maxind = dmarr[dm_ind[ind_maxsnr]]
-        dt_maxind = dtind[ind_maxsnr]
-        integration_maxind = timearr_ind[ind_maxsnr]
-        l_maxind = candl[ind_maxsnr]
-        m_maxind = candm[ind_maxsnr]
-        logger.info("Returning Max SNR cand of cluster {0}: (snr:{1}, dm:{2}, dt:{3}, int:{4}, l:{5}, m:{6})"
-                .format(labels, max_snr,dm_maxind, dt_maxind, integration_maxind, l_maxind, m_maxind))
-        clustered_cands.append((max_snr,dm_maxind, dt_maxind, integration_maxind, l_maxind, m_maxind))  #list of tuples of max snr cluster candidates       
-    
-    return clusterer, clustered_cands
-#    if (plot_bokeh == True):
-#        plotting_bokeh(cc,clusterer)
-#    return clusterer, clustered_cands    
-
-def calcpix(candl, candm, npixx, npixy, uvres):
-    """Convert from candidate l,m to x,y pixel number
-    """
-    peakx = npixx/2. - candl*(npixx*uvres)
-    peaky = npixy/2. - candm*(npixy*uvres)
-    return peakx, peaky
 
 def plotting_bokeh(candcollection, clusterer):
     """to be modified if needed!
@@ -1285,7 +1229,7 @@ def plotting_bokeh(candcollection, clusterer):
     """
     from bokeh.plotting import figure, output_file, show, output_notebook
     import matplotlib as mpl
-    from bokeh.layouts import row,column
+    from bokeh.layouts import row, column
     from bokeh.models import HoverTool
     from bokeh.models.sources import ColumnDataSource
 

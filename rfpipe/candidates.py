@@ -330,6 +330,55 @@ def make_candcollection(st, **kwargs):
     return candcollection
 
 
+def cluster_candidates_new(candcollection, plot_bokeh=False):
+    """Perform density based clustering on candidates using HDBSCAN
+    parameters used for clustering: dm, time, l,m
+    """
+    cc = candcollection
+    candl = cc.candl
+    candm = cc.candm
+    npixx = cc.state.npixx
+    npixy = cc.state.npixy
+    uvres = cc.state.uvres
+
+    peakx_ind, peaky_ind = cc.state.calcpix(candl, candm, npixx, npixy, uvres)
+
+    dm_ind = cc.array[b'dmind']
+    timearr_ind = cc.array[b'integration']  #time index of all the candidates
+    snr = cc.array[b'snr1']
+    dtind = cc.array[b'dtind']
+    dmarr = cc.state.dmarr
+    time_ind = np.multiply(timearr_ind, np.power(2, dtind))
+    data = np.transpose([peakx_ind, peaky_ind, dm_ind, time_ind, snr])
+
+    min_cluster_size = 10
+    clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size,
+                                min_samples=5, cluster_selection_method='eom',
+                                allow_single_cluster=True).fit(data)
+    nclusters = np.max(clusterer.labels_ + 1)
+
+    logger.info("Number of clusters formed with min cluster size {0} is {1}"
+                .format(min_cluster_size, nclusters))
+
+    clustered_cands = []
+    for labels in range(nclusters):
+        max_snr = np.amax(snr[clusterer.labels_ == labels])
+        ind_maxsnr = np.argmax(snr[clusterer.labels_ == labels])
+        dm_maxind = dmarr[dm_ind[ind_maxsnr]]
+        dt_maxind = dtind[ind_maxsnr]
+        integration_maxind = timearr_ind[ind_maxsnr]
+        l_maxind = candl[ind_maxsnr]
+        m_maxind = candm[ind_maxsnr]
+        logger.info("Returning Max SNR cand of cluster {0}: (snr:{1}, dm:{2}, dt:{3}, int:{4}, l:{5}, m:{6})"
+                    .format(labels, max_snr,dm_maxind, dt_maxind, integration_maxind, l_maxind, m_maxind))
+        clustered_cands.append((max_snr,dm_maxind, dt_maxind, integration_maxind, l_maxind, m_maxind))  #list of tuples of max snr cluster candidates       
+
+    return clusterer, clustered_cands
+#    if (plot_bokeh == True):
+#        plotting_bokeh(cc,clusterer)
+#    return clusterer, clustered_cands    
+
+
 def cluster_candidates(candcollection):
     """ Use candidate properties to find clusters of candidates from a single event.
     Clustering based largely on integration, dm, dt, l, m.
