@@ -86,24 +86,24 @@ def data_prep_rfi(stsim):
 
 
 def test_fftw_sim_rfi(stsim, data_prep_rfi):
-    cc = rfpipe.search.dedisperse_image_fftw(stsim, 0, data_prep_rfi)
+    cc = rfpipe.search.dedisperse_search_fftw(stsim, 0, data_prep_rfi)
     assert len(cc)
 
 
 def test_fftw_sim(stsim, data_prep):
-    cc = rfpipe.search.dedisperse_image_fftw(stsim, 0, data_prep)
+    cc = rfpipe.search.dedisperse_search_fftw(stsim, 0, data_prep)
     assert len(cc)
 
 
 def test_cuda_sim_rfi(stsim, data_prep_rfi):
     rfgpu = pytest.importorskip('rfgpu')
-    cc = rfpipe.search.dedisperse_image_cuda(stsim, 0, data_prep_rfi)
+    cc = rfpipe.search.dedisperse_search_cuda(stsim, 0, data_prep_rfi)
     assert len(cc)
 
 
 def test_cuda_sim(stsim, data_prep):
     rfgpu = pytest.importorskip('rfgpu')
-    cc = rfpipe.search.dedisperse_image_cuda(stsim, 0, data_prep)
+    cc = rfpipe.search.dedisperse_search_cuda(stsim, 0, data_prep)
     assert len(cc)
 
 
@@ -127,7 +127,7 @@ def data_prep_data(stdata):
 
 @needsdata
 def test_fftw_data(stdata, data_prep_data):
-    cc = rfpipe.search.dedisperse_image_fftw(stdata, 0, data_prep_data)
+    cc = rfpipe.search.dedisperse_search_fftw(stdata, 0, data_prep_data)
     snrmax = cc.array['snr1'].max()
     assert snrmax >= 0.7*snrs[stdata.metadata.datasetId]
 
@@ -136,7 +136,7 @@ def test_fftw_data(stdata, data_prep_data):
 def test_cuda_data(stdata, data_prep_data):
     rfgpu = pytest.importorskip('rfgpu')
 
-    cc = rfpipe.search.dedisperse_image_cuda(stdata, 0, data_prep_data)
+    cc = rfpipe.search.dedisperse_search_cuda(stdata, 0, data_prep_data)
     snrmax = cc.array['snr1'].max()
     assert snrmax >= 0.7*snrs[stdata.metadata.datasetId]
 
@@ -146,7 +146,7 @@ def test_prepnsearch(stdata, data_prep_data):
     rfgpu = pytest.importorskip('rfgpu')
 
     stdata.prefs.fftmode = 'cuda'
-    cc0 = rfpipe.search.dedisperse_image_cuda(stdata, 0, data_prep_data)
+    cc0 = rfpipe.search.dedisperse_search_cuda(stdata, 0, data_prep_data)
     stdata.prefs.fftmode = 'fftw'
-    cc1 = rfpipe.search.dedisperse_image_fftw(stdata, 0, data_prep_data)
+    cc1 = rfpipe.search.dedisperse_search_fftw(stdata, 0, data_prep_data)
     assert len(cc0.array) == len(cc1.array)
