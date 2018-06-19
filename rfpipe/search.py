@@ -9,7 +9,6 @@ import pyfftw
 from rfpipe import util, candidates, source
 import scipy.stats
 import hdbscan
-import seaborn as sns
 
 import logging
 logger = logging.getLogger(__name__)
@@ -402,7 +401,10 @@ def calc_cluster_features(candcollection, data, wisdom=None):
 
     if len(candcollection):
         assert u'cluster' in candcollection.array.dtype.fields
-        clusters = np.unique(candcollection.array[u'cluster'].astype(int))
+        clusters = np.unique(candcollection.array[u'cluster'].astype(int)).tolist()
+        # TODO: decide how to deal with unclustered candidates
+        if -1 in clusters:
+            clusters.remove(-1)
 
         st = candcollection.state
         candlocs = candcollection.locs
@@ -412,8 +414,10 @@ def calc_cluster_features(candcollection, data, wisdom=None):
         for cluster in clusters:
             # get max SNR of cluster
             clusterinds = np.where(cluster == clusters)[0]
-            maxind = np.where(candcollection.array[u'snr1'] ==
-                              candcollection.array[u'snr1'][clusterinds].max())[0][0]
+            logger.info("Getting max SNR for cluster {0} with {1} candidates"
+                        .format(cluster, len(clusterinds)))
+            maxsnr = candcollection.array[u'snr1'][clusterinds].max()
+            maxind = np.where(candcollection.array[u'snr1'] == maxsnr)[0][0]
             # TODO: check on best way to find max SNR with kalman, etc
             candloc = candlocs[maxind]
 
@@ -438,6 +442,7 @@ def calc_cluster_features(candcollection, data, wisdom=None):
                                            data=data_corr)
             # TODO: option to add snrarm, snrk
 
+            # triggers optional plotting and saving
             cc = candidates.calc_features(canddata)
 
             # TODO: validate that reproduced features match input features?
@@ -1211,66 +1216,3 @@ def set_wisdom(npixx, npixy=None):
                                                    auto_contiguous=True,
                                                    planner_effort='FFTW_MEASURE')
     return pyfftw.export_wisdom()
-
-
-def plotting_bokeh(candcollection, clusterer):
-    """to be modified if needed!
-    Generates bokeh plots of various parameters 
-    for visualising clustering
-    """
-    from bokeh.plotting import figure, output_file, show, output_notebook
-    import matplotlib as mpl
-    from bokeh.layouts import row, column
-    from bokeh.models import HoverTool
-    from bokeh.models.sources import ColumnDataSource
-
-    cc = candcollection
-
-    color_palette = sns.color_palette('deep', np.max(clusterer.labels_) + 1) #get a color palette with number
-    cluster_colors = [color_palette[x] if x >= 0
-                    else (0.5, 0.5, 0.5)
-                    for x in clusterer.labels_]    #assigning each cluster a color, and making a list of equal length
-
-    cluster_member_colors = [sns.desaturate(x, p) for x, p in
-                         zip(cluster_colors, clusterer.probabilities_)]
-
-    cluster_colors = list(map(mpl.colors.rgb2hex, cluster_member_colors)) #converting sns colors to hex for bokeh
-
-    width = 450
-    height = 350
-    output_notebook()
-
-    TOOLS = 'crosshair, box_zoom, reset, box_select, tap, hover, wheel_zoom'
-#data = dict(l= peakx_ind, m= peaky_ind, dm= dm_ind, time= time_ind, snr= snr, colors = cluster_colors)
-    data = dict(l= candl, m= candm, dm= canddm, time= time_ind, snr= snr, colors = cluster_colors)
-    source=ColumnDataSource(data=data)
-
-
-    p = figure(title="m vs l", x_axis_label='l', y_axis_label='m',plot_width=width, plot_height=height, tools = TOOLS)
-    p.circle(x='l',y='m', size='snr', line_width = 1, color = 'colors', fill_alpha=0.3, source = source) # linewidth=0,
-#p.circle(x=df.l,y=df.m, size=5, line_width = 1, color = cluster_colors, fill_alpha=0.5) # linewidth=0,
-    hover = p.select(dict(type=HoverTool))
-    hover.tooltips = [("m", "@m"), ("l", "@l"), ("time", "@time"), ("DM", "@dm"), ("SNR", "@snr")]
-
-#p.circle(x,y, size=5, line_width = 1, color = colors)#, , fill_alpha=1) # linewidth=0,
-#p.circle(x="x", y="y", source=source, size=7, color="color", line_color=None, fill_alpha="alpha")
-    p2 = figure(title="DM vs time", x_axis_label='time', y_axis_label='DM',plot_width=width, plot_height=height, tools = TOOLS)
-    p2.circle(x='time',y='dm', size='snr', line_width = 1, color = 'colors', fill_alpha=0.3, source=source) # linewidth=0,
-    hover = p2.select(dict(type=HoverTool))
-    hover.tooltips = [("m", "@m"), ("l", "@l"), ("time", "@time"), ("DM", "@dm"), ("SNR", "@snr")]
-
-
-    p3 = figure(title="DM vs l", x_axis_label='l', y_axis_label='DM',plot_width=width, plot_height=height, tools = TOOLS)
-    p3.circle(x='l',y='dm', size='snr', line_width = 1, color = 'colors', fill_alpha=0.3, source=source) # linewidth=0,
-    hover = p3.select(dict(type=HoverTool))
-    hover.tooltips = [("m", "@m"), ("l", "@l"), ("time", "@time"), ("DM", "@dm"), ("SNR", "@snr")]
-
-
-    p4 = figure(title="time vs l", x_axis_label='l', y_axis_label='time',plot_width=width, plot_height=height, tools = TOOLS)
-    p4.circle(x='l',y='time', size='snr', line_width = 1, color = 'colors', fill_alpha=0.3, source=source) # linewidth=0,
-    hover = p4.select(dict(type=HoverTool))
-    hover.tooltips = [("m", "@m"), ("l", "@l"), ("time", "@time"), ("DM", "@dm"), ("SNR", "@snr")]
-
-
-# show the results
-    show(column(row(p,p2),row(p3,p4)))

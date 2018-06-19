@@ -8,8 +8,8 @@ import os
 import numpy as np
 from numpy.lib.recfunctions import append_fields
 from collections import OrderedDict
-import matplotlib
-matplotlib.use('Agg')
+import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from rfpipe import util, version, fileLock, state
@@ -17,6 +17,7 @@ from bokeh.plotting import ColumnDataSource, Figure, save, output_file
 from bokeh.models import HoverTool
 from bokeh.models import Row
 from collections import OrderedDict
+import hdbscan
 
 import logging
 logger = logging.getLogger(__name__)
@@ -331,71 +332,120 @@ def make_candcollection(st, **kwargs):
     return candcollection
 
 
-def cluster_candidates_new(candcollection, plot_bokeh=False):
-    """Perform density based clustering on candidates using HDBSCAN
-    parameters used for clustering: dm, time, l,m
+def cluster_candidates(cc, min_cluster_size=5,
+                       returnclusterer=False):
+    """ Perform density based clustering on candidates using HDBSCAN
+    parameters used for clustering: dm, time, l,m.
+    Returns label for each row in candcollection.
     """
+
+    if len(cc):
+        candl = cc.candl
+        candm = cc.candm
+        npixx = cc.state.npixx
+        npixy = cc.state.npixy
+        uvres = cc.state.uvres
+
+        peakx_ind, peaky_ind = cc.state.calcpix(candl, candm, npixx, npixy, uvres)
+
+        dm_ind = cc.array[u'dmind']
+        timearr_ind = cc.array[u'integration']  #time index of all the candidates
+        snr = cc.array[u'snr1']
+        dtind = cc.array[u'dtind']
+        dmarr = cc.state.dmarr
+        time_ind = np.multiply(timearr_ind, np.power(2, dtind))
+        data = np.transpose([peakx_ind, peaky_ind, dm_ind, time_ind, snr])
+
+        clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size,
+                                    min_samples=5, cluster_selection_method='eom',
+                                    allow_single_cluster=True).fit(data)
+        nclustered = np.max(clusterer.labels_ + 1)
+        nunclustered = len(np.where(clusterer.labels_ == -1)[0])
+
+        logger.info("Found {0} clustered and {1} unclustered candidates for "
+                    "min cluster size {2}"
+                    .format(nclustered, nunclustered, min_cluster_size))
+
+    #    clustered_cands = []
+    #    for labels in range(nclusters):
+    #        max_snr = np.amax(snr[clusterer.labels_ == labels])
+    #        ind_maxsnr = np.argmax(snr[clusterer.labels_ == labels])
+    #        dm_maxind = dmarr[dm_ind[ind_maxsnr]]
+    #        dt_maxind = dtind[ind_maxsnr]
+    #        integration_maxind = timearr_ind[ind_maxsnr]
+    #        l_maxind = candl[ind_maxsnr]
+    #        m_maxind = candm[ind_maxsnr]
+    #        logger.info("Returning Max SNR cand of cluster {0}: (snr:{1}, dm:{2}, dt:{3}, int:{4}, l:{5}, m:{6})"
+    #                    .format(labels, max_snr, dm_maxind, dt_maxind, integration_maxind, l_maxind, m_maxind))
+    #        clustered_cands.append((max_snr, dm_maxind, dt_maxind, integration_maxind, l_maxind, m_maxind))  #list of tuples of max snr cluster candidates       
+
+        cc.array = append_fields(cc.array, u'cluster',
+                                 clusterer.labels_.astype(np.int32),
+                                 usemask=False)
+    else:
+        clusterer = None
+
+    if returnclusterer:
+        return cc, clusterer
+    else:
+        return cc
+
+
+def plotting_bokeh(candcollection, clusterer):
+    """to be modified if needed!
+    Generates bokeh plots of various parameters for visualising clustering
+    """
+
+    from bokeh.layouts import row, column
+    import seaborn as sns
+
     cc = candcollection
-    candl = cc.candl
-    candm = cc.candm
-    npixx = cc.state.npixx
-    npixy = cc.state.npixy
-    uvres = cc.state.uvres
 
-    peakx_ind, peaky_ind = cc.state.calcpix(candl, candm, npixx, npixy, uvres)
+    color_palette = sns.color_palette('deep', np.max(clusterer.labels_) + 1) #get a color palette with number
+    cluster_colors = [color_palette[x] if x >= 0
+                      else (0.5, 0.5, 0.5)
+                      for x in clusterer.labels_]    #assigning each cluster a color, and making a list of equal length
 
-    dm_ind = cc.array[u'dmind']
-    timearr_ind = cc.array[u'integration']  #time index of all the candidates
-    snr = cc.array[u'snr1']
-    dtind = cc.array[u'dtind']
-    dmarr = cc.state.dmarr
-    time_ind = np.multiply(timearr_ind, np.power(2, dtind))
-    data = np.transpose([peakx_ind, peaky_ind, dm_ind, time_ind, snr])
+    cluster_member_colors = [sns.desaturate(x, p) for x, p in
+                             zip(cluster_colors, clusterer.probabilities_)]
 
-    min_cluster_size = 10
-    clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size,
-                                min_samples=5, cluster_selection_method='eom',
-                                allow_single_cluster=True).fit(data)
-    nclusters = np.max(clusterer.labels_ + 1)
+    cluster_colors = list(map(mpl.colors.rgb2hex, cluster_member_colors)) #converting sns colors to hex for bokeh
 
-    logger.info("Number of clusters formed with min cluster size {0} is {1}"
-                .format(min_cluster_size, nclusters))
+    width = 450
+    height = 350
+    output_notebook()
 
-    clustered_cands = []
-    for labels in range(nclusters):
-        max_snr = np.amax(snr[clusterer.labels_ == labels])
-        ind_maxsnr = np.argmax(snr[clusterer.labels_ == labels])
-        dm_maxind = dmarr[dm_ind[ind_maxsnr]]
-        dt_maxind = dtind[ind_maxsnr]
-        integration_maxind = timearr_ind[ind_maxsnr]
-        l_maxind = candl[ind_maxsnr]
-        m_maxind = candm[ind_maxsnr]
-        logger.info("Returning Max SNR cand of cluster {0}: (snr:{1}, dm:{2}, dt:{3}, int:{4}, l:{5}, m:{6})"
-                    .format(labels, max_snr, dm_maxind, dt_maxind, integration_maxind, l_maxind, m_maxind))
-        clustered_cands.append((max_snr, dm_maxind, dt_maxind, integration_maxind, l_maxind, m_maxind))  #list of tuples of max snr cluster candidates       
+    TOOLS = 'crosshair, box_zoom, reset, box_select, tap, hover, wheel_zoom'
+#data = dict(l= peakx_ind, m= peaky_ind, dm= dm_ind, time= time_ind, snr= snr, colors = cluster_colors)
+    data = dict(l= candl, m= candm, dm= canddm, time= time_ind, snr= snr, colors = cluster_colors)
+    source=ColumnDataSource(data=data)
 
-    return clusterer, clustered_cands
-#    if (plot_bokeh == True):
-#        plotting_bokeh(cc,clusterer)
-#    return clusterer, clustered_cands    
+    p = figure(title="m vs l", x_axis_label='l', y_axis_label='m',plot_width=width, plot_height=height, tools = TOOLS)
+    p.circle(x='l',y='m', size='snr', line_width = 1, color = 'colors', fill_alpha=0.3, source = source) # linewidth=0,
+#p.circle(x=df.l,y=df.m, size=5, line_width = 1, color = cluster_colors, fill_alpha=0.5) # linewidth=0,
+    hover = p.select(dict(type=HoverTool))
+    hover.tooltips = [("m", "@m"), ("l", "@l"), ("time", "@time"), ("DM", "@dm"), ("SNR", "@snr")]
+
+#p.circle(x,y, size=5, line_width = 1, color = colors)#, , fill_alpha=1) # linewidth=0,
+#p.circle(x="x", y="y", source=source, size=7, color="color", line_color=None, fill_alpha="alpha")
+    p2 = figure(title="DM vs time", x_axis_label='time', y_axis_label='DM',plot_width=width, plot_height=height, tools = TOOLS)
+    p2.circle(x='time',y='dm', size='snr', line_width = 1, color = 'colors', fill_alpha=0.3, source=source) # linewidth=0,
+    hover = p2.select(dict(type=HoverTool))
+    hover.tooltips = [("m", "@m"), ("l", "@l"), ("time", "@time"), ("DM", "@dm"), ("SNR", "@snr")]
+
+    p3 = figure(title="DM vs l", x_axis_label='l', y_axis_label='DM',plot_width=width, plot_height=height, tools = TOOLS)
+    p3.circle(x='l',y='dm', size='snr', line_width = 1, color = 'colors', fill_alpha=0.3, source=source) # linewidth=0,
+    hover = p3.select(dict(type=HoverTool))
+    hover.tooltips = [("m", "@m"), ("l", "@l"), ("time", "@time"), ("DM", "@dm"), ("SNR", "@snr")]
+
+    p4 = figure(title="time vs l", x_axis_label='l', y_axis_label='time',plot_width=width, plot_height=height, tools = TOOLS)
+    p4.circle(x='l',y='time', size='snr', line_width = 1, color = 'colors', fill_alpha=0.3, source=source) # linewidth=0,
+    hover = p4.select(dict(type=HoverTool))
+    hover.tooltips = [("m", "@m"), ("l", "@l"), ("time", "@time"), ("DM", "@dm"), ("SNR", "@snr")]
 
 
-def cluster_candidates(candcollection):
-    """ Use candidate properties to find clusters of candidates from a single event.
-    Clustering based largely on integration, dm, dt, l, m.
-    Returns a subset candcollection that are represenatative of each cluster.
-    TODO: better to return all of input candcollection with extra column of cluster id?
-    """
-
-    logger.warn("test version of clustering")
-
-    # TODO: replace with DBSCAN
-    clusters = np.ones(len(candcollection), dtype=np.int32)
-
-    candcollection.array = append_fields(candcollection.array, u'cluster',
-                                         clusters, usemask=False)
-
-    return candcollection
+# show the results
+    show(column(row(p, p2), row(p3, p4)))
 
 
 def save_cands(st, candcollection=None, canddata=None):

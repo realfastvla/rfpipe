@@ -661,8 +661,8 @@ class State(object):
     def calcpix(candl, candm, npixx, npixy, uvres):
         """Convert from candidate l,m to x,y pixel number
         """
-        peakx = int(npixx/2. - candl*(npixx*uvres))
-        peaky = int(npixy/2. - candm*(npixy*uvres))
+        peakx = np.round(npixx/2. - candl*(npixx*uvres)).astype(int)
+        peaky = np.round(npixy/2. - candm*(npixy*uvres)).astype(int)
         return peakx, peaky
 
     def get_segmenttime_string(self, segment):
