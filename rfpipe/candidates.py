@@ -291,7 +291,7 @@ def canddata_feature(canddata, feature):
 
 
 def make_candcollection(st, **kwargs):
-    """ Construct a minimal candcollection needed to do clustering.
+    """ Construct a candcollection with columns set by keywords.
     Minimal cc has a candloc (segment, int, dmind, dtind, beamnum).
     Can also provide features as keyword/value pairs.
     keyword is the name of the column (e.g., "l1", "snr")
@@ -370,8 +370,8 @@ def cluster_candidates_new(candcollection, plot_bokeh=False):
         l_maxind = candl[ind_maxsnr]
         m_maxind = candm[ind_maxsnr]
         logger.info("Returning Max SNR cand of cluster {0}: (snr:{1}, dm:{2}, dt:{3}, int:{4}, l:{5}, m:{6})"
-                    .format(labels, max_snr,dm_maxind, dt_maxind, integration_maxind, l_maxind, m_maxind))
-        clustered_cands.append((max_snr,dm_maxind, dt_maxind, integration_maxind, l_maxind, m_maxind))  #list of tuples of max snr cluster candidates       
+                    .format(labels, max_snr, dm_maxind, dt_maxind, integration_maxind, l_maxind, m_maxind))
+        clustered_cands.append((max_snr, dm_maxind, dt_maxind, integration_maxind, l_maxind, m_maxind))  #list of tuples of max snr cluster candidates       
 
     return clusterer, clustered_cands
 #    if (plot_bokeh == True):

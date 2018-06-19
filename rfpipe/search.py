@@ -132,6 +132,12 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
             return candidates.CandCollection(prefs=st.prefs,
                                              metadata=st.metadata)
 
+    # place to hold intermediate result lists
+    canddict = {}
+    canddict['candloc'] = []
+    for feat in st.features:
+        canddict[feat] = []
+
     canddatalist = []
     for dtind in range(len(st.dtarr)):
         for dmind in range(len(st.dmarr)):
@@ -156,6 +162,8 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                                 st.npixy, st.uvres, devicenum))
 
             for i in integrations:
+                candloc = (segment, integrations[i], dmind, dtind, beamnum)
+
                 # grid and FFT
                 grid.operate(vis_raw, vis_grid, i)
                 image.operate(vis_grid, img_grid)
@@ -163,40 +171,34 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                 # calc snr
                 stats = image.stats(img_grid)
                 if stats['rms'] != 0.:
-                    peak_snr = stats['max']/stats['rms']
+                    snr1 = stats['max']/stats['rms']
+                    immax1 = stats['max']
                     # TODO: add lm calc to rfgpu
-                    # l, m = stats['peak_l'], stats['peak_m']
+                    # l1, m1 = stats['peak_l'], stats['peak_m']
                 else:
                     peak_snr = 0.
 
-                # TODO: collect candlocs/snr and close loops here to find peaks
-                #       then return to create canddata per peak or island
-
-                # threshold image on GPU and optionally save it
+                # threshold image
                 if peak_snr > st.prefs.sigma_image1:
-                    img_grid.d2h()  # TODO: implement l,m and phasing on GPU
+                    # TODO: implement peak l,m
+                    img_grid.d2h()
                     img_data = np.fft.fftshift(img_grid.data)  # shift zero pixel in middle
-                    l, m = st.pixtolm(np.where(img_data == img_data.max()))
-                    candloc = (segment, i, dmind, dtind, beamnum)
-                    data_corr = dedisperseresample(data, delay,
-                                                   st.dtarr[dtind],
-                                                   parallel=st.prefs.nthread > 1)
+                    l1, m1 = st.pixtolm(np.where(img_data == img_data.max()))
 
                     if st.prefs.searchtype == 'image':
-                        logger.info("Got one! SNR {0:.1f} candidate at {1} and (l,m) = ({2},{3})"
-                                    .format(peak_snr, candloc, l, m))
-
-                        data_corr = data_corr[max(0, i-st.prefs.timewindow//2):
-                                              min(i+st.prefs.timewindow//2,
-                                              len(data))]
-                        util.phase_shift(data_corr, uvw, l, m)
-                        data_corr = data_corr.mean(axis=1)
-                        canddatalist.append(candidates.CandData(state=st,
-                                                                loc=candloc,
-                                                                image=img_data,
-                                                                data=data_corr))
+                        logger.info("Got one! SNR1 {0:.1f} candidate at {1} and (l, m) = ({2},{3})"
+                                    .format(snr1, candloc, l1, m1))
+                        canddict['candloc'].append(candloc)
+                        canddict['l1'].append(l1)
+                        canddict['m1'].append(m1)
+                        canddict['snr1'].append(snr1)
+                        canddict['immax1'].append(immax1)
 
                     elif st.prefs.searchtype == 'imagek':
+                        # TODO: implement phasing on GPU
+                        data_corr = dedisperseresample(data, delay,
+                                                       st.dtarr[dtind],
+                                                       parallel=st.prefs.nthread > 1)
                         spec = data_corr.take([i], axis=0)
                         util.phase_shift(spec, uvw, l, m)
                         spec = spec[0].real.mean(axis=2).mean(axis=0)
@@ -211,18 +213,13 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                         snrtot = (snrk**2 + peak_snr**2)**0.5
                         if snrtot > (st.prefs.sigma_kalman**2 + st.prefs.sigma_image1**2)**0.5:
                             logger.info("Got one! SNR1 {0:.1f} and SNRk {1:.1f} candidate at {2} and (l,m) = ({3},{4})"
-                                        .format(peak_snr, snrk, candloc, l, m))
-
-                            data_corr = data_corr[max(0, i-st.prefs.timewindow//2):
-                                                  min(i+st.prefs.timewindow//2,
-                                                  len(data))]
-                            util.phase_shift(data_corr, uvw, l, m)
-                            data_corr = data_corr.mean(axis=1)
-                            canddatalist.append(candidates.CandData(state=st,
-                                                                    loc=candloc,
-                                                                    image=img_data,
-                                                                    data=data_corr,
-                                                                    snrk=snrk))
+                                        .format(peak_snr, snrk, candloc, l1, m1))
+                            canddict['candloc'].append(candloc)
+                            canddict['l1'].append(l1)
+                            canddict['m1'].append(m1)
+                            canddict['snr1'].append(peak_snr)
+                            canddict['immax1'].append(immax1)
+                            canddict['snrk'].append(snrk)
                     elif st.prefs.searchtype == 'armkimage':
                         raise NotImplementedError
                     elif st.prefs.searchtype == 'armk':
@@ -231,21 +228,15 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                         logger.warn("searchtype {0} not recognized"
                                     .format(st.prefs.searchtype))
 
-                    # TODO: add safety against triggering return of all images
-                    if len(canddatalist)*bytespercd/1000**3 > st.prefs.memory_limit:
-                        logger.info("Accumulated CandData size exceeds "
-                                    "memory limit of {0:.1f}. "
-                                    "Running calc_features..."
-                                    .format(st.prefs.memory_limit))
-                        candcollection += candidates.calc_features(canddatalist)
-                        canddatalist = []
+    cc0 = candidates.make_candcollection(st, **canddict)
+    logger.info("First pass found {0} candidates in seg {1}."
+                .format(len(cc0), segment))
 
-    candcollection += candidates.calc_features(canddatalist)
+    # find clusters and save/plot for peak of each cluster
+    cc1 = candidates.cluster_candidates(cc0)  # adds cluster field to cc0
+    calc_cluster_features(cc1, data)
 
-    logger.info("{0} candidates returned for seg {1}"
-                .format(len(candcollection), segment))
-
-    return candcollection
+    return cc1
 
 
 def dedisperse_search_fftw(st, segment, data, wisdom=None):
