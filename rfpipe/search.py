@@ -401,19 +401,19 @@ def calc_cluster_features(candcollection, data, wisdom=None):
     """
 
     if len(candcollection):
-        assert b'cluster' in candcollection.array.dtype.fields
-        clusters = np.unique(candcollection.array[b'cluster'].astype(int))
+        assert u'cluster' in candcollection.array.dtype.fields
+        clusters = np.unique(candcollection.array[u'cluster'].astype(int))
 
         st = candcollection.state
         candlocs = candcollection.locs
-        ls = candcollection.array[b'l1']
-        ms = candcollection.array[b'm1']
+        ls = candcollection.array[u'l1']
+        ms = candcollection.array[u'm1']
 
         for cluster in clusters:
             # get max SNR of cluster
             clusterinds = np.where(cluster == clusters)[0]
-            maxind = np.where(candcollection.array[b'snr1'] ==
-                              candcollection.array[b'snr1'][clusterinds].max())[0][0]
+            maxind = np.where(candcollection.array[u'snr1'] ==
+                              candcollection.array[u'snr1'][clusterinds].max())[0][0]
             # TODO: check on best way to find max SNR with kalman, etc
             candloc = candlocs[maxind]
 
