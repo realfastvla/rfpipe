@@ -1,5 +1,5 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
-from builtins import bytes, dict, object, range, map, input #, str (breaks structured arrays)
+from builtins import bytes, dict, object, range, map, input, str
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
@@ -115,7 +115,7 @@ def oldcands_readone(candsfile, scan=None):
     print(st.features, st.prefs.searchtype)
     fields = [str(ff) for ff in st.search_dimensions + st.features]
     types = [str(tt) for tt in len(st.search_dimensions)*['<i4'] + len(st.features)*['<f4']]
-    dtype = list(zip(fields, types))
+    dtype = np.dtype({'names': fields, 'formats': types})
     features = np.zeros(len(loc), dtype=dtype)
     for i in range(len(loc)):
         features[i] = tuple(list(loc[i]) + list(prop[i]))

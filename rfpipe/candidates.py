@@ -1,10 +1,11 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
-from builtins import bytes, dict, object, range, map, input #, str (breaks structured arrays)
+from builtins import bytes, dict, object, range, map, input, str
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
 import pickle
 import os
+import sys
 import numpy as np
 from numpy.lib.recfunctions import append_fields
 from collections import OrderedDict
@@ -315,7 +316,8 @@ def make_candcollection(st, **kwargs):
         fields = [str(ff) for ff in st.search_dimensions + tuple(features)]
         types = [str(tt)
                  for tt in len(st.search_dimensions)*['<i4'] + nfeat*['<f4']]
-        dtype = list(zip(fields, types))
+
+        dtype = np.dtype({'names': fields, 'formats': types})
         array = np.zeros(len(candlocs), dtype=dtype)
         for i in range(len(candlocs)):
             ff = list(candlocs[i])
@@ -391,6 +393,7 @@ def cluster_candidates(cc, min_cluster_size=5,
         clusterer = None
         labels = -1*np.ones(len(cc), dtype=np.int32)
 
+    # TODO: rebuild array with new col or accept broken python 2 or create cc with 'cluster' set to -1
     cc.array = append_fields(cc.array, 'cluster', labels, usemask=False)
 
     if returnclusterer:
