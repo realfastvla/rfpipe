@@ -416,12 +416,13 @@ def calc_cluster_features(candcollection, data, wisdom=None):
         for cluster in unique_clusters:
             # get max SNR of cluster
             clusterinds = np.where(cluster == clusters)[0]
-            logger.info("Getting max SNR for cluster {0} with {1} candidates"
-                        .format(cluster, len(clusterinds)))
             maxsnr = candcollection.array[u'snr1'][clusterinds].max()
             maxind = np.where(candcollection.array[u'snr1'] == maxsnr)[0][0]
             # TODO: check on best way to find max SNR with kalman, etc
             candloc = candlocs[maxind]
+
+            logger.info("Cluster {0} has {1} candidates and max SNR {2} at {3}"
+                        .format(cluster, len(clusterinds), maxsnr, candloc))
 
             (segment, integration, dmind, dtind, beamnum) = candloc
             delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],

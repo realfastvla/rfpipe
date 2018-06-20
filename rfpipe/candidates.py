@@ -342,7 +342,7 @@ def cluster_candidates(cc, min_cluster_size=5,
     if len(cc) > 1:
         if min_cluster_size > len(cc):
             logger.info("Setting min_cluster_size to number of cands {0}".format(len(cc)))
-            min_cluseter_size = len(cc)
+            min_cluster_size = len(cc)
         candl = cc.candl
         candm = cc.candm
         npixx = cc.state.npixx
