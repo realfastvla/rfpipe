@@ -1,5 +1,5 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
-from builtins import bytes, dict, object, range, map, input#, str
+from builtins import bytes, dict, object, range, map, input#, str (numba signature bug)
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
@@ -401,17 +401,19 @@ def calc_cluster_features(candcollection, data, wisdom=None):
 
     if len(candcollection):
         assert u'cluster' in candcollection.array.dtype.fields
-        clusters = np.unique(candcollection.array[u'cluster'].astype(int)).tolist()
+        clusters = candcollection.array[u'cluster'].astype(int)
+        unique_clusters = np.unique(clusters).tolist()
+
         # TODO: decide how to deal with unclustered candidates
-        if -1 in clusters:
-            clusters.remove(-1)
+        if -1 in unique_clusters:
+            unique_clusters.remove(-1)
 
         st = candcollection.state
         candlocs = candcollection.locs
         ls = candcollection.array[u'l1']
         ms = candcollection.array[u'm1']
 
-        for cluster in clusters:
+        for cluster in unique_clusters:
             # get max SNR of cluster
             clusterinds = np.where(cluster == clusters)[0]
             logger.info("Getting max SNR for cluster {0} with {1} candidates"
