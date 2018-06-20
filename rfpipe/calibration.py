@@ -1,5 +1,5 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
-from builtins import bytes, dict, object, range, map, input, str
+from builtins import bytes, dict, object, range, map, input #, str (breaks structured arrays)
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
@@ -109,7 +109,7 @@ def parseGN(telcalfile):
     # TODO: assumes dual pol. update to full pol
     polarization = [('C' in i0 or 'D' in i0) for i0 in ifid]
     fields = [str(ff) for ff in ['mjd', 'ifid', 'skyfreq', 'antnum', 'polarization', 'source', 'amp', 'phase', 'delay', 'flagged']]
-    types = [u'<f8', u'U4', u'<f8', u'i8', u'i8', u'U20', u'<f8', u'<f8', u'<f8', u'?']
+    types = ['<f8', 'U4', '<f8', 'i8', 'i8', 'U20', '<f8', '<f8', '<f8', '?']
     dtype = list(zip(fields, types))
     if (len(mjd) == len(phase)) and (len(phase) > 0):
         sols = np.zeros(len(mjd), dtype=dtype)

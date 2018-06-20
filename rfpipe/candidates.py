@@ -1,5 +1,5 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
-from builtins import bytes, dict, object, range, map, input, str
+from builtins import bytes, dict, object, range, map, input #, str (breaks structured arrays)
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
@@ -133,7 +133,7 @@ class CandCollection(object):
     @property
     def segment(self):
         if len(self.array):
-            segments = np.unique(self.array[u'segment'])
+            segments = np.unique(self.array['segment'])
             if len(segments) == 1:
                 return int(segments[0])
             elif len(segments) > 1:
@@ -148,8 +148,8 @@ class CandCollection(object):
     @property
     def locs(self):
         if len(self.array):
-            return self.array[[u'segment', u'integration', u'dmind', u'dtind',
-                               u'beamnum']].tolist()
+            return self.array[['segment', 'integration', 'dmind', 'dtind',
+                               'beamnum']].tolist()
         else:
             return np.array([], dtype=int)
 
@@ -159,7 +159,7 @@ class CandCollection(object):
         """
 
 #        dt_inf = util.calc_delay2(1e5, self.state.freq.max(), self.canddm)
-        t_top = np.array(self.state.segmenttimes)[self.array[u'segment'], 0] + (self.array[u'integration']*self.state.inttime)/(24*3600)
+        t_top = np.array(self.state.segmenttimes)[self.array['segment'], 0] + (self.array['integration']*self.state.inttime)/(24*3600)
 
         return t_top
 
@@ -169,7 +169,7 @@ class CandCollection(object):
         """
 
         dmarr = np.array(self.state.dmarr)
-        return dmarr[self.array[u'dmind']]
+        return dmarr[self.array['dmind']]
 
     @property
     def canddt(self):
@@ -177,7 +177,7 @@ class CandCollection(object):
         """
 
         dtarr = np.array(self.state.dtarr)
-        return self.metadata.inttime*dtarr[self.array[u'dtind']]
+        return self.metadata.inttime*dtarr[self.array['dtind']]
 
     @property
     def candl(self):
@@ -185,7 +185,7 @@ class CandCollection(object):
         """
         #  beamnum not yet supported
 
-        return self.array[u'l1']
+        return self.array['l1']
 
     @property
     def candm(self):
@@ -193,7 +193,7 @@ class CandCollection(object):
         """
         #  beamnum not yet supported
 
-        return self.array[u'm1']
+        return self.array['m1']
 
     @property
     def state(self):
@@ -245,7 +245,7 @@ def calc_features(canddatalist):
     # make plot for peak snr in collection
     # TODO: think about candidate clustering
     if st.prefs.savecands and len(candcollection.array):
-        snrs = candcollection.array[u'snr1'].flatten()
+        snrs = candcollection.array['snr1'].flatten()
         maxindex = np.argmax(snrs)
         # save plot and canddata at peaksnr
         candplot(canddatalist[maxindex], snrs=snrs)
@@ -314,7 +314,7 @@ def make_candcollection(st, **kwargs):
 
         fields = [str(ff) for ff in st.search_dimensions + tuple(features)]
         types = [str(tt)
-                 for tt in len(st.search_dimensions)*[u'<i4'] + nfeat*[u'<f4']]
+                 for tt in len(st.search_dimensions)*['<i4'] + nfeat*['<f4']]
         dtype = list(zip(fields, types))
         array = np.zeros(len(candlocs), dtype=dtype)
         for i in range(len(candlocs)):
@@ -352,10 +352,10 @@ def cluster_candidates(cc, min_cluster_size=5,
         peakx_ind, peaky_ind = cc.state.calcpix(candl, candm, npixx, npixy,
                                                 uvres)
 
-        dm_ind = cc.array[u'dmind']
-        timearr_ind = cc.array[u'integration']  # time index of all the candidates
-        snr = cc.array[u'snr1']
-        dtind = cc.array[u'dtind']
+        dm_ind = cc.array['dmind']
+        timearr_ind = cc.array['integration']  # time index of all the candidates
+        snr = cc.array['snr1']
+        dtind = cc.array['dtind']
         dmarr = cc.state.dmarr
         time_ind = np.multiply(timearr_ind,
                                np.power(2,
@@ -391,7 +391,7 @@ def cluster_candidates(cc, min_cluster_size=5,
         clusterer = None
         labels = -1*np.ones(len(cc), dtype=np.int32)
 
-    cc.array = append_fields(cc.array, u'cluster', labels, usemask=False)
+    cc.array = append_fields(cc.array, 'cluster', labels, usemask=False)
 
     if returnclusterer:
         return cc, clusterer
@@ -589,15 +589,15 @@ def makesummaryplot(candsfile):
     m1 = []
     for cc in iter_cands(candsfile):
         time.append(cc.candmjd*(24*3600))
-        segment.append(cc.array[u'segment'])
-        integration.append(cc.array[u'integration'])
-        dmind.append(cc.array[u'dmind'])
-        dtind.append(cc.array[u'dtind'])
-        snr.append(cc.array[u'snr1'])
+        segment.append(cc.array['segment'])
+        integration.append(cc.array['integration'])
+        dmind.append(cc.array['dmind'])
+        dtind.append(cc.array['dtind'])
+        snr.append(cc.array['snr1'])
         dm.append(cc.canddm)
         dt.append(cc.canddt)
-        l1.append(cc.array[u'l1'])
-        m1.append(cc.array[u'm1'])
+        l1.append(cc.array['l1'])
+        m1.append(cc.array['m1'])
 
     time = np.concatenate(time)
     time = time - time.min()

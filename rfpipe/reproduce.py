@@ -1,5 +1,5 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
-from builtins import bytes, dict, object, range, map, input, str
+from builtins import bytes, dict, object, range, map, input #, str (breaks structured arrays)
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
@@ -73,7 +73,7 @@ def oldcands_readone(candsfile, scan=None):
             logger.warn("Not sure what we've got in this here cands pkl file...")
 
     # detect merged vs nonmerged
-    if u'scan' in d['featureind']:
+    if 'scan' in d['featureind']:
         locind0 = 1
     else:
         locind0 = 0
@@ -83,9 +83,9 @@ def oldcands_readone(candsfile, scan=None):
         assert locind0 == 0, "Set scan if candsfile has multiple scans."
 
     inprefs = preferences.oldstate_preferences(d, scan=scan)
-    inprefs.pop(u'gainfile')
-    inprefs.pop(u'workdir')
-    inprefs.pop(u'fileroot')
+    inprefs.pop('gainfile')
+    inprefs.pop('workdir')
+    inprefs.pop('fileroot')
     inprefs['segmenttimes'] = inprefs['segmenttimes']
     sdmfile = os.path.basename(d['filename'])
 
