@@ -20,7 +20,7 @@ from collections import OrderedDict
 
 import logging
 logger = logging.getLogger(__name__)
-
+#killroy was here
 
 class CandData(object):
     """ Object that bundles data from search stage to candidate visualization.
