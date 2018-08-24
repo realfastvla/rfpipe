@@ -1124,8 +1124,9 @@ def kalman_prepare_coeffs(spec_std, sig_ts=None, n_trial=10000):
     """
 
     # calculate sig_ts
+    medstd = np.median(spec_std)
     if sig_ts is None:
-        sig_ts = np.array([x*np.median(spec_std) for x in [0.3, 0.1, 0.03, 0.01]])
+        sig_ts = np.array([x*medstd for x in [0.3, 0.1, 0.03, 0.01]])
     elif isinstance(sig_ts, float):
         sig_ts = np.array([sig_ts])
     elif isinstance(sig_ts, list):
@@ -1148,7 +1149,7 @@ def kalman_prepare_coeffs(spec_std, sig_ts=None, n_trial=10000):
     elif len(np.where(spec_std == 0.)[0]) > 0:
         logger.info("Replacing {0} noise spectrum channels with median noise"
                     .format(len(np.where(spec_std == 0.)[0])))
-        spec_std = np.where(spec_std == 0, np.median(spec_std), spec_std)
+        spec_std = np.where(spec_std == 0., medstd, spec_std)
 
     coeffs = []
     for sig_t in sig_ts:
