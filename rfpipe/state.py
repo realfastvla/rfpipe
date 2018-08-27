@@ -558,7 +558,9 @@ class State(object):
     @property
     def gainfile(self):
         """ Calibration file (telcal) from preferences or found from ".GN"
-        suffix
+        suffix.
+        Value of None means none will be applied.
+        Any other value will attempt to apply. Bad files will result in blanked data.
         """
 
         if self.prefs.gainfile is None:

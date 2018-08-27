@@ -27,7 +27,7 @@ def apply_telcal(st, data, threshold=1/50., onlycomplete=True, sign=+1):
         return data
     else:
         if (not os.path.exists(st.gainfile)) or (not os.path.isfile(st.gainfile)):
-            logger.warn('{0} is not a telcal file. No {1} calibration to apply.'
+            logger.warn('{0} is not a valid telcal file. Zeroed {1} calibration applied.'
                         .format(st.gainfile, ['', 'forward', 'inverse'][sign]))
             gaindelay = np.zeros_like(data)
         else:
