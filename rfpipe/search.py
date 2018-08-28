@@ -178,7 +178,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                 if snr1 > st.prefs.sigma_image1:
                     xpeak = stats['xpeak']
                     ypeak = stats['ypeak']
-                    l1, m1 = st.pixtolm(xpeak+st.npixx//2, ypeak+st.npixy//2)
+                    l1, m1 = st.pixtolm( (xpeak+st.npixx//2, ypeak+st.npixy//2) )
                     # TODO: confirm that pixels increase in same way as expected in numpy
 
                     if st.prefs.searchtype == 'image':
@@ -196,7 +196,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                                                        st.dtarr[dtind],
                                                        parallel=st.prefs.nthread > 1)
                         spec = data_corr.take([i], axis=0)
-                        util.phase_shift(spec, uvw, l, m)
+                        util.phase_shift(spec, uvw, l1, m1)
                         spec = spec[0].real.mean(axis=2).mean(axis=0)
 
                         # TODO: this significance can be biased low if averaging in long baselines that are not phased well
