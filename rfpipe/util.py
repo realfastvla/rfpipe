@@ -306,12 +306,18 @@ def find_segment_times(state):
     Solution found by iterating from fringe time to memory size that fits.
     """
 
+    logger.debug('Total memory of {0} is over limit of {1} '
+                 'with {2} segments. Searching to vis/im limits'
+                 ' of {3}/{4} GB...'
+                 .format(state.memory_total,
+                         state.prefs.memory_limit,
+                         state.nsegment, state.vismem_limit,
+                         state.immem_limit))
+
     # calculate memory limit to stop iteration
     assert state.memory_total_limit < state.prefs.memory_limit, 'memory_limit of {0} is smaller than best solution of {1}. Try setting maxdm or image memory lower.'.format(state.prefs.memory_limit, state.memory_total_limit)
 
     if state.memory_total > state.prefs.memory_limit:
-        logger.debug("Total memory is larger than memory limit."
-                     "Iterating to smaller segment size.")
         scale_nsegment = 1.
         while state.memory_total > state.prefs.memory_limit:
             scale_nsegment *= state.memory_total/float(state.prefs.memory_limit)
@@ -366,7 +372,7 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None, i=Non
                 if snr is None:
                     snr = 40.
                 # TODO: support flagged data in size calc and injection
-                sig = madtostd(data[i].real)/np.sqrt(data[i].size)
+                sig = madtostd(data[i].real)/np.sqrt(data[i].size*st.dtarr[dtind])
                 amp = snr*sig
 
         if lm is None:

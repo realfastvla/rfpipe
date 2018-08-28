@@ -6,6 +6,7 @@ from io import open
 import pickle
 import os
 import numpy as np
+from numpy.lib.recfunctions import append_fields
 from collections import OrderedDict
 import matplotlib
 matplotlib.use('Agg')
@@ -91,9 +92,9 @@ class CandCollection(object):
 
     def __repr__(self):
         if self.metadata is not None:
-            return ('CandCollection for {0}, scan {1} with {2} candidates'
+            return ('CandCollection for {0}, scan {1} with {2} candidate{3}'
                     .format(self.metadata.datasetId, self.metadata.scan,
-                            len(self)))
+                            len(self), 's'[not len(self)-1:]))
         else:
             return ('CandCollection with {0} rows'.format(len(self.array)))
 
@@ -117,6 +118,10 @@ class CandCollection(object):
                 self.array = cc.array
         return self
 
+    def __getitem__(self, key):
+        return CandCollection(array=self.array.take([key]), prefs=self.prefs,
+                              metadata=self.metadata)
+
     @property
     def scan(self):
         if self.metadata is not None:
@@ -127,7 +132,7 @@ class CandCollection(object):
     @property
     def segment(self):
         if len(self.array):
-            segments = np.unique(self.array['segment'])
+            segments = np.unique(self.array[b'segment'])
             if len(segments) == 1:
                 return int(segments[0])
             elif len(segments) > 1:
@@ -140,12 +145,19 @@ class CandCollection(object):
             return None
 
     @property
+    def locs(self):
+        if len(self.array):
+            return self.array[[b'segment', b'integration', b'dmind', b'dtind', b'beamnum']].tolist()
+        else:
+            return np.array([], dtype=int)
+
+    @property
     def candmjd(self):
         """ Candidate MJD at top of band
         """
 
 #        dt_inf = util.calc_delay2(1e5, self.state.freq.max(), self.canddm)
-        t_top = np.array(self.state.segmenttimes)[self.array['segment'], 0] + (self.array['integration']*self.state.inttime)/(24*3600)
+        t_top = np.array(self.state.segmenttimes)[self.array[b'segment'], 0] + (self.array[b'integration']*self.state.inttime)/(24*3600)
 
         return t_top
 
@@ -155,7 +167,7 @@ class CandCollection(object):
         """
 
         dmarr = np.array(self.state.dmarr)
-        return dmarr[self.array['dmind']]
+        return dmarr[self.array[b'dmind']]
 
     @property
     def canddt(self):
@@ -163,7 +175,7 @@ class CandCollection(object):
         """
 
         dtarr = np.array(self.state.dtarr)
-        return self.metadata.inttime*dtarr[self.array['dtind']]
+        return self.metadata.inttime*dtarr[self.array[b'dtind']]
 
     @property
     def candl(self):
@@ -171,7 +183,7 @@ class CandCollection(object):
         """
         #  beamnum not yet supported
 
-        return self.array['l1']
+        return self.array[b'l1']
 
     @property
     def candm(self):
@@ -179,7 +191,7 @@ class CandCollection(object):
         """
         #  beamnum not yet supported
 
-        return self.array['m1']
+        return self.array[b'm1']
 
     @property
     def state(self):
@@ -194,14 +206,14 @@ class CandCollection(object):
 
 
 def calc_features(canddatalist):
-    """ Calculates the candidate features for CandData instance(s).
+    """ Converts a canddata list into a candcollection by
+    calculating the candidate features for CandData instance(s).
     Returns structured numpy array of candidate features labels defined in
     st.search_dimensions.
     Generates png plot for peak cands, if so defined in preferences.
     """
 
     if isinstance(canddatalist, CandData):
-        logger.debug('Wrapping solo CandData object')
         canddatalist = [canddatalist]
     elif isinstance(canddatalist, list):
         if not len(canddatalist):
@@ -209,66 +221,29 @@ def calc_features(canddatalist):
     else:
         logger.warn("argument must be list of CandData object")
 
-    logger.info('Calculating features for {0} candidates.'
-                .format(len(canddatalist)))
+    logger.info('Calculating features for {0} candidate{1}.'
+                .format(len(canddatalist), 's'[not len(canddatalist)-1:]))
 
-    # TODO: generate dtype from st.features
     st = canddatalist[0].state
-    fields = [str(ff) for ff in st.search_dimensions + st.features]
-    types = [str(tt) for tt in len(st.search_dimensions)*['<i4'] + len(st.features)*['<f4']]
-    dtype = list(zip(fields, types))
-    features = np.zeros(len(canddatalist), dtype=dtype)
 
-    # TODO: restructure to make this "canddata to candcollection"
-    # which calls "minimal cc" function with more general arguments.
+    featurelists = []
+    for feature in st.features:
+        ff = []
+        for i, canddata in enumerate(canddatalist):
+            ff.append(canddata_feature(canddata, feature))
+        featurelists.append(ff)
+    candlocs = []
     for i, canddata in enumerate(canddatalist):
-        st = canddata.state
-        image = canddata.image
-        dataph = canddata.data
-#        candloc = canddata.loc
-        ff = list(canddata.loc)
+        candlocs.append(canddata_feature(canddata, 'candloc'))
 
-        # Order matters! features assembled in listed order.
-        # TODO: fill out more features
-        for feat in st.features:
-            if feat == 'snr1':
-# TODO: find good estimate for both CPU and GPU
-#                imstd = util.madtostd(image)  # outlier resistant
-                imstd = image.std()  # consistent with rfgpu
-                logger.debug('{0} {1}'.format(image.shape, imstd))
-                snrmax = image.max()/imstd
-                snrmin = image.min()/imstd
-                snr = snrmax if snrmax >= snrmin else snrmin
-                ff.append(snr)
-            elif feat == 'snrarm':
-                ff.append(canddata.snrarm)
-            elif feat == 'snrk':
-                ff.append(canddata.snrk)
-            elif feat == 'immax1':
-                if snr > 0:
-                    ff.append(image.max())
-                else:
-                    ff.append(image.min())
-            elif feat == 'l1':
-                l1, m1 = st.pixtolm(np.where(image == image.max()))
-                ff.append(float(l1))
-            elif feat == 'm1':
-                l1, m1 = st.pixtolm(np.where(image == image.max()))
-                ff.append(float(m1))
-            else:
-                print(feat)
-                raise NotImplementedError("Feature {0} calculation not ready"
-                                          .format(feat))
-
-        features[i] = tuple(ff)
-
-    candcollection = CandCollection(array=features, prefs=st.prefs,
-                                    metadata=st.metadata)
+    kwargs = dict(zip(st.features, featurelists))
+    kwargs['candloc'] = candlocs
+    candcollection = make_candcollection(st, **kwargs)
 
     # make plot for peak snr in collection
     # TODO: think about candidate clustering
     if st.prefs.savecands and len(candcollection.array):
-        snrs = candcollection.array['snr1'].flatten()
+        snrs = candcollection.array[b'snr1'].flatten()
         maxindex = np.argmax(snrs)
         # save plot and canddata at peaksnr
         candplot(canddatalist[maxindex], snrs=snrs)
@@ -277,31 +252,100 @@ def calc_features(canddatalist):
     return candcollection  # return tuple as handle on pipeline
 
 
-def make_mincc(st, candlocs, ls, ms, snrs):
-    """ Construct a minimal candcollection needed to do clustering.
-    Minimal cc has candloc (segment, int, dmind, dtind, beamnum) and (l, m).
-    candlocs, ls, ms are lists of equal length.
+def canddata_feature(canddata, feature):
+    """ Calculate a feature (or candloc) from a canddata instance.
+    feature must be name from st.features or 'candloc'.
     """
 
-    assert isinstance(candlocs, list)
-    assert len(candlocs) == len(ls)
-    assert len(ls) == len(ms)
-    assert len(ls) == len(snrs)
+    st = canddata.state
+    image = canddata.image
+    dataph = canddata.data
+    candloc = canddata.loc
 
-    fields = [str(ff) for ff in st.search_dimensions + ('l1', 'm1', 'snr')]
-    types = [str(tt) for tt in len(st.search_dimensions)*['<i4'] + 3*['<f4']]
-    dtype = list(zip(fields, types))
-    features = np.zeros(len(candlocs), dtype=dtype)
-    for i in range(len(candlocs)):
-        ff = list(candlocs[i])
-        ff.append(ls[i])
-        ff.append(ms[i])
-        features[i] = tuple(ff)
+    if feature == 'candloc':
+        return candloc
+    elif feature == 'snr1':
+# TODO: find good estimate for both CPU and GPU
+#       imstd = util.madtostd(image)  # outlier resistant
+        imstd = image.std()  # consistent with rfgpu
+        logger.debug('{0} {1}'.format(image.shape, imstd))
+        snrmax = image.max()/imstd
+#        snrmin = image.min()/imstd
+#        snr = snrmax if snrmax >= snrmin else snrmin
+        return snrmax
+    elif feature == 'snrarm':
+        return canddata.snrarm
+    elif feature == 'snrk':
+        return canddata.snrk
+    elif feature == 'immax1':
+        return image.max()
+    elif feature == 'l1':
+        l1, m1 = st.pixtolm(np.where(image == image.max()))
+        return float(l1)
+    elif feature == 'm1':
+        l1, m1 = st.pixtolm(np.where(image == image.max()))
+        return float(m1)
+    else:
+        raise NotImplementedError("Feature {0} calculation not implemented"
+                                  .format(feature))
 
-    candcollection = CandCollection(array=features, prefs=st.prefs,
-                                    metadata=st.metadata)
 
-    return CandCollection
+def make_candcollection(st, **kwargs):
+    """ Construct a minimal candcollection needed to do clustering.
+    Minimal cc has a candloc (segment, int, dmind, dtind, beamnum).
+    Can also provide features as keyword/value pairs.
+    keyword is the name of the column (e.g., "l1", "snr")
+    and the value is a list of values of equal length as candlocs.
+    """
+
+    if len(kwargs):
+        # assert 1-to-1 mapping of input lists
+        assert 'candloc' in kwargs
+        assert isinstance(kwargs['candloc'], list)
+        for v in itervalues(kwargs):
+            assert len(v) == len(kwargs['candloc'])
+
+        candlocs = kwargs['candloc']
+        features = list(kwargs.keys())  # TODO: confirm that order is ok
+        features.remove('candloc')
+        nfeat = len(features)
+
+        fields = [str(ff) for ff in st.search_dimensions + tuple(features)]
+        types = [str(tt)
+                 for tt in len(st.search_dimensions)*['<i4'] + nfeat*['<f4']]
+        dtype = list(zip(fields, types))
+        array = np.zeros(len(candlocs), dtype=dtype)
+        for i in range(len(candlocs)):
+            ff = list(candlocs[i])
+            for feature in features:
+                ff.append(kwargs[feature][i])
+
+            array[i] = tuple(ff)
+        candcollection = CandCollection(array=array, prefs=st.prefs,
+                                        metadata=st.metadata)
+    else:
+        candcollection = CandCollection(prefs=st.prefs,
+                                        metadata=st.metadata)
+
+    return candcollection
+
+
+def cluster_candidates(candcollection):
+    """ Use candidate properties to find clusters of candidates from a single event.
+    Clustering based largely on integration, dm, dt, l, m.
+    Returns a subset candcollection that are represenatative of each cluster.
+    TODO: better to return all of input candcollection with extra column of cluster id?
+    """
+
+    logger.warn("test version of clustering")
+
+    # TODO: replace with DBSCAN
+    clusters = np.ones(len(candcollection), dtype=np.int32)
+
+    candcollection.array = append_fields(candcollection.array, b'cluster',
+                                         clusters, usemask=False)
+
+    return candcollection
 
 
 def save_cands(st, candcollection=None, canddata=None):
@@ -332,9 +376,10 @@ def save_cands(st, candcollection=None, canddata=None):
             logger.info('Not saving CandData.')
 
     if candcollection is not None:
-        if st.prefs.savecands and len(candcollection.array):
-            logger.info('Saving {0} candidates to {1}.'
-                        .format(len(candcollection.array), st.candsfile))
+        if st.prefs.savecands and len(candcollection):
+            logger.info('Saving {0} candidate{1} to {2}.'
+                        .format(len(candcollection),
+                                's'[not len(candcollection)-1:], st.candsfile))
 
             try:
                 with fileLock.FileLock(st.candsfile+'.lock', timeout=10):
@@ -437,15 +482,15 @@ def makesummaryplot(candsfile):
     m1 = []
     for cc in iter_cands(candsfile):
         time.append(cc.candmjd*(24*3600))
-        segment.append(cc.array['segment'])
-        integration.append(cc.array['integration'])
-        dmind.append(cc.array['dmind'])
-        dtind.append(cc.array['dtind'])
-        snr.append(cc.array['snr1'])
+        segment.append(cc.array[b'segment'])
+        integration.append(cc.array[b'integration'])
+        dmind.append(cc.array[b'dmind'])
+        dtind.append(cc.array[b'dtind'])
+        snr.append(cc.array[b'snr1'])
         dm.append(cc.canddm)
         dt.append(cc.canddt)
-        l1.append(cc.array['l1'])
-        m1.append(cc.array['m1'])
+        l1.append(cc.array[b'l1'])
+        m1.append(cc.array[b'm1'])
 
     time = np.concatenate(time)
     time = time - time.min()
@@ -474,8 +519,8 @@ def makesummaryplot(candsfile):
     htmlfile = candsfile.replace('.pkl', '.html')
     output_file(htmlfile)
     save(combined)
-    logger.info("Saved summary plot {0} with {1} candidates"
-                .format(htmlfile, len(segment)))
+    logger.info("Saved summary plot {0} with {1} candidate{2}"
+                .format(htmlfile, len(segment), 's'[not len(segment)-1:]))
 
 
 def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
