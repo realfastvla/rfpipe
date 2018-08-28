@@ -29,6 +29,7 @@ def getsdm(*args, **kwargs):
 
     return sdm
 
+
 def phase_shift(data, uvw, dl, dm):
     """ Applies a phase shift to data for a given (dl, dm).
     """

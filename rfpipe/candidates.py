@@ -1,15 +1,16 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
-from builtins import bytes, dict, object, range, map, input#, str # not numpy/python2 compatible
+from builtins import bytes, dict, object, range, map, input, str
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
 import pickle
 import os
+import sys
 import numpy as np
 from numpy.lib.recfunctions import append_fields
 from collections import OrderedDict
-import matplotlib
-matplotlib.use('Agg')
+import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from rfpipe import util, version, fileLock, state
@@ -17,6 +18,7 @@ from bokeh.plotting import ColumnDataSource, Figure, save, output_file
 from bokeh.models import HoverTool
 from bokeh.models import Row
 from collections import OrderedDict
+import hdbscan
 
 import logging
 logger = logging.getLogger(__name__)
@@ -132,7 +134,7 @@ class CandCollection(object):
     @property
     def segment(self):
         if len(self.array):
-            segments = np.unique(self.array[b'segment'])
+            segments = np.unique(self.array['segment'])
             if len(segments) == 1:
                 return int(segments[0])
             elif len(segments) > 1:
@@ -147,7 +149,8 @@ class CandCollection(object):
     @property
     def locs(self):
         if len(self.array):
-            return self.array[[b'segment', b'integration', b'dmind', b'dtind', b'beamnum']].tolist()
+            return self.array[['segment', 'integration', 'dmind', 'dtind',
+                               'beamnum']].tolist()
         else:
             return np.array([], dtype=int)
 
@@ -157,7 +160,7 @@ class CandCollection(object):
         """
 
 #        dt_inf = util.calc_delay2(1e5, self.state.freq.max(), self.canddm)
-        t_top = np.array(self.state.segmenttimes)[self.array[b'segment'], 0] + (self.array[b'integration']*self.state.inttime)/(24*3600)
+        t_top = np.array(self.state.segmenttimes)[self.array['segment'], 0] + (self.array['integration']*self.state.inttime)/(24*3600)
 
         return t_top
 
@@ -167,7 +170,7 @@ class CandCollection(object):
         """
 
         dmarr = np.array(self.state.dmarr)
-        return dmarr[self.array[b'dmind']]
+        return dmarr[self.array['dmind']]
 
     @property
     def canddt(self):
@@ -175,7 +178,7 @@ class CandCollection(object):
         """
 
         dtarr = np.array(self.state.dtarr)
-        return self.metadata.inttime*dtarr[self.array[b'dtind']]
+        return self.metadata.inttime*dtarr[self.array['dtind']]
 
     @property
     def candl(self):
@@ -183,7 +186,7 @@ class CandCollection(object):
         """
         #  beamnum not yet supported
 
-        return self.array[b'l1']
+        return self.array['l1']
 
     @property
     def candm(self):
@@ -191,7 +194,7 @@ class CandCollection(object):
         """
         #  beamnum not yet supported
 
-        return self.array[b'm1']
+        return self.array['m1']
 
     @property
     def state(self):
@@ -243,7 +246,7 @@ def calc_features(canddatalist):
     # make plot for peak snr in collection
     # TODO: think about candidate clustering
     if st.prefs.savecands and len(candcollection.array):
-        snrs = candcollection.array[b'snr1'].flatten()
+        snrs = candcollection.array['snr1'].flatten()
         maxindex = np.argmax(snrs)
         # save plot and canddata at peaksnr
         candplot(canddatalist[maxindex], snrs=snrs)
@@ -291,7 +294,7 @@ def canddata_feature(canddata, feature):
 
 
 def make_candcollection(st, **kwargs):
-    """ Construct a minimal candcollection needed to do clustering.
+    """ Construct a candcollection with columns set by keywords.
     Minimal cc has a candloc (segment, int, dmind, dtind, beamnum).
     Can also provide features as keyword/value pairs.
     keyword is the name of the column (e.g., "l1", "snr")
@@ -313,7 +316,8 @@ def make_candcollection(st, **kwargs):
         fields = [str(ff) for ff in st.search_dimensions + tuple(features)]
         types = [str(tt)
                  for tt in len(st.search_dimensions)*['<i4'] + nfeat*['<f4']]
-        dtype = list(zip(fields, types))
+
+        dtype = np.dtype({'names': fields, 'formats': types})
         array = np.zeros(len(candlocs), dtype=dtype)
         for i in range(len(candlocs)):
             ff = list(candlocs[i])
@@ -330,22 +334,72 @@ def make_candcollection(st, **kwargs):
     return candcollection
 
 
-def cluster_candidates(candcollection):
-    """ Use candidate properties to find clusters of candidates from a single event.
-    Clustering based largely on integration, dm, dt, l, m.
-    Returns a subset candcollection that are represenatative of each cluster.
-    TODO: better to return all of input candcollection with extra column of cluster id?
+def cluster_candidates(cc, min_cluster_size=5,
+                       returnclusterer=False):
+    """ Perform density based clustering on candidates using HDBSCAN
+    parameters used for clustering: dm, time, l,m.
+    Returns label for each row in candcollection.
     """
 
-    logger.warn("test version of clustering")
+    if len(cc) > 1:
+        if min_cluster_size > len(cc):
+            logger.info("Setting min_cluster_size to number of cands {0}".format(len(cc)))
+            min_cluster_size = len(cc)
+        candl = cc.candl
+        candm = cc.candm
+        npixx = cc.state.npixx
+        npixy = cc.state.npixy
+        uvres = cc.state.uvres
 
-    # TODO: replace with DBSCAN
-    clusters = np.ones(len(candcollection), dtype=np.int32)
+        peakx_ind, peaky_ind = cc.state.calcpix(candl, candm, npixx, npixy,
+                                                uvres)
 
-    candcollection.array = append_fields(candcollection.array, b'cluster',
-                                         clusters, usemask=False)
+        dm_ind = cc.array['dmind']
+        timearr_ind = cc.array['integration']  # time index of all the candidates
+        snr = cc.array['snr1']
+        dtind = cc.array['dtind']
+        dmarr = cc.state.dmarr
+        time_ind = np.multiply(timearr_ind,
+                               np.power(2,
+                                        np.array(cc.state.dtarr).take(dtind)))
+        data = np.transpose([peakx_ind, peaky_ind, dm_ind, time_ind, snr])
 
-    return candcollection
+        clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size,
+                                    min_samples=2,
+                                    cluster_selection_method='eom',
+                                    allow_single_cluster=True).fit(data)
+        nclustered = np.max(clusterer.labels_ + 1)
+        nunclustered = len(np.where(clusterer.labels_ == -1)[0])
+
+        logger.info("Found {0} clustered and {1} unclustered candidates for "
+                    "min cluster size {2}"
+                    .format(nclustered, nunclustered, min_cluster_size))
+
+    #    clustered_cands = []
+    #    for labels in range(nclusters):
+    #        max_snr = np.amax(snr[clusterer.labels_ == labels])
+    #        ind_maxsnr = np.argmax(snr[clusterer.labels_ == labels])
+    #        dm_maxind = dmarr[dm_ind[ind_maxsnr]]
+    #        dt_maxind = dtind[ind_maxsnr]
+    #        integration_maxind = timearr_ind[ind_maxsnr]
+    #        l_maxind = candl[ind_maxsnr]
+    #        m_maxind = candm[ind_maxsnr]
+    #        logger.info("Returning Max SNR cand of cluster {0}: (snr:{1}, dm:{2}, dt:{3}, int:{4}, l:{5}, m:{6})"
+    #                    .format(labels, max_snr, dm_maxind, dt_maxind, integration_maxind, l_maxind, m_maxind))
+    #        clustered_cands.append((max_snr, dm_maxind, dt_maxind, integration_maxind, l_maxind, m_maxind))  #list of tuples of max snr cluster candidates       
+
+        labels = clusterer.labels_.astype(np.int32)
+    else:
+        clusterer = None
+        labels = -1*np.ones(len(cc), dtype=np.int32)
+
+    # TODO: rebuild array with new col or accept broken python 2 or create cc with 'cluster' set to -1
+    cc.array = append_fields(cc.array, 'cluster', labels, usemask=False)
+
+    if returnclusterer:
+        return cc, clusterer
+    else:
+        return cc
 
 
 def save_cands(st, candcollection=None, canddata=None):
@@ -464,6 +518,62 @@ def iter_noise(noisefile):
 
 ### bokeh summary plot
 
+def cluster_plotting_bokeh(candcollection, clusterer):
+    """to be modified if needed!
+    Generates bokeh plots of various parameters for visualising clustering
+    """
+
+    from bokeh.layouts import row, column
+    import seaborn as sns
+
+    cc = candcollection
+
+    color_palette = sns.color_palette('deep', np.max(clusterer.labels_) + 1) #get a color palette with number
+    cluster_colors = [color_palette[x] if x >= 0
+                      else (0.5, 0.5, 0.5)
+                      for x in clusterer.labels_]    #assigning each cluster a color, and making a list of equal length
+
+    cluster_member_colors = [sns.desaturate(x, p) for x, p in
+                             zip(cluster_colors, clusterer.probabilities_)]
+
+    cluster_colors = list(map(mpl.colors.rgb2hex, cluster_member_colors)) #converting sns colors to hex for bokeh
+
+    width = 450
+    height = 350
+    output_notebook()
+
+    TOOLS = 'crosshair, box_zoom, reset, box_select, tap, hover, wheel_zoom'
+#data = dict(l= peakx_ind, m= peaky_ind, dm= dm_ind, time= time_ind, snr= snr, colors = cluster_colors)
+    data = dict(l= candl, m= candm, dm= canddm, time= time_ind, snr= snr, colors = cluster_colors)
+    source=ColumnDataSource(data=data)
+
+    p = figure(title="m vs l", x_axis_label='l', y_axis_label='m',plot_width=width, plot_height=height, tools = TOOLS)
+    p.circle(x='l',y='m', size='snr', line_width = 1, color = 'colors', fill_alpha=0.3, source = source) # linewidth=0,
+#p.circle(x=df.l,y=df.m, size=5, line_width = 1, color = cluster_colors, fill_alpha=0.5) # linewidth=0,
+    hover = p.select(dict(type=HoverTool))
+    hover.tooltips = [("m", "@m"), ("l", "@l"), ("time", "@time"), ("DM", "@dm"), ("SNR", "@snr")]
+
+#p.circle(x,y, size=5, line_width = 1, color = colors)#, , fill_alpha=1) # linewidth=0,
+#p.circle(x="x", y="y", source=source, size=7, color="color", line_color=None, fill_alpha="alpha")
+    p2 = figure(title="DM vs time", x_axis_label='time', y_axis_label='DM',plot_width=width, plot_height=height, tools = TOOLS)
+    p2.circle(x='time',y='dm', size='snr', line_width = 1, color = 'colors', fill_alpha=0.3, source=source) # linewidth=0,
+    hover = p2.select(dict(type=HoverTool))
+    hover.tooltips = [("m", "@m"), ("l", "@l"), ("time", "@time"), ("DM", "@dm"), ("SNR", "@snr")]
+
+    p3 = figure(title="DM vs l", x_axis_label='l', y_axis_label='DM',plot_width=width, plot_height=height, tools = TOOLS)
+    p3.circle(x='l',y='dm', size='snr', line_width = 1, color = 'colors', fill_alpha=0.3, source=source) # linewidth=0,
+    hover = p3.select(dict(type=HoverTool))
+    hover.tooltips = [("m", "@m"), ("l", "@l"), ("time", "@time"), ("DM", "@dm"), ("SNR", "@snr")]
+
+    p4 = figure(title="time vs l", x_axis_label='l', y_axis_label='time',plot_width=width, plot_height=height, tools = TOOLS)
+    p4.circle(x='l',y='time', size='snr', line_width = 1, color = 'colors', fill_alpha=0.3, source=source) # linewidth=0,
+    hover = p4.select(dict(type=HoverTool))
+    hover.tooltips = [("m", "@m"), ("l", "@l"), ("time", "@time"), ("DM", "@dm"), ("SNR", "@snr")]
+
+
+# show the results
+    show(column(row(p, p2), row(p3, p4)))
+
 
 def makesummaryplot(candsfile):
     """ Given a scan's candsfile, read all candcollections and create
@@ -482,15 +592,15 @@ def makesummaryplot(candsfile):
     m1 = []
     for cc in iter_cands(candsfile):
         time.append(cc.candmjd*(24*3600))
-        segment.append(cc.array[b'segment'])
-        integration.append(cc.array[b'integration'])
-        dmind.append(cc.array[b'dmind'])
-        dtind.append(cc.array[b'dtind'])
-        snr.append(cc.array[b'snr1'])
+        segment.append(cc.array['segment'])
+        integration.append(cc.array['integration'])
+        dmind.append(cc.array['dmind'])
+        dtind.append(cc.array['dtind'])
+        snr.append(cc.array['snr1'])
         dm.append(cc.canddm)
         dt.append(cc.canddt)
-        l1.append(cc.array[b'l1'])
-        m1.append(cc.array[b'm1'])
+        l1.append(cc.array['l1'])
+        m1.append(cc.array['m1'])
 
     time = np.concatenate(time)
     time = time - time.min()

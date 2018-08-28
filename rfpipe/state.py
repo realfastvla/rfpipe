@@ -659,6 +659,14 @@ class State(object):
         m1 = (npixy/2. - peaky)/(npixy*uvres)
         return l1, m1
 
+    @staticmethod
+    def calcpix(candl, candm, npixx, npixy, uvres):
+        """Convert from candidate l,m to x,y pixel number
+        """
+        peakx = np.round(npixx/2. - candl*(npixx*uvres)).astype(int)
+        peaky = np.round(npixy/2. - candm*(npixy*uvres)).astype(int)
+        return peakx, peaky
+
     def get_segmenttime_string(self, segment):
         mid_mjd = self.segmenttimes[segment].mean()
         return qa.time(qa.quantity(mid_mjd, 'd'), form='ymd', prec=8)[0]

@@ -1,5 +1,5 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
-from builtins import bytes, dict, object, range, map, input#, str # not numpy/python2 compatible
+from builtins import bytes, dict, object, range, map, input, str
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
@@ -35,13 +35,13 @@ def apply_telcal(st, data, threshold=1/50., onlycomplete=True, sign=+1):
             reffreq = np.array(st.metadata.spw_reffreq)
             chansize = np.array(st.metadata.spw_chansize)
             nchan = np.array(st.metadata.spw_nchan)
+            skyfreqs = np.around(reffreq + (chansize*nchan/2), -6)/1e6  # GN skyfreq is band center
 
             sols = parseGN(st.gainfile)
             # must run time select before flagants for complete solutions
             sols = select(sols, time=st.segmenttimes.mean())
             sols = flagants(sols, threshold=threshold, onlycomplete=onlycomplete)  
 
-            skyfreqs = np.around(reffreq + (chansize*nchan/2), -6)/1e6  # GN skyfreq is band center
             if len(sols):
 #                print(sols, st.blarr, skyfreqs, pols, chansize[0], nchan[0], sign)
 #                print(type(sols), type(st.blarr), type(skyfreqs), type(pols), type(chansize[0]), type(nchan[0]), type(sign))
@@ -108,9 +108,9 @@ def parseGN(telcalfile):
 
     # TODO: assumes dual pol. update to full pol
     polarization = [('C' in i0 or 'D' in i0) for i0 in ifid]
-    fields = [str(ff) for ff in ['mjd', 'ifid', 'skyfreq', 'antnum', 'polarization', 'source', 'amp', 'phase', 'delay', 'flagged']]
-    types = [str(tt) for tt in ['<f8', 'U4', '<f8', 'i8', 'i8', 'U20', '<f8', '<f8', '<f8', '?']]
-    dtype = list(zip(fields, types))
+    fields = [u'mjd', u'ifid', u'skyfreq', u'antnum', u'polarization', u'source', u'amp', u'phase', u'delay', u'flagged']
+    types = ['<f8', 'U4', '<f8', 'i8', 'i8', 'U20', '<f8', '<f8', '<f8', '?']
+    dtype = np.dtype({'names': fields, 'formats': types})
     if (len(mjd) == len(phase)) and (len(phase) > 0):
         sols = np.zeros(len(mjd), dtype=dtype)
 
@@ -226,9 +226,9 @@ def calcgaindelay(sols, bls, freqarr, pols, chansize, nch, sign=1):
     """
 
     assert sign in [-1, +1], 'sign must be +1 or -1'
-
     nspw = len(freqarr)
     gaindelay = np.zeros((len(bls), nspw*nch, len(pols)), dtype=np.complex64)
+    g1g2 = 0.
 
     for bi in range(len(bls)):
         ant1, ant2 = bls[bi]

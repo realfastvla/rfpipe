@@ -1,5 +1,5 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
-from builtins import bytes, dict, object, range, map, input#, str
+from builtins import bytes, dict, object, range, map, input#, str (numba signature bug)
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
@@ -8,6 +8,7 @@ from numba import jit, guvectorize, int64
 import pyfftw
 from rfpipe import util, candidates, source
 import scipy.stats
+import hdbscan
 
 import logging
 logger = logging.getLogger(__name__)
@@ -94,7 +95,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
     grid = rfgpu.Grid(st.nbl, st.nchan, st.readints, upix, vpix)
     image = rfgpu.Image(st.npixx, st.npixy)
     image.add_stat('rms')
-    image.add_stat('max')
+    image.add_stat('pix')
 
     # Data buffers on GPU
     vis_raw = rfgpu.GPUArrayComplex((st.nbl, st.nchan, st.readints))
@@ -130,6 +131,12 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
             return candidates.CandCollection(prefs=st.prefs,
                                              metadata=st.metadata)
 
+    # place to hold intermediate result lists
+    canddict = {}
+    canddict['candloc'] = []
+    for feat in st.features:
+        canddict[feat] = []
+
     canddatalist = []
     for dtind in range(len(st.dtarr)):
         for dmind in range(len(st.dmarr)):
@@ -154,6 +161,8 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                                 st.npixy, st.uvres, devicenum))
 
             for i in integrations:
+                candloc = (segment, integrations[i], dmind, dtind, beamnum)
+
                 # grid and FFT
                 grid.operate(vis_raw, vis_grid, i)
                 image.operate(vis_grid, img_grid)
@@ -161,42 +170,33 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                 # calc snr
                 stats = image.stats(img_grid)
                 if stats['rms'] != 0.:
-                    peak_snr = stats['max']/stats['rms']
-                    # TODO: add lm calc to rfgpu
-                    # l, m = stats['peak_l'], stats['peak_m']
+                    snr1 = stats['max']/stats['rms']
                 else:
-                    peak_snr = 0.
+                    snr1 = 0.
 
-                # TODO: collect candlocs/snr and close loops here to find peaks
-                #       then return to create canddata per peak or island
-
-                # threshold image on GPU and optionally save it
-                if peak_snr > st.prefs.sigma_image1:
-                    img_grid.d2h()  # TODO: implement l,m and phasing on GPU
-                    img_data = np.fft.fftshift(img_grid.data)  # shift zero pixel in middle
-                    l, m = st.pixtolm(np.where(img_data == img_data.max()))
-                    candloc = (segment, i, dmind, dtind, beamnum)
-                    data_corr = dedisperseresample(data, delay,
-                                                   st.dtarr[dtind],
-                                                   parallel=st.prefs.nthread > 1)
+                # threshold image
+                if snr1 > st.prefs.sigma_image1:
+                    xpeak = stats['xpeak']
+                    ypeak = stats['ypeak']
+                    l1, m1 = st.pixtolm( (xpeak+st.npixx//2, ypeak+st.npixy//2) )
+                    # TODO: confirm that pixels increase in same way as expected in numpy
 
                     if st.prefs.searchtype == 'image':
-                        logger.info("Got one! SNR {0:.1f} candidate at {1} and (l,m) = ({2},{3})"
-                                    .format(peak_snr, candloc, l, m))
-
-                        data_corr = data_corr[max(0, i-st.prefs.timewindow//2):
-                                              min(i+st.prefs.timewindow//2,
-                                              len(data))]
-                        util.phase_shift(data_corr, uvw, l, m)
-                        data_corr = data_corr.mean(axis=1)
-                        canddatalist.append(candidates.CandData(state=st,
-                                                                loc=candloc,
-                                                                image=img_data,
-                                                                data=data_corr))
+                        logger.info("Got one! SNR1 {0:.1f} candidate at {1} and (l, m) = ({2},{3})"
+                                    .format(snr1, candloc, l1, m1))
+                        canddict['candloc'].append(candloc)
+                        canddict['l1'].append(l1)
+                        canddict['m1'].append(m1)
+                        canddict['snr1'].append(snr1)
+                        canddict['immax1'].append(stats['max'])
 
                     elif st.prefs.searchtype == 'imagek':
+                        # TODO: implement phasing on GPU
+                        data_corr = dedisperseresample(data, delay,
+                                                       st.dtarr[dtind],
+                                                       parallel=st.prefs.nthread > 1)
                         spec = data_corr.take([i], axis=0)
-                        util.phase_shift(spec, uvw, l, m)
+                        util.phase_shift(spec, uvw, l1, m1)
                         spec = spec[0].real.mean(axis=2).mean(axis=0)
 
                         # TODO: this significance can be biased low if averaging in long baselines that are not phased well
@@ -206,21 +206,16 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                                                                   sig_ts=sig_ts,
                                                                   coeffs=kalman_coeffs)
                         snrk = (2*significance_kalman)**0.5
-                        snrtot = (snrk**2 + peak_snr**2)**0.5
+                        snrtot = (snrk**2 + snr1**2)**0.5
                         if snrtot > (st.prefs.sigma_kalman**2 + st.prefs.sigma_image1**2)**0.5:
                             logger.info("Got one! SNR1 {0:.1f} and SNRk {1:.1f} candidate at {2} and (l,m) = ({3},{4})"
-                                        .format(peak_snr, snrk, candloc, l, m))
-
-                            data_corr = data_corr[max(0, i-st.prefs.timewindow//2):
-                                                  min(i+st.prefs.timewindow//2,
-                                                  len(data))]
-                            util.phase_shift(data_corr, uvw, l, m)
-                            data_corr = data_corr.mean(axis=1)
-                            canddatalist.append(candidates.CandData(state=st,
-                                                                    loc=candloc,
-                                                                    image=img_data,
-                                                                    data=data_corr,
-                                                                    snrk=snrk))
+                                        .format(snr1, snrk, candloc, l1, m1))
+                            canddict['candloc'].append(candloc)
+                            canddict['l1'].append(l1)
+                            canddict['m1'].append(m1)
+                            canddict['snr1'].append(snr1)
+                            canddict['immax1'].append(stats['max'])
+                            canddict['snrk'].append(snrk)
                     elif st.prefs.searchtype == 'armkimage':
                         raise NotImplementedError
                     elif st.prefs.searchtype == 'armk':
@@ -229,21 +224,15 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                         logger.warn("searchtype {0} not recognized"
                                     .format(st.prefs.searchtype))
 
-                    # TODO: add safety against triggering return of all images
-                    if len(canddatalist)*bytespercd/1000**3 > st.prefs.memory_limit:
-                        logger.info("Accumulated CandData size exceeds "
-                                    "memory limit of {0:.1f}. "
-                                    "Running calc_features..."
-                                    .format(st.prefs.memory_limit))
-                        candcollection += candidates.calc_features(canddatalist)
-                        canddatalist = []
+    cc0 = candidates.make_candcollection(st, **canddict)
+    logger.info("First pass found {0} candidates in seg {1}."
+                .format(len(cc0), segment))
 
-    candcollection += candidates.calc_features(canddatalist)
+    # find clusters and save/plot for peak of each cluster
+    cc1 = candidates.cluster_candidates(cc0)  # adds cluster field to cc0
+    calc_cluster_features(cc1, data)
 
-    logger.info("{0} candidates returned for seg {1}"
-                .format(len(candcollection), segment))
-
-    return candcollection
+    return cc1
 
 
 def dedisperse_search_fftw(st, segment, data, wisdom=None):
@@ -409,20 +398,28 @@ def calc_cluster_features(candcollection, data, wisdom=None):
 
     if len(candcollection):
         assert 'cluster' in candcollection.array.dtype.fields
-        clusters = np.unique(candcollection.array['cluster'].astype(int))
+        clusters = candcollection.array['cluster'].astype(int)
+        unique_clusters = np.unique(clusters).tolist()
+
+        # TODO: decide how to deal with unclustered candidates
+        if -1 in unique_clusters:
+            unique_clusters.remove(-1)
 
         st = candcollection.state
         candlocs = candcollection.locs
         ls = candcollection.array['l1']
         ms = candcollection.array['m1']
 
-        for cluster in clusters:
+        for cluster in unique_clusters:
             # get max SNR of cluster
             clusterinds = np.where(cluster == clusters)[0]
-            maxind = np.where(candcollection.array['snr1'] ==
-                              candcollection.array['snr1'][clusterinds].max())[0][0]
+            maxsnr = candcollection.array['snr1'][clusterinds].max()
+            maxind = np.where(candcollection.array['snr1'] == maxsnr)[0][0]
             # TODO: check on best way to find max SNR with kalman, etc
             candloc = candlocs[maxind]
+
+            logger.info("Cluster {0} has {1} candidates and max SNR {2} at {3}"
+                        .format(cluster, len(clusterinds), maxsnr, candloc))
 
             (segment, integration, dmind, dtind, beamnum) = candloc
             delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
@@ -445,6 +442,7 @@ def calc_cluster_features(candcollection, data, wisdom=None):
                                            data=data_corr)
             # TODO: option to add snrarm, snrk
 
+            # triggers optional plotting and saving
             cc = candidates.calc_features(canddata)
 
             # TODO: validate that reproduced features match input features?
