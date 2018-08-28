@@ -95,7 +95,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
     grid = rfgpu.Grid(st.nbl, st.nchan, st.readints, upix, vpix)
     image = rfgpu.Image(st.npixx, st.npixy)
     image.add_stat('rms')
-    image.add_stat('max')
+    image.add_stat('pix')
 
     # Data buffers on GPU
     vis_raw = rfgpu.GPUArrayComplex((st.nbl, st.nchan, st.readints))
@@ -171,18 +171,15 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                 stats = image.stats(img_grid)
                 if stats['rms'] != 0.:
                     snr1 = stats['max']/stats['rms']
-                    immax1 = stats['max']
-                    # TODO: add lm calc to rfgpu
-                    # l1, m1 = stats['peak_l'], stats['peak_m']
                 else:
-                    peak_snr = 0.
+                    snr1 = 0.
 
                 # threshold image
-                if peak_snr > st.prefs.sigma_image1:
-                    # TODO: implement peak l,m
-                    img_grid.d2h()
-                    img_data = np.fft.fftshift(img_grid.data)  # shift zero pixel in middle
-                    l1, m1 = st.pixtolm(np.where(img_data == img_data.max()))
+                if snr1 > st.prefs.sigma_image1:
+                    xpeak = stats['xpeak']
+                    ypeak = stats['ypeak']
+                    l1, m1 = st.pixtolm(xpeak+st.npixx//2, ypeak+st.npixy//2)
+                    # TODO: confirm that pixels increase in same way as expected in numpy
 
                     if st.prefs.searchtype == 'image':
                         logger.info("Got one! SNR1 {0:.1f} candidate at {1} and (l, m) = ({2},{3})"
@@ -191,7 +188,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                         canddict['l1'].append(l1)
                         canddict['m1'].append(m1)
                         canddict['snr1'].append(snr1)
-                        canddict['immax1'].append(immax1)
+                        canddict['immax1'].append(stats['max'])
 
                     elif st.prefs.searchtype == 'imagek':
                         # TODO: implement phasing on GPU
@@ -209,15 +206,15 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                                                                   sig_ts=sig_ts,
                                                                   coeffs=kalman_coeffs)
                         snrk = (2*significance_kalman)**0.5
-                        snrtot = (snrk**2 + peak_snr**2)**0.5
+                        snrtot = (snrk**2 + snr1**2)**0.5
                         if snrtot > (st.prefs.sigma_kalman**2 + st.prefs.sigma_image1**2)**0.5:
                             logger.info("Got one! SNR1 {0:.1f} and SNRk {1:.1f} candidate at {2} and (l,m) = ({3},{4})"
-                                        .format(peak_snr, snrk, candloc, l1, m1))
+                                        .format(snr1, snrk, candloc, l1, m1))
                             canddict['candloc'].append(candloc)
                             canddict['l1'].append(l1)
                             canddict['m1'].append(m1)
-                            canddict['snr1'].append(peak_snr)
-                            canddict['immax1'].append(immax1)
+                            canddict['snr1'].append(snr1)
+                            canddict['immax1'].append(stats['max'])
                             canddict['snrk'].append(snrk)
                     elif st.prefs.searchtype == 'armkimage':
                         raise NotImplementedError
