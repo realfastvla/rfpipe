@@ -161,7 +161,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                                 st.npixy, st.uvres, devicenum))
 
             for i in integrations:
-                candloc = (segment, integrations[i], dmind, dtind, beamnum)
+                candloc = (segment, i, dmind, dtind, beamnum)
 
                 # grid and FFT
                 grid.operate(vis_raw, vis_grid, i)
@@ -178,7 +178,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                 if snr1 > st.prefs.sigma_image1:
                     xpeak = stats['xpeak']
                     ypeak = stats['ypeak']
-                    l1, m1 = st.pixtolm( (xpeak+st.npixx//2, ypeak+st.npixy//2) )
+                    l1, m1 = st.pixtolm((xpeak+st.npixx//2, ypeak+st.npixy//2))
                     # TODO: confirm that pixels increase in same way as expected in numpy
 
                     if st.prefs.searchtype == 'image':
