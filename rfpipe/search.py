@@ -8,7 +8,6 @@ from numba import jit, guvectorize, int64
 import pyfftw
 from rfpipe import util, candidates, source
 import scipy.stats
-import hdbscan
 
 import logging
 logger = logging.getLogger(__name__)

@@ -409,7 +409,11 @@ class State(object):
 
     @property
     def pols(self):
-        """ Polarizations to use based on preference in prefs.selectpol """
+        """
+        Polarizations to use based on preference in prefs.selectpol
+        Can provide description ('auto', 'all', 'cross') or list of pol
+        names to select from all listed in metadata.
+        """
 
         if self.prefs.selectpol == 'auto':
             return [pp for pp in self.metadata.pols_orig if pp[0] == pp[-1]]
@@ -417,6 +421,8 @@ class State(object):
             return [pp for pp in self.metadata.pols_orig if pp[0] != pp[-1]]
         elif self.prefs.selectpol == 'all':
             return self.metadata.pols_orig
+        elif isinstance(self.prefs.selectpol, list):
+            return [pp for pp in self.metadata.pols_orig if pp in self.prefs.selectpol]
         else:
             logger.warn('selectpol of {0} not supported'
                         .format(self.prefs.selectpol))
