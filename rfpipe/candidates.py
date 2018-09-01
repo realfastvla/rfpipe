@@ -5,7 +5,6 @@ from io import open
 
 import pickle
 import os
-import sys
 import numpy as np
 from numpy.lib.recfunctions import append_fields
 from collections import OrderedDict
@@ -13,7 +12,7 @@ import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
-from rfpipe import util, version, fileLock, state
+from rfpipe import version, fileLock, state
 from bokeh.plotting import ColumnDataSource, Figure, save, output_file
 from bokeh.models import HoverTool
 from bokeh.models import Row

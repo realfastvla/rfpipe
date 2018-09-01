@@ -205,6 +205,7 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout, offset=4):
                           int(spw.split('-')[1])) for spw in spwlist],
                         dtype=np.int32)
 
+    # TODO: move pol selection up and into vysmaw filter function
     assert st.prefs.selectpol in ['auto', 'all'], 'auto and all pol selection supported in vys'
     polauto = st.prefs.selectpol == 'auto'
     with vysmaw_reader.Reader(t0, t1, antlist, bbsplist, polauto,
@@ -218,7 +219,6 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout, offset=4):
         else:
             data = None
 
-    # TODO: move pol selection up and into vysmaw filter function
     if data is not None:
         return data
     else:

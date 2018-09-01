@@ -78,12 +78,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
             logger.warn("distributed not available. Using default GPU devicenum {0}"
                         .format(devicenum))
 
-    candcollection = candidates.CandCollection(prefs=st.prefs,
-                                               metadata=st.metadata)
-
     rfgpu.cudaSetDevice(devicenum)
-
-    bytespercd = 8*(st.npixx*st.npixy + st.prefs.timewindow*st.nchan*st.npol)
 
     beamnum = 0
     uvw = util.get_uvw_segment(st, segment)
@@ -136,7 +131,6 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
     for feat in st.features:
         canddict[feat] = []
 
-    canddatalist = []
     for dtind in range(len(st.dtarr)):
         for dmind in range(len(st.dmarr)):
             delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
@@ -172,13 +166,14 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                     snr1 = stats['max']/stats['rms']
                 else:
                     snr1 = 0.
+                    logger.warn("rfgpu rms is 0. Skipping.")
 
                 # threshold image
                 if snr1 > st.prefs.sigma_image1:
                     xpeak = stats['xpeak']
                     ypeak = stats['ypeak']
+                    logger.info("{0} {1}".format(xpeak, ypeak))
                     l1, m1 = st.pixtolm((xpeak+st.npixx//2, ypeak+st.npixy//2))
-                    # TODO: confirm that pixels increase in same way as expected in numpy
 
                     if st.prefs.searchtype == 'image':
                         logger.info("Got one! SNR1 {0:.1f} candidate at {1} and (l, m) = ({2},{3})"
@@ -398,18 +393,22 @@ def calc_cluster_features(candcollection, data, wisdom=None):
     if len(candcollection):
         assert 'cluster' in candcollection.array.dtype.fields
         clusters = candcollection.array['cluster'].astype(int)
-        unique_clusters = np.unique(clusters).tolist()
 
-        # TODO: decide how to deal with unclustered candidates
-        if -1 in unique_clusters:
-            unique_clusters.remove(-1)
+        if -1 in clusters:
+            unclustered = np.where(clusters == -1)[0]
+            logger.info("Adding {0} unclustered candidates as individual clusters"
+                        .format(len(unclustered)))
+            newind = max(clusters)
+            for cli in unclustered:
+                newind += 1
+                clusters[cli] = newind
 
         st = candcollection.state
         candlocs = candcollection.locs
         ls = candcollection.array['l1']
         ms = candcollection.array['m1']
 
-        for cluster in unique_clusters:
+        for cluster in np.unique(clusters):
             # get max SNR of cluster
             clusterinds = np.where(cluster == clusters)[0]
             maxsnr = candcollection.array['snr1'][clusterinds].max()
