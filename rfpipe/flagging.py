@@ -65,18 +65,18 @@ def flag_blstd(data, sigma, convergence):
     sh = data.shape
     flags = np.ones((sh[0], sh[2], sh[3]), dtype=bool)
 
-    blstd = data.std(axis=1)
+    blstd = np.nanstd(data, axis=1)
 
     # iterate to good median and std values
     blstdmednew = np.ma.median(blstd)
-    blstdstdnew = blstd.std()
+    blstdstdnew = np.nanstd(blstd)
     blstdstd = blstdstdnew*2  # TODO: is this initialization used?
     while (blstdstd-blstdstdnew)/blstdstd > convergence:
         blstdstd = blstdstdnew
         blstdmed = blstdmednew
         blstd = np.ma.masked_where(blstd > blstdmed + sigma*blstdstd, blstd, copy=False)
         blstdmednew = np.ma.median(blstd)
-        blstdstdnew = blstd.std()
+        blstdstdnew = np.nanstd(blstd)
 
     # flag blstd too high
     badt, badch, badpol = np.where(blstd > blstdmednew + sigma*blstdstdnew)
@@ -102,11 +102,11 @@ def flag_badchtslide(data, sigma, win):
 
     # calc badch as deviation from median of window
     specmed = slidedev(spec, win)
-    badch = np.where(specmed > sigma*specmed.std(axis=0))
+    badch = np.where(specmed > sigma*np.nanstd(specmed, axis=0))
 
     # calc badt as deviation from median of window
     lcmed = slidedev(lc, win)
-    badt = np.where(lcmed > sigma*lcmed.std(axis=0))
+    badt = np.where(lcmed > sigma*np.nanstd(lcmed, axis=0))
 
     badtcnt = len(np.unique(badt))
     badchcnt = len(np.unique(badch))

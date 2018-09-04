@@ -558,7 +558,9 @@ class State(object):
     @property
     def gainfile(self):
         """ Calibration file (telcal) from preferences or found from ".GN"
-        suffix
+        suffix.
+        Value of None means none will be applied.
+        Any other value will attempt to apply. Bad files will result in blanked data.
         """
 
         if self.prefs.gainfile is None:
@@ -656,6 +658,14 @@ class State(object):
         l1 = (npixx/2. - peakx)/(npixx*uvres)
         m1 = (npixy/2. - peaky)/(npixy*uvres)
         return l1, m1
+
+    @staticmethod
+    def calcpix(candl, candm, npixx, npixy, uvres):
+        """Convert from candidate l,m to x,y pixel number
+        """
+        peakx = np.round(npixx/2. - candl*(npixx*uvres)).astype(int)
+        peaky = np.round(npixy/2. - candm*(npixy*uvres)).astype(int)
+        return peakx, peaky
 
     def get_segmenttime_string(self, segment):
         mid_mjd = self.segmenttimes[segment].mean()

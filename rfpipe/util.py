@@ -29,6 +29,7 @@ def getsdm(*args, **kwargs):
 
     return sdm
 
+
 def phase_shift(data, uvw, dl, dm):
     """ Applies a phase shift to data for a given (dl, dm).
     """
@@ -367,10 +368,10 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None, i=Non
 
         if amp is None:
             if data is None:
-                amp = 0.1
+                amp = 0.3
             else:
                 if snr is None:
-                    snr = 40.
+                    snr = 50.
                 # TODO: support flagged data in size calc and injection
                 sig = madtostd(data[i].real)/np.sqrt(data[i].size*st.dtarr[dtind])
                 amp = snr*sig
