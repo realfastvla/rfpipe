@@ -166,13 +166,12 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                     snr1 = stats['max']/stats['rms']
                 else:
                     snr1 = 0.
-                    logger.warn("rfgpu rms is 0. Skipping.")
+                    logger.warn("rfgpu rms is 0 in int {0}. Skipping.".format(i))
 
                 # threshold image
                 if snr1 > st.prefs.sigma_image1:
                     xpeak = stats['xpeak']
                     ypeak = stats['ypeak']
-                    logger.info("{0} {1}".format(xpeak, ypeak))
                     l1, m1 = st.pixtolm((xpeak+st.npixx//2, ypeak+st.npixy//2))
 
                     if st.prefs.searchtype == 'image':
