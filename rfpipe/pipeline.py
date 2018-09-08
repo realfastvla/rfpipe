@@ -48,3 +48,16 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default):
     candidates.save_cands(st, candcollection=candcollection)
 
     return candcollection
+
+
+def pipeline_sdm(sdm, intent='TARGET', inprefs=None, preffile=None):
+    """ Get scans from SDM and run search.
+    """
+
+    scans = [int(scan.idx) for scan in rfpipe.metadata.getsdm(sdm).scans()
+             if scan.bdf.exists and (intent in scan.intents)]
+
+    for scan in scans:
+        st = rfpipe.state.State(sdmfile=sdm, sdmscan=scan, inprefs=inprefs,
+                                preffile=preffile)
+        cc = pipeline_scan(st, scan)
