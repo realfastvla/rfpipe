@@ -393,15 +393,6 @@ def calc_cluster_features(candcollection, data, wisdom=None):
         assert 'cluster' in candcollection.array.dtype.fields
         clusters = candcollection.array['cluster'].astype(int)
 
-        if -1 in clusters:
-            unclustered = np.where(clusters == -1)[0]
-            logger.info("Adding {0} unclustered candidates as individual clusters"
-                        .format(len(unclustered)))
-            newind = max(clusters)
-            for cli in unclustered:
-                newind += 1
-                clusters[cli] = newind
-
         st = candcollection.state
         candlocs = candcollection.locs
         ls = candcollection.array['l1']

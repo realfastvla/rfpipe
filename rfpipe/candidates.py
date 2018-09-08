@@ -392,6 +392,15 @@ def cluster_candidates(cc, min_cluster_size=5,
         clusterer = None
         labels = -1*np.ones(len(cc), dtype=np.int32)
 
+    if -1 in labels:
+        unclustered = np.where(labels == -1)[0]
+        logger.info("Adding {0} unclustered candidates as individual clusters"
+                    .format(len(unclustered)))
+        newind = max(labels)
+        for cli in unclustered:
+            newind += 1
+            labels[cli] = newind
+
     # TODO: rebuild array with new col or accept broken python 2 or create cc with 'cluster' set to -1
     cc.array = append_fields(cc.array, 'cluster', labels, usemask=False)
 
@@ -399,6 +408,30 @@ def cluster_candidates(cc, min_cluster_size=5,
         return cc, clusterer
     else:
         return cc
+
+
+def calc_cluster_rank(cc):
+    """ Given cluster array of candcollection, calculate rank relative
+    to total count in each cluster.
+    Rank ranges from 1 (highest SNR in cluster) to total count in cluster.
+    """
+
+    assert 'cluster' in cc.array.dtype.fields
+
+    # get count in cluster and snr rank of each in its cluster
+    clusters = cc.array['cluster'].astype(int)
+    cl_rank = np.zeros_like(clusters)
+    cl_count = np.zeros_like(clusters)
+
+    for cluster in np.unique(clusters):
+        clusterinds = np.where(cluster == clusters)[0]
+        snrs = cc.array['snr1'][clusterinds]
+        for i, snr in enumerate(snrs):
+#            print('{0}, rank {1} of {2}'.format(np.where(snr < snrs)[0], len(np.where(snr < snrs)[0])+1, len(clusterinds)))
+            cl_rank[clusterinds[i]] = len(np.where(snr < snrs)[0])+1
+            cl_count[clusterinds[i]] = len(clusterinds)
+
+    return cl_rank, cl_count
 
 
 def save_cands(st, candcollection=None, canddata=None):
