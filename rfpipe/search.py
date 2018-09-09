@@ -439,7 +439,7 @@ def calc_cluster_features(candcollection, data, wisdom=None):
             # TODO: check if ok to take snrk and snrarm from original detection
             for kw in ['snrk', 'snrarm']:
                 if kw in candcollection.array.dtype.fields:
-                    kwargs = candcollection.array[kw][i]
+                    kwargs[kw] = candcollection.array[kw][i]
             canddata = candidates.CandData(state=st, loc=candloc, image=image,
                                            data=data_corr, **kwargs)
 

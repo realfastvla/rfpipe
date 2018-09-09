@@ -3,7 +3,7 @@ from builtins import bytes, dict, object, range, map, input, str
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
-from rfpipe import source, search, candidates
+from rfpipe import source, search, candidates, state, metadata
 
 import logging
 logger = logging.getLogger(__name__)
@@ -52,12 +52,19 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default):
 
 def pipeline_sdm(sdm, intent='TARGET', inprefs=None, preffile=None):
     """ Get scans from SDM and run search.
+    intent can be partial match to any of scan intents.
     """
 
-    scans = [int(scan.idx) for scan in rfpipe.metadata.getsdm(sdm).scans()
-             if scan.bdf.exists and (intent in scan.intents)]
+    scans = list(metadata.getsdm(sdm).scans())
+    intents = [scan.intents for scan in scans]
+    logger.info("Found {0} scans of intents {1} in {2}"
+                .format(len(scans), intents, sdm))
 
-    for scan in scans:
-        st = rfpipe.state.State(sdmfile=sdm, sdmscan=scan, inprefs=inprefs,
-                                preffile=preffile)
-        cc = pipeline_scan(st, scan)
+    scannums = [int(scan.idx) for scan in scans
+                if scan.bdf.exists and any([intent in scint for scint in scan.intents])]
+    logger.info("Searching {0} of {1} scans".format(len(scannums), len(scans)))
+
+    for scannum in scannums:
+        st = state.State(sdmfile=sdm, sdmscan=scannum, inprefs=inprefs,
+                         preffile=preffile)
+        cc = pipeline_scan(st)

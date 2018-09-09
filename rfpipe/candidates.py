@@ -336,13 +336,17 @@ def make_candcollection(st, **kwargs):
             assert len(v) == len(kwargs['candloc'])
 
         candlocs = kwargs['candloc']
-        features = list(kwargs.keys())  # TODO: confirm that order is ok
+        features = [kw for kw in list(kwargs.keys())]
         features.remove('candloc')
-        nfeat = len(features)
-
-        fields = [str(ff) for ff in st.search_dimensions + tuple(features)]
-        types = [str(tt)
-                 for tt in len(st.search_dimensions)*['<i4'] + nfeat*['<f4']]
+        fields = []
+        types = []
+        for ff in st.search_dimensions + tuple(features):
+            fields.append(str(ff))
+            if ff in st.search_dimensions + ('cluster', 'clustersize'):
+                tt = '<i4'
+            else:
+                tt = '<f4'
+            types.append(str(tt))
 
         dtype = np.dtype({'names': fields, 'formats': types})
         array = np.zeros(len(candlocs), dtype=dtype)
