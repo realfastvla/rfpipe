@@ -420,8 +420,8 @@ def calc_cluster_rank(cc):
 
     # get count in cluster and snr rank of each in its cluster
     clusters = cc.array['cluster'].astype(int)
-    cl_rank = np.zeros_like(clusters)
-    cl_count = np.zeros_like(clusters)
+    cl_rank = np.zeros(len(clusters), dtype=int)
+    cl_count = np.zeros(len(clusters), dtype=int)
 
     for cluster in np.unique(clusters):
         clusterinds = np.where(cluster == clusters)[0]

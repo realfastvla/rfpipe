@@ -398,6 +398,9 @@ def calc_cluster_features(candcollection, data, wisdom=None):
         ls = candcollection.array['l1']
         ms = candcollection.array['m1']
 
+# TODO: use rank instead of unique for consistency with realfast.elastic
+#        cl_rank, cl_count = calc_cluster_rank(candcollection)
+
         for cluster in np.unique(clusters):
             # get max SNR of cluster
             clusterinds = np.where(cluster == clusters)[0]
