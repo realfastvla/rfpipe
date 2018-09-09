@@ -202,7 +202,7 @@ def pipeline_imdata(st, candloc, data_dmdt=None):
     canddata = candidates.CandData(state=st, loc=tuple(candloc), image=image,
                                    data=dataph)
 
-    candcollection = candidates.calc_features(canddata)
+    candcollection = candidates.save_and_plot(canddata)
 
     # output is as from searching functions
     return candcollection

@@ -46,6 +46,10 @@ class CandData(object):
             self.snrarm = kwargs['snrarm']
         else:
             self.snrarm = None
+        if 'cluster' in kwargs:
+            self.cluster = kwargs['cluster']
+        if 'clustersize' in kwargs:
+            self.clustersize = kwargs['clustersize']
 
         assert len(loc) == len(state.search_dimensions), ("candidate location "
                                                           "should set each of "
@@ -196,6 +200,20 @@ class CandCollection(object):
         return self.array['m1']
 
     @property
+    def cluster(self):
+        """ Return cluster label
+        """
+
+        return self.array['cluster']
+
+    @property
+    def clustersize(self):
+        """ Return size of cluster
+        """
+
+        return self.array['clustersize']
+
+    @property
     def state(self):
         """ Sets state by regenerating from the metadata and prefs.
         """
@@ -207,9 +225,9 @@ class CandCollection(object):
         return self._state
 
 
-def calc_features(canddatalist):
-    """ Converts a canddata list into a candcollection by
-    calculating the candidate features for CandData instance(s).
+def save_and_plot(canddatalist):
+    """ Converts a canddata list into a plots and a candcollection.
+    Calculates candidate features from CandData instance(s).
     Returns structured numpy array of candidate features labels defined in
     st.search_dimensions.
     Generates png plot for peak cands, if so defined in preferences.
@@ -234,24 +252,30 @@ def calc_features(canddatalist):
         for i, canddata in enumerate(canddatalist):
             ff.append(canddata_feature(canddata, feature))
         featurelists.append(ff)
+    kwargs = dict(zip(st.features, featurelists))
+
     candlocs = []
+    clusters = []
+    clustersizes = []
     for i, canddata in enumerate(canddatalist):
         candlocs.append(canddata_feature(canddata, 'candloc'))
-
-    kwargs = dict(zip(st.features, featurelists))
+        clusters.append(canddata_feature(canddata, 'cluster'))
+        clustersizes.append(canddata_feature(canddata, 'clustersize'))
     kwargs['candloc'] = candlocs
+    kwargs['cluster'] = clusters
+    kwargs['clustersize'] = clustersizes
     candcollection = make_candcollection(st, **kwargs)
 
-    # make plot for peak snr in collection
-    # TODO: think about candidate clustering
+    # TODO: may be better to redesign for single canddata objs?
     if st.prefs.savecands and len(candcollection.array):
         snrs = candcollection.array['snr1'].flatten()
-        maxindex = np.argmax(snrs)
-        # save plot and canddata at peaksnr
-        candplot(canddatalist[maxindex], snrs=snrs)
-        save_cands(st, canddata=canddatalist[maxindex])
 
-    return candcollection  # return tuple as handle on pipeline
+        # save and plot for each canddata
+        for canddata in canddatalist:
+            save_cands(st, canddata=canddata)
+            candplot(canddata, snrs=snrs)
+
+    return candcollection
 
 
 def canddata_feature(canddata, feature):
@@ -279,6 +303,10 @@ def canddata_feature(canddata, feature):
         return canddata.snrarm
     elif feature == 'snrk':
         return canddata.snrk
+    elif feature == 'cluster':
+        return canddata.cluster
+    elif feature == 'clustersize':
+        return canddata.clustersize
     elif feature == 'immax1':
         return image.max()
     elif feature == 'l1':
@@ -333,10 +361,11 @@ def make_candcollection(st, **kwargs):
     return candcollection
 
 
-def cluster_candidates(cc, min_cluster_size=5,
-                       returnclusterer=False):
+def cluster_candidates(cc, min_cluster_size=5, returnclusterer=False,
+                       label_unclustered=True):
     """ Perform density based clustering on candidates using HDBSCAN
     parameters used for clustering: dm, time, l,m.
+    label_unclustered adds new cluster label for each unclustered candidate.
     Returns label for each row in candcollection.
     """
 
@@ -392,7 +421,7 @@ def cluster_candidates(cc, min_cluster_size=5,
         clusterer = None
         labels = -1*np.ones(len(cc), dtype=np.int32)
 
-    if -1 in labels:
+    if -1 in labels and label_unclustered:
         unclustered = np.where(labels == -1)[0]
         logger.info("Adding {0} unclustered candidates as individual clusters"
                     .format(len(unclustered)))
@@ -423,6 +452,7 @@ def calc_cluster_rank(cc):
     cl_rank = np.zeros(len(clusters), dtype=int)
     cl_count = np.zeros(len(clusters), dtype=int)
 
+    # TODO: check on best way to find max SNR with kalman, etc
     for cluster in np.unique(clusters):
         clusterinds = np.where(cluster == clusters)[0]
         snrs = cc.array['snr1'][clusterinds]

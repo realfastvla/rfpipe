@@ -222,8 +222,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                 .format(len(cc0), segment))
 
     # find clusters and save/plot for peak of each cluster
-    cc1 = candidates.cluster_candidates(cc0)  # adds cluster field to cc0
-    calc_cluster_features(cc1, data)
+    cc1 = calc_cluster_features(cc0, data)
 
     return cc1
 
@@ -378,39 +377,42 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
                 .format(len(cc0), segment))
 
     # find clusters and save/plot for peak of each cluster
-    cc1 = candidates.cluster_candidates(cc0)  # adds cluster field to cc0
-    calc_cluster_features(cc1, data)
+    cc1 = calc_cluster_features(cc0, data)  # new cc made from data
 
     return cc1
 
 
 def calc_cluster_features(candcollection, data, wisdom=None):
-    """ Iterates through candidates and uses location (e.g., integration, dm, dt)
-    to create canddata for each candidate.
+    """ Clusteres candidates and reproduces data for peak of each cluster.
+    Location (e.g., integration, dm, dt) of each is used to create
+    canddata for each candidate.
     """
 
+    # set up output cc
+    st = candcollection.state
+    cc = candidates.CandCollection(prefs=st.prefs, metadata=st.metadata)
+
     if len(candcollection):
+        # add cluster field
+        candcollection = candidates.cluster_candidates(candcollection)
+
         assert 'cluster' in candcollection.array.dtype.fields
         clusters = candcollection.array['cluster'].astype(int)
 
-        st = candcollection.state
         candlocs = candcollection.locs
         ls = candcollection.array['l1']
         ms = candcollection.array['m1']
 
-# TODO: use rank instead of unique for consistency with realfast.elastic
-#        cl_rank, cl_count = calc_cluster_rank(candcollection)
+        cl_rank, cl_count = candidates.calc_cluster_rank(candcollection)
 
-        for cluster in np.unique(clusters):
-            # get max SNR of cluster
-            clusterinds = np.where(cluster == clusters)[0]
-            maxsnr = candcollection.array['snr1'][clusterinds].max()
-            maxind = np.where(candcollection.array['snr1'] == maxsnr)[0][0]
+        # reproduce the max snr of each cluster
+        for i in np.where(cl_rank == 1)[0]:
             # TODO: check on best way to find max SNR with kalman, etc
-            candloc = candlocs[maxind]
+            snr = candcollection.array['snr1'][i]
+            candloc = candlocs[i]
 
             logger.info("Cluster {0} has {1} candidates and max SNR {2} at {3}"
-                        .format(cluster, len(clusterinds), maxsnr, candloc))
+                        .format(clusters[i], cl_count[i], snr, candloc))
 
             (segment, integration, dmind, dtind, beamnum) = candloc
             delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
@@ -427,14 +429,22 @@ def calc_cluster_features(candcollection, data, wisdom=None):
                                   min(integration+st.prefs.timewindow//2,
                                   len(data))]
 
-            util.phase_shift(data_corr, uvw, ls[maxind], ms[maxind])
+            util.phase_shift(data_corr, uvw, ls[i], ms[i])
             data_corr = data_corr.mean(axis=1)
+
+            # add supplementary plotting and cc info
+            kwargs = {}
+            kwargs['cluster'] = clusters[i]
+            kwargs['clustersize'] = cl_count[i]
+            # TODO: check if ok to take snrk and snrarm from original detection
+            for kw in ['snrk', 'snrarm']:
+                if kw in candcollection.array.dtype.fields:
+                    kwargs = candcollection.array[kw][i]
             canddata = candidates.CandData(state=st, loc=candloc, image=image,
-                                           data=data_corr)
-            # TODO: option to add snrarm, snrk
+                                           data=data_corr, **kwargs)
 
             # triggers optional plotting and saving
-            cc = candidates.calc_features(canddata)
+            cc += candidates.save_and_plot(canddata)
 
             # TODO: validate that reproduced features match input features?
     #        peakx, peaky = np.where(image[0] == image[0].max())
@@ -442,6 +452,8 @@ def calc_cluster_features(candcollection, data, wisdom=None):
     #                           st.uvres, peakx[0], peaky[0])
     #        immax1 = image.max()
     #        snr1 = immax1/image.std()
+
+    return cc
 
 
 def grid_image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,
