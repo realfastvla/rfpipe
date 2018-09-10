@@ -965,6 +965,14 @@ def candplot(canddatalist, snrs=None, cluster=None, outname=''):
         ax.text(left, start-10*space, 'SNR: ' + str(np.round(snrobs, 1)),
                 fontname='sans-serif', transform=ax.transAxes,
                 fontsize='small')
+        if cluster is not None:
+            label, size = cluster
+            ax.text(left, start-11*space, 'Cluster label: {0}'.format(str(label)),
+                    fontname='sans-serif',
+                    transform=ax.transAxes, fontsize='small')
+            ax.text(left, start-12*space, 'Cluster size: {0}'.format(size),
+                    fontname='sans-serif', transform=ax.transAxes,
+                    fontsize='small')
 
         # set the plot invisible so that it doesn't interfere with annotations
         ax.get_xaxis().set_visible(False)
@@ -1280,15 +1288,6 @@ def candplot(canddatalist, snrs=None, cluster=None, outname=''):
             ax_snr.set_yscale('log')
             # draw vertical line where the candidate SNR is
             ax_snr.axvline(x=np.abs(snrobs), linewidth=1, color='y', alpha=0.7)
-        elif cluster is not None:
-            left = 0.45
-            label, size = cluster
-            ax.text(left, start, 'Cluster label: {0}'.format(str(label)),
-                    fontname='sans-serif',
-                    transform=ax.transAxes, fontsize='small')
-            ax.text(left, start-space, 'Cluster size: {0}'.format(size),
-                    fontname='sans-serif', transform=ax.transAxes,
-                    fontsize='small')
 
         if not outname:
             outname = os.path.join(st.prefs.workdir,
