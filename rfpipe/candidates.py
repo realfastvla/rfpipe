@@ -268,12 +268,17 @@ def save_and_plot(canddatalist):
 
     # TODO: may be better to redesign for single canddata objs?
     if st.prefs.savecands and len(candcollection.array):
-        snrs = candcollection.array['snr1'].flatten()
+        if len(candcollection) > 1:
+            snrs = candcollection.array['snr1'].flatten()
+            cluster = None
+        elif len(candcollection) == 1:
+            snrs = None
+            cluster = (clusters[0], clustersizes[0])
 
         # save and plot for each canddata
         for canddata in canddatalist:
             save_cands(st, canddata=canddata)
-            candplot(canddata, snrs=snrs)
+            candplot(canddata, cluster=cluster, snrs=snrs)
 
     return candcollection
 
@@ -851,13 +856,14 @@ def calcinds(data, threshold, ignoret=None):
     return inds
 
 
-def candplot(canddatalist, snrs=[], outname=''):
+def candplot(canddatalist, snrs=None, cluster=None, outname=''):
     """ Takes output of search_thresh (CandData objects) to make
     candidate plots.
     Expects pipeline state, candidate location, image, and
     phased, dedispersed data (cut out in time, dual-pol).
 
     snrs is array for an (optional) SNR histogram plot.
+    cluster allows cluster info to be passed in as (cluster_label, size).
     Written by Bridget Andersen and modified by Casey for rfpipe.
     """
 
@@ -1230,7 +1236,7 @@ def candplot(canddatalist, snrs=[], outname=''):
 
         # create SNR versus N histogram for the whole observation
         # (properties for each candidate in the observation given by prop)
-        if len(snrs):
+        if snrs is not None:
             left, width = 0.45, 0.2
             bottom, height = 0.6, 0.3
             rect_snr = [left, bottom, width, height]
@@ -1274,6 +1280,15 @@ def candplot(canddatalist, snrs=[], outname=''):
             ax_snr.set_yscale('log')
             # draw vertical line where the candidate SNR is
             ax_snr.axvline(x=np.abs(snrobs), linewidth=1, color='y', alpha=0.7)
+        elif cluster is not None:
+            left = 0.45
+            label, size = cluster
+            ax.text(left, start, 'Cluster label: {0}'.format(str(label)),
+                    fontname='sans-serif',
+                    transform=ax.transAxes, fontsize='small')
+            ax.text(left, start-space, 'Cluster size: {0}'.format(size),
+                    fontname='sans-serif', transform=ax.transAxes,
+                    fontsize='small')
 
         if not outname:
             outname = os.path.join(st.prefs.workdir,

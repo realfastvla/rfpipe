@@ -394,7 +394,8 @@ def calc_cluster_features(candcollection, data, wisdom=None):
 
     if len(candcollection):
         # add cluster field
-        candcollection = candidates.cluster_candidates(candcollection)
+        if 'cluster' not in candcollection.array.dtype.fields:
+            candcollection = candidates.cluster_candidates(candcollection)
 
         assert 'cluster' in candcollection.array.dtype.fields
         clusters = candcollection.array['cluster'].astype(int)
