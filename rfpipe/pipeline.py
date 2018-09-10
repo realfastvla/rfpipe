@@ -64,7 +64,8 @@ def pipeline_sdm(sdm, intent='TARGET', inprefs=None, preffile=None):
                 if scan.bdf.exists and any([intent in scint for scint in scan.intents])]
     logger.info("Searching {0} of {1} scans".format(len(scannums), len(scans)))
 
+    ccs = []
     for scannum in scannums:
         st = state.State(sdmfile=sdm, sdmscan=scannum, inprefs=inprefs,
                          preffile=preffile)
-        cc = pipeline_scan(st)
+        ccs.append(pipeline_scan(st))
