@@ -370,8 +370,8 @@ def make_candcollection(st, **kwargs):
     return candcollection
 
 
-def cluster_candidates(cc, min_cluster_size=5, returnclusterer=False,
-                       label_unclustered=True):
+def cluster_candidates(cc, min_cluster_size=2, min_samples=1,
+                       returnclusterer=False, label_unclustered=True):
     """ Perform density based clustering on candidates using HDBSCAN
     parameters used for clustering: dm, time, l,m.
     label_unclustered adds new cluster label for each unclustered candidate.
@@ -402,7 +402,7 @@ def cluster_candidates(cc, min_cluster_size=5, returnclusterer=False,
         data = np.transpose([peakx_ind, peaky_ind, dm_ind, time_ind, snr])
 
         clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size,
-                                    min_samples=2,
+                                    min_samples=min_samples,
                                     cluster_selection_method='eom',
                                     allow_single_cluster=True).fit(data)
         nclustered = np.max(clusterer.labels_ + 1)
@@ -440,7 +440,10 @@ def cluster_candidates(cc, min_cluster_size=5, returnclusterer=False,
             labels[cli] = newind
 
     # TODO: rebuild array with new col or accept broken python 2 or create cc with 'cluster' set to -1
-    cc.array = append_fields(cc.array, 'cluster', labels, usemask=False)
+    if 'cluster' not in cc.array.dtype.fields:
+        cc.array = append_fields(cc.array, 'cluster', labels, usemask=False)
+    else:
+        cc.array['cluster'] = labels
 
     if returnclusterer:
         return cc, clusterer
