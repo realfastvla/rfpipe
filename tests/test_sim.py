@@ -7,7 +7,7 @@ import rfpipe
 import pytest
 from astropy import time
 
-tparams = [(0, 0, 0, 1, 0.2, 0.0001, 0.0),]
+tparams = [(0, 0, 0, 5e-3, 1., 0.0001, 0.0),]
 # simulate no flag, transient/no flag, transient/flag
 inprefs = [({'flaglist': [], 'chans': list(range(32)),
              'spw': [0], 'savecands': True, 'savenoise': True,
@@ -15,7 +15,8 @@ inprefs = [({'flaglist': [], 'chans': list(range(32)),
            ({'simulated_transient': tparams, 'dmarr': [0], 'dtarr': [1],
              'savecands': True, 'savenoise': True,
              'timesub': 'mean', 'fftmode': 'fftw', 'searchtype': 'imagek',
-             'sigma_image1': 10, 'sigma_kalman': 1}, 2),
+             'sigma_image1': 10, 'sigma_kalman': 1,
+             'clustercands': (2, 1)}, 2),
            ({'simulated_transient': tparams, 'dmarr': [0], 'dtarr': [1],
              'savecands': True, 'savenoise': True,
              'sigma_image1': 10, 'sigma_kalman': 1, 'sigma_arm': 4,

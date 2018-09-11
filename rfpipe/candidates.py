@@ -210,6 +210,8 @@ class CandCollection(object):
 
         if self.prefs.clustercands is not None:
             return self.array['cluster']
+        else:
+            return None
 
     @property
     def clustersize(self):
@@ -218,6 +220,8 @@ class CandCollection(object):
 
         if self.prefs.clustercands is not None:
             return self.array['clustersize']
+        else:
+            return None
 
     @property
     def state(self):
@@ -260,15 +264,17 @@ def save_and_plot(canddatalist):
         featurelists.append(ff)
     kwargs = dict(zip(st.features, featurelists))
 
-    if st.prefs.clustercands is not None:
-        candlocs = []
+    candlocs = []
+    for i, canddata in enumerate(canddatalist):
+        candlocs.append(canddata_feature(canddata, 'candloc'))
+        kwargs['candloc'] = candlocs
+
+    if canddata.cluster is not None:
         clusters = []
         clustersizes = []
         for i, canddata in enumerate(canddatalist):
-            candlocs.append(canddata_feature(canddata, 'candloc'))
             clusters.append(canddata_feature(canddata, 'cluster'))
             clustersizes.append(canddata_feature(canddata, 'clustersize'))
-        kwargs['candloc'] = candlocs
         kwargs['cluster'] = clusters
         kwargs['clustersize'] = clustersizes
         cluster = (clusters[0], clustersizes[0])
