@@ -240,6 +240,10 @@ class State(object):
                         .format(self.npixx, self.npixy, self.uvres, self.chunksize))
             logger.info('\t Expect {0} thermal false positives per scan.'
                         .format(self.nfalse(self.prefs.sigma_image1)))
+            if self.prefs.clustercands is not None:
+                min_cluster_size, min_samples = self.prefs.clustercands
+                logger.info('\t Clustering candidates wth min_cluster_size={0} and min_samples={1}'
+                            .format(min_cluster_size, min_samples))
 
             logger.info('')
             if self.fftmode == "fftw":
@@ -778,6 +782,8 @@ class State(object):
         """ Given searchtype, return features to be extracted in initial
         analysis.
         """
+
+        # TODO: need to add 'cluster' and 'clustersize' here?
 
         if self.prefs.searchtype in ['image', 'image1']:
             return ('snr1', 'immax1', 'l1', 'm1')

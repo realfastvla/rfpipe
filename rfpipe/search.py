@@ -217,14 +217,15 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                         logger.warn("searchtype {0} not recognized"
                                     .format(st.prefs.searchtype))
 
-    cc0 = candidates.make_candcollection(st, **canddict)
+    cc = candidates.make_candcollection(st, **canddict)
     logger.info("First pass found {0} candidates in seg {1}."
-                .format(len(cc0), segment))
+                .format(len(cc), segment))
 
     # find clusters and save/plot for peak of each cluster
-    cc1 = calc_cluster_features(cc0, data)
+    if st.prefs.clustercands is not None:
+        cc = calc_cluster_features(cc, data)
 
-    return cc1
+    return cc
 
 
 def dedisperse_search_fftw(st, segment, data, wisdom=None):
@@ -372,14 +373,15 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
             else:
                 raise NotImplemented("only searchtype=image, imagek, armk, armkimage implemented")
 
-    cc0 = candidates.make_candcollection(st, **canddict)
+    cc = candidates.make_candcollection(st, **canddict)
     logger.info("First pass found {0} candidates in seg {1}."
-                .format(len(cc0), segment))
+                .format(len(cc), segment))
 
     # find clusters and save/plot for peak of each cluster
-    cc1 = calc_cluster_features(cc0, data)  # new cc made from data
+    if st.prefs.clustercands is not None:
+        cc = calc_cluster_features(cc, data)  # new cc made from data
 
-    return cc1
+    return cc
 
 
 def calc_cluster_features(candcollection, data, wisdom=None):

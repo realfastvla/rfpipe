@@ -48,8 +48,12 @@ class CandData(object):
             self.snrarm = None
         if 'cluster' in kwargs:
             self.cluster = kwargs['cluster']
+        else:
+            self.cluster = None
         if 'clustersize' in kwargs:
             self.clustersize = kwargs['clustersize']
+        else:
+            self.clustersize = None
 
         assert len(loc) == len(state.search_dimensions), ("candidate location "
                                                           "should set each of "
@@ -204,14 +208,16 @@ class CandCollection(object):
         """ Return cluster label
         """
 
-        return self.array['cluster']
+        if self.prefs.clustercands is not None:
+            return self.array['cluster']
 
     @property
     def clustersize(self):
         """ Return size of cluster
         """
 
-        return self.array['clustersize']
+        if self.prefs.clustercands is not None:
+            return self.array['clustersize']
 
     @property
     def state(self):
@@ -254,26 +260,29 @@ def save_and_plot(canddatalist):
         featurelists.append(ff)
     kwargs = dict(zip(st.features, featurelists))
 
-    candlocs = []
-    clusters = []
-    clustersizes = []
-    for i, canddata in enumerate(canddatalist):
-        candlocs.append(canddata_feature(canddata, 'candloc'))
-        clusters.append(canddata_feature(canddata, 'cluster'))
-        clustersizes.append(canddata_feature(canddata, 'clustersize'))
-    kwargs['candloc'] = candlocs
-    kwargs['cluster'] = clusters
-    kwargs['clustersize'] = clustersizes
+    if st.prefs.clustercands is not None:
+        candlocs = []
+        clusters = []
+        clustersizes = []
+        for i, canddata in enumerate(canddatalist):
+            candlocs.append(canddata_feature(canddata, 'candloc'))
+            clusters.append(canddata_feature(canddata, 'cluster'))
+            clustersizes.append(canddata_feature(canddata, 'clustersize'))
+        kwargs['candloc'] = candlocs
+        kwargs['cluster'] = clusters
+        kwargs['clustersize'] = clustersizes
+        cluster = (clusters[0], clustersizes[0])
+    else:
+        cluster = None
+
     candcollection = make_candcollection(st, **kwargs)
 
     # TODO: may be better to redesign for single canddata objs?
     if st.prefs.savecands and len(candcollection.array):
         if len(candcollection) > 1:
             snrs = candcollection.array['snr1'].flatten()
-            cluster = None
         elif len(candcollection) == 1:
             snrs = None
-            cluster = (clusters[0], clustersizes[0])
 
         # save and plot for each canddata
         for canddata in canddatalist:
@@ -370,8 +379,7 @@ def make_candcollection(st, **kwargs):
     return candcollection
 
 
-def cluster_candidates(cc, min_cluster_size=2, min_samples=1,
-                       returnclusterer=False, label_unclustered=True):
+def cluster_candidates(cc, returnclusterer=False, label_unclustered=True):
     """ Perform density based clustering on candidates using HDBSCAN
     parameters used for clustering: dm, time, l,m.
     label_unclustered adds new cluster label for each unclustered candidate.
@@ -379,6 +387,8 @@ def cluster_candidates(cc, min_cluster_size=2, min_samples=1,
     """
 
     if len(cc) > 1:
+        min_cluster_size, min_samples = cc.prefs.clustercands
+
         if min_cluster_size > len(cc):
             logger.info("Setting min_cluster_size to number of cands {0}".format(len(cc)))
             min_cluster_size = len(cc)
