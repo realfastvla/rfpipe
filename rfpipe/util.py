@@ -368,10 +368,10 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None, i=Non
 
         if amp is None:
             if data is None:
-                amp = 0.3
+                amp = random.uniform(0.1, 1)
             else:
                 if snr is None:
-                    snr = 50.
+                    snr = random.uniform(10, 100)
                 # TODO: support flagged data in size calc and injection
                 sig = madtostd(data[i].real)/np.sqrt(data[i].size*st.dtarr[dtind])
                 amp = snr*sig
