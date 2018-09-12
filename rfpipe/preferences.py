@@ -14,6 +14,13 @@ from rfpipe.version import __version__
 import logging
 logger = logging.getLogger(__name__)
 
+# to parse tuples in yaml
+class PrettySafeLoader(yaml.SafeLoader):
+    def construct_python_tuple(self, node):
+        return tuple(self.construct_sequence(node))
+PrettySafeLoader.add_constructor(u'tag:yaml.org,2002:python/tuple',
+                                 PrettySafeLoader.construct_python_tuple)
+
 
 @attr.s
 class Preferences(object):
@@ -174,7 +181,7 @@ def _parsepref_yaml(preffile, name=None):
     logger.info("Parsing preffile for preference set {0}".format(name))
 
     with open(preffile, 'r') as fp:
-        yamlpars = yaml.load(fp)
+        yamlpars = yaml.load(fp, Loader=PrettySafeLoader)
         pars = yamlpars['rfpipe'][name]
 
     return pars
