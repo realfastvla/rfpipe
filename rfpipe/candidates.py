@@ -167,7 +167,7 @@ class CandCollection(object):
         """
 
 #        dt_inf = util.calc_delay2(1e5, self.state.freq.max(), self.canddm)
-        t_top = np.array(self.state.segmenttimes)[self.array['segment'], 0] + (self.array['integration']*self.state.inttime)/(24*3600)
+        t_top = np.array(self.state.segmenttimes)[self.array['segment'], 0] + (self.array['integration']*self.canddt)/(24*3600)
 
         return t_top
 
@@ -413,10 +413,9 @@ def cluster_candidates(cc, returnclusterer=False, label_unclustered=True):
                                                 uvres)
 
         dm_ind = cc.array['dmind']
-        timearr_ind = cc.array['integration']  # time index of all the candidates
-        snr = cc.array['snr1']
         dtind = cc.array['dtind']
-        dmarr = cc.state.dmarr
+        timearr_ind = cc.array['integration']  # time index of all the candidates
+        # TODO: find better way to cluster between different dtarr. maybe int*dtarr/dtarr.min?
         time_ind = np.multiply(timearr_ind,
                                np.power(2,
                                         np.array(cc.state.dtarr).take(dtind)))
@@ -432,19 +431,6 @@ def cluster_candidates(cc, returnclusterer=False, label_unclustered=True):
         logger.info("Found {0} clustered and {1} unclustered candidates for "
                     "min cluster size {2}"
                     .format(nclustered, nunclustered, min_cluster_size))
-
-    #    clustered_cands = []
-    #    for labels in range(nclusters):
-    #        max_snr = np.amax(snr[clusterer.labels_ == labels])
-    #        ind_maxsnr = np.argmax(snr[clusterer.labels_ == labels])
-    #        dm_maxind = dmarr[dm_ind[ind_maxsnr]]
-    #        dt_maxind = dtind[ind_maxsnr]
-    #        integration_maxind = timearr_ind[ind_maxsnr]
-    #        l_maxind = candl[ind_maxsnr]
-    #        m_maxind = candm[ind_maxsnr]
-    #        logger.info("Returning Max SNR cand of cluster {0}: (snr:{1}, dm:{2}, dt:{3}, int:{4}, l:{5}, m:{6})"
-    #                    .format(labels, max_snr, dm_maxind, dt_maxind, integration_maxind, l_maxind, m_maxind))
-    #        clustered_cands.append((max_snr, dm_maxind, dt_maxind, integration_maxind, l_maxind, m_maxind))  #list of tuples of max snr cluster candidates       
 
         labels = clusterer.labels_.astype(np.int32)
     else:
