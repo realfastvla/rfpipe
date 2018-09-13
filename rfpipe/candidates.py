@@ -393,7 +393,12 @@ def cluster_candidates(cc, returnclusterer=False, label_unclustered=True):
     """
 
     if len(cc) > 1:
-        min_cluster_size, min_samples = cc.prefs.clustercands
+        if cc.prefs.clustercands is not None:
+            min_cluster_size, min_samples = cc.prefs.clustercands
+        else:
+            logger.warn("No clustering parameters in prefs. Using default values (2,1).")
+            min_cluster_size = 2
+            min_samples = 1
 
         if min_cluster_size > len(cc):
             logger.info("Setting min_cluster_size to number of cands {0}".format(len(cc)))
@@ -415,7 +420,7 @@ def cluster_candidates(cc, returnclusterer=False, label_unclustered=True):
         time_ind = np.multiply(timearr_ind,
                                np.power(2,
                                         np.array(cc.state.dtarr).take(dtind)))
-        data = np.transpose([peakx_ind, peaky_ind, dm_ind, time_ind, snr])
+        data = np.transpose([peakx_ind, peaky_ind, dm_ind, time_ind])
 
         clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size,
                                     min_samples=min_samples,
