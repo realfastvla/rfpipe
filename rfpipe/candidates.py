@@ -277,9 +277,6 @@ def save_and_plot(canddatalist):
             clustersizes.append(canddata_feature(canddata, 'clustersize'))
         kwargs['cluster'] = clusters
         kwargs['clustersize'] = clustersizes
-        cluster = (clusters[0], clustersizes[0])
-    else:
-        cluster = None
 
     candcollection = make_candcollection(st, **kwargs)
 
@@ -291,9 +288,9 @@ def save_and_plot(canddatalist):
             snrs = None
 
         # save cc and save/plot each canddata
-        for canddata in canddatalist:
+        for i, canddata in enumerate(canddatalist):
             save_cands(st, canddata=canddata)
-            candplot(canddata, cluster=cluster, snrs=snrs)
+            candplot(canddata, cluster=clusters[i], snrs=snrs)
 
     return candcollection
 

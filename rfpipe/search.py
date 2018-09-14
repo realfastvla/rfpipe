@@ -219,7 +219,14 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
     logger.info("First pass found {0} candidates in seg {1}."
                 .format(len(cc), segment))
 
-    cc = calc_features(cc, data)  # regenerate cc after optionally clustering
+    if st.prefs.clustercands is not None:
+        cc = candidates.cluster_candidates(cc)
+
+    if st.prefs.saveplots:
+        cdlist = make_canddata(cc, data)
+        # triggers optional plotting and saving
+        cc = candidates.save_and_plot(cdlist)
+
     candidates.save_cands(st, candcollection=cc)
 
     return cc
@@ -374,39 +381,42 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
     logger.info("First pass found {0} candidates in seg {1}."
                 .format(len(cc), segment))
 
-    cc = calc_features(cc, data)    # regenerate cc after optionally clustering
+    if st.prefs.clustercands is not None:
+        cc = candidates.cluster_candidates(cc)
+
+    if st.prefs.saveplots:
+        cdlist = make_canddata(cc, data)    # regenerate cc with more features
+        # triggers optional plotting and saving
+        cc = candidates.save_and_plot(cdlist)
+
     candidates.save_cands(st, candcollection=cc)
 
     return cc
 
 
-def calc_features(candcollection, data, wisdom=None):
-    """ Reproduces data with optional filtering for peak of candidate clusters.
+def make_canddata(cc, data, wisdom=None):
+    """ Calculates canddata for each cand in candcollection.
+    Will look for cluster label and filter only for peak snr, if available.
     Location (e.g., integration, dm, dt) of each is used to create
     canddata for each candidate.
     """
 
     # set up output cc
-    st = candcollection.state
-    cc = candidates.CandCollection(prefs=st.prefs, metadata=st.metadata)
+    cdlist = []
 
-    if len(candcollection):
-        candlocs = candcollection.locs
-        ls = candcollection.array['l1']
-        ms = candcollection.array['m1']
-        snrs = candcollection.array['snr1']
+    if len(cc):
+        st = cc.state
+        candlocs = cc.locs
+        ls = cc.array['l1']
+        ms = cc.array['m1']
+        snrs = cc.array['snr1']
 
-        if st.prefs.clustercands is not None:
-            # add cluster field
-            if 'cluster' not in candcollection.array.dtype.fields:
-                candcollection = candidates.cluster_candidates(candcollection)
-
-            assert 'cluster' in candcollection.array.dtype.fields
-            clusters = candcollection.array['cluster'].astype(int)
-            cl_rank, cl_count = candidates.calc_cluster_rank(candcollection)
+        if 'cluster' in cc.array.dtype.fields:
+            clusters = cc.array['cluster'].astype(int)
+            cl_rank, cl_count = candidates.calc_cluster_rank(cc)
             calcinds = np.where(cl_rank == 1)[0]
         else:
-            calcinds = list(range(len(candcollection)))
+            calcinds = list(range(len(cc)))
 
         # reproduce canddata for each
         for i in calcinds:
@@ -415,7 +425,7 @@ def calc_features(candcollection, data, wisdom=None):
             candloc = candlocs[i]
             kwargs = {}
 
-            if st.prefs.clustercands is not None:
+            if 'cluster' in cc.array.dtype.fields:
                 logger.info("Cluster {0} has {1} candidates and max SNR {2} at {3}"
                             .format(clusters[i], cl_count[i], snr, candloc))
                 # add supplementary plotting and cc info
@@ -425,10 +435,10 @@ def calc_features(candcollection, data, wisdom=None):
                 logger.info("Candidate {0} has SNR {1} at {2}"
                             .format(i, snr, candloc))
 
-            # TODO: check if ok to take snrk and snrarm from original detection
+            # TODO: reproduce these here, too
             for kw in ['snrk', 'snrarm']:
-                if kw in candcollection.array.dtype.fields:
-                    kwargs[kw] = candcollection.array[kw][i]
+                if kw in cc.array.dtype.fields:
+                    kwargs[kw] = cc.array[kw][i]
 
             # reproduce candidate
             (segment, integration, dmind, dtind, beamnum) = candloc
@@ -450,11 +460,9 @@ def calc_features(candcollection, data, wisdom=None):
             data_corr = data_corr.mean(axis=1)
 
             # create canddata
-            canddata = candidates.CandData(state=st, loc=candloc, image=image,
-                                           data=data_corr, **kwargs)
+            cdlist.append(candidates.CandData(state=st, loc=candloc, image=image,
+                                              data=data_corr, **kwargs))
 
-            # triggers optional plotting and saving
-            cc += candidates.save_and_plot(canddata)
 
             # TODO: validate that reproduced features match input features?
     #        peakx, peaky = np.where(image[0] == image[0].max())
@@ -463,7 +471,7 @@ def calc_features(candcollection, data, wisdom=None):
     #        immax1 = image.max()
     #        snr1 = immax1/image.std()
 
-    return cc
+    return cdlist
 
 
 def grid_image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,
