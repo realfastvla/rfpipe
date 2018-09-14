@@ -19,7 +19,6 @@ except ImportError:
     pass
 
 qa = casautil.tools.quanta()
-default_timeout = 10  # multiple of read time in seconds to wait
 
 
 def data_prep(st, segment, data, flagversion="latest"):
@@ -71,10 +70,11 @@ def data_prep(st, segment, data, flagversion="latest"):
     return datap.take(st.chans, axis=2)
 
 
-def read_segment(st, segment, cfile=None, timeout=default_timeout):
+def read_segment(st, segment, cfile=None, timeout=10):
     """ Read a segment of data.
     cfile and timeout are specific to vys data.
     Returns data as defined in metadata (no downselection yet)
+    default timeout is multiple of read time in seconds to wait.
     """
 
     # assumed read shape (st.readints, st.nbl, st.metadata.nchan_orig, st.npol)
@@ -182,7 +182,7 @@ def prep_standard(st, segment, data):
     return data
 
 
-def read_vys_segment(st, seg, cfile=None, timeout=default_timeout, offset=4):
+def read_vys_segment(st, seg, cfile=None, timeout=10, offset=4):
     """ Read segment seg defined by state st from vys stream.
     Uses vysmaw application timefilter to receive multicast messages and pull
     spectra on the CBE.
