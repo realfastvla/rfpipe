@@ -85,7 +85,8 @@ def read_segment(st, segment, cfile=None, timeout=10):
     elif st.metadata.datasource == 'sim':
         data_read = simulate_segment(st)
     elif st.metadata.datasource == 'vyssim':
-        data_read = read_vys_segment(st, segment, cfile=cfile, timeout=timeout)
+        data_read = read_vys_segment(st, segment, cfile=cfile, timeout=timeout,
+                                     returnsim=True)
     else:
         logger.error('Datasource {0} not recognized.'
                      .format(st.metadata.datasource))
