@@ -219,9 +219,8 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
     logger.info("First pass found {0} candidates in seg {1}."
                 .format(len(cc), segment))
 
-    # find clusters and save/plot for peak of each cluster
-    if st.prefs.clustercands is not None:
-        cc = calc_cluster_features(cc, data)
+    cc = calc_features(cc, data)  # regenerate cc after optionally clustering
+    candidates.save_cands(st, candcollection=cc)
 
     return cc
 
@@ -375,15 +374,14 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
     logger.info("First pass found {0} candidates in seg {1}."
                 .format(len(cc), segment))
 
-    # find clusters and save/plot for peak of each cluster
-    if st.prefs.clustercands is not None:
-        cc = calc_cluster_features(cc, data)  # new cc made from data
+    cc = calc_features(cc, data)    # regenerate cc after optionally clustering
+    candidates.save_cands(st, candcollection=cc)
 
     return cc
 
 
-def calc_cluster_features(candcollection, data, wisdom=None):
-    """ Clusteres candidates and reproduces data for peak of each cluster.
+def calc_features(candcollection, data, wisdom=None):
+    """ Reproduces data with optional filtering for peak of candidate clusters.
     Location (e.g., integration, dm, dt) of each is used to create
     canddata for each candidate.
     """
@@ -393,28 +391,46 @@ def calc_cluster_features(candcollection, data, wisdom=None):
     cc = candidates.CandCollection(prefs=st.prefs, metadata=st.metadata)
 
     if len(candcollection):
-        # add cluster field
-        if 'cluster' not in candcollection.array.dtype.fields:
-            candcollection = candidates.cluster_candidates(candcollection)
-
-        assert 'cluster' in candcollection.array.dtype.fields
-        clusters = candcollection.array['cluster'].astype(int)
-
         candlocs = candcollection.locs
         ls = candcollection.array['l1']
         ms = candcollection.array['m1']
+        snrs = candcollection.array['snr1']
 
-        cl_rank, cl_count = candidates.calc_cluster_rank(candcollection)
+        if st.prefs.clustercands is not None:
+            # add cluster field
+            if 'cluster' not in candcollection.array.dtype.fields:
+                candcollection = candidates.cluster_candidates(candcollection)
 
-        # reproduce the max snr of each cluster
-        for i in np.where(cl_rank == 1)[0]:
+            assert 'cluster' in candcollection.array.dtype.fields
+            clusters = candcollection.array['cluster'].astype(int)
+            cl_rank, cl_count = candidates.calc_cluster_rank(candcollection)
+            calcinds = np.where(cl_rank == 1)[0]
+        else:
+            calcinds = list(range(len(candcollection)))
+
+        # reproduce canddata for each
+        for i in calcinds:
             # TODO: check on best way to find max SNR with kalman, etc
-            snr = candcollection.array['snr1'][i]
+            snr = snrs[i]
             candloc = candlocs[i]
+            kwargs = {}
 
-            logger.info("Cluster {0} has {1} candidates and max SNR {2} at {3}"
-                        .format(clusters[i], cl_count[i], snr, candloc))
+            if st.prefs.clustercands is not None:
+                logger.info("Cluster {0} has {1} candidates and max SNR {2} at {3}"
+                            .format(clusters[i], cl_count[i], snr, candloc))
+                # add supplementary plotting and cc info
+                kwargs['cluster'] = clusters[i]
+                kwargs['clustersize'] = cl_count[i]
+            else:
+                logger.info("Candidate {0} has SNR {1} at {2}"
+                            .format(i, snr, candloc))
 
+            # TODO: check if ok to take snrk and snrarm from original detection
+            for kw in ['snrk', 'snrarm']:
+                if kw in candcollection.array.dtype.fields:
+                    kwargs[kw] = candcollection.array[kw][i]
+
+            # reproduce candidate
             (segment, integration, dmind, dtind, beamnum) = candloc
             delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
                                     st.inttime)
@@ -433,14 +449,7 @@ def calc_cluster_features(candcollection, data, wisdom=None):
             util.phase_shift(data_corr, uvw, ls[i], ms[i])
             data_corr = data_corr.mean(axis=1)
 
-            # add supplementary plotting and cc info
-            kwargs = {}
-            kwargs['cluster'] = clusters[i]
-            kwargs['clustersize'] = cl_count[i]
-            # TODO: check if ok to take snrk and snrarm from original detection
-            for kw in ['snrk', 'snrarm']:
-                if kw in candcollection.array.dtype.fields:
-                    kwargs[kw] = candcollection.array[kw][i]
+            # create canddata
             canddata = candidates.CandData(state=st, loc=candloc, image=image,
                                            data=data_corr, **kwargs)
 

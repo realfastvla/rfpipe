@@ -291,7 +291,6 @@ def save_and_plot(canddatalist):
             snrs = None
 
         # save cc and save/plot each canddata
-        save_cands(st, candcollection=candcollection)
         for canddata in canddatalist:
             save_cands(st, canddata=canddata)
             candplot(canddata, cluster=cluster, snrs=snrs)
@@ -897,17 +896,11 @@ def candplot(canddatalist, snrs=None, cluster=None, outname=''):
         # calc source location
 #        imstd = util.madtostd(im)  # outlier resistant
         imstd = im.std()  # consistent with rfgpu
-        snrmin = im.min()/imstd
         snrmax = im.max()/imstd
-        if snrmax > -1*snrmin:
-            l1, m1 = st.pixtolm(np.where(im == im.max()))
-            snrobs = snrmax
-        else:
-            l1, m1 = st.pixtolm(np.where(im == im.min()))
-            snrobs = snrmin
+        l1, m1 = st.pixtolm(np.where(im == im.max()))
 
         logger.info('Plotting candloc {0} with SNR {1:.1f} and image/data shapes: {2}/{3}'
-                    .format(str(candloc), snrobs, str(im.shape), str(data.shape)))
+                    .format(str(candloc), snrmax, str(im.shape), str(data.shape)))
 
         pt_ra, pt_dec = st.metadata.radec
         src_ra, src_dec = source_location(pt_ra, pt_dec, l1, m1)
@@ -973,7 +966,7 @@ def candplot(canddatalist, snrs=None, cluster=None, outname=''):
                 + ' ms',
                 fontname='sans-serif', transform=ax.transAxes,
                 fontsize='small')
-        ax.text(left, start-10*space, 'SNR: ' + str(np.round(snrobs, 1)),
+        ax.text(left, start-10*space, 'SNR: ' + str(np.round(snrmax, 1)),
                 fontname='sans-serif', transform=ax.transAxes,
                 fontsize='small')
         if cluster is not None:
@@ -1103,7 +1096,7 @@ def candplot(canddatalist, snrs=None, cluster=None, outname=''):
         [label.set_visible(False) for label in ax_sp.get_yticklabels()]
 
         # calculate the channels to average together for SNR=2
-        n = int((2.*(len(spectra))**0.5/snrobs)**2)
+        n = int((2.*(len(spectra))**0.5/snrmax)**2)
         if n == 0:  # if n==0 then don't average
             dd1avg = dd1
             dd3avg = dd3
@@ -1298,7 +1291,7 @@ def candplot(canddatalist, snrs=None, cluster=None, outname=''):
             ax_snr.set_ylabel('N')
             ax_snr.set_yscale('log')
             # draw vertical line where the candidate SNR is
-            ax_snr.axvline(x=np.abs(snrobs), linewidth=1, color='y', alpha=0.7)
+            ax_snr.axvline(x=snrmax, linewidth=1, color='y', alpha=0.7)
 
         if not outname:
             outname = os.path.join(st.prefs.workdir,
