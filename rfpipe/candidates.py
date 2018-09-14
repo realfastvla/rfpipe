@@ -290,7 +290,8 @@ def save_and_plot(canddatalist):
         elif len(candcollection) == 1:
             snrs = None
 
-        # save and plot for each canddata
+        # save cc and save/plot each canddata
+        save_cands(st, candcollection=candcollection)
         for canddata in canddatalist:
             save_cands(st, canddata=canddata)
             candplot(canddata, cluster=cluster, snrs=snrs)

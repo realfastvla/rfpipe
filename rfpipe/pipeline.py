@@ -45,8 +45,6 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default):
     elif st.fftmode == "cuda":
         candcollection = search.dedisperse_search_cuda(st, segment, data_prep)
 
-    candidates.save_cands(st, candcollection=candcollection)
-
     return candcollection
 
 

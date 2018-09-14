@@ -26,7 +26,7 @@ class Metadata(object):
     """
 
     # basics
-    datasource = attr.ib(default=None)
+    datasource = attr.ib(default=None)  # 'vys', 'sdm', 'sim', 'vyssim'
     datasetId = attr.ib(default=None)
     filename = attr.ib(default=None)  # full path to SDM (optional)
     scan = attr.ib(default=None)  # int
@@ -47,7 +47,7 @@ class Metadata(object):
     dishdiameter = attr.ib(default=None)
     intent = attr.ib(default=None)
     antids = attr.ib(default=None)
-    stationids = attr.ib(default=None) # needed?
+    stationids = attr.ib(default=None)  # needed?
     xyz = attr.ib(default=None)  # in m, geocentric
 
     # spectral info

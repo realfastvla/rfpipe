@@ -36,8 +36,6 @@ def prep_and_search(st, segment, data):
         logger.warn("fftmode {0} not recognized (cuda, fftw allowed)"
                     .format(st.prefs.fftmode))
 
-    candidates.save_cands(st, candcollection=candcollection)
-
     return candcollection
 
 

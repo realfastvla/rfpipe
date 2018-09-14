@@ -202,10 +202,8 @@ def pipeline_imdata(st, candloc, data_dmdt=None):
     canddata = candidates.CandData(state=st, loc=tuple(candloc), image=image,
                                    data=dataph)
 
-    candcollection = candidates.save_and_plot(canddata)
-
     # output is as from searching functions
-    return candcollection
+    return canddata
 
 
 def pipeline_candidate(st, candloc, candcollection=None):
@@ -216,8 +214,8 @@ def pipeline_candidate(st, candloc, candcollection=None):
     segment, candint, dmind, dtind, beamnum = candloc.astype(int)
 
     if candcollection is None:
-        candcollection = pipeline_imdata(st, candloc)
+        canddata = pipeline_imdata(st, candloc)
 
-    candidates.save_cands(candcollection)
+    candcollection = candidates.save_and_plot(canddata)
 
     return candcollection
