@@ -86,7 +86,6 @@ def read_segment(st, segment, cfile=None, timeout=10):
         data_read = simulate_segment(st)
     elif st.metadata.datasource == 'vyssim':
         data_read = read_vys_segment(st, segment, cfile=cfile, timeout=timeout)
-        data_read = simulate_segment(st)
     else:
         logger.error('Datasource {0} not recognized.'
                      .format(st.metadata.datasource))
@@ -182,12 +181,13 @@ def prep_standard(st, segment, data):
     return data
 
 
-def read_vys_segment(st, seg, cfile=None, timeout=10, offset=4):
+def read_vys_segment(st, seg, cfile=None, timeout=10, offset=4, returnsim=False):
     """ Read segment seg defined by state st from vys stream.
     Uses vysmaw application timefilter to receive multicast messages and pull
     spectra on the CBE.
     timeout is a multiple of read time in seconds to wait.
     offset is extra time in seconds to keep vys reader open.
+    returnsim can optionally swap in sim data if vys client returns anything.
     """
 
     # TODO: support for time downsampling
@@ -223,7 +223,10 @@ def read_vys_segment(st, seg, cfile=None, timeout=10, offset=4):
             data = None
 
     if data is not None:
-        return data
+        if returnsim:
+            return simulate_segment(st)
+        else:
+            return data
     else:
         return np.array([])
 
