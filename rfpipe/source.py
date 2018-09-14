@@ -224,12 +224,12 @@ def read_vys_segment(st, seg, cfile=None, timeout=10, offset=4, returnsim=False)
             data = None
 
     if data is not None:
+        return data
+    else:
         if returnsim:
             return simulate_segment(st)
         else:
-            return data
-    else:
-        return np.array([])
+            return np.array([])
 
 
 def read_bdf_segment(st, segment):
