@@ -5,6 +5,7 @@ from io import open
 
 import pickle
 import os
+from copy import deepcopy
 import numpy as np
 from numpy.lib.recfunctions import append_fields
 from collections import OrderedDict
@@ -280,8 +281,7 @@ def save_and_plot(canddatalist):
 
     candcollection = make_candcollection(st, **kwargs)
 
-    # TODO: may be better to redesign for single canddata objs?
-    if st.prefs.savecands and len(candcollection.array):
+    if (st.prefs.savecands or st.prefs.saveplots) and len(candcollection.array):
         if len(candcollection) > 1:
             snrs = candcollection.array['snr1'].flatten()
         elif len(candcollection) == 1:
@@ -289,8 +289,10 @@ def save_and_plot(canddatalist):
 
         # save cc and save/plot each canddata
         for i, canddata in enumerate(canddatalist):
-            save_cands(st, canddata=canddata)
-            candplot(canddata, cluster=clusters[i], snrs=snrs)
+            if st.prefs.savecands:
+                save_cands(st, canddata=canddata)
+            if st.prefs.saveplots:
+                candplot(canddata, cluster=(clusters[i], clustersizes[i]), snrs=snrs)
 
     return candcollection
 
@@ -389,33 +391,36 @@ def cluster_candidates(cc, returnclusterer=False, label_unclustered=True):
     Returns label for each row in candcollection.
     """
 
-    if len(cc) > 1:
-        if cc.prefs.clustercands is not None:
-            min_cluster_size, min_samples = cc.prefs.clustercands
+    cc1 = deepcopy(cc)
+    if len(cc1) > 1:
+        if cc1.prefs.clustercands is not None:
+            min_cluster_size, min_samples = cc1.prefs.clustercands
         else:
-            logger.warn("No clustering parameters in prefs. Using default values (2,1).")
-            min_cluster_size = 2
-            min_samples = 1
+            min_cluster_size = 3
+            min_samples = 3
+            logger.warn("No clustering parameters in prefs. Using default values ({0},{1}."
+                        .format(min_cluster_size, min_samples))
 
-        if min_cluster_size > len(cc):
-            logger.info("Setting min_cluster_size to number of cands {0}".format(len(cc)))
-            min_cluster_size = len(cc)
-        candl = cc.candl
-        candm = cc.candm
-        npixx = cc.state.npixx
-        npixy = cc.state.npixy
-        uvres = cc.state.uvres
+        if min_cluster_size > len(cc1):
+            logger.info("Setting min_cluster_size to number of cands {0}"
+                        .format(len(cc1)))
+            min_cluster_size = len(cc1)
+        candl = cc1.candl
+        candm = cc1.candm
+        npixx = cc1.state.npixx
+        npixy = cc1.state.npixy
+        uvres = cc1.state.uvres
 
-        peakx_ind, peaky_ind = cc.state.calcpix(candl, candm, npixx, npixy,
-                                                uvres)
+        peakx_ind, peaky_ind = cc1.state.calcpix(candl, candm, npixx, npixy,
+                                                 uvres)
 
-        dm_ind = cc.array['dmind']
-        dtind = cc.array['dtind']
-        timearr_ind = cc.array['integration']  # time index of all the candidates
+        dm_ind = cc1.array['dmind']
+        dtind = cc1.array['dtind']
+        timearr_ind = cc1.array['integration']  # time index of all the candidates
         # TODO: find better way to cluster between different dtarr. maybe int*dtarr/dtarr.min?
         time_ind = np.multiply(timearr_ind,
                                np.power(2,
-                                        np.array(cc.state.dtarr).take(dtind)))
+                                        np.array(cc1.state.dtarr).take(dtind)))
         data = np.transpose([peakx_ind, peaky_ind, dm_ind, time_ind])
 
         clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size,
@@ -425,14 +430,14 @@ def cluster_candidates(cc, returnclusterer=False, label_unclustered=True):
         nclustered = np.max(clusterer.labels_ + 1)
         nunclustered = len(np.where(clusterer.labels_ == -1)[0])
 
-        logger.info("Found {0} clustered and {1} unclustered candidates for "
+        logger.info("Found {0} clusters and {1} unclustered candidates for "
                     "min cluster size {2}"
                     .format(nclustered, nunclustered, min_cluster_size))
 
         labels = clusterer.labels_.astype(np.int32)
     else:
         clusterer = None
-        labels = -1*np.ones(len(cc), dtype=np.int32)
+        labels = -1*np.ones(len(cc1), dtype=np.int32)
 
     if -1 in labels and label_unclustered:
         unclustered = np.where(labels == -1)[0]
@@ -444,15 +449,15 @@ def cluster_candidates(cc, returnclusterer=False, label_unclustered=True):
             labels[cli] = newind
 
     # TODO: rebuild array with new col or accept broken python 2 or create cc with 'cluster' set to -1
-    if 'cluster' not in cc.array.dtype.fields:
-        cc.array = append_fields(cc.array, 'cluster', labels, usemask=False)
+    if 'cluster' not in cc1.array.dtype.fields:
+        cc1.array = append_fields(cc1.array, 'cluster', labels, usemask=False)
     else:
-        cc.array['cluster'] = labels
+        cc1.array['cluster'] = labels
 
     if returnclusterer:
-        return cc, clusterer
+        return cc1, clusterer
     else:
-        return cc
+        return cc1
 
 
 def calc_cluster_rank(cc):
@@ -656,6 +661,7 @@ def cluster_plotting_bokeh(candcollection, clusterer):
 def makesummaryplot(candsfile):
     """ Given a scan's candsfile, read all candcollections and create
     bokeh summary plot
+    TODO: modify to take candcollection
     """
 
     time = []

@@ -84,6 +84,7 @@ class Preferences(object):
 
     savenoise = attr.ib(default=False)
     savecands = attr.ib(default=False)
+    saveplots = attr.ib(default=False)
     candsfile = attr.ib(default=None)
     workdir = attr.ib(default=getcwd())  # set upon import
     timewindow = attr.ib(default=30)

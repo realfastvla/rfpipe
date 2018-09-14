@@ -222,7 +222,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
     if st.prefs.clustercands is not None:
         cc = candidates.cluster_candidates(cc)
 
-    if st.prefs.saveplots:
+    if st.prefs.savecands or st.prefs.saveplots:
         cdlist = make_canddata(cc, data)
         # triggers optional plotting and saving
         cc = candidates.save_and_plot(cdlist)
@@ -384,7 +384,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
     if st.prefs.clustercands is not None:
         cc = candidates.cluster_candidates(cc)
 
-    if st.prefs.saveplots:
+    if st.prefs.savecands or st.prefs.saveplots:
         cdlist = make_canddata(cc, data)    # regenerate cc with more features
         # triggers optional plotting and saving
         cc = candidates.save_and_plot(cdlist)
