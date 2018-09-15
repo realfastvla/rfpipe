@@ -385,7 +385,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
         cc = candidates.cluster_candidates(cc)
 
     if st.prefs.savecands or st.prefs.saveplots:
-        cdlist = make_canddata(cc, data)    # regenerate cc with more features
+        cdlist = make_canddata(cc, data)
         # triggers optional plotting and saving
         cc = candidates.save_and_plot(cdlist)
 
