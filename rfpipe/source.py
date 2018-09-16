@@ -226,7 +226,7 @@ def read_vys_segment(st, seg, cfile=None, timeout=10, offset=4, returnsim=False)
     if data is not None:
         return data
     else:
-        if returnsim:
+        if (reader is not None) and returnsim:
             return simulate_segment(st)
         else:
             return np.array([])
