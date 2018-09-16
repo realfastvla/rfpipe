@@ -27,7 +27,7 @@ def data(st):
 
 def test_prepsearch(st, data):
     segment = 0
-    cc = rfpipe.pipieline.prep_and_search(st, segment, data)
+    cc = rfpipe.pipeline.prep_and_search(st, segment, data)
 
 
 def test_dm_singlemulti(st, data):

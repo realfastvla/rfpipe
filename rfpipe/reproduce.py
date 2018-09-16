@@ -137,7 +137,7 @@ def pipeline_dataprep(st, candloc):
     """ Prepare (read, cal, flag) data for a given state and candloc.
     """
 
-    segment, candint, dmind, dtind, beamnum = candloc.astype(int)
+    segment, candint, dmind, dtind, beamnum = candloc
 
     # propagate through to new candcollection
     st.prefs.segmenttimes = st._segmenttimes.tolist()
@@ -158,7 +158,7 @@ def pipeline_datacorrect(st, candloc, data_prep=None):
     if data_prep is None:
         data_prep = pipeline_dataprep(st, candloc)
 
-    segment, candint, dmind, dtind, beamnum = candloc.astype(int)
+    segment, candint, dmind, dtind, beamnum = candloc
     dt = st.dtarr[dtind]
     dm = st.dmarr[dmind]
 
@@ -180,7 +180,7 @@ def pipeline_imdata(st, candloc, data_dmdt=None, **kwargs):
     Can optionally pass in corrected data, if available.
     """
 
-    segment, candint, dmind, dtind, beamnum = candloc.astype(int)
+    segment, candint, dmind, dtind, beamnum = candloc
     dt = st.dtarr[dtind]
     dm = st.dmarr[dmind]
 
@@ -213,7 +213,7 @@ def pipeline_candidate(st, candloc, candcollection=None):
     Can optionally pass in image and corrected data, if available.
     """
 
-    segment, candint, dmind, dtind, beamnum = candloc.astype(int)
+    segment, candint, dmind, dtind, beamnum = candloc
 
     if candcollection is None:
         canddata = pipeline_imdata(st, candloc)

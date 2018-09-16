@@ -6,7 +6,7 @@ from io import open
 import numpy as np
 from numba import jit, guvectorize, int64
 import pyfftw
-from rfpipe import util, candidates, source
+from rfpipe import util, candidates, source, reproduce
 import scipy.stats
 
 import logging
@@ -422,7 +422,7 @@ def reproduce_candcollection(cc, data, wisdom=None):
 
             # reproduce candidate
             data_corr = reproduce.pipeline_datacorrect(st, candloc, data)
-            cd = pipeline_imdata(st, candloc, data_corr, **kwargs)
+            cd = reproduce.pipeline_imdata(st, candloc, data_corr, **kwargs)
             cc1 += candidates.save_and_plot(cd)
 
             # TODO: validate that reproduced features match input features?

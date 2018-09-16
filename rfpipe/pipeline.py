@@ -48,9 +48,9 @@ def prep_and_search(st, segment, data):
     data = source.data_prep(st, segment, data)
 
     if st.prefs.fftmode == "cuda":
-        candcollection = dedisperse_search_cuda(st, segment, data)
+        candcollection = search.dedisperse_search_cuda(st, segment, data)
     elif st.prefs.fftmode == "fftw":
-        candcollection = dedisperse_search_fftw(st, segment, data)
+        candcollection = search.dedisperse_search_fftw(st, segment, data)
     else:
         logger.warn("fftmode {0} not recognized (cuda, fftw allowed)"
                     .format(st.prefs.fftmode))
