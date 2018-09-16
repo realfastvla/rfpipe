@@ -168,13 +168,13 @@ def pipeline_datacorrect(st, candloc, data_prep=None):
     delay = util.calc_delay(st.freq, st.freq.max(), dm, st.inttime,
                             scale=scale)
 
-    data_dmdt = search.dedisperseresample(data_prep, delay, dt)
-#    data_dmdt = search.resample(data_dm, dt)
+    data_dmdt = search.dedisperseresample(data_prep, delay, dt,
+                                          parallel=st.prefs.nthread > 1)
 
     return data_dmdt
 
 
-def pipeline_imdata(st, candloc, data_dmdt=None):
+def pipeline_imdata(st, candloc, data_dmdt=None, **kwargs):
     """ Generate image and phased visibility data for candloc.
     Phases to peak pixel in image of candidate.
     Can optionally pass in corrected data, if available.
@@ -194,13 +194,15 @@ def pipeline_imdata(st, candloc, data_dmdt=None):
     image = search.grid_image(data_dmdt, uvw, st.npixx, st.npixy, st.uvres,
                               st.fftmode, st.prefs.nthread, wisdom=wisdom,
                               integrations=[i])[0]
+
+    # TODO: allow dl,dm as args and reproduce detection for other SNRs
     dl, dm = st.pixtolm(np.where(image == image.max()))
     util.phase_shift(data_dmdt, uvw, dl, dm)
     dataph = data_dmdt[i-st.prefs.timewindow//2:i+st.prefs.timewindow//2].mean(axis=1)
     util.phase_shift(data_dmdt, uvw, -dl, -dm)
 
     canddata = candidates.CandData(state=st, loc=tuple(candloc), image=image,
-                                   data=dataph)
+                                   data=dataph, **kwargs)
 
     # output is as from searching functions
     return canddata

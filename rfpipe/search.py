@@ -22,22 +22,6 @@ except ImportError:
 # packaged searching functions
 ###
 
-def prep_and_search(st, segment, data):
-    """ Bundles prep and search functions to improve performance in distributed.
-    """
-
-    data = source.data_prep(st, segment, data)
-
-    if st.prefs.fftmode == "cuda":
-        candcollection = dedisperse_search_cuda(st, segment, data)
-    elif st.prefs.fftmode == "fftw":
-        candcollection = dedisperse_search_fftw(st, segment, data)
-    else:
-        logger.warn("fftmode {0} not recognized (cuda, fftw allowed)"
-                    .format(st.prefs.fftmode))
-
-    return candcollection
-
 
 def dedisperse_search_cuda(st, segment, data, devicenum=None):
     """ Run dedispersion, resample for all dm and dt.
@@ -223,9 +207,8 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
         cc = candidates.cluster_candidates(cc)
 
     if st.prefs.savecands or st.prefs.saveplots:
-        cdlist = make_canddata(cc, data)
         # triggers optional plotting and saving
-        cc = candidates.save_and_plot(cdlist)
+        cc = reproduce_candcollection(cc, data)
 
     candidates.save_cands(st, candcollection=cc)
 
@@ -385,16 +368,15 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
         cc = candidates.cluster_candidates(cc)
 
     if st.prefs.savecands or st.prefs.saveplots:
-        cdlist = make_canddata(cc, data)
         # triggers optional plotting and saving
-        cc = candidates.save_and_plot(cdlist)
+        cc = reproduce_candcollection(cc, data)
 
     candidates.save_cands(st, candcollection=cc)
 
     return cc
 
 
-def make_canddata(cc, data, wisdom=None):
+def reproduce_candcollection(cc, data, wisdom=None):
     """ Calculates canddata for each cand in candcollection.
     Will look for cluster label and filter only for peak snr, if available.
     Location (e.g., integration, dm, dt) of each is used to create
@@ -402,13 +384,11 @@ def make_canddata(cc, data, wisdom=None):
     """
 
     # set up output cc
-    cdlist = []
+    st = cc.state
+    cc1 = candidates.CandCollection(prefs=st.prefs, metadata=st.metadata)
 
     if len(cc):
-        st = cc.state
         candlocs = cc.locs
-        ls = cc.array['l1']
-        ms = cc.array['m1']
         snrs = cc.array['snr1']
 
         if 'cluster' in cc.array.dtype.fields:
@@ -441,28 +421,9 @@ def make_canddata(cc, data, wisdom=None):
                     kwargs[kw] = cc.array[kw][i]
 
             # reproduce candidate
-            (segment, integration, dmind, dtind, beamnum) = candloc
-            delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
-                                    st.inttime)
-            data_corr = dedisperseresample(data, delay, st.dtarr[dtind],
-                                           parallel=st.prefs.nthread > 1)
-
-            uvw = util.get_uvw_segment(st, segment)
-            image = grid_image(data_corr, uvw, st.npixx, st.npixy, st.uvres,
-                               'fftw', st.prefs.nthread, wisdom=wisdom,
-                               integrations=integration)[0]
-
-            data_corr = data_corr[max(0, integration-st.prefs.timewindow//2):
-                                  min(integration+st.prefs.timewindow//2,
-                                  len(data))]
-
-            util.phase_shift(data_corr, uvw, ls[i], ms[i])
-            data_corr = data_corr.mean(axis=1)
-
-            # create canddata
-            cdlist.append(candidates.CandData(state=st, loc=candloc, image=image,
-                                              data=data_corr, **kwargs))
-
+            data_corr = reproduce.pipeline_datacorrect(st, candloc, data)
+            cd = pipeline_imdata(st, candloc, data_corr, **kwargs)
+            cc1 += candidates.save_and_plot(cd)
 
             # TODO: validate that reproduced features match input features?
     #        peakx, peaky = np.where(image[0] == image[0].max())
@@ -471,7 +432,7 @@ def make_canddata(cc, data, wisdom=None):
     #        immax1 = image.max()
     #        snr1 = immax1/image.std()
 
-    return cdlist
+    return cc1
 
 
 def grid_image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,

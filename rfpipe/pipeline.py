@@ -36,14 +36,24 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default):
     """
 
     data = source.read_segment(st, segment, timeout=vys_timeout, cfile=cfile)
-    data_prep = source.data_prep(st, segment, data)
+    candcollection = prep_and_search(st, segment, data)
 
-    if st.fftmode == "fftw":
-        wisdom = search.set_wisdom(st.npixx, st.npixy)
-        candcollection = search.dedisperse_search_fftw(st, segment, data_prep,
-                                                       wisdom=wisdom)
-    elif st.fftmode == "cuda":
-        candcollection = search.dedisperse_search_cuda(st, segment, data_prep)
+    return candcollection
+
+
+def prep_and_search(st, segment, data):
+    """ Bundles prep and search functions to improve performance in distributed.
+    """
+
+    data = source.data_prep(st, segment, data)
+
+    if st.prefs.fftmode == "cuda":
+        candcollection = dedisperse_search_cuda(st, segment, data)
+    elif st.prefs.fftmode == "fftw":
+        candcollection = dedisperse_search_fftw(st, segment, data)
+    else:
+        logger.warn("fftmode {0} not recognized (cuda, fftw allowed)"
+                    .format(st.prefs.fftmode))
 
     return candcollection
 
