@@ -136,8 +136,6 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                                 st.npixy, st.uvres, devicenum))
 
             for i in integrations:
-                candloc = (segment, i, dmind, dtind, beamnum)
-
                 # grid and FFT
                 grid.operate(vis_raw, vis_grid, i)
                 image.operate(vis_grid, img_grid)
@@ -152,6 +150,8 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
 
                 # threshold image
                 if snr1 > st.prefs.sigma_image1:
+                    candloc = (segment, i, dmind, dtind, beamnum)
+
                     xpeak = stats['xpeak']
                     ypeak = stats['ypeak']
                     l1, m1 = st.pixtolm((xpeak+st.npixx//2, ypeak+st.npixy//2))
@@ -275,10 +275,10 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
                                     integrations=integrations)
 
                 for i, image in enumerate(images):
-                    candloc = (segment, integrations[i], dmind, dtind, beamnum)
                     immax1 = image.max()
                     snr1 = immax1/image.std()
                     if snr1 > st.prefs.sigma_image1:
+                        candloc = (segment, integrations[i], dmind, dtind, beamnum)
                         l1, m1 = st.pixtolm(np.where(image == immax1))
 
                         # if set, use sigma_kalman as second stage filter
