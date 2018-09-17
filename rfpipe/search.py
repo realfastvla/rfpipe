@@ -406,14 +406,15 @@ def reproduce_candcollection(cc, data, wisdom=None):
             kwargs = {}
 
             if 'cluster' in cc.array.dtype.fields:
-                logger.info("Cluster {0} has {1} candidates and max SNR {2} at {3}"
-                            .format(clusters[i], cl_count[i], snr, candloc))
+                logger.info("Cluster {0}/{1} has {2} candidates and max SNR {3} at {4}"
+                            .format(clusters[i], len(calcinds), cl_count[i],
+                                    snr, candloc))
                 # add supplementary plotting and cc info
                 kwargs['cluster'] = clusters[i]
                 kwargs['clustersize'] = cl_count[i]
             else:
-                logger.info("Candidate {0} has SNR {1} at {2}"
-                            .format(i, snr, candloc))
+                logger.info("Candidate {0}/{1} has SNR {2} at {3}"
+                            .format(i, len(calcinds), snr, candloc))
 
             # TODO: reproduce these here, too
             for kw in ['snrk', 'snrarm']:
@@ -422,7 +423,8 @@ def reproduce_candcollection(cc, data, wisdom=None):
 
             # reproduce candidate
             data_corr = reproduce.pipeline_datacorrect(st, candloc, data)
-            cd = reproduce.pipeline_imdata(st, candloc, data_corr, cpuonly=True, **kwargs)
+            cd = reproduce.pipeline_imdata(st, candloc, data_corr,
+                                           cpuonly=True, **kwargs)
             cc1 += candidates.save_and_plot(cd)
 
             # TODO: validate that reproduced features match input features?
