@@ -190,16 +190,15 @@ def pipeline_imdata(st, candloc, data_dmdt=None, cpuonly=False, **kwargs):
     if data_dmdt is None:
         data_dmdt = pipeline_datacorrect(st, candloc)
 
-    i = candint//dt
     fftmode = 'fftw' if cpuonly else st.fftmode
     image = search.grid_image(data_dmdt, uvw, st.npixx, st.npixy, st.uvres,
                               fftmode, st.prefs.nthread, wisdom=wisdom,
-                              integrations=[i])[0]
+                              integrations=[candint])[0]
 
     # TODO: allow dl,dm as args and reproduce detection for other SNRs
     dl, dm = st.pixtolm(np.where(image == image.max()))
     util.phase_shift(data_dmdt, uvw, dl, dm)
-    dataph = data_dmdt[i-st.prefs.timewindow//2:i+st.prefs.timewindow//2].mean(axis=1)
+    dataph = data_dmdt[candint-st.prefs.timewindow//2:candint+st.prefs.timewindow//2].mean(axis=1)
     util.phase_shift(data_dmdt, uvw, -dl, -dm)
 
     canddata = candidates.CandData(state=st, loc=tuple(candloc), image=image,

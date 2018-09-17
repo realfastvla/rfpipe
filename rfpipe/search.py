@@ -6,7 +6,7 @@ from io import open
 import numpy as np
 from numba import jit, guvectorize, int64
 import pyfftw
-from rfpipe import util, candidates, source, reproduce
+from rfpipe import util, candidates, reproduce
 import scipy.stats
 
 import logging
