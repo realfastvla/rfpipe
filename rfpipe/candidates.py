@@ -416,11 +416,11 @@ def cluster_candidates(cc, returnclusterer=False, label_unclustered=True):
 
         dm_ind = cc1.array['dmind']
         dtind = cc1.array['dtind']
+        dtarr = cc1.state.dtarr
         timearr_ind = cc1.array['integration']  # time index of all the candidates
-        # TODO: find better way to cluster between different dtarr. maybe int*dtarr/dtarr.min?
         time_ind = np.multiply(timearr_ind,
                                np.power(2,
-                                        np.array(cc1.state.dtarr).take(dtind)))
+                                        np.array(dtarr).take(dtind)-min(dtarr)))
         data = np.transpose([peakx_ind, peaky_ind, dm_ind, time_ind])
 
         clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size,
