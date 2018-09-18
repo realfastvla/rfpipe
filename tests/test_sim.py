@@ -7,21 +7,21 @@ import rfpipe
 import pytest
 from astropy import time
 
-tparams = [(0, 0, 0, 5e-3, 1., 0.0001, 0.0),]
+tparams = [(0, 0, 0, 5e-3, 0.2, 0.0001, 0.0),]
 # simulate no flag, transient/no flag, transient/flag
 inprefs = [({'flaglist': [], 'chans': list(range(32)),
              'spw': [0], 'savecands': True, 'savenoise': True,
              'fftmode': 'fftw', 'searchtype': 'image'}, 1),
            ({'simulated_transient': tparams, 'dmarr': [0], 'dtarr': [1],
              'savecands': True, 'savenoise': True, 'saveplots': True,
-             'timesub': 'mean', 'fftmode': 'fftw', 'searchtype': 'imagek',
+             'timesub': None, 'fftmode': 'fftw', 'searchtype': 'imagek',
              'sigma_image1': 10, 'sigma_kalman': 1,
-             'clustercands': (2, 1)}, 2),
+             'clustercands': True, 'flaglist': []}, 2),
            ({'simulated_transient': tparams, 'dmarr': [0], 'dtarr': [1],
              'savecands': True, 'savenoise': True,
              'sigma_image1': 10, 'sigma_kalman': 1, 'sigma_arm': 4,
-             'sigma_arms': 6, 'timesub': 'mean', 'fftmode': 'fftw',
-             'searchtype': 'armkimage'}, 2)]
+             'sigma_arms': 6, 'timesub': None, 'fftmode': 'fftw',
+             'searchtype': 'armkimage', 'flaglist': []}, 2)]
 #TODO:      support arbitrary channel selection and
 #           {'read_tdownsample': 2, 'read_fdownsample': 2, 'npix_max': 512},
 
@@ -30,8 +30,9 @@ inprefs = [({'flaglist': [], 'chans': list(range(32)),
 def mockstate(request):
     inprefs, scan = request.param
     t0 = time.Time.now().mjd
-    meta = rfpipe.metadata.mock_metadata(t0, t0+0.01/(24*3600), 27, 4, 32*4, 2,
-                                         5e3, scan=scan, datasource='sim', antconfig='D')
+    meta = rfpipe.metadata.mock_metadata(t0, t0+0.3/(24*3600), 27, 4, 32*4, 2,
+                                         5e3, scan=scan, datasource='sim',
+                                         antconfig='D')
     return rfpipe.state.State(inmeta=meta, inprefs=inprefs)
 
 

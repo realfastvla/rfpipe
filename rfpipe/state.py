@@ -241,9 +241,12 @@ class State(object):
             logger.info('\t Expect {0} thermal false positives per scan.'
                         .format(self.nfalse(self.prefs.sigma_image1)))
             if self.prefs.clustercands is not None:
-                min_cluster_size, min_samples = self.prefs.clustercands
-                logger.info('\t Clustering candidates wth min_cluster_size={0} and min_samples={1}'
-                            .format(min_cluster_size, min_samples))
+                if isinstance(self.prefs.clustercands, tuple):
+                    min_cluster_size, min_samples = self.prefs.clustercands
+                    logger.info('\t Clustering candidates wth min_cluster_size={0} and min_samples={1}'
+                                .format(min_cluster_size, min_samples))
+                elif isinstance(self.prefs.clustercands, bool):
+                    logger.info('\t Clustering candidates wth default parameters')
 
             logger.info('')
             if self.fftmode == "fftw":

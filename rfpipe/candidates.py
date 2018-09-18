@@ -393,13 +393,22 @@ def cluster_candidates(cc, returnclusterer=False, label_unclustered=True):
 
     cc1 = deepcopy(cc)
     if len(cc1) > 1:
-        if cc1.prefs.clustercands is not None:
+        if isinstance(cc1.prefs.clustercands, tuple):
             min_cluster_size, min_samples = cc1.prefs.clustercands
+        elif isinstance(cc1.prefs.clustercands, bool):
+            if cc1.prefs.clustercands:
+                min_cluster_size = 3
+                min_samples = 3
+            else:
+                logger.info("Not performing clustering")
+                return cc1
         else:
-            min_cluster_size = 3
-            min_samples = 3
-            logger.warn("No clustering parameters in prefs. Using default values ({0},{1}."
-                        .format(min_cluster_size, min_samples))
+            logger.warn("prefs.clustercands value not valid: {0}."
+                        .format(cc1.prefs.clustercands))
+            return cc1
+
+        logger.info("Clustering parameters set to ({0},{1}."
+                    .format(min_cluster_size, min_samples))
 
         if min_cluster_size > len(cc1):
             logger.info("Setting min_cluster_size to number of cands {0}"
