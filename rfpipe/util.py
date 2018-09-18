@@ -370,7 +370,7 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None, i=Non
 
         if amp is None:
             if data is None:
-                amp = random.uniform(0.1, 1)
+                amp = random.uniform(0.1, 0.5)
             else:
                 if snr is None:
                     snr = random.uniform(10, 50)
