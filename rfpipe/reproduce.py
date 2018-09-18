@@ -198,7 +198,7 @@ def pipeline_imdata(st, candloc, data_dmdt=None, cpuonly=False, **kwargs):
     # TODO: allow dl,dm as args and reproduce detection for other SNRs
     dl, dm = st.pixtolm(np.where(image == image.max()))
     util.phase_shift(data_dmdt, uvw, dl, dm)
-    dataph = data_dmdt[candint-st.prefs.timewindow//2:candint+st.prefs.timewindow//2].mean(axis=1)
+    dataph = data_dmdt[max(0, candint-st.prefs.timewindow//2):candint+st.prefs.timewindow//2].mean(axis=1)
     util.phase_shift(data_dmdt, uvw, -dl, -dm)
 
     canddata = candidates.CandData(state=st, loc=tuple(candloc), image=image,
