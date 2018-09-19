@@ -69,8 +69,8 @@ class CandData(object):
         """ Candidate integration relative to data time window
         """
 
-        if candint < self.state.prefs.timewindow//2:
-            return candint
+        if self.loc[1] < self.state.prefs.timewindow//2:
+            return self.loc[1]
         else:
             return self.state.prefs.timewindow//2
 
@@ -754,7 +754,7 @@ def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
         dm_min = min(min(dm), max(dm)/1.2)
         dm_max = max(max(dm), min(dm)*1.2)
     else:
-        assert isinstance(range, tuple)
+        assert isinstance(yrange, tuple)
         dm_min, dm_max = yrange
     time = [data['time'][i] for i in inds]
     time_min = min(time)*0.95

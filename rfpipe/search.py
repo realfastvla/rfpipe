@@ -800,6 +800,8 @@ def search_thresh_armk(st, data, uvw, integrations=None, spec_std=None,
     T012 = maparms(st=st, u0=u0, v0=v0, order=order)
     arm0, arm1, arm2 = image_arms(st, data.take(integrations, axis=0), uvw,
                                   order=order)
+
+    # TODO: This is not returning bright simulated transients. Why?
     candinds, armlocs, snrarms = thresh_arms(arm0, arm1, arm2, T012,
                                              st.prefs.sigma_arm,
                                              st.prefs.sigma_arms,
@@ -852,7 +854,7 @@ def search_thresh_armk(st, data, uvw, integrations=None, spec_std=None,
                                                           coeffs=coeffs)
                 snrk = (2*significance_kalman)**0.5
                 snrtot = (snrk**2 + snrarms[i, j]**2)**0.5
-                if (snrtot > (st.prefs.sigma_kalman**2 + st.prefs.sigma_arm**2)**0.5) and (snrk > snrlast):
+                if (snrtot > (st.prefs.sigma_kalman**2 + st.prefs.sigma_arms**2)**0.5) and (snrtot > snrlast):
                     kpeak = (integrations[candinds[i, j]], snrarms[i, j],
                              snrk, (armloc0, armloc1, armloc2), (peakx, peaky),
                              (l, m))

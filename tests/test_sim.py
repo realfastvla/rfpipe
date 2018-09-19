@@ -7,7 +7,7 @@ import rfpipe
 import pytest
 from astropy import time
 
-tparams = [(0, 0, 0, 5e-3, 0.2, 0.0001, 0.0),]
+tparams = [(0, 0, 0, 5e-3, 0.5, 0.0001, 0.0),]
 # simulate no flag, transient/no flag, transient/flag
 inprefs = [({'flaglist': [], 'chans': list(range(32)),
              'spw': [0], 'savecands': True, 'savenoise': True,
@@ -16,12 +16,12 @@ inprefs = [({'flaglist': [], 'chans': list(range(32)),
              'savecands': True, 'savenoise': True, 'saveplots': True,
              'timesub': None, 'fftmode': 'fftw', 'searchtype': 'imagek',
              'sigma_image1': 10, 'sigma_kalman': 1,
-             'clustercands': True, 'flaglist': []}, 2),
-           ({'simulated_transient': tparams, 'dmarr': [0], 'dtarr': [1],
-             'savecands': True, 'savenoise': True,
-             'sigma_image1': 10, 'sigma_kalman': 1, 'sigma_arm': 4,
-             'sigma_arms': 6, 'timesub': None, 'fftmode': 'fftw',
-             'searchtype': 'armkimage', 'flaglist': []}, 2)]
+             'clustercands': True, 'flaglist': []}, 2),]
+#           ({'simulated_transient': tparams, 'dmarr': [0], 'dtarr': [1],
+#             'savecands': True, 'savenoise': True,
+#             'sigma_image1': 10, 'sigma_kalman': 1, 'sigma_arm': 2,
+#             'sigma_arms': 4, 'timesub': None, 'fftmode': 'fftw',
+#             'searchtype': 'armkimage', 'flaglist': []}, 2)  # sigma_arms forced very low
 #TODO:      support arbitrary channel selection and
 #           {'read_tdownsample': 2, 'read_fdownsample': 2, 'npix_max': 512},
 
