@@ -6,7 +6,8 @@ from io import open
 import numpy as np
 from numba import jit, guvectorize, int64
 import pyfftw
-from rfpipe import util, candidates, reproduce
+from rfpipe import util, candidates
+import rfpipe.reproduce  # explicit to avoid circular import
 import scipy.stats
 
 import logging
@@ -422,8 +423,8 @@ def reproduce_candcollection(cc, data, wisdom=None):
                     kwargs[kw] = cc.array[kw][i]
 
             # reproduce candidate
-            data_corr = reproduce.pipeline_datacorrect(st, candloc, data)
-            cd = reproduce.pipeline_imdata(st, candloc, data_corr,
+            data_corr = rfpipe.reproduce.pipeline_datacorrect(st, candloc, data)
+            cd = rfpipe.reproduce.pipeline_imdata(st, candloc, data_corr,
                                            cpuonly=True, **kwargs)
             cc1 += candidates.save_and_plot(cd)
 

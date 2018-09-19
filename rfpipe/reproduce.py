@@ -6,8 +6,8 @@ from io import open
 import pickle
 import os.path
 import numpy as np
-from rfpipe import preferences, state, util, search, source, metadata, candidates
-
+from rfpipe import state, preferences, util, source, metadata, candidates
+import rfpipe.search  # explicit to avoid circular import
 import logging
 logger = logging.getLogger(__name__)
 
@@ -168,8 +168,8 @@ def pipeline_datacorrect(st, candloc, data_prep=None):
     delay = util.calc_delay(st.freq, st.freq.max(), dm, st.inttime,
                             scale=scale)
 
-    data_dmdt = search.dedisperseresample(data_prep, delay, dt,
-                                          parallel=st.prefs.nthread > 1)
+    data_dmdt = rfpipe.search.dedisperseresample(data_prep, delay, dt,
+                                                 parallel=st.prefs.nthread > 1)
 
     return data_dmdt
 
@@ -185,15 +185,15 @@ def pipeline_imdata(st, candloc, data_dmdt=None, cpuonly=False, **kwargs):
     dm = st.dmarr[dmind]
 
     uvw = util.get_uvw_segment(st, segment)
-    wisdom = search.set_wisdom(st.npixx, st.npixy)
+    wisdom = rfpipe.search.set_wisdom(st.npixx, st.npixy)
 
     if data_dmdt is None:
         data_dmdt = pipeline_datacorrect(st, candloc)
 
     fftmode = 'fftw' if cpuonly else st.fftmode
-    image = search.grid_image(data_dmdt, uvw, st.npixx, st.npixy, st.uvres,
-                              fftmode, st.prefs.nthread, wisdom=wisdom,
-                              integrations=[candint])[0]
+    image = rfpipe.search.grid_image(data_dmdt, uvw, st.npixx, st.npixy, st.uvres,
+                                     fftmode, st.prefs.nthread, wisdom=wisdom,
+                                     integrations=[candint])[0]
 
     # TODO: allow dl,dm as args and reproduce detection for other SNRs
     dl, dm = st.pixtolm(np.where(image == image.max()))
