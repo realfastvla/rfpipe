@@ -1200,7 +1200,7 @@ def candplot(canddatalist, snrs=None, cluster=None, outname=''):
         ax_dynsp3.xaxis.set_label_position('top')
 
         # plot stokes I spectrum of the candidate pulse from middle integration
-        ax_sp.plot(dd2avgcrop[:, canddata.integration_rel//2]/2.,
+        ax_sp.plot(dd2avgcrop[:, canddata.integration_rel]/2.,
                    list(range(len(dd2avgcrop))), 'k.')
         ax_sp.plot(np.zeros(len(dd2avgcrop)), list(range(len(dd2avgcrop))),
                    'r:')

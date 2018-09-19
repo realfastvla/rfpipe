@@ -60,7 +60,8 @@ def test_dmresample_single(st, data):
 
     data1 = rfpipe.search.dedisperse(data, delay, parallel=False)
     data2 = rfpipe.search.resample(data1, dt, parallel=False)
-    data3 = rfpipe.search.dedisperseresample(data, delay, dt, parallel=False)
+    data3 = rfpipe.search.dedisperseresample(data, delay, dt, parallel=False,
+                                             resamplefirst=False)
     assert np.allclose(data3, data2)
 
 
@@ -72,7 +73,8 @@ def test_dmresample_multi1(st, data):
 
     data1 = rfpipe.search.dedisperse(data, delay, parallel=True)
     data2 = rfpipe.search.resample(data1, dt, parallel=True)
-    data3 = rfpipe.search.dedisperseresample(data, delay, dt, parallel=True)
+    data3 = rfpipe.search.dedisperseresample(data, delay, dt, parallel=True,
+                                             resamplefirst=False)
     assert np.allclose(data3, data2)
 
 
@@ -84,7 +86,8 @@ def test_dmresample_multi2(st, data):
 
     data1 = rfpipe.search.dedisperse(data, delay, parallel=True)
     data2 = rfpipe.search.resample(data1, dt, parallel=True)
-    data3 = rfpipe.search.dedisperseresample(data, delay, dt, parallel=True)
+    data3 = rfpipe.search.dedisperseresample(data, delay, dt, parallel=True,
+                                             resamplefirst=False)
     assert np.allclose(data3, data2)
 
 
