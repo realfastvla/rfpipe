@@ -7,6 +7,7 @@ import pickle
 import os
 from copy import deepcopy
 import numpy as np
+from math import cos, radians
 from numpy.lib.recfunctions import append_fields
 from collections import OrderedDict
 import matplotlib as mpl
@@ -725,8 +726,8 @@ def makesummaryplot(candsfile):
     data = dict(snrs=snr, dm=dm, l1=l1, m1=m1, time=time, sizes=sizes,
                 colors=colors, keys=keys)
 
-    dmt = plotdmt(data)
-    loc = plotloc(data)
+    dmt = plotdmt(data, yrange=(min(cc.state.dmarr), max(cc.state.dmarr)))
+    loc = plotloc(data, extent=radians(cc.state.fieldsize_deg))
     combined = Row(dmt, loc, width=950)
 
     htmlfile = candsfile.replace('.pkl', '.html')
@@ -738,7 +739,7 @@ def makesummaryplot(candsfile):
 
 def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
             tools="hover,pan,box_select,wheel_zoom,reset", plot_width=450,
-            plot_height=400):
+            plot_height=400, yrange=None):
     """ Make a light-weight dm-time figure """
 
     fields = ['dm', 'time', 'sizes', 'colors', 'snrs', 'keys']
@@ -749,8 +750,12 @@ def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
     # set ranges
     inds = circleinds + crossinds + edgeinds
     dm = [data['dm'][i] for i in inds]
-    dm_min = min(min(dm), max(dm)/1.2)
-    dm_max = max(max(dm), min(dm)*1.2)
+    if yrange is None:
+        dm_min = min(min(dm), max(dm)/1.2)
+        dm_max = max(max(dm), min(dm)*1.2)
+    else:
+        assert isinstance(range, tuple)
+        dm_min, dm_max = yrange
     time = [data['time'][i] for i in inds]
     time_min = min(time)*0.95
     time_max = max(time)*1.05
@@ -787,8 +792,11 @@ def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
 
 def plotloc(data, circleinds=[], crossinds=[], edgeinds=[],
             tools="hover,pan,box_select,wheel_zoom,reset", plot_width=450,
-            plot_height=400):
-    """ Make a light-weight loc figure """
+            plot_height=400, extent=None):
+    """
+    Make a light-weight loc figure
+    extent is half size of (square) lm plot.
+    """
 
     fields = ['l1', 'm1', 'sizes', 'colors', 'snrs', 'keys']
 
@@ -798,19 +806,17 @@ def plotloc(data, circleinds=[], crossinds=[], edgeinds=[],
     # set ranges
     inds = circleinds + crossinds + edgeinds
     l1 = [data['l1'][i] for i in inds]
-    l1_min = min(l1)*0.95
-    l1_max = max(l1)*1.05
     m1 = [data['m1'][i] for i in inds]
-    m1_min = min(m1)*0.95
-    m1_max = max(m1)*1.05
+    if extent is None:
+        extent = max([max(m1), -min(m1), max(l1), -min(l1)])
 
     source = ColumnDataSource(data=dict({(key, tuple([value[i] for i in circleinds if i not in edgeinds]))
                                         for (key, value) in list(data.items())
                                         if key in fields}))
     loc = Figure(plot_width=plot_width, plot_height=plot_height,
                  toolbar_location="left", x_axis_label='l1 (rad)',
-                 y_axis_label='m1 (rad)', x_range=(l1_min, l1_max),
-                 y_range=(m1_min, m1_max),
+                 y_axis_label='m1 (rad)', x_range=(-extent, extent),
+                 y_range=(-extent, extent),
                  output_backend='webgl', tools=tools)
     loc.circle('l1', 'm1', size='sizes', fill_color='colors',
                line_color=None, fill_alpha=0.2, source=source)
@@ -821,7 +827,7 @@ def plotloc(data, circleinds=[], crossinds=[], edgeinds=[],
     return loc
 
 
-def calcsize(values, sizerange=(2, 70), inds=None, plaw=3):
+def calcsize(values, sizerange=(5, 70), inds=None, plaw=2):
     """ Use set of values to calculate symbol size.
 
     values is a list of floats for candidate significance.
@@ -1333,9 +1339,8 @@ def source_location(pt_ra, pt_dec, l1, m1):
     """ Takes phase center and src l,m in radians to get ra,dec of source.
     Returns string ('hh mm ss', 'dd mm ss')
     """
-    import math
 
-    srcra = np.degrees(pt_ra + l1/math.cos(pt_dec))
+    srcra = np.degrees(pt_ra + l1/cos(pt_dec))
     srcdec = np.degrees(pt_dec + m1)
 
     return deg2HMS(srcra, srcdec)
