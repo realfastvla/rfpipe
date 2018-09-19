@@ -115,12 +115,12 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
         canddict[feat] = []
 
     for dtind in range(len(st.dtarr)):
+        if dtind > 0:
+            grid.downsample(vis_raw)
+
         for dmind in range(len(st.dmarr)):
             delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
                                     st.inttime)
-
-            if dtind > 0:
-                grid.downsample(vis_raw)
 
             grid.set_shift(delay >> dtind)  # dispersion shift per chan in samples
 
@@ -689,9 +689,10 @@ def _resample_gu(data, dt):
             data[i] = data[i]/dt
 
 
-def dedisperseresample(data, delay, dt, parallel=False):
+def dedisperseresample(data, delay, dt, parallel=False, resamplefirst=True):
     """ Dedisperse and resample in single function.
     parallel controls use of multicore versions of algorithms.
+    resamplefirst is parameter that reproduces rfgpu order.
     """
 
     if not np.any(data):
@@ -703,15 +704,20 @@ def dedisperseresample(data, delay, dt, parallel=False):
     nint, nbl, nchan, npol = data.shape
     newsh = (int64(nint-delay.max())//dt, nbl, nchan, npol)
 
-    if parallel:
-        data = data.copy()
-        _ = _dedisperseresample_gu(np.swapaxes(data, 0, 1),
-                                   delay, dt)
-        return data[0:(len(data)-delay.max())//dt]
-    else:
-        result = np.zeros(shape=newsh, dtype=data.dtype)
-        _dedisperseresample_jit(data, delay, dt, result)
+    if resamplefirst:
+        result = resample(data, dt)
+        result = dedisperse(result, delay >> dt-1)
         return result
+    else:
+        if parallel:
+            data = data.copy()
+            _ = _dedisperseresample_gu(np.swapaxes(data, 0, 1),
+                                       delay, dt)
+            return data[0:(len(data)-delay.max())//dt]
+        else:
+            result = np.zeros(shape=newsh, dtype=data.dtype)
+            _dedisperseresample_jit(data, delay, dt, result)
+            return result
 
 
 @jit(nogil=True, nopython=True)

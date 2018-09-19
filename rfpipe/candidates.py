@@ -414,7 +414,7 @@ def cluster_candidates(cc, returnclusterer=False, label_unclustered=True):
                 logger.info("Not performing clustering")
                 return cc1
         else:
-            logger.warn("prefs.clustercands value not valid: {0}."
+            logger.warn("No clustering. prefs.clustercands value not valid: {0}."
                         .format(cc1.prefs.clustercands))
             return cc1
 
@@ -827,7 +827,7 @@ def plotloc(data, circleinds=[], crossinds=[], edgeinds=[],
     return loc
 
 
-def calcsize(values, sizerange=(5, 70), inds=None, plaw=2):
+def calcsize(values, sizerange=(4, 70), inds=None, plaw=2):
     """ Use set of values to calculate symbol size.
 
     values is a list of floats for candidate significance.
@@ -1200,7 +1200,7 @@ def candplot(canddatalist, snrs=None, cluster=None, outname=''):
         ax_dynsp3.xaxis.set_label_position('top')
 
         # plot stokes I spectrum of the candidate pulse from middle integration
-        ax_sp.plot(dd2avgcrop[:, len(dd2avgcrop[0])//2]/2.,
+        ax_sp.plot(dd2avgcrop[:, canddata.integration_rel//2]/2.,
                    list(range(len(dd2avgcrop))), 'k.')
         ax_sp.plot(np.zeros(len(dd2avgcrop)), list(range(len(dd2avgcrop))),
                    'r:')
