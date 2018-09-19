@@ -64,6 +64,16 @@ class CandData(object):
         return 'CandData for scanId {0} at loc {1}'.format(self.state.metadata.scanId, self.loc)
 
     @property
+    def integration_rel(self):
+        """ Candidate integration relative to data time window
+        """
+
+        if candint < self.state.prefs.timewindow//2:
+            return candint
+        else:
+            return self.state.prefs.timewindow//2
+
+    @property
     def peak_lm(self):
         """
         """
@@ -1054,7 +1064,7 @@ def candplot(canddatalist, snrs=None, cluster=None, outname=''):
         ax_dynsp1.get_yticklabels()[0].set_visible(False)
         # plot stokes I spectrum of the candidate pulse (assume middle bin)
         # select stokes I middle bin
-        spectrum = spectra[:, len(spectra[0])//2].mean(axis=1)
+        spectrum = spectra[:, canddata.integration_rel].mean(axis=1)
         ax_sp.plot(spectrum, list(range(len(spectrum))), 'k.')
         # plot 0 Jy dotted line
         ax_sp.plot(np.zeros(len(spectrum)), list(range(len(spectrum))), 'r:')
