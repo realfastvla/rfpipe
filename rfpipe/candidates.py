@@ -438,9 +438,7 @@ def cluster_candidates(cc, returnclusterer=False, label_unclustered=True):
         dtind = cc1.array['dtind']
         dtarr = cc1.state.dtarr
         timearr_ind = cc1.array['integration']  # time index of all the candidates
-        time_ind = np.multiply(timearr_ind,
-                               np.power(2,
-                                        np.array(dtarr).take(dtind)-min(dtarr)))
+        time_ind = np.multiply(timearr_ind, np.array(dtarr).take(dtind))
         data = np.transpose([peakx_ind, peaky_ind, dm_ind, time_ind])
 
         clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size,
