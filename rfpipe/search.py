@@ -707,7 +707,7 @@ def dedisperseresample(data, delay, dt, parallel=False, resamplefirst=True):
 
     if resamplefirst:
         result = resample(data, dt)
-        result = dedisperse(result, delay >> dt-1)
+        result = dedisperse(result, delay//dt)
         return result
     else:
         if parallel:
