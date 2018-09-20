@@ -395,11 +395,12 @@ def reproduce_candcollection(cc, data, wisdom=None):
         if 'cluster' in cc.array.dtype.fields:
             clusters = cc.array['cluster'].astype(int)
             cl_rank, cl_count = candidates.calc_cluster_rank(cc)
-            calcinds = np.where(cl_rank == 1)[0]
+            calcinds = np.unique(np.where(cl_rank == 1)[0])
         else:
             calcinds = list(range(len(cc)))
 
         # reproduce canddata for each
+        calcinds.sort()
         for i in calcinds:
             # TODO: check on best way to find max SNR with kalman, etc
             snr = snrs[i]
@@ -408,7 +409,7 @@ def reproduce_candcollection(cc, data, wisdom=None):
 
             if 'cluster' in cc.array.dtype.fields:
                 logger.info("Cluster {0}/{1} has {2} candidates and max SNR {3} at {4}"
-                            .format(clusters[i], len(calcinds), cl_count[i],
+                            .format(clusters[i], len(calcinds)-1, cl_count[i],
                                     snr, candloc))
                 # add supplementary plotting and cc info
                 kwargs['cluster'] = clusters[i]
