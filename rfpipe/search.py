@@ -170,7 +170,8 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                         # TODO: implement phasing on GPU
                         data_corr = dedisperseresample(data, delay,
                                                        st.dtarr[dtind],
-                                                       parallel=st.prefs.nthread > 1)
+                                                       parallel=st.prefs.nthread > 1,
+                                                       resamplefirst=st.fftmode=='cuda')
                         spec = data_corr.take([i], axis=0)
                         util.phase_shift(spec, uvw, l1, m1)
                         spec = spec[0].real.mean(axis=2).mean(axis=0)
@@ -267,7 +268,8 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
             delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
                                     st.inttime)
             data_corr = dedisperseresample(data, delay, st.dtarr[dtind],
-                                           parallel=st.prefs.nthread > 1)
+                                           parallel=st.prefs.nthread > 1,
+                                           resamplefirst=st.fftmode=='cuda')
 
             # run search
             if st.prefs.searchtype in ['image', 'imagek']:
