@@ -168,6 +168,8 @@ def pipeline_datacorrect(st, candloc, data_prep=None):
     delay = util.calc_delay(st.freq, st.freq.max(), dm, st.inttime,
                             scale=scale)
 
+    logger.info("delay {0}".format(delay))
+
     data_dmdt = rfpipe.search.dedisperseresample(data_prep, delay, dt,
                                                  parallel=st.prefs.nthread > 1)
 
