@@ -322,7 +322,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
                                                      sig_ts=sig_ts,
                                                      coeffs=kalman_coeffs)
 
-                for candind, snrarm, snrk, armloc, peakxy, lm in armk_candidates:
+                for candind, snrarms, snrk, armloc, peakxy, lm in armk_candidates:
                     candloc = (segment, candind, dmind, dtind, beamnum)
 
                     # if set, use sigma_kalman as second stage filter
@@ -337,28 +337,28 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
                         immax1 = image.max()
                         snr1 = immax1/image.std()
                         if snr1 > st.prefs.sigma_image1:
-                            logger.info("Got one! SNRarm {0:.1f} and SNRk "
+                            logger.info("Got one! SNRarms {0:.1f} and SNRk "
                                         "{1:.1f} and SNR1 {2:.1f} candidate at"
                                         " {3} and (l,m) = ({4},{5})"
-                                        .format(snrarm, snrk, snr1,
+                                        .format(snrarms, snrk, snr1,
                                                 candloc, l1, m1))
                             canddict['candloc'].append(candloc)
                             canddict['l1'].append(l1)
                             canddict['m1'].append(m1)
-                            canddict['snrarm'].append(snrarm)
+                            canddict['snrarms'].append(snrarms)
                             canddict['snrk'].append(snrk)
                             canddict['snr1'].append(snr1)
                             canddict['immax1'].append(immax1)
 
                     elif st.prefs.searchtype == 'armk':
                         l1, m1 = lm
-                        logger.info("Got one! SNRarm {0:.1f} and SNRk {1:.1f} "
+                        logger.info("Got one! SNRarms {0:.1f} and SNRk {1:.1f} "
                                     "candidate at {2} and (l,m) = ({3},{4})"
-                                    .format(snrarm, snrk, candloc, l1, m1))
+                                    .format(snrarms, snrk, candloc, l1, m1))
                         canddict['candloc'].append(candloc)
                         canddict['l1'].append(l1)
                         canddict['m1'].append(m1)
-                        canddict['snrarm'].append(snrarm)
+                        canddict['snrarms'].append(snrarms)
                         canddict['snrk'].append(snrk)
             else:
                 raise NotImplemented("only searchtype=image, imagek, armk, armkimage implemented")
@@ -421,14 +421,14 @@ def reproduce_candcollection(cc, data, wisdom=None):
                             .format(i, len(calcinds), snr, candloc))
 
             # TODO: reproduce these here, too
-            for kw in ['snrk', 'snrarm']:
+            for kw in ['snrk', 'snrarms']:
                 if kw in cc.array.dtype.fields:
                     kwargs[kw] = cc.array[kw][i]
 
             # reproduce candidate
             data_corr = rfpipe.reproduce.pipeline_datacorrect(st, candloc, data)
             cd = rfpipe.reproduce.pipeline_imdata(st, candloc, data_corr,
-                                           cpuonly=True, **kwargs)
+                                                  cpuonly=True, **kwargs)
             cc1 += candidates.save_and_plot(cd)
 
             # TODO: validate that reproduced features match input features?

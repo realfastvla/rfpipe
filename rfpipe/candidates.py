@@ -44,10 +44,10 @@ class CandData(object):
             self.snrk = kwargs['snrk']
         else:
             self.snrk = None
-        if 'snrarm' in kwargs:  # hack to allow detection level calculation in
-            self.snrarm = kwargs['snrarm']
+        if 'snrarms' in kwargs:  # hack to allow detection level calculation in
+            self.snrarms = kwargs['snrarms']
         else:
-            self.snrarm = None
+            self.snrarms = None
         if 'cluster' in kwargs:
             self.cluster = kwargs['cluster']
         else:
@@ -325,12 +325,10 @@ def canddata_feature(canddata, feature):
 #       imstd = util.madtostd(image)  # outlier resistant
         imstd = image.std()  # consistent with rfgpu
         logger.debug('{0} {1}'.format(image.shape, imstd))
-        snrmax = image.max()/imstd
-#        snrmin = image.min()/imstd
-#        snr = snrmax if snrmax >= snrmin else snrmin
-        return snrmax
-    elif feature == 'snrarm':
-        return canddata.snrarm
+        snrim = image.max()/imstd
+        return snrim
+    elif feature == 'snrarms':
+        return canddata.snrarms
     elif feature == 'snrk':
         return canddata.snrk
     elif feature == 'cluster':
@@ -922,11 +920,11 @@ def candplot(canddatalist, snrs=None, cluster=None, outname=''):
         # calc source location
 #        imstd = util.madtostd(im)  # outlier resistant
         imstd = im.std()  # consistent with rfgpu
-        snrmax = im.max()/imstd
+        snrim = im.max()/imstd
         l1, m1 = st.pixtolm(np.where(im == im.max()))
 
         logger.info('Plotting candloc {0} with SNR {1:.1f} and image/data shapes: {2}/{3}'
-                    .format(str(candloc), snrmax, str(im.shape), str(data.shape)))
+                    .format(str(candloc), snrim, str(im.shape), str(data.shape)))
 
         pt_ra, pt_dec = st.metadata.radec
         src_ra, src_dec = source_location(pt_ra, pt_dec, l1, m1)
@@ -992,9 +990,17 @@ def candplot(canddatalist, snrs=None, cluster=None, outname=''):
                 + ' ms',
                 fontname='sans-serif', transform=ax.transAxes,
                 fontsize='small')
-        ax.text(left, start-10*space, 'SNR: ' + str(np.round(snrmax, 1)),
+        defstr = 'SNR (im'
+        snrstr = str(np.round(snrim, 1))
+        if canddata.snrk is not None:
+            defstr += '/k): '
+            snrstr += '/' + str(np.round(canddata.snrk, 1))
+        else:
+            defstr += '): '
+        ax.text(left, start-10*space, defstr+snrstr,
                 fontname='sans-serif', transform=ax.transAxes,
                 fontsize='small')
+
         if cluster is not None:
             label, size = cluster
             ax.text(left, start-11*space, 'Cluster label: {0}'.format(str(label)),
@@ -1122,7 +1128,7 @@ def candplot(canddatalist, snrs=None, cluster=None, outname=''):
         [label.set_visible(False) for label in ax_sp.get_yticklabels()]
 
         # calculate the channels to average together for SNR=2
-        n = int((2.*(len(spectra))**0.5/snrmax)**2)
+        n = int((2.*(len(spectra))**0.5/snrim)**2)
         if n == 0:  # if n==0 then don't average
             dd1avg = dd1
             dd3avg = dd3
@@ -1317,7 +1323,7 @@ def candplot(canddatalist, snrs=None, cluster=None, outname=''):
             ax_snr.set_ylabel('N')
             ax_snr.set_yscale('log')
             # draw vertical line where the candidate SNR is
-            ax_snr.axvline(x=snrmax, linewidth=1, color='y', alpha=0.7)
+            ax_snr.axvline(x=snrim, linewidth=1, color='y', alpha=0.7)
 
         if not outname:
             outname = os.path.join(st.prefs.workdir,

@@ -272,6 +272,9 @@ class State(object):
         to be searched after correcting for DM and resampling.
         """
 
+        # TODO: consider using searchtype=='cuda' to change behavior to resample first
+        # In this case, return (readints//dt)-dmshift//dt
+
         if segment == 0:
             return list(range((self.readints-self.dmshifts[dmind])//self.dtarr[dtind]))
         elif segment < self.nsegment:
@@ -793,9 +796,9 @@ class State(object):
         elif self.prefs.searchtype == 'imagek':
             return ('snr1', 'snrk', 'immax1', 'l1', 'm1')
         elif self.prefs.searchtype == 'armk':
-            return ('snrarm', 'snrk', 'l1', 'm1')
+            return ('snrarms', 'snrk', 'l1', 'm1')
         elif self.prefs.searchtype == 'armkimage':
-            return ('snrarm', 'snrk', 'snr1', 'immax1', 'l1', 'm1')
+            return ('snrarms', 'snrk', 'snr1', 'immax1', 'l1', 'm1')
 # TODO: find better way to set features separately from search algorithm
 #        elif self.prefs.searchtype in ['imagestats', 'image1stats']:
 #            # note: spec statistics are all or nothing.

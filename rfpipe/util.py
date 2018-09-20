@@ -366,7 +366,7 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None, i=Non
 #        dt = random.uniform(min(st.dtarr), max(st.dtarr))
 
         if i is None:
-            i = random.choice(st.get_search_ints(segment, dmind, 0))  # dt=0 is ok
+            i = random.choice(st.get_search_ints(segment, dmind, dtind))
 
         if amp is None:
             if data is None:
