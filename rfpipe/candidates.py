@@ -418,7 +418,7 @@ def cluster_candidates(cc, returnclusterer=False, label_unclustered=True):
                         .format(cc1.prefs.clustercands))
             return cc1
 
-        logger.info("Clustering parameters set to ({0},{1}."
+        logger.info("Clustering parameters set to ({0},{1})."
                     .format(min_cluster_size, min_samples))
 
         if min_cluster_size > len(cc1):
