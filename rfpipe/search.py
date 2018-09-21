@@ -392,7 +392,7 @@ def reproduce_candcollection(cc, data, wisdom=None):
 
     if len(cc):
         candlocs = cc.locs
-        snrs = cc.array['snr1']
+        snrs = cc.snrtot
 
         if 'cluster' in cc.array.dtype.fields:
             clusters = cc.array['cluster'].astype(int)
@@ -407,8 +407,9 @@ def reproduce_candcollection(cc, data, wisdom=None):
             # TODO: check on best way to find max SNR with kalman, etc
             snr = snrs[i]
             candloc = candlocs[i]
-            kwargs = {}
 
+            # kwargs passed to canddata object for plotting/saving
+            kwargs = {}
             if 'cluster' in cc.array.dtype.fields:
                 logger.info("Cluster {0}/{1} has {2} candidates and max SNR {3} at {4}"
                             .format(clusters[i], len(calcinds)-1, cl_count[i],
@@ -418,7 +419,7 @@ def reproduce_candcollection(cc, data, wisdom=None):
                 kwargs['clustersize'] = cl_count[i]
             else:
                 logger.info("Candidate {0}/{1} has SNR {2} at {3}"
-                            .format(i, len(calcinds), snr, candloc))
+                            .format(i, len(calcinds)-1, snr, candloc))
 
             # TODO: reproduce these here, too
             for kw in ['snrk', 'snrarms']:

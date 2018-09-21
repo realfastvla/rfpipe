@@ -65,6 +65,24 @@ class CandData(object):
         return 'CandData for scanId {0} at loc {1}'.format(self.state.metadata.scanId, self.loc)
 
     @property
+    def snrtot(self):
+        """ Optimal SNR given searchtype (e.g., snr1 with snrk, if snrk measured)
+        """
+
+        if self.state.prefs.searchtype == 'image':
+            return self.snr1
+        elif self.state.prefs.searchtype == 'imagek':
+            return (self.snrk**2 + self.snr1**2)**0.5
+        elif self.state.prefs.searchtype == 'armkimage':
+            return (self.snrk**2 + self.snr1**2)**0.5
+        elif self.state.prefs.searchtype == 'armk':
+            return (self.snrk**2 + self.snrarms**2)**0.5
+
+    @property
+    def snr1(self):
+        return self.image.max()/self.image.std()
+
+    @property
     def integration_rel(self):
         """ Candidate integration relative to data time window
         """
@@ -234,6 +252,20 @@ class CandCollection(object):
             return self.array['clustersize']
         else:
             return None
+
+    @property
+    def snrtot(self):
+        """ Optimal SNR given searchtype (e.g., snr1 with snrk, if snrk measured)
+        """
+
+        if self.prefs.searchtype == 'image':
+            return self.array['snr1']
+        elif self.prefs.searchtype == 'imagek':
+            return (self.array['snrk']**2 + self.array['snr1']**2)**0.5
+        elif self.prefs.searchtype == 'armkimage':
+            return (self.array['snrk']**2 + self.array['snr1']**2)**0.5
+        elif self.prefs.searchtype == 'armk':
+            return (self.array['snrk']**2 + self.array['snrarms']**2)**0.5
 
     @property
     def state(self):
