@@ -438,8 +438,8 @@ def cluster_candidates(cc, returnclusterer=False, label_unclustered=True):
             min_cluster_size, min_samples = cc1.prefs.clustercands
         elif isinstance(cc1.prefs.clustercands, bool):
             if cc1.prefs.clustercands:
-                min_cluster_size = 3
-                min_samples = 3
+                min_cluster_size = 2
+                min_samples = 2
             else:
                 logger.info("Not performing clustering")
                 return cc1
@@ -471,7 +471,8 @@ def cluster_candidates(cc, returnclusterer=False, label_unclustered=True):
         time_ind = np.multiply(timearr_ind, np.array(dtarr).take(dtind))
         data = np.transpose([peakx_ind, peaky_ind, dm_ind, time_ind])
 
-        clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size,
+        clusterer = hdbscan.HDBSCAN(metric='hamming',
+                                    min_cluster_size=min_cluster_size,
                                     min_samples=min_samples,
                                     cluster_selection_method='eom',
                                     allow_single_cluster=True).fit(data)
