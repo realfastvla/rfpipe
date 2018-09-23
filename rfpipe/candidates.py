@@ -729,14 +729,14 @@ def makesummaryplot(candsfile):
         integration.append(cc.array['integration'])
         dmind.append(cc.array['dmind'])
         dtind.append(cc.array['dtind'])
-        snr.append(cc.array['snr1'])
+        snr.append(cc.snrtot)
         dm.append(cc.canddm)
         dt.append(cc.canddt)
         l1.append(cc.array['l1'])
         m1.append(cc.array['m1'])
 
     time = np.concatenate(time)
-    time = time - time.min()
+#    time = time - time.min()  # TODO: try this, or ensure nonzero time array
     segment = np.concatenate(segment)
     integration = np.concatenate(integration)
     dmind = np.concatenate(dmind)
