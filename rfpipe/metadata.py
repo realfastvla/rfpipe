@@ -242,7 +242,7 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     try:
         inttime = scanobj.bdf.get_integration(0).interval
         meta['inttime'] = inttime
-    except AttributeError:
+    except (AttributeError, TypeError):
         logger.warn("No BDF found. inttime not set.")
 
     meta['source'] = str(scanobj.source)
