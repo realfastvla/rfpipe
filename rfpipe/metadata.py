@@ -166,7 +166,7 @@ class Metadata(object):
 
 
 def make_metadata(inmeta=None, config=None, sdmfile=None, sdmscan=None,
-                  bdfdir=None):
+                  sdmsubscan=1, bdfdir=None):
     """ Given range of potential metadata sources, create Metadata object
     """
 
@@ -178,7 +178,7 @@ def make_metadata(inmeta=None, config=None, sdmfile=None, sdmscan=None,
 
         # get metadata
         if (sdmfile is not None) and (sdmscan is not None) and (config is None):
-            meta = sdm_metadata(sdmfile, sdmscan, bdfdir=bdfdir)
+            meta = sdm_metadata(sdmfile, sdmscan, sdmsubscan, bdfdir=bdfdir)
         elif config is not None and (sdmfile is None) and (self.sdmscan is None):
             # config datasource can be vys or simulated data
             datasource = inmeta['datasource'] if 'datasource' in inmeta else 'vys'
@@ -247,7 +247,7 @@ def config_metadata(config, datasource='vys'):
     return meta
 
 
-def sdm_metadata(sdmfile, scan, bdfdir=None):
+def sdm_metadata(sdmfile, scan, subscan=1, bdfdir=None):
     """ Wraps Metadata call to provide immutable, attribute-filled class instance.
     """
 
@@ -261,7 +261,7 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     meta['datasetId'] = os.path.basename(sdmfile.rstrip('/'))
     meta['filename'] = sdmfile
     meta['scan'] = int(scan)
-    meta['subscan'] = 1  # TODO: update for more than one subscan per scan
+    meta['subscan'] = subscan
     meta['bdfdir'] = bdfdir
 #    meta['configid'] = scanobj.configDescriptionId
     bdfstr = scanobj.bdf.fname
