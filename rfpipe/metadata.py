@@ -165,6 +165,40 @@ class Metadata(object):
         return '{0}.{1}.{2}'.format(self.datasetId, self.scan, self.subscan)
 
 
+def make_metadata(inmeta=None, config=None, sdmfile=None, sdmscan=None,
+                  bdfdir=None):
+    """ Given range of potential metadata sources, create Metadata object
+    """
+
+    if isinstance(inmeta, Metadata):
+        return inmeta
+    else:
+        if inmeta is None:
+            inmeta = {}
+
+        # get metadata
+        if (sdmfile is not None) and (sdmscan is not None) and (config is None):
+            meta = sdm_metadata(sdmfile, sdmscan, bdfdir=bdfdir)
+        elif config is not None and (sdmfile is None) and (self.sdmscan is None):
+            # config datasource can be vys or simulated data
+            datasource = inmeta['datasource'] if 'datasource' in inmeta else 'vys'
+            meta = config_metadata(config, datasource=datasource)
+        else:
+            meta = {}
+
+        # optionally overload metadata
+        if isinstance(inmeta, dict):
+            for key in inmeta:
+                meta[key] = inmeta[key]
+
+            for key in meta:
+                logger.debug(key, meta[key], type(meta[key]))
+        else:
+            logger.warn("inmeta not dict, Metadata, or None. Not parsed.")
+
+        return Metadata(**meta)
+
+
 def config_metadata(config, datasource='vys'):
     """ Creates dict holding metadata from evla_mcast scan config object.
     Parallel structure to sdm_metadata, so this inherits some of its

@@ -64,33 +64,9 @@ class State(object):
         # TODO: not working
         logger.parent.setLevel(getattr(logging, self.prefs.loglevel))
 
-        if isinstance(inmeta, metadata.Metadata):
-            self.metadata = inmeta
-        else:
-            if inmeta is None:
-                inmeta = {}
-
-            # get metadata
-            if (self.sdmfile and self.sdmscan) and not self.config:
-                meta = metadata.sdm_metadata(sdmfile, sdmscan, bdfdir=bdfdir)
-            elif self.config and not (self.sdmfile or self.sdmscan):
-                # config datasource can be vys or simulated data
-                datasource = inmeta['datasource'] if 'datasource' in inmeta else 'vys'
-                meta = metadata.config_metadata(config, datasource=datasource)
-            else:
-                meta = {}
-
-            # optionally overload metadata
-            if isinstance(inmeta, dict):
-                for key in inmeta:
-                    meta[key] = inmeta[key]
-
-                for key in meta:
-                    logger.debug(key, meta[key], type(meta[key]))
-            else:
-                logger.warn("inmeta not dict, Metadata, or None. Not parsed.")
-
-            self.metadata = metadata.Metadata(**meta)
+        self.metadata = metadata.make_metadata(config=config, sdmfile=sdmfile,
+                                               sdmscan=sdmscan, inmeta=inmeta,
+                                               bdfdir=bdfdir)
 
         if validate:
             assert self.validate() is True
