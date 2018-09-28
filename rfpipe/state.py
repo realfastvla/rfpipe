@@ -275,13 +275,12 @@ class State(object):
 
     @property
     def dmarr(self):
-        if not hasattr(self, '_dmarr'):
-            if self.prefs.dmarr:
-                self._dmarr = self.prefs.dmarr
-            else:
+        if self.prefs.dmarr:
+            return self.prefs.dmarr
+        else:
+            if not hasattr(self, '_dmarr'):
                 self._dmarr = util.calc_dmarr(self)
-
-        return self._dmarr
+            return self._dmarr
 
     @property
     def dtarr(self):
@@ -296,24 +295,40 @@ class State(object):
         Metadata may be out of order, but state/data reading order is sorted.
         """
 
-        # TODO: need to support spw selection and downsampling, e.g.:
-        #    if spectralwindow[ii] in d['spw']:
-        #    np.array([np.mean(spwch[i:i+d['read_fdownsample']]) for i in range(0, len(spwch), d['read_fdownsample'])], dtype='float32') / 1e9
+        # TODO: add support for frequency downsampling
 
         return np.sort(self.metadata.freq_orig)[self.chans]
 
     @property
     def chans(self):
         """ List of channel indices to use. Drawn from preferences,
-        with backup to take all defined in metadata.
+        with backup to take all those for preferred spw.
         """
-
-        # TODO: support for frequency downsampling
 
         if self.prefs.chans:
             return self.prefs.chans
         else:
-            return list(range(sum(self.metadata.spw_nchan)))
+#            list(range(sum(self.metadata.spw_nchan)))
+            chanlist = []
+            nch = np.unique(self.metadata.spw_nchan)[0]  # assume 1 nchan/spw
+            for spw in self.spw:
+                chanlist += list(range(nch*spw, nch*(spw+1)))
+            return chanlist
+
+    @property
+    def spw(self):
+        """ List of spectral windows used.
+        ** TODO: update for proper naming "basband"+"swindex"
+        """
+
+        if self.prefs.spw:
+            return self.prefs.spw
+        else:
+            return self.metadata.spw_orig
+
+    @property
+    def nspw(self):
+        return len(self.spw)
 
     @property
     def inttime(self):
@@ -346,21 +361,6 @@ class State(object):
         Gets cached. """
 
         return max(self.dmshifts)*self.inttime
-
-    @property
-    def spw(self):
-        """ List of spectral windows used.
-        ** TODO: update for proper naming "basband"+"swindex"
-        """
-
-        if self.prefs.spw:
-            return self.prefs.spw
-        else:
-            return self.metadata.spw_orig
-
-    @property
-    def nspw(self):
-        return len(self.spw)
 
 #    @property
 #    def spw_nchan_select(self):
