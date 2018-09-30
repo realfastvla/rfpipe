@@ -312,7 +312,8 @@ class State(object):
             chanlist = []
             nch = np.unique(self.metadata.spw_nchan)[0]  # assume 1 nchan/spw
             for spw in self.spw:
-                chanlist += list(range(nch*spw, nch*(spw+1)))
+                spwi = self.metadata.spw_orig.index(spw)
+                chanlist += list(range(nch*spwi, nch*(spwi+1)))
             return chanlist
 
     @property
