@@ -308,8 +308,11 @@ def sdm_metadata(sdmfile, scan, subscan=1, bdfdir=None):
                                        for spw in scanobj.bdf.spws],
                                       np.array(scanobj.reffreqs)/1e6),
                                   key=lambda x: x[1])
+        meta['quantization'] = ['{0}'.format(spw.swbb.split('_')[-1])
+                                for spw in scanobj.bdf.spws]
+
     except AttributeError:
-        logger.warn("No BDF found. spworder not defined.")
+        logger.warn("No BDF found. spworder/quantization not defined.")
 
     return meta
 
