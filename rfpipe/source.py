@@ -37,7 +37,7 @@ def data_prep(st, segment, data, flagversion="latest"):
 
     # TODO: check on reusing 'data' to save memory
     datap = np.nan_to_num(data.take(takepol, axis=3), copy=True)
-    datap = prep_standard(st, segment, np.require(datap, requirements='W'))
+    datap = prep_standard(st, segment, datap)
     if not np.any(datap):
         logger.info("All data zeros after prep_standard")
         return datap
@@ -156,13 +156,14 @@ def prep_standard(st, segment, data):
                     (mock_segment, i0, dm, dt, amp, l, m) = params
                     ampslope = 0
 
-                    logger.info("Adding transient to segment {0} at int {1}, DM {2}, "
-                                "dt {3} with amp {4} and l,m={5},{6}"
+                    logger.info("Adding transient to segment {0} at int {1}, "
+                                "DM {2}, dt {3} with amp {4} and l,m={5},{6}"
                                 .format(mock_segment, i0, dm, dt, amp, l, m))
                 elif len(params) == 8:
                     (mock_segment, i0, dm, dt, amp, l, m, ampslope) = params
-                    logger.info("Adding transient to segment {0} at int {1}, DM {2}, "
-                                "dt {3} with amp {4}-{5} and l,m={6},{7}"
+                    logger.info("Adding transient to segment {0} at int {1}, "
+                                " DM {2}, dt {3} with amp {4}-{5} and "
+                                "l,m={6},{7}"
                                 .format(mock_segment, i0, dm, dt, amp,
                                         amp+ampslope, l, m))
                 try:
