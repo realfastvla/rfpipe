@@ -244,6 +244,8 @@ def config_metadata(config, datasource='vys'):
     meta['spworder'] = sorted([('{0}-{1}'.format(sb.IFid, sb.sbid),
                                 meta['spw_reffreq'][subbands.index(sb)])
                                for sb in subbands], key=lambda x: x[1])
+    meta['quantization'] = ['{0}'.format(bbn.split('_')[-1])
+                            for bbn in config.baseBandNames]
 
     return meta
 
