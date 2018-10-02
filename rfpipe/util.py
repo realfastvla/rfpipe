@@ -410,7 +410,7 @@ def make_transient_data(st, amp, i0, dm, dt, ampslope=0.):
     chans = np.arange(st.metadata.nchan_orig)
     freqs = st.metadata.freq_orig
     model = np.zeros((len(chans), st.readints), dtype='complex64')
-    ampspec = amp + ampslope*(np.linspace(0, 1, num=len(chans))
+    ampspec = amp + ampslope*(np.linspace(0, 1, num=len(chans)))
 
     i = i0 + calc_delay2(freqs, freqs.max(), dm)/st.inttime
 #    print(i)
