@@ -180,7 +180,7 @@ def make_metadata(inmeta=None, config=None, sdmfile=None, sdmscan=None,
         # get metadata
         if (sdmfile is not None) and (sdmscan is not None) and (config is None):
             meta = sdm_metadata(sdmfile, sdmscan, sdmsubscan, bdfdir=bdfdir)
-        elif config is not None and (sdmfile is None) and (self.sdmscan is None):
+        elif config is not None and (sdmfile is None) and (sdmscan is None):
             # config datasource can be vys or simulated data
             datasource = inmeta['datasource'] if 'datasource' in inmeta else 'vys'
             meta = config_metadata(config, datasource=datasource)

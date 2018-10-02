@@ -359,7 +359,7 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None, i=Non
 
         if dtind is None:
             dtind = random.choice(range(len(st.dtarr)))
-        dt = st.metadata.inttime*st.dtarr[dtind]
+        dt = st.metadata.inttime*min(st.dtarr[dtind], 2)  # dt>2 not yet supported
 
 # TODO: add support for arb dm/dt
 #        dm = random.uniform(min(st.dmarr), max(st.dmarr))
@@ -442,5 +442,7 @@ def make_transient_data(st, amp, i0, dm, dt, ampslope=0.):
         model[chans[ir3], i_f[ir3]] += f0[ir3]*ampspec[chans[ir3]]
         model[chans[ir3], i_f[ir3]+1] += f1[ir3]*ampspec[chans[ir3]]
         model[chans[ir3], i_f[ir3]+2] += f2[ir3]*ampspec[chans[ir3]]
+    if np.any(i_r >= 4):
+        logger.warn("Some channels broadened more than 3 integrations, which is not yet supported.")
 
     return model
