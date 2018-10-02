@@ -37,7 +37,7 @@ def data_prep(st, segment, data, flagversion="latest"):
 
     # TODO: check on reusing 'data' to save memory
     datap = np.nan_to_num(data.take(takepol, axis=3), copy=True)
-    datap = prep_standard(st, segment, datap)
+    datap = prep_standard(st, segment, np.require(datap, requirements='W'))
     if not np.any(datap):
         logger.info("All data zeros after prep_standard")
         return datap
