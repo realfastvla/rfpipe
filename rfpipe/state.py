@@ -4,7 +4,6 @@ from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
 import os
-from datetime import date
 import numpy as np
 import scipy.stats
 from astropy import time
@@ -182,11 +181,7 @@ class State(object):
 
             logger.info('\t Using pols {0}'.format(self.pols))
             if self.gainfile is not None:
-                if os.path.exists(self.gainfile) and os.path.isfile(self.gainfile):
-                    logger.info('\t Found telcal file {0}'.format(self.gainfile))
-                else:
-                    logger.warn('\t Gainfile preference ({0}) is not a valid telcal file'
-                                .format(self.gainfile))
+                logger.info('\t Found telcal file {0}'.format(self.gainfile))
             else:
                 logger.info("No gainfile specified or found.")
 
@@ -553,26 +548,24 @@ class State(object):
     @property
     def gainfile(self):
         """ Calibration file (telcal) from preferences or found from ".GN"
-        suffix.
+        suffix with datasetId. Default behavior is to find file in workdir.
         Value of None means none will be applied.
-        Any other value will attempt to apply. Bad files will result in blanked data.
         """
 
         if self.prefs.gainfile is None:
-            today = date.today()
-            # look for gainfile in mchammer
-            gainfile = os.path.join('/home/mchammer/evladata/telcal/'
-                                    '{0}/{1:02}/{2}.GN'
-                                    .format(today.year, today.month,
-                                            self.metadata.datasetId))
-            if (not os.path.exists(gainfile)) or (not os.path.isfile(gainfile)):
-                gainfile = None
+            gainfile = os.path.join(self.prefs.workdir,
+                                    self.metadata.datasetId) + ".GN"
         else:
             if os.path.dirname(self.prefs.gainfile):  # use full path if given
                 gainfile = self.prefs.gainfile
             else:  # else assume workdir
                 gainfile = os.path.join(self.prefs.workdir,
                                         self.prefs.gainfile)
+
+        if (not os.path.exists(gainfile)) or (not os.path.isfile(gainfile)):
+            logger.warn('Gainfile preference ({0}) is not a valid telcal file'
+                         .format(self.gainfile))
+            gainfile = None
 
         return gainfile
 

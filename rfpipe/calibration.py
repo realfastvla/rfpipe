@@ -18,7 +18,7 @@ def apply_telcal(st, data, threshold=1/50., onlycomplete=True, sign=+1):
     sign defines if calibration is applied (+1) or backed out (-1).
     assumes dual pol and that each spw has same nch and chansize.
     Threshold is minimum ratio of gain amp to median gain amp.
-    If no solution or gainfile found, it will blank the data to zeros.
+    If no solution found, it will blank the data to zeros.
     """
 
     assert sign in [-1, +1], 'sign must be +1 or -1'
@@ -27,9 +27,9 @@ def apply_telcal(st, data, threshold=1/50., onlycomplete=True, sign=+1):
         return data
     else:
         if (not os.path.exists(st.gainfile)) or (not os.path.isfile(st.gainfile)):
-            logger.warn('{0} is not a valid telcal file. Zeroed {1} calibration applied.'
-                        .format(st.gainfile, ['', 'forward', 'inverse'][sign]))
-            gaindelay = np.zeros_like(data)
+            logger.warn('{0} is not a valid gain file. No calibration applied.'
+                        .format(st.gainfile))
+            return data
         else:
             pols = [0, 1]
             reffreq = np.array(st.metadata.spw_reffreq)
