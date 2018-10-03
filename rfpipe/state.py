@@ -564,7 +564,7 @@ class State(object):
 
         if (not os.path.exists(gainfile)) or (not os.path.isfile(gainfile)):
             logger.warn('Gainfile preference ({0}) is not a valid telcal file'
-                         .format(self.gainfile))
+                         .format(gainfile))
             gainfile = None
 
         return gainfile
