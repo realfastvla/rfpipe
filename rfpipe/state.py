@@ -97,7 +97,7 @@ class State(object):
                                                  'Pipeline will fail!'
                                                  .format(self.t_overlap,
                                                          self.t_segment))
-        assert self.readints > max(self.dtarr)
+        assert self.readints >= max(self.dtarr)
 
         if self.prefs.timesub is not None:
             assert self.inttime < self.fringetime_orig, ('Integration time '
