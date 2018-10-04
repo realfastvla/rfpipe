@@ -34,6 +34,8 @@ def phase_shift(data, uvw, dl, dm):
     """ Applies a phase shift to data for a given (dl, dm).
     """
 
+    assert data.shape[1] == uvw[0].shape[0]
+    assert data.shape[2] == uvw[0].shape[1]
     data = np.require(data, requirements='W')
     _phaseshift_jit(data, uvw, dl, dm)
 
@@ -58,6 +60,8 @@ def meantsub(data, parallel=False):
     """ Subtract mean visibility in time.
     Parallel controls use of multithreaded algorithm.
     """
+
+    # TODO: make outlier resistant to avoid oversubtraction
 
     if parallel:
         _ = _meantsub_gu(np.require(np.swapaxes(data, 0, 3), requirements='W'))

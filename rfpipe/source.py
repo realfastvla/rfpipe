@@ -33,11 +33,13 @@ def data_prep(st, segment, data, flagversion="latest"):
 
     # take pols of interest
     takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
-    logger.debug('Selecting pols {0}'.format(st.pols))
+    logger.debug('Selecting pols {0} and chans {1}'.format(st.pols, st.chans))
 
     # TODO: check on reusing 'data' to save memory
-    datap = np.nan_to_num(data.take(takepol, axis=3), copy=True)
+    datap = np.nan_to_num(data.take(takepol, axis=3).take(st.chans, axis=2),
+                          copy=True)
     datap = prep_standard(st, segment, datap)
+
     if not np.any(datap):
         logger.info("All data zeros after prep_standard")
         return datap
@@ -63,11 +65,9 @@ def data_prep(st, segment, data, flagversion="latest"):
         logger.info('No visibility subtraction done.')
 
     if st.prefs.savenoise:
-        save_noise(st, segment, datap.take(st.chans, axis=2))
+        save_noise(st, segment, datap) #.take(st.chans, axis=2))
 
-    logger.debug('Selecting chans {0}'.format(st.chans))
-
-    return datap.take(st.chans, axis=2)
+    return datap  #.take(st.chans, axis=2)
 
 
 def read_segment(st, segment, cfile=None, timeout=10):
@@ -146,6 +146,7 @@ def prep_standard(st, segment, data):
         assert isinstance(st.prefs.simulated_transient, list), "Simulated transient must be list of tuples."
 
         uvw = util.get_uvw_segment(st, segment)
+
         for params in st.prefs.simulated_transient:
             assert len(params) == 7 or len(params) == 8, ("Transient requires 7 or 8 parameters: "
                                                           "(segment, i0/int, dm/pc/cm3, dt/s, "
@@ -169,7 +170,7 @@ def prep_standard(st, segment, data):
                 try:
                     model = np.require(np.broadcast_to(util.make_transient_data(st, amp, i0, dm, dt, ampslope=ampslope)
                                                        .transpose()[:, None, :, None],
-                                                       data.shape),
+                                                       st.datashape),
                                        requirements='W')
                 except IndexError:
                     logger.warn("IndexError while adding transient. Skipping...")

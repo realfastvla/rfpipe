@@ -173,5 +173,3 @@ def flag_data_rtpipe(st, data):
                 data[:, :, chans, pol] = 0j
 
     return data
-
-

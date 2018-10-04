@@ -32,9 +32,9 @@ def apply_telcal(st, data, threshold=1/50., onlycomplete=True, sign=+1):
             return data
         else:
             pols = [0, 1]
-            reffreq = np.array(st.metadata.spw_reffreq)
-            chansize = np.array(st.metadata.spw_chansize)
-            nchan = np.array(st.metadata.spw_nchan)
+            reffreq = np.array(st.metadata.spw_reffreq)[st.spw]
+            chansize = np.array(st.metadata.spw_chansize)[st.spw]
+            nchan = np.array(st.metadata.spw_nchan)[st.spw]
             skyfreqs = np.around(reffreq + (chansize*nchan/2), -6)/1e6  # GN skyfreq is band center
 
             sols = parseGN(st.gainfile)
