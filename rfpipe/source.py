@@ -92,9 +92,10 @@ def read_segment(st, segment, cfile=None, timeout=10):
                      .format(st.metadata.datasource))
 
     if not np.any(data_read):
-        logger.info('No data read.')
+        logger.info('Read data are all zeros.')
         return np.array([])
     else:
+        logger.info('Read data with zero fraction of {0:.3f}'.format(1-np.count_nonzero(data_read)/data_read.size))
         return data_read
 
 
