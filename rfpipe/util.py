@@ -411,12 +411,11 @@ def make_transient_data(st, amp, i0, dm, dt, ampslope=0.):
     ampslope adds to a linear slope up to amp+ampslope at last channel.
     """
 
-    chans = np.arange(st.metadata.nchan_orig)
-    freqs = st.metadata.freq_orig
-    model = np.zeros((len(chans), st.readints), dtype='complex64')
+    chans = np.arange(len(st.freq))
+    model = np.zeros((len(st.freq), st.readints), dtype='complex64')
     ampspec = amp + ampslope*(np.linspace(0, 1, num=len(chans)))
 
-    i = i0 + calc_delay2(freqs, freqs.max(), dm)/st.inttime
+    i = i0 + calc_delay2(st.freq, st.freq.max(), dm)/st.inttime
 #    print(i)
     i_f = np.floor(i).astype(int)
     imax = np.ceil(i + dt/st.inttime).astype(int)

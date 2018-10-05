@@ -65,9 +65,9 @@ def data_prep(st, segment, data, flagversion="latest"):
         logger.info('No visibility subtraction done.')
 
     if st.prefs.savenoise:
-        save_noise(st, segment, datap) #.take(st.chans, axis=2))
+        save_noise(st, segment, datap)
 
-    return datap  #.take(st.chans, axis=2)
+    return datap
 
 
 def read_segment(st, segment, cfile=None, timeout=10):
