@@ -45,7 +45,9 @@ def apply_telcal(st, data, threshold=1/50., onlycomplete=True, sign=+1):
                             .format(np.unique(skyfreqs), solskyfreqs))
             # must run time select before flagants for complete solutions
             sols = select(sols, time=st.segmenttimes.mean())
-            sols = flagants(sols, threshold=threshold, onlycomplete=onlycomplete)  
+            if st.prefs.flagantsol:
+                sols = flagants(sols, threshold=threshold,
+                                onlycomplete=onlycomplete)
 
             if len(sols):
 #                print(sols, st.blarr, skyfreqs, pols, chansize[0], nchan[0], sign)
