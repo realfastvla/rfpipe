@@ -526,10 +526,8 @@ def calc_cluster_rank(cc):
     for cluster in np.unique(clusters):
         clusterinds = np.where(cluster == clusters)[0]
         snrs = cc.array['snr1'][clusterinds]
-        for i, snr in enumerate(snrs):
-#            print('{0}, rank {1} of {2}'.format(np.where(snr < snrs)[0], len(np.where(snr < snrs)[0])+1, len(clusterinds)))
-            cl_rank[clusterinds[i]] = len(np.where(snr < snrs)[0])+1
-            cl_count[clusterinds[i]] = len(clusterinds)
+        cl_rank[clusterinds] = np.argsort(snrs)[::-1] + 1
+        cl_count[clusterinds] = len(clusterinds)
 
     return cl_rank, cl_count
 

@@ -321,11 +321,11 @@ def sdm_metadata(sdmfile, scan, subscan=1, bdfdir=None):
 
 
 def mock_metadata(t0, t1, nants, nspw, chans, npol, inttime_micros, scan=1,
-                  subscan=1, datasource='vys', datasetid=None, antconfig='B'):
+                  subscan=1, band='S', datasource='vys', datasetid=None, antconfig='B'):
     """ Wraps Metadata call to provide immutable, attribute-filled class instance.
     Parallel structure to sdm_metadata, so this inherits some of its
     nomenclature. t0, t1 are times in mjd. Supports up to nant=27, npol=4, and
-    nspw=32. chans is total number of channels over all spw (equal per spw).
+    nspw=16. chans is total number of channels over all spw (equal per spw).
     datasource is expected source of data (typically vys when mocking).
     datasetid default is "test_<t0>".
     antconfig defines extent of array and can be 'D', 'C', 'B', or 'A'.
@@ -386,14 +386,43 @@ def mock_metadata(t0, t1, nants, nspw, chans, npol, inttime_micros, scan=1,
     dxyz = xyz - xyz.mean(axis=0)
     scale = antconfigs.index(antconfig) - 2  # referenced to B config
     meta['xyz'] = dxyz * (3**scale) + xyz.mean(axis=0)
-
     meta['radec'] = [0., 0.]
     meta['dishdiameter'] = 25
-    meta['spw_orig'] = list(range(nspw))
-    meta['spw_reffreq'] = np.linspace(2e9, 4e9, 33)[:nspw]
-    meta['spw_chansize'] = [2000000]*nspw
+
+    # set up spw
+    meta['spw_orig'] = list(range(16))[:nspw]
+    if band == 'L':
+        low, high = 1e9, 2e9
+        chansize = 1e6
+    elif band == 'S':
+        low, high = 2e9, 4e9
+        chansize = 2e6
+    elif band == 'C':
+        low, high = 4e9, 8e9
+        chansize = 2e6
+    elif band == 'X':
+        low, high = 8e9, 12e9
+        chansize = 2e6
+    elif band == 'Ku':
+        low, high = 12e9, 18e9
+        chansize = 2e6
+    elif band == 'K':
+        low, high = 18e9, 26.5e9
+        chansize = 2e6
+    elif band == 'Ka':
+        low, high = 26.5e9, 30e9
+        chansize = 2e6
+    elif band == 'Q':
+        low, high = 40e9, 50e9
+        chansize = 2e6
+    else:
+        logger.warn("band ({0}) not recognized. Assuming S.".format(band))
+        low, high = 2e9, 4e9
+    meta['spw_reffreq'] = np.linspace(low, high, 16)[:nspw]
+    meta['spw_chansize'] = [chansize]*nspw
     chanperspw = chans//nspw
     meta['spw_nchan'] = [chanperspw]*nspw
+
     if datasource == 'vys':  # hack to make consistent with vysmaw_reader app
         meta['pols_orig'] = ['A*A', 'B*B']
     else:

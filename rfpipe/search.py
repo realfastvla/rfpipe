@@ -398,7 +398,10 @@ def reproduce_candcollection(cc, data, wisdom=None):
             clusters = cc.array['cluster'].astype(int)
             cl_rank, cl_count = candidates.calc_cluster_rank(cc)
             calcinds = np.unique(np.where(cl_rank == 1)[0])
+            logger.debug("Reproducing cands at {0} cluster peaks"
+                         .format(len(calcinds)))
         else:
+            logger.debug("No cluster field found. Reproducing all.")
             calcinds = list(range(len(cc)))
 
         # reproduce canddata for each
