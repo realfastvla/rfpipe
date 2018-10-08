@@ -291,7 +291,7 @@ def sdm_metadata(sdmfile, scan, subscan=1, bdfdir=None):
 
     meta['radec'] = scanobj.coordinates.tolist()
     meta['dishdiameter'] = float(str(sdm['Antenna'][0].dishDiameter).strip())
-    meta['spw_orig'] = [int(str(spw).split('_')[1]) for spw in scanobj.spws]
+    meta['spw_orig'] = list(range(len(scanobj.spws)))
     meta['spw_nchan'] = scanobj.numchans
     meta['spw_reffreq'] = scanobj.reffreqs
     meta['spw_chansize'] = scanobj.chanwidths
