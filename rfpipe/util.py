@@ -379,7 +379,8 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None, i=Non
                 if snr is None:
                     snr = random.uniform(10, 50)
                 # TODO: support flagged data in size calc and injection
-                sig = madtostd(data[i].real)/np.sqrt(data[i].size*st.dtarr[dtind])
+                datap = calibration.apply_telcal(st, data)
+                sig = madtostd(datap[i].real)/np.sqrt(datap[i].size*st.dtarr[dtind])
                 amp = snr*sig
 
         if lm is None:

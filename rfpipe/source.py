@@ -78,6 +78,8 @@ def read_segment(st, segment, cfile=None, timeout=10):
     """
 
     # assumed read shape (st.readints, st.nbl, st.metadata.nchan_orig, st.npol)
+    logger.info("Reading segment {0} of datasetId {1}"
+                .format(segment, st.metadata.datasetId))
     if st.metadata.datasource == 'sdm':
         data_read = read_bdf_segment(st, segment)
     elif st.metadata.datasource == 'vys':
@@ -92,10 +94,11 @@ def read_segment(st, segment, cfile=None, timeout=10):
                      .format(st.metadata.datasource))
 
     if not np.any(data_read):
-        logger.info('Read data are all zeros.')
+        logger.info('Read data are all zeros for segment {0}.'.format(segment))
         return np.array([])
     else:
-        logger.info('Read data with zero fraction of {0:.3f}'.format(1-np.count_nonzero(data_read)/data_read.size))
+        logger.info('Read data with zero fraction of {0:.3f} for segment {0}'
+                    .format(1-np.count_nonzero(data_read)/data_read.size, segment))
         return data_read
 
 
@@ -199,8 +202,8 @@ def read_vys_segment(st, seg, cfile=None, timeout=10, offset=4, returnsim=False)
     t0 = time.Time(st.segmenttimes[seg][0], format='mjd', precision=9).unix
     t1 = time.Time(st.segmenttimes[seg][1], format='mjd', precision=9).unix
 
-    logger.info('Reading {0} s ints into shape {1} from {2} - {3} unix seconds'
-                .format(st.metadata.inttime, st.datashape_orig, t0, t1))
+    logger.info('Reading segment {0}: {1} s ints with shape {2} from {3} - {4} unix seconds'
+                .format(seg, st.metadata.inttime, st.datashape_orig, t0, t1))
 
     # TODO: vysmaw currently pulls all data, but allocates buffer based on these.
     # buffer will be too small if taking subset of all data.

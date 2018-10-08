@@ -59,7 +59,9 @@ def apply_telcal(st, data, threshold=1/50., onlycomplete=True, sign=+1):
                                           copy=False)
                 blinds, chans, pols = np.where(gaindelay == 0)
                 if len(blinds):
-                    logger.info('Missed {0} solutions with bls {1}'.format(len(blinds), st.blarr[np.unique(blinds)]))
+                    logger.info('Missed {0} solutions with bls {1}'
+                                .format(len(blinds),
+                                        st.blarr[np.unique(blinds)]))
             else:
                 gaindelay = np.zeros_like(data)
 
