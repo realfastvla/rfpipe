@@ -376,13 +376,16 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None, i=Non
         if amp is None:
             if data is None:
                 amp = random.uniform(0.1, 0.5)
+                logger.info("Setting mock amp to {0}".format(amp))
             else:
                 if snr is None:
                     snr = random.uniform(10, 50)
-                # TODO: support flagged data in size calc and injection
+                    logger.info("Setting mock snr to {0}".format(snr))
+                    # TODO: support flagged data in size calc and injection
                 datap = calibration.apply_telcal(st, data)
                 sig = madtostd(datap[i].real)/np.sqrt(datap[i].size*st.dtarr[dtind])
                 amp = snr*sig
+                logger.info("Setting mock amp as {0}*{1}={2}".format(snr, sig, amp))
 
         if lm is None:
             # flip a coin to set either l or m
