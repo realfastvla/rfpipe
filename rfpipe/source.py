@@ -97,7 +97,7 @@ def read_segment(st, segment, cfile=None, timeout=10):
         logger.info('Read data are all zeros for segment {0}.'.format(segment))
         return np.array([])
     else:
-        logger.info('Read data with zero fraction of {0:.3f} for segment {0}'
+        logger.info('Read data with zero fraction of {0:.3f} for segment {1}'
                     .format(1-np.count_nonzero(data_read)/data_read.size, segment))
         return data_read
 
