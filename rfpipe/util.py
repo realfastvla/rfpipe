@@ -10,6 +10,7 @@ from numba import cuda, guvectorize
 from numba import jit, complex64, int64
 import pwkit.environments.casa.util as casautil
 import sdmpy
+from rfpipe import calibration
 
 import logging
 logger = logging.getLogger(__name__)
