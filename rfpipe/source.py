@@ -143,7 +143,7 @@ def prep_standard(st, segment, data):
         if isinstance(st.prefs.simulated_transient, int):
             logger.info("Filling simulated_transient with {0} random transients"
                         .format(st.prefs.simulated_transient))
-            st.prefs.simulated_transient = util.make_transient_params(st,
+            st.prefs.simulated_transient = util.make_transient_params(st, segment=segment,
                                                                       ntr=st.prefs.simulated_transient,
                                                                       data=data)
 
