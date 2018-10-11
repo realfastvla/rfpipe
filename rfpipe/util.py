@@ -336,8 +336,8 @@ def madtostd(array):
     return 1.4826*np.median(np.abs(array-np.median(array)))
 
 
-def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None, i=None,
-                          amp=None, lm=None, snr=None, data=None):
+def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
+                          i=None, amp=None, lm=None, snr=None, data=None):
     """ Given a state, create ntr randomized detectable transients.
     Returns list of ntr tuples of parameters.
     If data provided, it is used to inject transient at fixed SNR.

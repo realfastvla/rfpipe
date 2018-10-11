@@ -354,7 +354,7 @@ def simulate_segment(st, loc=0., scale=1., segment=None):
         currenttime = time.Time.now().mjd
         t1 = st.segmenttimes[segment][1]
         if currenttime > t1:
-            logger.info('Current time {0} is later than window end {1}.'
+            logger.info('Current time {0} is later than window end {1}. '
                         'Skipping segment {2}.'
                         .format(currenttime, t1, segment))
             return np.array([])
