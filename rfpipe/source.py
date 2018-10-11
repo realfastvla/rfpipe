@@ -73,6 +73,7 @@ def data_prep(st, segment, data, flagversion="latest"):
 def read_segment(st, segment, cfile=None, timeout=10):
     """ Read a segment of data.
     cfile and timeout are specific to vys data.
+    cfile used as proxy for real-time environment when simulating data.
     Returns data as defined in metadata (no downselection yet)
     default timeout is multiple of read time in seconds to wait.
     """
@@ -85,7 +86,8 @@ def read_segment(st, segment, cfile=None, timeout=10):
     elif st.metadata.datasource == 'vys':
         data_read = read_vys_segment(st, segment, cfile=cfile, timeout=timeout)
     elif st.metadata.datasource == 'sim':
-        data_read = simulate_segment(st)
+        simseg = segment if cfile else None
+        data_read = simulate_segment(st, segment=simseg)
     elif st.metadata.datasource == 'vyssim':
         data_read = read_vys_segment(st, segment, cfile=cfile, timeout=timeout,
                                      returnsim=True)
@@ -342,14 +344,23 @@ def estimate_noiseperbl(data):
     return noiseperbl
 
 
-def simulate_segment(st, loc=0., scale=1.):
+def simulate_segment(st, loc=0., scale=1., segment=None):
     """ Simulates visibilities for a segment.
+    If segment (int) given, then read will behave like vysmaw client and skip if too late.
     """
 
-# TODO: skip if time is after segmenttime window?
-#    t0 = time.Time(st.segmenttimes[seg][0], format='mjd', precision=9).unix
+    # mimic real-time environment by skipping simulation when late
+    if segment is not None:
+        currenttime = time.Time.now().mjd
+        t1 = st.segmenttimes[segment][1]
+        if currenttime > t1:
+            logger.info('Current time {0} is later than window end {1}.'
+                        'Skipping segment {2}.'
+                        .format(currenttime, t1, segment))
+            return np.array([])
 
     logger.info('Simulating data with shape {0}'.format(st.datashape_orig))
+
     data = np.empty(st.datashape_orig, dtype='complex64', order='C')
     for i in range(len(data)):
         data[i].real = np.random.normal(loc=loc, scale=scale,
