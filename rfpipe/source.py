@@ -348,10 +348,11 @@ def simulate_segment(st, loc=0., scale=1.):
 
     logger.info('Simulating data with shape {0}'.format(st.datashape_orig))
     data = np.empty(st.datashape_orig, dtype='complex64', order='C')
-    data.real = np.random.normal(loc=loc, scale=scale,
-                                 size=st.datashape_orig).astype(np.float32)
-    data.imag = np.random.normal(loc=loc, scale=scale,
-                                 size=st.datashape_orig).astype(np.float32)
+    for i in range(len(data)):
+        data.real = np.random.normal(loc=loc, scale=scale,
+                                     size=st.datashape_orig[1:]).astype(np.float32)
+        data.imag = np.random.normal(loc=loc, scale=scale,
+                                     size=st.datashape_orig[1:]).astype(np.float32)
 
     return data
 
