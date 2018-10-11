@@ -346,13 +346,16 @@ def simulate_segment(st, loc=0., scale=1.):
     """ Simulates visibilities for a segment.
     """
 
+# TODO: skip if time is after segmenttime window?
+#    t0 = time.Time(st.segmenttimes[seg][0], format='mjd', precision=9).unix
+
     logger.info('Simulating data with shape {0}'.format(st.datashape_orig))
     data = np.empty(st.datashape_orig, dtype='complex64', order='C')
     for i in range(len(data)):
-        data.real = np.random.normal(loc=loc, scale=scale,
-                                     size=st.datashape_orig[1:]).astype(np.float32)
-        data.imag = np.random.normal(loc=loc, scale=scale,
-                                     size=st.datashape_orig[1:]).astype(np.float32)
+        data[i].real = np.random.normal(loc=loc, scale=scale,
+                                        size=st.datashape_orig[1:]).astype(np.float32)
+        data[i].imag = np.random.normal(loc=loc, scale=scale,
+                                        size=st.datashape_orig[1:]).astype(np.float32)
 
     return data
 
