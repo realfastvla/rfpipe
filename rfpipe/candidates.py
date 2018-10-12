@@ -11,6 +11,7 @@ from math import cos, radians
 from numpy.lib.recfunctions import append_fields
 from collections import OrderedDict
 import matplotlib as mpl
+from astropy import time
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
@@ -277,6 +278,16 @@ class CandCollection(object):
                                       showsummary=False, validate=False)
 
         return self._state
+
+    def sdmname(self):
+        """ Get name of SDM created by realfast based on naming convention
+        """
+
+        segment = self.segment
+        segmenttimes = self.state.segmenttimes
+        startTime = segmenttimes[segment][0]
+        bdftime = int(time.Time(startTime, format='mjd').unix*1e3)
+        return 'realfast_{0}_{1}'.format(self.state.metadata.datasetId, bdftime)
 
 
 def save_and_plot(canddatalist):
