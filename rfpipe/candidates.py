@@ -774,6 +774,8 @@ def makesummaryplot(candsfile):
     logger.info("Saved summary plot {0} with {1} candidate{2}"
                 .format(htmlfile, len(segment), 's'[not len(segment)-1:]))
 
+    return len(cc)
+
 
 def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
             tools="hover,pan,box_select,wheel_zoom,reset", plot_width=450,
