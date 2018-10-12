@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 ### Functional form
 
-def apply_telcal(st, data, threshold=1/50., onlycomplete=True, sign=+1):
+def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1):
     """ Wrap all telcal functions to parse telcal file and apply it to data
     sign defines if calibration is applied (+1) or backed out (-1).
     assumes dual pol and that each spw has same nch and chansize.
