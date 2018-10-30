@@ -11,7 +11,7 @@ vys_timeout_default = 10
 
 
 def pipeline_scan(st, segments=None, cfile=None,
-                  vys_timeout=vys_timeout_default):
+                  vys_timeout=vys_timeout_default, devicenum=None):
     """ Given rfpipe state run search pipline on all segments in a scan.
         state/preference has fftmode that will determine functions used here.
     """
@@ -24,31 +24,31 @@ def pipeline_scan(st, segments=None, cfile=None,
         segments = list(range(st.nsegment))
 
     for segment in segments:
-        candcollection += pipeline_seg(st, segment, cfile=cfile,
+        candcollection += pipeline_seg(st, segment, devicenum=devicenum, cfile=cfile,
                                        vys_timeout=vys_timeout)
 
     return candcollection
 
 
-def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default):
+def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default, devicenum=None):
     """ Submit pipeline processing of a single segment on a single node.
     state/preference has fftmode that will determine functions used here.
     """
 
     data = source.read_segment(st, segment, timeout=vys_timeout, cfile=cfile)
-    candcollection = prep_and_search(st, segment, data)
+    candcollection = prep_and_search(st, segment, data, devicenum=devicenum)
 
     return candcollection
 
 
-def prep_and_search(st, segment, data):
+def prep_and_search(st, segment, data, devicenum=None):
     """ Bundles prep and search functions to improve performance in distributed.
     """
 
     data = source.data_prep(st, segment, data)
 
     if st.prefs.fftmode == "cuda":
-        candcollection = search.dedisperse_search_cuda(st, segment, data)
+        candcollection = search.dedisperse_search_cuda(st, segment, data, devicenum)
     elif st.prefs.fftmode == "fftw":
         candcollection = search.dedisperse_search_fftw(st, segment, data)
     else:
