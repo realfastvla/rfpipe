@@ -220,6 +220,7 @@ def read_vys_segment(st, seg, cfile=None, timeout=10, offset=4, returnsim=False)
     # TODO: move pol selection up and into vysmaw filter function
     assert st.prefs.selectpol in ['auto', 'all'], 'auto and all pol selection supported in vys'
     polauto = st.prefs.selectpol == 'auto'
+    logger.info("antlist {0} \n bbsplist {1} \n".format(antlist, bbsplist))
     with vysmaw_reader.Reader(t0, t1, antlist, bbsplist, polauto,
                               inttime_micros=st.metadata.inttime*1000000.,
                               nchan=st.metadata.spw_nchan[0],

@@ -58,7 +58,7 @@ def prep_and_search(st, segment, data, devicenum=None):
     return candcollection
 
 
-def pipeline_sdm(sdm, intent='TARGET', inprefs=None, preffile=None):
+def pipeline_sdm(sdm, inprefs=None, intent='TARGET', preffile=None):
     """ Get scans from SDM and run search.
     intent can be partial match to any of scan intents.
     """
