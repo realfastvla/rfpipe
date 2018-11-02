@@ -347,7 +347,11 @@ def save_and_plot(canddatalist):
             if st.prefs.savecands:
                 save_cands(st, canddata=canddata)
             if st.prefs.saveplots:
-                candplot(canddata, cluster=(clusters[i], clustersizes[i]), snrs=snrs)
+                if canddata.cluster is not None:
+                    clustertuple = (clusters[i], clustersizes[i])
+                else:
+                    clustertuple = None
+                candplot(canddata, cluster=clustertuple, snrs=snrs)
 
     return candcollection
 
