@@ -430,8 +430,7 @@ def reproduce_candcollection(cc, data, wisdom=None):
 
             # reproduce candidate
             data_corr = rfpipe.reproduce.pipeline_datacorrect(st, candloc, data)
-            cd = rfpipe.reproduce.pipeline_imdata(st, candloc, data_corr,
-                                                  cpuonly=True, **kwargs)
+            cd = rfpipe.reproduce.pipeline_imdata(st, candloc, data_corr, **kwargs)
             cc1 += candidates.save_and_plot(cd)
 
             # TODO: validate that reproduced features match input features?

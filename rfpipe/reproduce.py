@@ -179,6 +179,7 @@ def pipeline_imdata(st, candloc, data_dmdt=None, cpuonly=False, **kwargs):
     """ Generate image and phased visibility data for candloc.
     Phases to peak pixel in image of candidate.
     Can optionally pass in corrected data, if available.
+    cpuonly argument not being used at present.
     """
 
     segment, candint, dmind, dtind, beamnum = candloc
@@ -191,9 +192,9 @@ def pipeline_imdata(st, candloc, data_dmdt=None, cpuonly=False, **kwargs):
     if data_dmdt is None:
         data_dmdt = pipeline_datacorrect(st, candloc)
 
-    fftmode = 'fftw' if cpuonly else st.fftmode
+#    fftmode = 'fftw' if cpuonly else st.fftmode  # can't remember why i did this!
     image = rfpipe.search.grid_image(data_dmdt, uvw, st.npixx, st.npixy, st.uvres,
-                                     fftmode, st.prefs.nthread, wisdom=wisdom,
+                                     'fftw', st.prefs.nthread, wisdom=wisdom,
                                      integrations=[candint])[0]
 
     # TODO: allow dl,dm as args and reproduce detection for other SNRs
