@@ -48,7 +48,7 @@ def prep_and_search(st, segment, data, devicenum=None):
     data = source.data_prep(st, segment, data)
 
     if st.prefs.fftmode == "cuda":
-        candcollection = search.dedisperse_search_cuda(st, segment, data, devicenum)
+        candcollection = search.dedisperse_search_cuda(st, segment, data, devicenum=devicenum)
     elif st.prefs.fftmode == "fftw":
         candcollection = search.dedisperse_search_fftw(st, segment, data)
     else:

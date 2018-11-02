@@ -171,7 +171,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                         data_corr = dedisperseresample(data, delay,
                                                        st.dtarr[dtind],
                                                        parallel=st.prefs.nthread > 1,
-                                                       resamplefirst=st.fftmode=='cuda')
+                                                       resamplefirst=True)
                         spec = data_corr.take([i], axis=0)
                         util.phase_shift(spec, uvw, l1, m1)
                         spec = spec[0].real.mean(axis=2).mean(axis=0)
@@ -205,7 +205,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
     logger.info("First pass found {0} candidates in seg {1}."
                 .format(len(cc), segment))
 
-    if st.prefs.clustercands is not None:
+    if st.prefs.clustercands:
         cc = candidates.cluster_candidates(cc)
 
     if st.prefs.savecands or st.prefs.saveplots:
@@ -269,7 +269,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
                                     st.inttime)
             data_corr = dedisperseresample(data, delay, st.dtarr[dtind],
                                            parallel=st.prefs.nthread > 1,
-                                           resamplefirst=st.fftmode=='cuda')
+                                           resamplefirst=False)
 
             # run search
             if st.prefs.searchtype in ['image', 'imagek']:
@@ -367,7 +367,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
     logger.info("First pass found {0} candidates in seg {1}."
                 .format(len(cc), segment))
 
-    if st.prefs.clustercands is not None:
+    if st.prefs.clustercands:
         cc = candidates.cluster_candidates(cc)
 
     if st.prefs.savecands or st.prefs.saveplots:
@@ -405,7 +405,6 @@ def reproduce_candcollection(cc, data, wisdom=None):
             calcinds = list(range(len(cc)))
 
         # reproduce canddata for each
-        calcinds.sort()
         for i in calcinds:
             # TODO: check on best way to find max SNR with kalman, etc
             snr = snrs[i]

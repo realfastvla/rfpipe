@@ -148,6 +148,7 @@ class CandCollection(object):
         """
 
         if len(cc):
+            # TODO: update to allow different simulated_transient fields that get added into single list
             assert self.prefs.name == cc.prefs.name, "Cannot add collections with different preferences"
             assert self.state.dmarr == cc.state.dmarr,  "Cannot add collections with different dmarr"
             assert self.state.dtarr == cc.state.dtarr,  "Cannot add collections with different dmarr"
@@ -239,7 +240,7 @@ class CandCollection(object):
         """ Return cluster label
         """
 
-        if self.prefs.clustercands is not None:
+        if self.prefs.clustercands:
             return self.array['cluster']
         else:
             return None
@@ -249,7 +250,7 @@ class CandCollection(object):
         """ Return size of cluster
         """
 
-        if self.prefs.clustercands is not None:
+        if self.prefs.clustercands:
             return self.array['clustersize']
         else:
             return None
@@ -537,7 +538,7 @@ def calc_cluster_rank(cc):
     for cluster in np.unique(clusters):
         clusterinds = np.where(cluster == clusters)[0]
         snrs = cc.array['snr1'][clusterinds]
-        cl_rank[clusterinds] = np.argsort(snrs)[::-1] + 1
+        cl_rank[clusterinds] = np.argsort(np.argsort(snrs)[::-1])+1 
         cl_count[clusterinds] = len(clusterinds)
 
     return cl_rank, cl_count

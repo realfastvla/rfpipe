@@ -219,7 +219,8 @@ class State(object):
                     logger.info('\t Clustering candidates wth min_cluster_size={0} and min_samples={1}'
                                 .format(min_cluster_size, min_samples))
                 elif isinstance(self.prefs.clustercands, bool):
-                    logger.info('\t Clustering candidates wth default parameters')
+                    if self.prefs.clustercands:
+                        logger.info('\t Clustering candidates wth default parameters')
 
             logger.info('')
             if self.fftmode == "fftw":
