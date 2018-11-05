@@ -4,7 +4,6 @@ from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 
 import os.path
 import numpy as np
-from numba import jit
 from astropy import time
 import pwkit.environments.casa.util as casautil
 from rfpipe import util, calibration, fileLock, flagging
@@ -94,6 +93,14 @@ def read_segment(st, segment, cfile=None, timeout=10):
     else:
         logger.error('Datasource {0} not recognized.'
                      .format(st.metadata.datasource))
+
+    # report bad values
+    if np.any(np.isnan(data_read)):
+        logger.warn("Read data has some NaNs")
+    if np.any(np.isinf(data_read)):
+        logger.warn("Read data has some Infs")
+    if np.any(data_read.abs() > 1e20):
+        logger.warn("Read data has values larger than 1e20")
 
     if not np.any(data_read):
         logger.info('Read data are all zeros for segment {0}.'.format(segment))
