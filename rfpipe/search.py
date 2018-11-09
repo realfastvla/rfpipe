@@ -61,7 +61,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
             logger.warn("distributed not available. Using default GPU devicenum {0}"
                         .format(devicenum))
 
-    rfgpu.cudaSetDevice(devicenum)
+    rfgpu.cudaSetDevice(devicenum)  # TODO: remove for multi-gpu case
 
     beamnum = 0
     uvw = util.get_uvw_segment(st, segment)
@@ -75,6 +75,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
     image.add_stat('pix')
 
     # Data buffers on GPU
+    # TODO: add second tuple with devicenums to grid on (0,1,2)
     vis_raw = rfgpu.GPUArrayComplex((st.nbl, st.nchan, st.readints))
     vis_grid = rfgpu.GPUArrayComplex((upix, vpix))
     img_grid = rfgpu.GPUArrayReal((st.npixx, st.npixy))
@@ -94,7 +95,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
 
     # move Stokes I data in (assumes dual pol data)
     vis_raw.data[:] = np.rollaxis(data.mean(axis=3), 0, 3)
-    vis_raw.h2d()  # Send it to GPU memory
+    vis_raw.h2d()  # Send it to GPU memory of all
 
     grid.conjugate(vis_raw)
 
@@ -539,14 +540,10 @@ def _grid_visibilities_jit(data, u, v, w, npixx, npixy, uvres, grids):
 
     nint, nbl, nchan, npol = data.shape
 
-# rounding not available in numba
-#    ubl = np.round(us/uvres, 0).astype(np.int32)
-#    vbl = np.round(vs/uvres, 0).astype(np.int32)
-
     for j in range(nbl):
         for k in range(nchan):
-            ubl = int64(u[j, k]/uvres)
-            vbl = int64(v[j, k]/uvres)
+            ubl = int64(np.round(u[j, k]/uvres, 0))
+            vbl = int64(np.round(v[j, k]/uvres, 0))
             if (np.abs(ubl < npixx//2)) and (np.abs(vbl < npixy//2)):
                 umod = int64(np.mod(ubl, npixx))
                 vmod = int64(np.mod(vbl, npixy))
