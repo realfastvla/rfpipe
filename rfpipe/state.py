@@ -58,7 +58,13 @@ class State(object):
             # default values will result in empty dict
             prefs = preferences.parsepreffile(preffile, inprefs=inprefs,
                                               name=name)
-            self.prefs = preferences.Preferences(**prefs)
+            try:
+                self.prefs = preferences.Preferences(**prefs)
+            except TypeError as exc:
+                from fuzzywuzzy import fuzz
+                badarg = exc.args[0].split('\'')[1]
+                closeprefs = [pref for pref in list(preferences.Preferences().__dict__) if fuzz.ratio(badarg, pref) > 50]
+                raise TypeError("Preference {0} not recognized. Did you mean {1}?".format(badarg, ', '.join(closeprefs)))
 
         # TODO: not working
         logger.parent.setLevel(getattr(logging, self.prefs.loglevel))
