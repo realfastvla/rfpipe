@@ -159,7 +159,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                     l1, m1 = st.pixtolm((xpeak+st.npixx//2, ypeak+st.npixy//2))
 
                     if st.prefs.searchtype == 'image':
-                        logger.info("Got one! SNR1 {0:.1f} candidate at {1} and (l, m) = ({2},{3})"
+                        logger.info("Got one! SNR1 {0:.1f} candidate at {1} and (l, m) = ({2:.5f}, {3:.5f})"
                                     .format(snr1, candloc, l1, m1))
                         canddict['candloc'].append(candloc)
                         canddict['l1'].append(l1)
@@ -186,7 +186,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                         snrk = (2*significance_kalman)**0.5
                         snrtot = (snrk**2 + snr1**2)**0.5
                         if snrtot > (st.prefs.sigma_kalman**2 + st.prefs.sigma_image1**2)**0.5:
-                            logger.info("Got one! SNR1 {0:.1f} and SNRk {1:.1f} candidate at {2} and (l,m) = ({3},{4})"
+                            logger.info("Got one! SNR1 {0:.1f} and SNRk {1:.1f} candidate at {2} and (l,m) = ({3:.5f}, {4:.5f})"
                                         .format(snr1, snrk, candloc, l1, m1))
                             canddict['candloc'].append(candloc)
                             canddict['l1'].append(l1)
@@ -299,7 +299,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
                             snrk = (2*significance_kalman)**0.5
                             snrtot = (snrk**2 + snr1**2)**0.5
                             if snrtot > (st.prefs.sigma_kalman**2 + st.prefs.sigma_image1**2)**0.5:
-                                logger.info("Got one! SNR1 {0:.1f} and SNRk {1:.1f} candidate at {2} and (l,m) = ({3},{4})"
+                                logger.info("Got one! SNR1 {0:.1f} and SNRk {1:.1f} candidate at {2} and (l,m) = ({3:.5f}, {4:.5f})"
                                             .format(snr1, snrk, candloc, l1, m1))
                                 canddict['candloc'].append(candloc)
                                 canddict['l1'].append(l1)
@@ -308,7 +308,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
                                 canddict['immax1'].append(immax1)
                                 canddict['snrk'].append(snrk)
                         elif st.prefs.searchtype == 'image':
-                            logger.info("Got one! SNR1 {0:.1f} candidate at {1} and (l, m) = ({2},{3})"
+                            logger.info("Got one! SNR1 {0:.1f} candidate at {1} and (l, m) = ({2:.5f}, {3:.5f})"
                                         .format(snr1, candloc, l1, m1))
                             canddict['candloc'].append(candloc)
                             canddict['l1'].append(l1)
@@ -340,7 +340,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
                         if snr1 > st.prefs.sigma_image1:
                             logger.info("Got one! SNRarms {0:.1f} and SNRk "
                                         "{1:.1f} and SNR1 {2:.1f} candidate at"
-                                        " {3} and (l,m) = ({4},{5})"
+                                        " {3} and (l,m) = ({4:.5f}, {5:.5f})"
                                         .format(snrarms, snrk, snr1,
                                                 candloc, l1, m1))
                             canddict['candloc'].append(candloc)
@@ -354,7 +354,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
                     elif st.prefs.searchtype == 'armk':
                         l1, m1 = lm
                         logger.info("Got one! SNRarms {0:.1f} and SNRk {1:.1f} "
-                                    "candidate at {2} and (l,m) = ({3},{4})"
+                                    "candidate at {2} and (l,m) = ({3:.5f}, {4:.5f})"
                                     .format(snrarms, snrk, candloc, l1, m1))
                         canddict['candloc'].append(candloc)
                         canddict['l1'].append(l1)
@@ -414,14 +414,14 @@ def reproduce_candcollection(cc, data, wisdom=None):
             # kwargs passed to canddata object for plotting/saving
             kwargs = {}
             if 'cluster' in cc.array.dtype.fields:
-                logger.info("Cluster {0}/{1} has {2} candidates and max SNR {3} at {4}"
+                logger.info("Cluster {0}/{1} has {2} candidates and max SNR {3:.1f} at {4}"
                             .format(clusters[i], len(calcinds)-1, cl_count[i],
                                     snr, candloc))
                 # add supplementary plotting and cc info
                 kwargs['cluster'] = clusters[i]
                 kwargs['clustersize'] = cl_count[i]
             else:
-                logger.info("Candidate {0}/{1} has SNR {2} at {3}"
+                logger.info("Candidate {0}/{1} has SNR {2:.1f} at {3}"
                             .format(i, len(calcinds)-1, snr, candloc))
 
             # TODO: reproduce these here, too
