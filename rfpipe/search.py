@@ -147,7 +147,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
             threads = []
             integrations_list = [integrations[i:i+len(integrations)//len(devicenums)] for i in range(0, len(integrations), len(integrations)//len(devicenums))]
             for i_dn in range(len(devicenums)):
-                t = threading.Thread(target=rfgpu_gridimage, args=(st, grid, image, vis_raw, vis_grid, img_grid, integrationslist[i_dn]))
+                t = threading.Thread(target=rfgpu_gridimage, args=(st, grid, image, vis_raw, vis_grid, img_grid, integrations_list[i_dn]))
                 threads.append(t)
                 t.start()
 
