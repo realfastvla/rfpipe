@@ -23,13 +23,13 @@ except ImportError:
 # packaged searching functions
 ###
 
-
 def dedisperse_search_cuda(st, segment, data, devicenum=None):
     """ Run dedispersion, resample for all dm and dt.
     Grid and image on GPU.
     rfgpu is built from separate repo.
     Uses state to define integrations to image based on segment, dm, and dt.
-    devicenum can force the gpu to use, but can be inferred via distributed.
+    devicenum is int or tuple of ints that set gpu(s) to use.
+    If not set, then it can be inferred with distributed.
     """
 
     assert st.dtarr[0] == 1, "st.dtarr[0] assumed to be 1"
@@ -61,7 +61,14 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
             logger.warn("distributed not available. Using default GPU devicenum {0}"
                         .format(devicenum))
 
-    rfgpu.cudaSetDevice(devicenum)  # TODO: remove for multi-gpu case
+    if isinstance(devicenum, int):
+        devicenums = (devicenum,)
+    elif isinstance(devicenum, tuple):
+        assert isinstance(devicenum[0], int)
+        devicenums = devicenum
+
+    assert isinstance(devicenums, tuple)
+    logger.info("Using gpu devicenum(s): {0}".format(devicenums))
 
     beamnum = 0
     uvw = util.get_uvw_segment(st, segment)
@@ -69,35 +76,33 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
     upix = st.npixx
     vpix = st.npixy//2 + 1
 
-    grid = rfgpu.Grid(st.nbl, st.nchan, st.readints, upix, vpix)
-    image = rfgpu.Image(st.npixx, st.npixy)
-    image.add_stat('rms')
-    image.add_stat('pix')
+    grids = [rfgpu.Grid(st.nbl, st.nchan, st.readints, upix, vpix, dn) for dn in devicenums]
+    images = [rfgpu.Image(st.npixx, st.npixy, dn) for dn in devicenums]
+    for image in images:
+        image.add_stat('rms')
+        image.add_stat('pix')
 
     # Data buffers on GPU
-    # TODO: add second tuple with devicenums to grid on (0,1,2)
-    vis_raw = rfgpu.GPUArrayComplex((st.nbl, st.nchan, st.readints))
-    vis_grid = rfgpu.GPUArrayComplex((upix, vpix))
-    img_grid = rfgpu.GPUArrayReal((st.npixx, st.npixy))
+    # Vis buffers identical on all GPUs. image buffer unique.
+    vis_raw = rfgpu.GPUArrayComplex((st.nbl, st.nchan, st.readints), devicenums)
+    vis_grid = rfgpu.GPUArrayComplex((upix, vpix), devicenums)
+    img_grid = rfgpu.GPUArrayReal((st.npixx, st.npixy), devicenums)
+
+    # move Stokes I data in (assumes dual pol data)
+    vis_raw.data[:] = np.rollaxis(data.mean(axis=3), 0, 3)
+    vis_raw.h2d()  # Send it to GPU memory of all
 
     # Convert uv from lambda to us
     u, v, w = uvw
     u_us = 1e6*u[:, 0]/(1e9*st.freq[0])
     v_us = 1e6*v[:, 0]/(1e9*st.freq[0])
 
-    # Q: set input units to be uv (lambda), freq in GHz?
-    grid.set_uv(u_us, v_us)  # u, v in us
-    grid.set_freq(st.freq*1e3)  # freq in MHz
-    grid.set_cell(st.uvres)  # uv cell size in wavelengths (== 1/FoV(radians))
-
-    # Compute gridding transform
-    grid.compute()
-
-    # move Stokes I data in (assumes dual pol data)
-    vis_raw.data[:] = np.rollaxis(data.mean(axis=3), 0, 3)
-    vis_raw.h2d()  # Send it to GPU memory of all
-
-    grid.conjugate(vis_raw)
+    for grid in grids:
+        grid.set_uv(u_us, v_us)  # u, v in us
+        grid.set_freq(st.freq*1e3)  # freq in MHz
+        grid.set_cell(st.uvres)  # uv cell size in wavelengths (== 1/FoV(radians))
+        grid.compute()
+        grid.conjugate(vis_raw)
 
     # some prep if kalman filter is to be applied
     if st.prefs.searchtype in ['imagek']:
@@ -117,13 +122,14 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
 
     for dtind in range(len(st.dtarr)):
         if dtind > 0:
-            grid.downsample(vis_raw)
+            for grid in grids:
+                grid.downsample(vis_raw)
 
         for dmind in range(len(st.dmarr)):
             delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
                                     st.inttime)
-
-            grid.set_shift(delay >> dtind)  # dispersion shift per chan in samples
+            for grid in grids:
+                grid.set_shift(delay >> dtind)  # dispersion shift per chan in samples
 
             integrations = st.get_search_ints(segment, dmind, dtind)
             if len(integrations) == 0:
@@ -137,71 +143,15 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                                 st.dmarr[dmind], st.dtarr[dtind], st.npixx,
                                 st.npixy, st.uvres, devicenum))
 
-            for i in integrations:
-                # grid and FFT
-                grid.operate(vis_raw, vis_grid, i)
-                image.operate(vis_grid, img_grid)
+            import threading
+            threads = []
+            integrations_list = [integrations[i:i+len(integrations)//len(devicenums)] for i in range(0, len(integrations), len(integrations)//len(devicenums))]
+            for i_dn in range(len(devicenums)):
+                t = threading.Thread(target=rfgpu_gridimage, args=(st, grid, image, vis_raw, vis_grid, img_grid, integrationslist[i_dn]))
+                threads.append(t)
+                t.start()
 
-                # calc snr
-                stats = image.stats(img_grid)
-                if stats['rms'] != 0.:
-                    snr1 = stats['max']/stats['rms']
-                else:
-                    snr1 = 0.
-                    logger.warn("rfgpu rms is 0 in int {0}. Skipping.".format(i))
-
-                # threshold image
-                if snr1 > st.prefs.sigma_image1:
-                    candloc = (segment, i, dmind, dtind, beamnum)
-
-                    xpeak = stats['xpeak']
-                    ypeak = stats['ypeak']
-                    l1, m1 = st.pixtolm((xpeak+st.npixx//2, ypeak+st.npixy//2))
-
-                    if st.prefs.searchtype == 'image':
-                        logger.info("Got one! SNR1 {0:.1f} candidate at {1} and (l, m) = ({2:.5f}, {3:.5f})"
-                                    .format(snr1, candloc, l1, m1))
-                        canddict['candloc'].append(candloc)
-                        canddict['l1'].append(l1)
-                        canddict['m1'].append(m1)
-                        canddict['snr1'].append(snr1)
-                        canddict['immax1'].append(stats['max'])
-
-                    elif st.prefs.searchtype == 'imagek':
-                        # TODO: implement phasing on GPU
-                        data_corr = dedisperseresample(data, delay,
-                                                       st.dtarr[dtind],
-                                                       parallel=st.prefs.nthread > 1,
-                                                       resamplefirst=True)
-                        spec = data_corr.take([i], axis=0)
-                        util.phase_shift(spec, uvw, l1, m1)
-                        spec = spec[0].real.mean(axis=2).mean(axis=0)
-
-                        # TODO: this significance can be biased low if averaging in long baselines that are not phased well
-                        # TODO: spec should be calculated from baselines used to measure l,m?
-                        significance_kalman = kalman_significance(spec,
-                                                                  spec_std,
-                                                                  sig_ts=sig_ts,
-                                                                  coeffs=kalman_coeffs)
-                        snrk = (2*significance_kalman)**0.5
-                        snrtot = (snrk**2 + snr1**2)**0.5
-                        if snrtot > (st.prefs.sigma_kalman**2 + st.prefs.sigma_image1**2)**0.5:
-                            logger.info("Got one! SNR1 {0:.1f} and SNRk {1:.1f} candidate at {2} and (l,m) = ({3:.5f}, {4:.5f})"
-                                        .format(snr1, snrk, candloc, l1, m1))
-                            canddict['candloc'].append(candloc)
-                            canddict['l1'].append(l1)
-                            canddict['m1'].append(m1)
-                            canddict['snr1'].append(snr1)
-                            canddict['immax1'].append(stats['max'])
-                            canddict['snrk'].append(snrk)
-                    elif st.prefs.searchtype == 'armkimage':
-                        raise NotImplementedError
-                    elif st.prefs.searchtype == 'armk':
-                        raise NotImplementedError
-                    else:
-                        logger.warn("searchtype {0} not recognized"
-                                    .format(st.prefs.searchtype))
-
+    canddict = {}  # TODO: return values from threads
     cc = candidates.make_candcollection(st, **canddict)
     logger.info("First pass found {0} candidates in seg {1}."
                 .format(len(cc), segment))
@@ -216,6 +166,87 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
     candidates.save_cands(st, candcollection=cc)
 
     return cc
+
+
+def rfgpu_gridimage(st, grid, image, vis_raw, vis_grid, img_grid, integrations):
+    """ Grid, image, threshold with rfgpu
+    """
+
+    for i in integrations:
+        grid.operate(vis_raw, vis_grid, i)
+        image.operate(vis_grid, img_grid)
+
+        # calc snr
+        stats = image.stats(img_grid)
+        if stats['rms'] != 0.:
+            snr1 = stats['max']/stats['rms']
+        else:
+            snr1 = 0.
+            logger.warn("rfgpu rms is 0 in int {0}. Skipping."
+                        .format(i))
+
+        segment = 0
+        dmind = 0
+        dtind = 0
+        beamnum = 0
+        canddict = {}
+        data = None
+        uvw = None
+        delay = None
+        spec_std = None
+        sig_ts = None
+        kalman_coeffs = None
+        # threshold image
+        if snr1 > st.prefs.sigma_image1:
+            candloc = (segment, i, dmind, dtind, beamnum)
+
+            xpeak = stats['xpeak']
+            ypeak = stats['ypeak']
+            l1, m1 = st.pixtolm((xpeak+st.npixx//2, ypeak+st.npixy//2))
+
+            if st.prefs.searchtype == 'image':
+                logger.info("Got one! SNR1 {0:.1f} candidate at {1} and (l, m) = ({2:.5f}, {3:.5f})"
+                            .format(snr1, candloc, l1, m1))
+                canddict['candloc'].append(candloc)
+                canddict['l1'].append(l1)
+                canddict['m1'].append(m1)
+                canddict['snr1'].append(snr1)
+                canddict['immax1'].append(stats['max'])
+
+            elif st.prefs.searchtype == 'imagek':
+                # TODO: implement phasing on GPU
+                data_corr = dedisperseresample(data, delay,
+                                               st.dtarr[dtind],
+                                               parallel=st.prefs.nthread > 1,
+                                               resamplefirst=True)
+                spec = data_corr.take([i], axis=0)
+                util.phase_shift(spec, uvw, l1, m1)
+                spec = spec[0].real.mean(axis=2).mean(axis=0)
+
+                # TODO: this significance can be biased low if averaging in long baselines that are not phased well
+                # TODO: spec should be calculated from baselines used to measure l,m?
+                significance_kalman = kalman_significance(spec,
+                                                          spec_std,
+                                                          sig_ts=sig_ts,
+                                                          coeffs=kalman_coeffs)
+                snrk = (2*significance_kalman)**0.5
+                snrtot = (snrk**2 + snr1**2)**0.5
+                if snrtot > (st.prefs.sigma_kalman**2 + st.prefs.sigma_image1**2)**0.5:
+                    logger.info("Got one! SNR1 {0:.1f} and SNRk {1:.1f} candidate at {2} and (l,m) = ({3:.5f}, {4:.5f})"
+                                .format(snr1, snrk, candloc, l1, m1))
+                    canddict['candloc'].append(candloc)
+                    canddict['l1'].append(l1)
+                    canddict['m1'].append(m1)
+                    canddict['snr1'].append(snr1)
+                    canddict['immax1'].append(stats['max'])
+                    canddict['snrk'].append(snrk)
+            elif st.prefs.searchtype == 'armkimage':
+                raise NotImplementedError
+            elif st.prefs.searchtype == 'armk':
+                raise NotImplementedError
+            else:
+                logger.warn("searchtype {0} not recognized"
+                            .format(st.prefs.searchtype))
 
 
 def dedisperse_search_fftw(st, segment, data, wisdom=None):
