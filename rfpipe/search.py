@@ -45,13 +45,19 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
         return candidates.CandCollection(prefs=st.prefs,
                                          metadata=st.metadata)
 
-    if devicenum is None:
+    if isinstance(devicenum, int):
+        devicenums = (devicenum,)
+    elif isinstance(devicenum, tuple):
+        assert isinstance(devicenum[0], int)
+        devicenums = devicenum
+    elif devicenum is None:
         # assume first gpu, but try to infer from worker name
         devicenum = 0
         try:
             from distributed import get_worker
             name = get_worker().name
             devicenum = int(name.split('g')[1])
+            devicenums = (devicenum, devicenum+1)  # TODO: smarter multi-GPU
             logger.debug("Using name {0} to set GPU devicenum to {1}"
                          .format(name, devicenum))
         except IndexError:
@@ -63,12 +69,6 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
         except ImportError:
             logger.warn("distributed not available. Using default GPU devicenum {0}"
                         .format(devicenum))
-
-    if isinstance(devicenum, int):
-        devicenums = (devicenum,)
-    elif isinstance(devicenum, tuple):
-        assert isinstance(devicenum[0], int)
-        devicenums = devicenum
 
     assert isinstance(devicenums, tuple)
     logger.info("Using gpu devicenum(s): {0}".format(devicenums))
