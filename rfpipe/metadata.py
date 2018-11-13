@@ -185,6 +185,7 @@ def make_metadata(inmeta=None, config=None, sdmfile=None, sdmscan=None,
             datasource = inmeta['datasource'] if 'datasource' in inmeta else 'vys'
             meta = config_metadata(config, datasource=datasource)
         else:
+            logger.warn("Provide either sdmfile/sdmscan or config object to define metadata. Empty metadata dict being created.")
             meta = {}
 
         # optionally overload metadata
