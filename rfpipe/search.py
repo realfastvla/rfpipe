@@ -61,12 +61,15 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
             logger.debug("Using name {0} to set GPU devicenum to {1}"
                          .format(name, devicenum))
         except IndexError:
+            devicenums = (devicenum,)
             logger.warn("Could not parse worker name {0}. Using default GPU devicenum {1}"
                         .format(name, devicenum))
         except ValueError:
+            devicenums = (devicenum,)
             logger.warn("No worker found. Using default GPU devicenum {0}"
                         .format(devicenum))
         except ImportError:
+            devicenums = (devicenum,)
             logger.warn("distributed not available. Using default GPU devicenum {0}"
                         .format(devicenum))
 

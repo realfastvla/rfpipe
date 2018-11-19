@@ -454,7 +454,7 @@ def cluster_candidates(cc, returnclusterer=False, label_unclustered=True):
             min_cluster_size, min_samples = cc1.prefs.clustercands
         elif isinstance(cc1.prefs.clustercands, bool):
             if cc1.prefs.clustercands:
-                min_cluster_size = 3
+                min_cluster_size = 4
                 min_samples = 2
             else:
                 logger.info("Not performing clustering")
