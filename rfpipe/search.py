@@ -134,6 +134,8 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
     for dtind in range(len(st.dtarr)):
         if dtind > 0:
             for grid in grids:
+                logger.info("Downsampling for dn {0}"
+                            .format(devicenums[grids.index(grid)]))
                 grid.downsample(vis_raw)
 
 #        cy = cycle(devicenums)
