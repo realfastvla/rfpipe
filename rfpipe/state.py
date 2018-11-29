@@ -252,14 +252,19 @@ class State(object):
         to be searched after correcting for DM and resampling.
         """
 
-        # TODO: consider using searchtype=='cuda' to change behavior to resample first
-        # In this case, return (readints//dt)-dmshift//dt
-
         if segment == 0:
-            return list(range((self.readints-self.dmshifts[dmind])//self.dtarr[dtind]))
+            if self.prefs.fftmode == 'fftw':
+                return list(range((self.readints-self.dmshifts[dmind])//self.dtarr[dtind]))
+            elif self.prefs.fftmode == 'cuda':
+                return list(range(self.readints//self.dtarr[dtind]-self.dmshifts[dmind]//self.dtarr[dtind]))
         elif segment < self.nsegment:
-            return list(range((self.dmshifts[-1]-self.dmshifts[dmind])//self.dtarr[dtind],
-                              (self.readints-self.dmshifts[dmind])//self.dtarr[dtind]))
+            if self.prefs.fftmode == 'fftw':
+                return list(range((self.dmshifts[-1]-self.dmshifts[dmind])//self.dtarr[dtind],
+                                  (self.readints-self.dmshifts[dmind])//self.dtarr[dtind]))
+            elif self.prefs.fftmode == 'cuda':
+                # TODO: fix this
+                return list(range((self.dmshifts[-1]//self.dtarr[dtind]-self.dmshifts[dmind]//self.dtarr[dtind]),
+                                  (self.readints//self.dtarr[dtind]-self.dmshifts[dmind]//self.dtarr[dtind])))
         else:
             logger.warn("No segment {0} in scan".format(segment))
 

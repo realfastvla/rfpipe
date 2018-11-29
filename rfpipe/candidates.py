@@ -454,7 +454,7 @@ def cluster_candidates(cc, returnclusterer=False, label_unclustered=True):
             min_cluster_size, min_samples = cc1.prefs.clustercands
         elif isinstance(cc1.prefs.clustercands, bool):
             if cc1.prefs.clustercands:
-                min_cluster_size = 3
+                min_cluster_size = 4
                 min_samples = 2
             else:
                 logger.info("Not performing clustering")
@@ -477,15 +477,15 @@ def cluster_candidates(cc, returnclusterer=False, label_unclustered=True):
         npixy = cc1.state.npixy
         uvres = cc1.state.uvres
 
-        peakx_ind, peaky_ind = cc1.state.calcpix(candl, candm, npixx, npixy,
-                                                 uvres)
-
-        dm_ind = cc1.array['dmind']
+        dmind = cc1.array['dmind']
         dtind = cc1.array['dtind']
         dtarr = cc1.state.dtarr
         timearr_ind = cc1.array['integration']  # time index of all the candidates
+
         time_ind = np.multiply(timearr_ind, np.array(dtarr).take(dtind))
-        data = np.transpose([peakx_ind, peaky_ind, dm_ind, time_ind])
+        peakx_ind, peaky_ind = cc1.state.calcpix(candl, candm, npixx, npixy,
+                                                 uvres)
+        data = np.transpose([peakx_ind, peaky_ind, dmind, time_ind])
 
         clusterer = hdbscan.HDBSCAN(metric='hamming',
                                     min_cluster_size=min_cluster_size,
@@ -546,6 +546,29 @@ def calc_cluster_rank(cc):
         cl_count[clusterinds] = len(clusterinds)
 
     return cl_rank, cl_count
+
+
+def check_mocks(cc):
+    """ Look for mock in candcollection
+    TODO: return values that help user know mocks found and missed.
+    """
+
+    if cc.prefs.simulated_transient is not None:
+        clusters = cc.array['cluster'].astype(int)
+        cl_rank, cl_count = calc_cluster_rank(cc)
+
+        for mock in cc.prefs.simulated_transient:
+            (segment, integration, dm, dt, amp, l0, m0) = mock
+            dmind0 = np.abs((np.array(cc.state.dmarr)-dm)).argmin()
+            dtind0 = np.abs((np.array(cc.state.dtarr)-dt)).argmin()
+            mockloc = (segment, integration, dmind0, dtind0, 0)
+            if mockloc in cc.locs:
+                label = clusters[cc.locs.index(mockloc)]
+                clustersize = cl_count[cc.locs.index(mockloc)]
+                logger.info("Found mock at loc {0} with label {1} of size {2}"
+                            .format(mockloc, label, clustersize))
+            else:
+                logger.info("No mock found at loc {0}".format(mockloc))
 
 
 def save_cands(st, candcollection=None, canddata=None):

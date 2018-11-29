@@ -9,6 +9,9 @@ import pyfftw
 from rfpipe import util, candidates
 import rfpipe.reproduce  # explicit to avoid circular import
 import scipy.stats
+from concurrent import futures
+from itertools import cycle
+from threading import Lock
 
 import logging
 logger = logging.getLogger(__name__)
@@ -23,13 +26,13 @@ except ImportError:
 # packaged searching functions
 ###
 
-
 def dedisperse_search_cuda(st, segment, data, devicenum=None):
     """ Run dedispersion, resample for all dm and dt.
     Grid and image on GPU.
     rfgpu is built from separate repo.
     Uses state to define integrations to image based on segment, dm, and dt.
-    devicenum can force the gpu to use, but can be inferred via distributed.
+    devicenum is int or tuple of ints that set gpu(s) to use.
+    If not set, then it can be inferred with distributed.
     """
 
     assert st.dtarr[0] == 1, "st.dtarr[0] assumed to be 1"
@@ -42,62 +45,71 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
         return candidates.CandCollection(prefs=st.prefs,
                                          metadata=st.metadata)
 
-    if devicenum is None:
+    if isinstance(devicenum, int):
+        devicenums = (devicenum,)
+    elif isinstance(devicenum, tuple):
+        assert isinstance(devicenum[0], int)
+        devicenums = devicenum
+    elif devicenum is None:
         # assume first gpu, but try to infer from worker name
         devicenum = 0
         try:
             from distributed import get_worker
             name = get_worker().name
             devicenum = int(name.split('g')[1])
+            devicenums = (devicenum, devicenum+1)  # TODO: smarter multi-GPU
             logger.debug("Using name {0} to set GPU devicenum to {1}"
                          .format(name, devicenum))
         except IndexError:
+            devicenums = (devicenum,)
             logger.warn("Could not parse worker name {0}. Using default GPU devicenum {1}"
                         .format(name, devicenum))
         except ValueError:
+            devicenums = (devicenum,)
             logger.warn("No worker found. Using default GPU devicenum {0}"
                         .format(devicenum))
         except ImportError:
+            devicenums = (devicenum,)
             logger.warn("distributed not available. Using default GPU devicenum {0}"
                         .format(devicenum))
 
-    rfgpu.cudaSetDevice(devicenum)  # TODO: remove for multi-gpu case
+    assert isinstance(devicenums, tuple)
+    logger.info("Using gpu devicenum(s): {0}".format(devicenums))
 
-    beamnum = 0
     uvw = util.get_uvw_segment(st, segment)
 
     upix = st.npixx
     vpix = st.npixy//2 + 1
 
-    grid = rfgpu.Grid(st.nbl, st.nchan, st.readints, upix, vpix)
-    image = rfgpu.Image(st.npixx, st.npixy)
-    image.add_stat('rms')
-    image.add_stat('pix')
+    grids = [rfgpu.Grid(st.nbl, st.nchan, st.readints, upix, vpix, dn) for dn in devicenums]
+    images = [rfgpu.Image(st.npixx, st.npixy, dn) for dn in devicenums]
+    for image in images:
+        image.add_stat('rms')
+        image.add_stat('pix')
 
     # Data buffers on GPU
-    # TODO: add second tuple with devicenums to grid on (0,1,2)
-    vis_raw = rfgpu.GPUArrayComplex((st.nbl, st.nchan, st.readints))
-    vis_grid = rfgpu.GPUArrayComplex((upix, vpix))
-    img_grid = rfgpu.GPUArrayReal((st.npixx, st.npixy))
+    # Vis buffers identical on all GPUs. image buffer unique.
+    vis_raw = rfgpu.GPUArrayComplex((st.nbl, st.nchan, st.readints),
+                                    devicenums)
+    vis_grids = [rfgpu.GPUArrayComplex((upix, vpix), (dn,)) for dn in devicenums]
+    img_grids = [rfgpu.GPUArrayReal((st.npixx, st.npixy), (dn,)) for dn in devicenums]
+#    locks = [Lock() for dn in devicenums]
+
+    # move Stokes I data in (assumes dual pol data)
+    vis_raw.data[:] = np.rollaxis(data.mean(axis=3), 0, 3)
+    vis_raw.h2d()  # Send it to GPU memory of all
 
     # Convert uv from lambda to us
     u, v, w = uvw
     u_us = 1e6*u[:, 0]/(1e9*st.freq[0])
     v_us = 1e6*v[:, 0]/(1e9*st.freq[0])
 
-    # Q: set input units to be uv (lambda), freq in GHz?
-    grid.set_uv(u_us, v_us)  # u, v in us
-    grid.set_freq(st.freq*1e3)  # freq in MHz
-    grid.set_cell(st.uvres)  # uv cell size in wavelengths (== 1/FoV(radians))
-
-    # Compute gridding transform
-    grid.compute()
-
-    # move Stokes I data in (assumes dual pol data)
-    vis_raw.data[:] = np.rollaxis(data.mean(axis=3), 0, 3)
-    vis_raw.h2d()  # Send it to GPU memory of all
-
-    grid.conjugate(vis_raw)
+    for grid in grids:
+        grid.set_uv(u_us, v_us)  # u, v in us
+        grid.set_freq(st.freq*1e3)  # freq in MHz
+        grid.set_cell(st.uvres)  # uv cell size in wavelengths (== 1/FoV(radians))
+        grid.compute()
+        grid.conjugate(vis_raw)
 
     # some prep if kalman filter is to be applied
     if st.prefs.searchtype in ['imagek']:
@@ -112,33 +124,91 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
     # place to hold intermediate result lists
     canddict = {}
     canddict['candloc'] = []
+    canddict['l1'] = []
+    canddict['m1'] = []
+    canddict['snr1'] = []
+    canddict['immax1'] = []
     for feat in st.features:
         canddict[feat] = []
 
     for dtind in range(len(st.dtarr)):
         if dtind > 0:
-            grid.downsample(vis_raw)
+            for grid in grids:
+                logger.info("Downsampling for dn {0}"
+                            .format(devicenums[grids.index(grid)]))
+                grid.downsample(vis_raw)
 
-        for dmind in range(len(st.dmarr)):
-            delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
-                                    st.inttime)
+#        cy = cycle(devicenums)
+        threads = []
+        with futures.ThreadPoolExecutor(max_workers=len(devicenums)) as ex:
+#            for dmind, i_dn in list(zip(range(len(st.dmarr)), cy)):
+#                threads.append(ex.submit(rfgpu_gridimage, st, segment,
+#                                         grids[i_dn], images[i_dn], vis_raw,
+#                                         vis_grids[i_dn], img_grids[i_dn],
+#                                         dmind, dtind, devicenums[i_dn],
+#                                         locks[i_dn]))
+            ndm = len(st.dmarr)
+            ndn = len(devicenums)
+            for i_dn in range(ndn):
+#                dminds = list(range(ndm)[i_dn*ndm//ndn:(i_dn+1)*ndm//ndn]
+                dminds = [list(range(0+i, ndm, ndn)) for i in range(ndn)]
+                threads.append(ex.submit(rfgpu_gridimage, st, segment,
+                                         grids[i_dn], images[i_dn], vis_raw,
+                                         vis_grids[i_dn], img_grids[i_dn],
+                                         dminds[i_dn], dtind, devicenums[i_dn]))
 
-            grid.set_shift(delay >> dtind)  # dispersion shift per chan in samples
+            for thread in futures.as_completed(threads):
+                candlocs, l1s, m1s, snr1s, immax1s, snrks = thread.result()
+                canddict['candloc'] += candlocs
+                canddict['l1'] += l1s
+                canddict['m1'] += m1s
+                canddict['snr1'] += snr1s
+                canddict['immax1'] += immax1s
 
-            integrations = st.get_search_ints(segment, dmind, dtind)
-            if len(integrations) == 0:
-                continue
+    cc = candidates.make_candcollection(st, **canddict)
+    logger.info("First pass found {0} candidates in seg {1}."
+                .format(len(cc), segment))
+
+    if st.prefs.clustercands:
+        cc = candidates.cluster_candidates(cc)
+
+        # TODO: find a way to return values as systematic data quality test
+        candidates.check_mocks(cc)
+
+    if st.prefs.savecands or st.prefs.saveplots:
+        # triggers optional plotting and saving
+        cc = reproduce_candcollection(cc, data)
+
+    candidates.save_cands(st, candcollection=cc)
+
+    return cc
+
+
+def rfgpu_gridimage(st, segment, grid, image, vis_raw, vis_grid, img_grid,
+                    dminds, dtind, devicenum, data=None, uvw=None, spec_std=None,
+                    sig_ts=None, kalman_coeffs=None):
+    """ Dedisperse, grid, image, threshold with rfgpu
+    """
+
+    beamnum = 0
+    candlocs, l1s, m1s, snr1s, immax1s, snrks = [], [], [], [], [], []
+    for dmind in dminds:
+        delay = util.calc_delay(st.freq, st.freq.max(), st.dmarr[dmind],
+                                st.inttime)
+        integrations = st.get_search_ints(segment, dmind, dtind)
+
+        if len(integrations) != 0:
             minint = min(integrations)
             maxint = max(integrations)
-
             logger.info('Imaging {0} ints ({1}-{2}) in seg {3} at DM/dt {4:.1f}/{5}'
-                        ' with image {6}x{7} (uvres {8}) with gpu {9}'
+                        ' with image {6}x{7} (uvres {8}) on GPU {9}'
                         .format(len(integrations), minint, maxint, segment,
                                 st.dmarr[dmind], st.dtarr[dtind], st.npixx,
                                 st.npixy, st.uvres, devicenum))
 
+            grid.set_shift(delay >> dtind)  # dispersion shift per chan in samples
+
             for i in integrations:
-                # grid and FFT
                 grid.operate(vis_raw, vis_grid, i)
                 image.operate(vis_grid, img_grid)
 
@@ -148,7 +218,8 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                     snr1 = stats['max']/stats['rms']
                 else:
                     snr1 = 0.
-                    logger.warn("rfgpu rms is 0 in int {0}. Skipping.".format(i))
+                    logger.warn("rfgpu rms is 0 in int {0}. Skipping."
+                                .format(i))
 
                 # threshold image
                 if snr1 > st.prefs.sigma_image1:
@@ -159,13 +230,13 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                     l1, m1 = st.pixtolm((xpeak+st.npixx//2, ypeak+st.npixy//2))
 
                     if st.prefs.searchtype == 'image':
-                        logger.info("Got one! SNR1 {0:.1f} candidate at {1} and (l, m) = ({2},{3})"
+                        logger.info("Got one! SNR1 {0:.1f} candidate at {1} and (l, m) = ({2:.5f}, {3:.5f})"
                                     .format(snr1, candloc, l1, m1))
-                        canddict['candloc'].append(candloc)
-                        canddict['l1'].append(l1)
-                        canddict['m1'].append(m1)
-                        canddict['snr1'].append(snr1)
-                        canddict['immax1'].append(stats['max'])
+                        candlocs.append(candloc)
+                        l1s.append(l1)
+                        m1s.append(m1)
+                        snr1s.append(snr1)
+                        immax1s.append(stats['max'])
 
                     elif st.prefs.searchtype == 'imagek':
                         # TODO: implement phasing on GPU
@@ -186,14 +257,14 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                         snrk = (2*significance_kalman)**0.5
                         snrtot = (snrk**2 + snr1**2)**0.5
                         if snrtot > (st.prefs.sigma_kalman**2 + st.prefs.sigma_image1**2)**0.5:
-                            logger.info("Got one! SNR1 {0:.1f} and SNRk {1:.1f} candidate at {2} and (l,m) = ({3},{4})"
+                            logger.info("Got one! SNR1 {0:.1f} and SNRk {1:.1f} candidate at {2} and (l,m) = ({3:.5f}, {4:.5f})"
                                         .format(snr1, snrk, candloc, l1, m1))
-                            canddict['candloc'].append(candloc)
-                            canddict['l1'].append(l1)
-                            canddict['m1'].append(m1)
-                            canddict['snr1'].append(snr1)
-                            canddict['immax1'].append(stats['max'])
-                            canddict['snrk'].append(snrk)
+                            candlocs.append(candloc)
+                            l1s.append(l1)
+                            m1s.append(m1)
+                            snr1s.append(snr1)
+                            immax1s.append(stats['max'])
+                            snrks.append(snrk)
                     elif st.prefs.searchtype == 'armkimage':
                         raise NotImplementedError
                     elif st.prefs.searchtype == 'armk':
@@ -201,21 +272,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                     else:
                         logger.warn("searchtype {0} not recognized"
                                     .format(st.prefs.searchtype))
-
-    cc = candidates.make_candcollection(st, **canddict)
-    logger.info("First pass found {0} candidates in seg {1}."
-                .format(len(cc), segment))
-
-    if st.prefs.clustercands:
-        cc = candidates.cluster_candidates(cc)
-
-    if st.prefs.savecands or st.prefs.saveplots:
-        # triggers optional plotting and saving
-        cc = reproduce_candcollection(cc, data)
-
-    candidates.save_cands(st, candcollection=cc)
-
-    return cc
+    return candlocs, l1s, m1s, snr1s, immax1s, snrks
 
 
 def dedisperse_search_fftw(st, segment, data, wisdom=None):
@@ -299,7 +356,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
                             snrk = (2*significance_kalman)**0.5
                             snrtot = (snrk**2 + snr1**2)**0.5
                             if snrtot > (st.prefs.sigma_kalman**2 + st.prefs.sigma_image1**2)**0.5:
-                                logger.info("Got one! SNR1 {0:.1f} and SNRk {1:.1f} candidate at {2} and (l,m) = ({3},{4})"
+                                logger.info("Got one! SNR1 {0:.1f} and SNRk {1:.1f} candidate at {2} and (l,m) = ({3:.5f}, {4:.5f})"
                                             .format(snr1, snrk, candloc, l1, m1))
                                 canddict['candloc'].append(candloc)
                                 canddict['l1'].append(l1)
@@ -308,7 +365,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
                                 canddict['immax1'].append(immax1)
                                 canddict['snrk'].append(snrk)
                         elif st.prefs.searchtype == 'image':
-                            logger.info("Got one! SNR1 {0:.1f} candidate at {1} and (l, m) = ({2},{3})"
+                            logger.info("Got one! SNR1 {0:.1f} candidate at {1} and (l, m) = ({2:.5f}, {3:.5f})"
                                         .format(snr1, candloc, l1, m1))
                             canddict['candloc'].append(candloc)
                             canddict['l1'].append(l1)
@@ -340,7 +397,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
                         if snr1 > st.prefs.sigma_image1:
                             logger.info("Got one! SNRarms {0:.1f} and SNRk "
                                         "{1:.1f} and SNR1 {2:.1f} candidate at"
-                                        " {3} and (l,m) = ({4},{5})"
+                                        " {3} and (l,m) = ({4:.5f}, {5:.5f})"
                                         .format(snrarms, snrk, snr1,
                                                 candloc, l1, m1))
                             canddict['candloc'].append(candloc)
@@ -354,7 +411,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
                     elif st.prefs.searchtype == 'armk':
                         l1, m1 = lm
                         logger.info("Got one! SNRarms {0:.1f} and SNRk {1:.1f} "
-                                    "candidate at {2} and (l,m) = ({3},{4})"
+                                    "candidate at {2} and (l,m) = ({3:.5f}, {4:.5f})"
                                     .format(snrarms, snrk, candloc, l1, m1))
                         canddict['candloc'].append(candloc)
                         canddict['l1'].append(l1)
@@ -370,6 +427,9 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
 
     if st.prefs.clustercands:
         cc = candidates.cluster_candidates(cc)
+
+        # TODO: find a way to return values as systematic data quality test
+        candidates.check_mocks(cc)
 
     if st.prefs.savecands or st.prefs.saveplots:
         # triggers optional plotting and saving
@@ -414,14 +474,14 @@ def reproduce_candcollection(cc, data, wisdom=None):
             # kwargs passed to canddata object for plotting/saving
             kwargs = {}
             if 'cluster' in cc.array.dtype.fields:
-                logger.info("Cluster {0}/{1} has {2} candidates and max SNR {3} at {4}"
+                logger.info("Cluster {0}/{1} has {2} candidates and max SNR {3:.1f} at {4}"
                             .format(clusters[i], len(calcinds)-1, cl_count[i],
                                     snr, candloc))
                 # add supplementary plotting and cc info
                 kwargs['cluster'] = clusters[i]
                 kwargs['clustersize'] = cl_count[i]
             else:
-                logger.info("Candidate {0}/{1} has SNR {2} at {3}"
+                logger.info("Candidate {0}/{1} has SNR {2:.1f} at {3}"
                             .format(i, len(calcinds)-1, snr, candloc))
 
             # TODO: reproduce these here, too
