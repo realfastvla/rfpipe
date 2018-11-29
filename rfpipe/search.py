@@ -172,20 +172,8 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
     if st.prefs.clustercands:
         cc = candidates.cluster_candidates(cc)
 
-        # if mock, then look for it in a cluster
-        if cc.prefs.simulated_transient is not None:
-            for mock in cc.prefs.simulated_transient:
-                (segment, integration, dm, dt, amp, l0, m0) = mock
-                dmind0 = np.abs((cc.state.dmarr-dm).argmin())
-                dtind0 = np.abs((cc.state.dtarr-dt).argmin())
-                mockloc = (segment, integration, dmind0, dtind0, 0)
-                if mockloc in cc.locs:
-                    label = cc.cluster[cc.locs.index(mockloc)]
-                    clustersize = cc.clustersize[cc.locs.index(mockloc)]
-                    logger.info("Found mock at loc {0} with label {1} of size {2}"
-                                .format(mockloc, label, clustersize))
-                else:
-                    logger.info("No mock found at loc {0}".format(mockloc))
+        # TODO: find a way to return values as systematic data quality test
+        candidates.check_mocks(cc)
 
     if st.prefs.savecands or st.prefs.saveplots:
         # triggers optional plotting and saving
@@ -440,20 +428,8 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
     if st.prefs.clustercands:
         cc = candidates.cluster_candidates(cc)
 
-        # if mock, then look for it in a cluster
-        if cc.prefs.simulated_transient is not None:
-            for mock in cc.prefs.simulated_transient:
-                (segment, integration, dm, dt, amp, l0, m0) = mock
-                dmind0 = np.abs((cc.state.dmarr-dm).argmin())
-                dtind0 = np.abs((cc.state.dtarr-dt).argmin())
-                mockloc = (segment, integration, dmind0, dtind0, 0)
-                if mockloc in cc.locs:
-                    label = cc.cluster[cc.locs.index(mockloc)]
-                    clustersize = cc.clustersize[cc.locs.index(mockloc)]
-                    logger.info("Found mock at loc {0} with label {1} of size {2}"
-                                .format(mockloc, label, clustersize))
-                else:
-                    logger.info("No mock found at loc {0}".format(mockloc))
+        # TODO: find a way to return values as systematic data quality test
+        candidates.check_mocks(cc)
 
     if st.prefs.savecands or st.prefs.saveplots:
         # triggers optional plotting and saving

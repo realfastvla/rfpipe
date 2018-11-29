@@ -548,6 +548,29 @@ def calc_cluster_rank(cc):
     return cl_rank, cl_count
 
 
+def check_mocks(cc):
+    """ Look for mock in candcollection
+    TODO: return values that help user know mocks found and missed.
+    """
+
+    if cc.prefs.simulated_transient is not None:
+        clusters = cc.array['cluster'].astype(int)
+        cl_rank, cl_count = calc_cluster_rank(cc)
+
+        for mock in cc.prefs.simulated_transient:
+            (segment, integration, dm, dt, amp, l0, m0) = mock
+            dmind0 = np.abs((np.array(cc.state.dmarr)-dm)).argmin()
+            dtind0 = np.abs((np.array(cc.state.dtarr)-dt)).argmin()
+            mockloc = (segment, integration, dmind0, dtind0, 0)
+            if mockloc in cc.locs:
+                label = clusters[cc.locs.index(mockloc)]
+                clustersize = cl_count[cc.locs.index(mockloc)]
+                logger.info("Found mock at loc {0} with label {1} of size {2}"
+                            .format(mockloc, label, clustersize))
+            else:
+                logger.info("No mock found at loc {0}".format(mockloc))
+
+
 def save_cands(st, candcollection=None, canddata=None):
     """ Save candidate collection or cand data to pickle file.
     Collection saved as array with metadata and preferences attached.
