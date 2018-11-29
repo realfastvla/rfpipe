@@ -563,6 +563,7 @@ def save_cands(st, candcollection=None, canddata=None):
                 with fileLock.FileLock(st.candsfile+'.lock', timeout=10):
                     with open(st.candsfile, 'ab+') as pkl:
                         pickle.dump(canddata, pkl)
+                        
             except fileLock.FileLock.FileLockException:
                 segment = canddata.loc[0]
                 newcandsfile = ('{0}_seg{1}.pkl'
@@ -585,6 +586,7 @@ def save_cands(st, candcollection=None, canddata=None):
                 with fileLock.FileLock(st.candsfile+'.lock', timeout=10):
                     with open(st.candsfile, 'ab+') as pkl:
                         pickle.dump(candcollection, pkl)
+
             except fileLock.FileLock.FileLockException:
                 segment = candcollection.segment
                 newcandsfile = ('{0}_seg{1}.pkl'
@@ -593,7 +595,7 @@ def save_cands(st, candcollection=None, canddata=None):
                             'Spilling to new file {0}.'.format(newcandsfile))
                 with open(newcandsfile, 'ab+') as pkl:
                     pickle.dump(candcollection, pkl)
-
+                    
         elif st.prefs.savecands and not len(candcollection.array):
             logger.debug('No candidates to save to {0}.'.format(st.candsfile))
 

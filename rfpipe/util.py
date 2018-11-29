@@ -358,13 +358,33 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
         if segment is None:
             segment = random.choice(range(st.nsegment))
 
-        if dmind is None:
-            dmind = random.choice(range(len(st.dmarr)))
-        dm = st.dmarr[dmind]
+        if dmind is not None:
+            dm = st.dmarr[dmind]
+#            dmind = random.choice(range(len(st.dmarr)))
+        else:
+            dm = np.random.uniform(50,1000) # pc /cc
 
-        if dtind is None:
-            dtind = random.choice(range(len(st.dtarr)))
-        dt = st.metadata.inttime*min(st.dtarr[dtind], 2)  # dt>2 not yet supported
+            dmarr = np.array(calc_dmarr(st))
+            if dm > np.max(dmarr):
+                logging.warning("Dm of injected transient is greater than the max DM searched.")
+                dmind = len(dmarr) - 1
+            else:
+                dmind = np.argmax(dmarr>dm)
+            
+
+        if dtind is not None:
+            dt = st.metadata.inttime*min(st.dtarr[dtind], 2)  # dt>2 not yet supported
+        else:
+            #dtind = random.choice(range(len(st.dtarr)))
+            width = np.random.uniform(0.5e-3,50e-3) # s  #like an alias for "dt"
+            if width < image_int_time:
+                dtind = 0
+            else:    
+                dtind = int(np.log2(width/image_int_time))
+                if dtind >= len(st.dtarr):
+                    dtind = len(st.dtarr) - 1
+                    logging.warning("Width of transient is greater than max dt searched.")
+
 
 # TODO: add support for arb dm/dt
 #        dm = random.uniform(min(st.dmarr), max(st.dmarr))
