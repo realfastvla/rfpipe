@@ -477,15 +477,15 @@ def cluster_candidates(cc, returnclusterer=False, label_unclustered=True):
         npixy = cc1.state.npixy
         uvres = cc1.state.uvres
 
-        peakx_ind, peaky_ind = cc1.state.calcpix(candl, candm, npixx, npixy,
-                                                 uvres)
-
-        dm_ind = cc1.array['dmind']
+        dmind = cc1.array['dmind']
         dtind = cc1.array['dtind']
         dtarr = cc1.state.dtarr
         timearr_ind = cc1.array['integration']  # time index of all the candidates
+
         time_ind = np.multiply(timearr_ind, np.array(dtarr).take(dtind))
-        data = np.transpose([peakx_ind, peaky_ind, dm_ind, time_ind])
+        peakx_ind, peaky_ind = cc1.state.calcpix(candl, candm, npixx, npixy,
+                                                 uvres)
+        data = np.transpose([peakx_ind, peaky_ind, dmind, time_ind])
 
         clusterer = hdbscan.HDBSCAN(metric='hamming',
                                     min_cluster_size=min_cluster_size,
