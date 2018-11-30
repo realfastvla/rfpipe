@@ -25,7 +25,6 @@ import hdbscan
 import logging
 logger = logging.getLogger(__name__)
 
-
 class CandData(object):
     """ Object that bundles data from search stage to candidate visualization.
     Provides some properties for the state of the phased data and candidate.
@@ -280,6 +279,41 @@ class CandCollection(object):
 
         return self._state
 
+    @property
+    def mock_map(self):
+        """ Look for mock in candcollection
+        TODO: return values that help user know mocks found and missed.
+        """
+        
+        if self.prefs.simulated_transient is not None:
+            clusters = self.array['cluster'].astype(int)
+            cl_rank, cl_count = calc_cluster_rank(self)
+            mock_labels = []
+            map_mocks = {}
+            for mock in self.prefs.simulated_transient:
+                (segment, integration, dm, dt, amp, l0, m0) = mock
+                dmind0 = np.abs((np.array(self._state.dmarr)-dm)).argmin()
+                dtind0 = np.abs((np.array(self._state.dtarr)-dt)).argmin()
+                mockloc = (segment, integration, dmind0, dtind0, 0)
+
+                if mockloc in self.locs:
+                    label = clusters[self.locs.index(mockloc)]
+                    mock_labels.append(label)
+                    clustersize = cl_count[self.locs.index(mockloc)]
+                    map_mocks[mock] = np.array(self.locs)[clusters == label].tolist()
+                    logger.info("Found mock ({0}, {1}, {2:.2f}, {3:.2f}, {4:.2f}, {5:.4f}, {6:.4f}) at loc {7} with label {8} of size {9}"\
+                     .format(segment, integration, dm, dt, amp, l0,\
+                             m0 ,mockloc, label, clustersize))
+                else:
+                    map_mocks[mock] = []
+                    mock_labels.append(-2)
+                    logger.info("The mock ({0}, {1}, {2:.2f}, {3:.2f}, {4:.2f}, {5:.4f}, {6:.4f}) wasn't found at loc {7}"\
+                     .format(segment, integration, dm, dt, amp, l0, m0 ,mockloc))
+            return map_mocks, mock_labels
+        else:
+            return None
+
+    
     def sdmname(self):
         """ Get name of SDM created by realfast based on naming convention
         """
@@ -547,30 +581,6 @@ def calc_cluster_rank(cc):
 
     return cl_rank, cl_count
 
-
-def check_mocks(cc):
-    """ Look for mock in candcollection
-    TODO: return values that help user know mocks found and missed.
-    """
-
-    if cc.prefs.simulated_transient is not None:
-        clusters = cc.array['cluster'].astype(int)
-        cl_rank, cl_count = calc_cluster_rank(cc)
-
-        for mock in cc.prefs.simulated_transient:
-            (segment, integration, dm, dt, amp, l0, m0) = mock
-            dmind0 = np.abs((np.array(cc.state.dmarr)-dm)).argmin()
-            dtind0 = np.abs((np.array(cc.state.dtarr)-dt)).argmin()
-            mockloc = (segment, integration, dmind0, dtind0, 0)
-            if mockloc in cc.locs:
-                label = clusters[cc.locs.index(mockloc)]
-                clustersize = cl_count[cc.locs.index(mockloc)]
-                logger.info("Found mock at loc {0} with label {1} of size {2}"
-                            .format(mockloc, label, clustersize))
-            else:
-                logger.info("No mock found at loc {0}".format(mockloc))
-
-
 def save_cands(st, candcollection=None, canddata=None):
     """ Save candidate collection or cand data to pickle file.
     Collection saved as array with metadata and preferences attached.
@@ -688,62 +698,78 @@ def iter_noise(noisefile):
 
 
 ### bokeh summary plot
-
-def cluster_plotting_bokeh(candcollection, clusterer):
-    """to be modified if needed!
-    Generates bokeh plots of various parameters for visualising clustering
-    """
-
-    from bokeh.layouts import row, column
+def visualize_clustering(cc, clusterer):
+    
     import seaborn as sns
-
-    cc = candcollection
-
-    color_palette = sns.color_palette('deep', np.max(clusterer.labels_) + 1) #get a color palette with number
+    from bokeh.plotting import figure, output_file, show, output_notebook
+    from bokeh.layouts import row,column
+    from bokeh.models import HoverTool
+    from bokeh.models.sources import ColumnDataSource
+    
+    color_palette = sns.color_palette('deep', np.max(cc.cluster) + 1) #get a color palette with number of colors = number of clusters
     cluster_colors = [color_palette[x] if x >= 0
                       else (0.5, 0.5, 0.5)
-                      for x in clusterer.labels_]    #assigning each cluster a color, and making a list of equal length
+                      for x in cc.cluster]    #assigning each cluster a color, and making a list
 
     cluster_member_colors = [sns.desaturate(x, p) for x, p in
                              zip(cluster_colors, clusterer.probabilities_)]
-
     cluster_colors = list(map(mpl.colors.rgb2hex, cluster_member_colors)) #converting sns colors to hex for bokeh
-
+    
     width = 450
     height = 350
+    alpha = 0.1
     output_notebook()
 
     TOOLS = 'crosshair, box_zoom, reset, box_select, tap, hover, wheel_zoom'
-#data = dict(l= peakx_ind, m= peaky_ind, dm= dm_ind, time= time_ind, snr= snr, colors = cluster_colors)
-    data = dict(l= candl, m= candm, dm= canddm, time= time_ind, snr= snr, colors = cluster_colors)
+    
+    candl = cc.candl
+    candm = cc.candm
+    npixx = cc.state.npixx
+    npixy = cc.state.npixy
+    uvres = cc.state.uvres
+
+    dmind = cc.array['dmind']
+    dtind = cc.array['dtind']
+    dtarr = cc.state.dtarr
+    timearr_ind = cc.array['integration']  # time index of all the candidates
+
+    time_ind = np.multiply(timearr_ind, np.array(dtarr).take(dtind))
+    peakx_ind, peaky_ind = cc.state.calcpix(candl, candm, npixx, npixy, uvres)
+    
+    snr = cc.snrtot    
+    
+    data = dict(l= peakx_ind, m= peaky_ind, dm= dmind, time= time_ind, snr= snr, colors = cluster_colors)
     source=ColumnDataSource(data=data)
 
+
     p = figure(title="m vs l", x_axis_label='l', y_axis_label='m',plot_width=width, plot_height=height, tools = TOOLS)
-    p.circle(x='l',y='m', size='snr', line_width = 1, color = 'colors', fill_alpha=0.3, source = source) # linewidth=0,
-#p.circle(x=df.l,y=df.m, size=5, line_width = 1, color = cluster_colors, fill_alpha=0.5) # linewidth=0,
+    p.circle(x='l',y='m', size='snr', line_width = 1, color = 'colors', fill_alpha=alpha, source = source) # linewidth=0,
+    #p.circle(x=df.l,y=df.m, size=5, line_width = 1, color = cluster_colors, fill_alpha=0.5) # linewidth=0,
     hover = p.select(dict(type=HoverTool))
     hover.tooltips = [("m", "@m"), ("l", "@l"), ("time", "@time"), ("DM", "@dm"), ("SNR", "@snr")]
 
-#p.circle(x,y, size=5, line_width = 1, color = colors)#, , fill_alpha=1) # linewidth=0,
-#p.circle(x="x", y="y", source=source, size=7, color="color", line_color=None, fill_alpha="alpha")
+    #p.circle(x,y, size=5, line_width = 1, color = colors)#, , fill_alpha=1) # linewidth=0,
+    #p.circle(x="x", y="y", source=source, size=7, color="color", line_color=None, fill_alpha="alpha")
     p2 = figure(title="DM vs time", x_axis_label='time', y_axis_label='DM',plot_width=width, plot_height=height, tools = TOOLS)
-    p2.circle(x='time',y='dm', size='snr', line_width = 1, color = 'colors', fill_alpha=0.3, source=source) # linewidth=0,
+    p2.circle(x='time',y='dm', size='snr', line_width = 1, color = 'colors', fill_alpha=alpha, source=source) # linewidth=0,
     hover = p2.select(dict(type=HoverTool))
     hover.tooltips = [("m", "@m"), ("l", "@l"), ("time", "@time"), ("DM", "@dm"), ("SNR", "@snr")]
 
+
     p3 = figure(title="DM vs l", x_axis_label='l', y_axis_label='DM',plot_width=width, plot_height=height, tools = TOOLS)
-    p3.circle(x='l',y='dm', size='snr', line_width = 1, color = 'colors', fill_alpha=0.3, source=source) # linewidth=0,
+    p3.circle(x='l',y='dm', size='snr', line_width = 1, color = 'colors', fill_alpha=alpha, source=source) # linewidth=0,
     hover = p3.select(dict(type=HoverTool))
     hover.tooltips = [("m", "@m"), ("l", "@l"), ("time", "@time"), ("DM", "@dm"), ("SNR", "@snr")]
 
+
     p4 = figure(title="time vs l", x_axis_label='l', y_axis_label='time',plot_width=width, plot_height=height, tools = TOOLS)
-    p4.circle(x='l',y='time', size='snr', line_width = 1, color = 'colors', fill_alpha=0.3, source=source) # linewidth=0,
+    p4.circle(x='l',y='time', size='snr', line_width = 1, color = 'colors', fill_alpha=alpha, source=source) # linewidth=0,
     hover = p4.select(dict(type=HoverTool))
     hover.tooltips = [("m", "@m"), ("l", "@l"), ("time", "@time"), ("DM", "@dm"), ("SNR", "@snr")]
 
 
-# show the results
-    show(column(row(p, p2), row(p3, p4)))
+    # show the results
+    (show(column(row(p,p2),row(p3,p4))))
 
 
 def makesummaryplot(candsfile):
