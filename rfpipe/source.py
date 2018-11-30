@@ -35,8 +35,7 @@ def data_prep(st, segment, data, flagversion="latest"):
     logger.debug('Selecting pols {0} and chans {1}'.format(st.pols, st.chans))
 
     # TODO: check on reusing 'data' to save memory
-    datap = np.nan_to_num(data.take(takepol, axis=3).take(st.chans, axis=2),
-                          copy=True)
+    datap = np.nan_to_num(np.require(data, requirements='W').take(takepol, axis=3).take(st.chans, axis=2))
     datap = prep_standard(st, segment, datap)
 
     if not np.any(datap):
@@ -44,6 +43,7 @@ def data_prep(st, segment, data, flagversion="latest"):
         return datap
 
     if st.gainfile is not None:
+        logger.info("Applying calibration with {0}".format(st.gainfile))
         datap = calibration.apply_telcal(st, datap)
         if not np.any(datap):
             logger.info("All data zeros after apply_telcal")
@@ -52,6 +52,7 @@ def data_prep(st, segment, data, flagversion="latest"):
         logger.info("No gainfile found, so not applying calibration.")
 
     # support backwards compatibility for reproducible flagging
+    logger.info("Flagging with version: {0}".format(flagversion))
     if flagversion == "latest":
         datap = flagging.flag_data(st, datap)
     elif flagversion == "rtpipe":
@@ -122,8 +123,7 @@ def prep_standard(st, segment, data):
     # read and apply flags for given ant/time range. 0=bad, 1=good
     if st.prefs.applyonlineflags and st.metadata.datasource in ['vys', 'sdm']:
         flags = flagging.getonlineflags(st, segment)
-        data = np.where(flags[None, :, None, None],
-                        np.require(data, requirements='W'), 0j)
+        data = np.where(flags[None, :, None, None], data, 0j)
     else:
         logger.info('Not applying online flags.')
 
