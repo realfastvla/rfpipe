@@ -352,6 +352,7 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
     i0 = i
     amp0 = amp
     lm0 = lm
+    snr0 = snr
 
     mocks = []
     for tr in range(ntr):
@@ -376,11 +377,11 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
             dt = st.metadata.inttime*min(st.dtarr[dtind], 2)  # dt>2 not yet supported
         else:
             #dtind = random.choice(range(len(st.dtarr)))
-            width = np.random.uniform(0.5e-3,50e-3) # s  #like an alias for "dt"
-            if width < image_int_time:
+            dt = np.random.uniform(0.5e-3,50e-3) # s  #like an alias for "dt"
+            if dt < st.metadata.inttime:
                 dtind = 0
             else:    
-                dtind = int(np.log2(width/image_int_time))
+                dtind = int(np.log2(dt/st.metadata.inttime))
                 if dtind >= len(st.dtarr):
                     dtind = len(st.dtarr) - 1
                     logging.warning("Width of transient is greater than max dt searched.")
@@ -406,6 +407,7 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
                 sig = madtostd(datap[i].real)/np.sqrt(datap[i].size*st.dtarr[dtind])
                 amp = snr*sig
                 logger.info("Setting mock amp as {0}*{1}={2}".format(snr, sig, amp))
+                
 
         if lm is None:
             # flip a coin to set either l or m
@@ -422,8 +424,8 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
             l, m = lm
 
         mocks.append((segment, i, dm, dt, amp, l, m))
-        (segment, dmind, dtind, i, amp, lm) = (segment0, dmind0, dtind0, i0,
-                                               amp0, lm0)
+        (segment, dmind, dtind, i, amp, lm, snr) = (segment0, dmind0, dtind0, i0,
+                                               amp0, lm0, snr0)
 
     return mocks
 
