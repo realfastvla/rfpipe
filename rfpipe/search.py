@@ -173,7 +173,6 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
         cc = candidates.cluster_candidates(cc)
 
         # TODO: find a way to return values as systematic data quality test
-        candidates.check_mocks(cc)
 
     if st.prefs.savecands or st.prefs.saveplots:
         # triggers optional plotting and saving
@@ -429,7 +428,6 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
         cc = candidates.cluster_candidates(cc)
 
         # TODO: find a way to return values as systematic data quality test
-        candidates.check_mocks(cc)
 
     if st.prefs.savecands or st.prefs.saveplots:
         # triggers optional plotting and saving
