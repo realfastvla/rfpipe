@@ -140,7 +140,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
 
 #        cy = cycle(devicenums)
         threads = []
-        with futures.ThreadPoolExecutor(max_workers=len(devicenums)) as ex:
+        with futures.ThreadPoolExecutor(max_workers=2*len(devicenums)) as ex:
 #            for dmind, i_dn in list(zip(range(len(st.dmarr)), cy)):
 #                threads.append(ex.submit(rfgpu_gridimage, st, segment,
 #                                         grids[i_dn], images[i_dn], vis_raw,

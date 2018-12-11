@@ -454,8 +454,8 @@ def cluster_candidates(cc, returnclusterer=False, label_unclustered=True):
             min_cluster_size, min_samples = cc1.prefs.clustercands
         elif isinstance(cc1.prefs.clustercands, bool):
             if cc1.prefs.clustercands:
-                min_cluster_size = 4
-                min_samples = 2
+                min_cluster_size = 5
+                min_samples = 3
             else:
                 logger.info("Not performing clustering")
                 return cc1
@@ -825,8 +825,9 @@ def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
         assert isinstance(yrange, tuple)
         dm_min, dm_max = yrange
     time = [data['time'][i] for i in inds]
-    time_min = min(time)*0.95
-    time_max = max(time)*1.05
+    time_range = max(time) - min(time)
+    time_min = min(time) - 1.05*time_range)
+    time_max = max(time) + 1.05*time_range)
 
     source = ColumnDataSource(data=dict({(key, tuple([value[i] for i in circleinds if i not in edgeinds]))
                                         for (key, value) in list(data.items())

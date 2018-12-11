@@ -35,14 +35,13 @@ def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1):
             reffreq = np.array(st.metadata.spw_reffreq)[st.spw]
             chansize = np.array(st.metadata.spw_chansize)[st.spw]
             nchan = np.array(st.metadata.spw_nchan)[st.spw]
-            skyfreqs = np.around(reffreq + (chansize*nchan/2), -6)/1e6  # GN skyfreq is band center
+            skyfreqs = np.around(reffreq + (chansize*nchan//2), -6)/1e6  # GN skyfreq is band center
 
             sols = parseGN(st.gainfile)
             solskyfreqs = np.unique(sols['skyfreq'])
-            if not all([skyfreq in np.unique(solskyfreqs)
-                        for skyfreq in skyfreqs]):
-                logger.warn("Not all data frequencies ({0}) in solution set ({1})"
-                            .format(np.unique(skyfreqs), solskyfreqs))
+            logger.info("Applying solutions from frequencies {0} to data frequencies {1}"
+                            .format(solskyfreqs, np.unique(skyfreqs)))
+
             # must run time select before flagants for complete solutions
             sols = select(sols, time=st.segmenttimes.mean())
             if st.prefs.flagantsol:
