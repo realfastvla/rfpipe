@@ -826,8 +826,8 @@ def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
         dm_min, dm_max = yrange
     time = [data['time'][i] for i in inds]
     time_range = max(time) - min(time)
-    time_min = min(time) - 1.05*time_range)
-    time_max = max(time) + 1.05*time_range)
+    time_min = min(time) - 1.05*time_range
+    time_max = max(time) + 1.05*time_range
 
     source = ColumnDataSource(data=dict({(key, tuple([value[i] for i in circleinds if i not in edgeinds]))
                                         for (key, value) in list(data.items())
