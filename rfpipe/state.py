@@ -766,26 +766,24 @@ class State(object):
         return ('segment', 'integration', 'dmind', 'dtind', 'beamnum')
 
     @property
-    def features(self):
-        """ Given searchtype, return features to be extracted in initial
-        analysis.
+    def searchfeatures(self):
+        """ Given searchtype, return features to be extracted during search.
         """
 
-        # TODO: need to add 'cluster' and 'clustersize' here?
-
-        if self.prefs.searchtype in ['image', 'image1']:
-            return ('snr1', 'immax1', 'l1', 'm1')
-        elif self.prefs.searchtype == 'imagek':
+        if self.prefs.searchtype in ['image', 'image1', 'imagek']:
             return ('snr1', 'snrk', 'immax1', 'l1', 'm1')
         elif self.prefs.searchtype == 'armk':
             return ('snrarms', 'snrk', 'l1', 'm1')
         elif self.prefs.searchtype == 'armkimage':
             return ('snrarms', 'snrk', 'snr1', 'immax1', 'l1', 'm1')
-# TODO: find better way to set features separately from search algorithm
-#        elif self.prefs.searchtype in ['imagestats', 'image1stats']:
-#            # note: spec statistics are all or nothing.
-#            return ('snr1', 'immax1', 'l1', 'm1', 'specstd', 'specskew',
-#                    'speckurtosis', 'imskew', 'imkurtosis')
+
+    @property
+    def features(self):
+        """ Sum of search features (those used to detect candidate) and
+        features calculated in second step (more computationally demanding).
+        """
+
+        return self.searchfeatures + self.prefs.calcfeatures
 
     @property
     def candsfile(self):

@@ -12,6 +12,7 @@ from numpy.lib.recfunctions import append_fields
 from collections import OrderedDict
 import matplotlib as mpl
 from astropy import time
+import scipy.stats.mstats as mstats
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
@@ -66,13 +67,21 @@ class CandData(object):
         return 'CandData for scanId {0} at loc {1}'.format(self.state.metadata.scanId, self.loc)
 
     @property
+    def searchtype(self):
+        return self.state.prefs.searchtype
+
+    @property
+    def features(self):
+        return self.state.features
+
+    @property
     def snrtot(self):
         """ Optimal SNR given searchtype (e.g., snr1 with snrk, if snrk measured)
+        Note that snrk can be calclated after detection, so snrtot represents post detection
+        significance.
         """
 
-        if self.state.prefs.searchtype == 'image':
-            return self.snr1
-        elif self.state.prefs.searchtype == 'imagek':
+        if self.state.prefs.searchtype in ['image', 'imagek']:
             return (self.snrk**2 + self.snr1**2)**0.5
         elif self.state.prefs.searchtype == 'armkimage':
             return (self.snrk**2 + self.snr1**2)**0.5
@@ -82,6 +91,42 @@ class CandData(object):
     @property
     def snr1(self):
         return self.image.max()/self.image.std()
+
+    @property
+    def immax1(self):
+        return self.image.max()
+
+    @property
+    def l1(self):
+        return self.peak_lm[0]
+
+    @property
+    def m1(self):
+        return self.peak_lm[1]
+
+    @property
+    def spec(self):
+        return self.data.mean(axis=2)[self.integration_rel]
+
+    @property
+    def specstd(self):
+        return self.spec.std()
+
+    @property
+    def specskew(self):
+        return mstats.skew(self.spec)
+
+    @property
+    def speckur(self):
+        return mstats.kurtosis(self.spec)
+
+    @property
+    def imskew(self):
+        return mstats.skew(self.image.flatten())
+
+    @property
+    def imkur(self):
+        return mstats.kurtosis(self.image.flatten())
 
     @property
     def integration_rel(self):
@@ -359,6 +404,7 @@ def save_and_plot(canddatalist):
 def canddata_feature(canddata, feature):
     """ Calculate a feature (or candloc) from a canddata instance.
     feature must be name from st.features or 'candloc'.
+    TODO: update this to take feature as canddata property
     """
 
     st = canddata.state
@@ -385,6 +431,8 @@ def canddata_feature(canddata, feature):
         return canddata.clustersize
     elif feature == 'immax1':
         return image.max()
+    elif feature == 'specstd':
+        return canddata.specstd
     elif feature == 'l1':
         l1, m1 = st.pixtolm(np.where(image == image.max()))
         return float(l1)

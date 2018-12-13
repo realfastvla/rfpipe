@@ -70,6 +70,9 @@ class Preferences(object):
     maxdm = attr.ib(default=0)  # in pc/cm3
     dm_pulsewidth = attr.ib(default=3000)   # in microsec
     searchtype = attr.ib(default='image')  # supported: image, imagestat, imagek, armkimage
+    calcfeatures = attr.ib(('specstd', 'specskew', 'speckurtosis', 'imskew', 
+                            'imkurtosis'))  # calculated for each candidate saved/plotted
+
     sigma_image1 = attr.ib(default=7)  # threshold for image and imagearm algorithms
     sigma_arm = attr.ib(default=None)  # 1arm threshold
     sigma_arms = attr.ib(default=None)  # all-arm threshold

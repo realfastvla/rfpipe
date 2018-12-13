@@ -111,15 +111,17 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
         grid.compute()
         grid.conjugate(vis_raw)
 
-    # some prep if kalman filter is to be applied
-    if st.prefs.searchtype in ['imagek']:
+    # some prep if kalman significance is needed
+    if 'snrk' in st.features:
         # TODO: check that this is ok if pointing at bright source
-        spec_std = data.real.mean(axis=1).mean(axis=2).std(axis=0)
+        spec_std = data.real.mean(axis=3).mean(axis=1).std(axis=0)
         sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
         if not np.all(sig_ts):
             logger.info("sig_ts all zeros. Skipping search.")
             return candidates.CandCollection(prefs=st.prefs,
                                              metadata=st.metadata)
+    else:
+        spec_std, sig_ts, kalman_coeffs = None, None, None
 
     # place to hold intermediate result lists
     canddict = {}
@@ -128,7 +130,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
     canddict['m1'] = []
     canddict['snr1'] = []
     canddict['immax1'] = []
-    for feat in st.features:
+    for feat in st.searchfeatures:
         canddict[feat] = []
 
     for dtind in range(len(st.dtarr)):
@@ -175,9 +177,10 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
         # TODO: find a way to return values as systematic data quality test
         candidates.check_mocks(cc)
 
+    # triggers optional plotting and saving
     if st.prefs.savecands or st.prefs.saveplots:
-        # triggers optional plotting and saving
-        cc = reproduce_candcollection(cc, data)
+        cc = reproduce_candcollection(cc, data, spec_std=spec_std,
+                                      sig_ts=sig_ts, kalman_coeffs=kalman_coeffs)
 
     candidates.save_cands(st, candcollection=cc)
 
@@ -291,11 +294,13 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
         return candidates.CandCollection(prefs=st.prefs,
                                          metadata=st.metadata)
 
-    # some prep if kalman filter is to be applied
-    if st.prefs.searchtype in ['imagek', 'armk', 'armkimage']:
+    # some prep if kalman significance is needed
+    if 'snrk' in st.features:
         # TODO: check that this is ok if pointing at bright source
-        spec_std = data.real.mean(axis=1).mean(axis=2).std(axis=0)
+        spec_std = data.real.mean(axis=3).mean(axis=1).std(axis=0)
         sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
+    else:
+        spec_std, sig_ts, kalman_coeffs = None, None, None
 
     beamnum = 0
     uvw = util.get_uvw_segment(st, segment)
@@ -303,7 +308,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
     # place to hold intermediate result lists
     canddict = {}
     canddict['candloc'] = []
-    for feat in st.features:
+    for feat in st.searchfeatures:
         canddict[feat] = []
 
     for dtind in range(len(st.dtarr)):
@@ -421,30 +426,36 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
             else:
                 raise NotImplemented("only searchtype=image, imagek, armk, armkimage implemented")
 
+    # save search results and its features
     cc = candidates.make_candcollection(st, **canddict)
     logger.info("First pass found {0} candidates in seg {1}."
                 .format(len(cc), segment))
 
+    # cluster candidates
     if st.prefs.clustercands:
         cc = candidates.cluster_candidates(cc)
 
         # TODO: find a way to return values as systematic data quality test
         candidates.check_mocks(cc)
 
+    # calc other features for cc, plot, save
     if st.prefs.savecands or st.prefs.saveplots:
-        # triggers optional plotting and saving
-        cc = reproduce_candcollection(cc, data)
+        cc = reproduce_candcollection(cc, data, spec_std=spec_std,
+                                      sig_ts=sig_ts, kalman_coeffs=kalman_coeffs)
 
     candidates.save_cands(st, candcollection=cc)
 
     return cc
 
 
-def reproduce_candcollection(cc, data, wisdom=None):
+def reproduce_candcollection(cc, data, wisdom=None, spec_std=None, sig_ts=None,
+                             kalman_coeffs=None):
     """ Calculates canddata for each cand in candcollection.
     Will look for cluster label and filter only for peak snr, if available.
     Location (e.g., integration, dm, dt) of each is used to create
     canddata for each candidate.
+    Calculates features not used directly for search (as defined in
+    state.prefs.calcfeatures).
     """
 
     # set up output cc
@@ -461,6 +472,10 @@ def reproduce_candcollection(cc, data, wisdom=None):
             calcinds = np.unique(np.where(cl_rank == 1)[0])
             logger.debug("Reproducing cands at {0} cluster peaks"
                          .format(len(calcinds)))
+
+            # TODO: use number of clusters as test of an RFI-affected segment?
+            # If threshold exceeded, could reproduce subset of all candidates.
+
         else:
             logger.debug("No cluster field found. Reproducing all.")
             calcinds = list(range(len(cc)))
@@ -484,22 +499,32 @@ def reproduce_candcollection(cc, data, wisdom=None):
                 logger.info("Candidate {0}/{1} has SNR {2:.1f} at {3}"
                             .format(i, len(calcinds)-1, snr, candloc))
 
-            # TODO: reproduce these here, too
-            for kw in ['snrk', 'snrarms']:
-                if kw in cc.array.dtype.fields:
-                    kwargs[kw] = cc.array[kw][i]
+            # reproduce candidate and get/calc features
+            data_corr = rfpipe.reproduce.pipeline_datacorrect(st, candloc,
+                                                              data_prep=data)
 
-            # reproduce candidate
-            data_corr = rfpipe.reproduce.pipeline_datacorrect(st, candloc, data)
-            cd = rfpipe.reproduce.pipeline_imdata(st, candloc, data_corr, **kwargs)
+            for feature in st.searchfeatures:
+                if feature in cc.array.dtype.fields:  # if already calculated
+                    kwargs[feature] = cc.array[feature][i]
+                else:  # if desired, but not yet calculated
+                    if feature == 'snrk':
+                        logger.info("Calculating snrk")
+                        spec = data_corr.mean(axis=3).mean(axis=1)[candloc[1]]
+                        significance_kalman = kalman_significance(spec,
+                                                                  spec_std,
+                                                                  sig_ts=sig_ts,
+                                                                  coeffs=kalman_coeffs)
+                        snrk = (2*significance_kalman)**0.5
+                        kwargs[feature] = snrk
+                    else:
+                        logger.warn("Feature calculation {0} not yet supported"
+                                    .format(feature))
+
+            cd = rfpipe.reproduce.pipeline_imdata(st, candloc, data_corr,
+                                                  **kwargs)
             cc1 += candidates.save_and_plot(cd)
 
             # TODO: validate that reproduced features match input features?
-    #        peakx, peaky = np.where(image[0] == image[0].max())
-    #        l1, m1 = st.calclm(st.npixx_full, st.npixy_full,
-    #                           st.uvres, peakx[0], peaky[0])
-    #        immax1 = image.max()
-    #        snr1 = immax1/image.std()
 
     return cc1
 
@@ -848,7 +873,7 @@ def search_thresh_armk(st, data, uvw, integrations=None, spec_std=None,
         integrations = [integrations]
 
     if spec_std is None:
-        spec_std = data.real.mean(axis=1).mean(axis=2).std(axis=0)
+        spec_std = data.real.mean(axis=3).mean(axis=1).std(axis=0)
 
     if not len(sig_ts):
         sig_ts = [x*np.median(spec_std) for x in [0.3, 0.1, 0.03, 0.01]]
