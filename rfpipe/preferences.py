@@ -69,14 +69,13 @@ class Preferences(object):
     mindm = attr.ib(default=0)  # in pc/cm3
     maxdm = attr.ib(default=0)  # in pc/cm3
     dm_pulsewidth = attr.ib(default=3000)   # in microsec
-    searchtype = attr.ib(default='image')  # supported: image, imagestat, imagek, armkimage
-    calcfeatures = attr.ib(('specstd', 'specskew', 'speckurtosis', 'imskew', 
-                            'imkurtosis'))  # calculated for each candidate saved/plotted
+    searchtype = attr.ib(default='imagek')  # supported: image, imagestat, imagek, armkimage
+    calcfeatures = attr.ib(('specstd', 'specskew', 'speckur', 'imskew', 'imkur'))  # calculated for each candidate saved/plotted
 
     sigma_image1 = attr.ib(default=7)  # threshold for image and imagearm algorithms
     sigma_arm = attr.ib(default=None)  # 1arm threshold
     sigma_arms = attr.ib(default=None)  # all-arm threshold
-    sigma_kalman = attr.ib(default=None)  # threshold on kalman prediction alone
+    sigma_kalman = attr.ib(default=0)  # threshold on kalman prediction alone
     nfalse = attr.ib(default=None)  # number of thermal false positives per scan
     uvres = attr.ib(default=0)  # in lambda
     npixx = attr.ib(default=0)  # set number of x pixels in image

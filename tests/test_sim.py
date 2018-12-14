@@ -11,7 +11,7 @@ tparams = [(0, 0, 0, 5e-3, 0.5, 0.0001, 0.0),]
 # simulate no flag, transient/no flag, transient/flag
 inprefs = [({'flaglist': [], 'chans': list(range(32)),
              'spw': [0], 'savecands': True, 'savenoise': True,
-             'fftmode': 'fftw', 'searchtype': 'image'}, 1),
+             'fftmode': 'fftw', 'searchtype': 'imagek'}, 1),
            ({'simulated_transient': tparams, 'dmarr': [0], 'dtarr': [1],
              'savecands': True, 'savenoise': True, 'saveplots': True,
              'timesub': None, 'fftmode': 'fftw', 'searchtype': 'imagek',

@@ -90,6 +90,8 @@ class CandData(object):
 
     @property
     def snr1(self):
+# TODO: find good estimate for both CPU and GPU
+#       imstd = util.madtostd(image)  # outlier resistant
         return self.image.max()/self.image.std()
 
     @property
@@ -106,7 +108,7 @@ class CandData(object):
 
     @property
     def spec(self):
-        return self.data.mean(axis=2)[self.integration_rel]
+        return self.data.real.mean(axis=2)[self.integration_rel]
 
     @property
     def specstd(self):
@@ -357,13 +359,14 @@ def save_and_plot(canddatalist):
 
     st = canddatalist[0].state
 
+    # TODO: should this be all features, calcfeatures, searchfeatures?
     featurelists = []
-    for feature in st.features:
+    for feature in st.searchfeatures:
         ff = []
         for i, canddata in enumerate(canddatalist):
             ff.append(canddata_feature(canddata, feature))
         featurelists.append(ff)
-    kwargs = dict(zip(st.features, featurelists))
+    kwargs = dict(zip(st.searchfeatures, featurelists))
 
     candlocs = []
     for i, canddata in enumerate(canddatalist):
@@ -404,23 +407,14 @@ def save_and_plot(canddatalist):
 def canddata_feature(canddata, feature):
     """ Calculate a feature (or candloc) from a canddata instance.
     feature must be name from st.features or 'candloc'.
-    TODO: update this to take feature as canddata property
     """
 
-    st = canddata.state
-    image = canddata.image
-    dataph = canddata.data
-    candloc = canddata.loc
+#    TODO: update this to take feature as canddata property
 
     if feature == 'candloc':
-        return candloc
+        return canddata.loc
     elif feature == 'snr1':
-# TODO: find good estimate for both CPU and GPU
-#       imstd = util.madtostd(image)  # outlier resistant
-        imstd = image.std()  # consistent with rfgpu
-        logger.debug('{0} {1}'.format(image.shape, imstd))
-        snrim = image.max()/imstd
-        return snrim
+        return canddata.snr1
     elif feature == 'snrarms':
         return canddata.snrarms
     elif feature == 'snrk':
@@ -429,16 +423,22 @@ def canddata_feature(canddata, feature):
         return canddata.cluster
     elif feature == 'clustersize':
         return canddata.clustersize
-    elif feature == 'immax1':
-        return image.max()
     elif feature == 'specstd':
         return canddata.specstd
+    elif feature == 'specskew':
+        return canddata.specskew
+    elif feature == 'speckur':
+        return canddata.speckur
+    elif feature == 'immax1':
+        return canddata.immax1
     elif feature == 'l1':
-        l1, m1 = st.pixtolm(np.where(image == image.max()))
-        return float(l1)
+        return canddata.l1
     elif feature == 'm1':
-        l1, m1 = st.pixtolm(np.where(image == image.max()))
-        return float(m1)
+        return canddata.m1
+    elif feature == 'imskew':
+        return canddata.imskew
+    elif feature == 'imkur':
+        return canddata.imkur
     else:
         raise NotImplementedError("Feature {0} calculation not implemented"
                                   .format(feature))
@@ -457,6 +457,7 @@ def make_candcollection(st, **kwargs):
         assert 'candloc' in kwargs
         assert isinstance(kwargs['candloc'], list)
         for v in itervalues(kwargs):
+            logger.info('{0} {1} {2} {3}'.format(v, len(v), kwargs['candloc'], len(kwargs['candloc'])))
             assert len(v) == len(kwargs['candloc'])
 
         candlocs = kwargs['candloc']
