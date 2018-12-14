@@ -1155,19 +1155,23 @@ def kalman_significance(spec, spec_std, sig_ts=[], coeffs=[]):
     if not len(coeffs):
         sig_ts, coeffs = kalman_prepare_coeffs(spec_std, sig_ts)
 
-    assert len(sig_ts) == len(coeffs)
-    logger.debug("Calculating max Kalman significance for {0} channel spectrum"
-                 .format(len(spec)))
+    if len(coeffs):  # only if coeffs made
+        assert len(sig_ts) == len(coeffs)
+        logger.debug("Calculating max Kalman significance for {0} channel spectrum"
+                     .format(len(spec)))
 
-    significances = []
-    for i, sig_t in enumerate(sig_ts):
-        score = kalman_filter_detector(spec, spec_std, sig_t)
-        coeff = coeffs[i]
-        x_coeff, const_coeff = coeff
-        significances.append(x_coeff * score + const_coeff)
+        significances = []
+        for i, sig_t in enumerate(sig_ts):
+            score = kalman_filter_detector(spec, spec_std, sig_t)
+            coeff = coeffs[i]
+            x_coeff, const_coeff = coeff
+            significances.append(x_coeff * score + const_coeff)
 
-    # return prob in units of nats. ignore negative probs
-    return max(0, np.max(significances) * np.log(2))
+        # return prob in units of nats. ignore negative probs
+        return max(0, np.max(significances) * np.log(2))
+    else:
+        logger.warn("No kalman coeffs calculated, no significance calculated.")
+        return 0
 
 
 @jit(nopython=True)

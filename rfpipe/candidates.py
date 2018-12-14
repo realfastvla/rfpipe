@@ -453,11 +453,17 @@ def make_candcollection(st, **kwargs):
     """
 
     if len(kwargs):
+        remove = []
+        for k, v in iteritems(kwargs):
+            if (len(v) == 0) and (k != 'candloc'):
+                remove.append(k)
+        for k in remove:
+            _ = kwargs.pop(k)
+
         # assert 1-to-1 mapping of input lists
         assert 'candloc' in kwargs
         assert isinstance(kwargs['candloc'], list)
         for v in itervalues(kwargs):
-            logger.info('{0} {1} {2} {3}'.format(v, len(v), kwargs['candloc'], len(kwargs['candloc'])))
             assert len(v) == len(kwargs['candloc'])
 
         candlocs = kwargs['candloc']

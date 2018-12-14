@@ -10,10 +10,10 @@ import numpy as np
 
 
 # simulate no flag, transient/no flag, transient/flag
-inprefs = [{'flaglist': [], 'sigma_image1': -999,
+inprefs = [{'flaglist': [], 'sigma_image1': 0,
             'spw': [0, 1], 'fftmode': 'fftw',
-            'searchtype': 'imagek'},
-           {'flaglist': [], 'sigma_image1': -999,
+            'searchtype': 'image'},
+           {'flaglist': [], 'sigma_image1': 0, 'sigma_kalman': 0,
             'spw': [2, 3], 'dmarr': [0, 100], 'dtarr': [1, 2],
             'fftmode': 'fftw', 'searchtype': 'imagek'}]
 
