@@ -80,7 +80,7 @@ def flag_blstd(data, sigma, convergence):
 
     # flag blstd too high
     badt, badch, badpol = np.where(blstd > blstdmednew + sigma*blstdstdnew)
-    logger.info("flag by blstd: {0} of {1} total channel/time/pol cells flagged."
+    logger.info("flagged by blstd: {0} of {1} total channel/time/pol cells."
                 .format(len(badt), sh[0]*sh[2]*sh[3]))
 
     for i in range(len(badt)):
@@ -110,7 +110,7 @@ def flag_badchtslide(data, sigma, win):
 
     badtcnt = len(np.unique(badt))
     badchcnt = len(np.unique(badch))
-    logger.info("flag by badchtslide: {0}/{1} pol-times and {2}/{3} pol-chans flagged."
+    logger.info("flagged by badchtslide: {0}/{1} pol-times and {2}/{3} pol-chans."
                 .format(badtcnt, sh[0]*sh[3], badchcnt, sh[2]*sh[3]))
 
     for i in range(len(badch[0])):

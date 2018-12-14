@@ -504,14 +504,11 @@ def reproduce_candcollection(cc, data, wisdom=None, spec_std=None, sig_ts=None,
                                                               data_prep=data)
 
             for feature in st.searchfeatures:
-                logger.info("Setting feature {0} to kwargs as input to reprouce.".format(feature))
                 if feature in cc.array.dtype.fields:  # if already calculated
-                    logger.info("Taking it from cc.array")
                     kwargs[feature] = cc.array[feature][i]
                 else:  # if desired, but not yet calculated
-                    logger.info("Calculating it from data_corr")
                     if feature == 'snrk':
-                        logger.info("Calculating snrk")
+                        logger.info("Calculating snrk and adding it to CandData")
                         spec = data_corr.mean(axis=3).mean(axis=1)[candloc[1]]
                         significance_kalman = kalman_significance(spec,
                                                                   spec_std,

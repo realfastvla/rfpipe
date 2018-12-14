@@ -519,8 +519,8 @@ def cluster_candidates(cc, downsample=2, returnclusterer=False, label_unclustere
                         .format(cc1.prefs.clustercands))
             return cc1
 
-        logger.info("Clustering parameters set to ({0},{1})."
-                    .format(min_cluster_size, min_samples))
+        logger.info("Clustering parameters set to ({0},{1}) and downsampling by {2}."
+                    .format(min_cluster_size, min_samples, downsample))
 
         if min_cluster_size > len(cc1):
             logger.info("Setting min_cluster_size to number of cands {0}"
@@ -875,21 +875,23 @@ def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
     inds = circleinds + crossinds + edgeinds
     dm = [data['dm'][i] for i in inds]
     if yrange is None:
-        dm_min = min(min(dm), max(dm)/1.2)
-        dm_max = max(max(dm), min(dm)*1.2)
+        dm_min = min(min(dm), max(dm)/1.05)
+        dm_max = max(max(dm), min(dm)*1.05)
     else:
         assert isinstance(yrange, tuple)
         dm_min, dm_max = yrange
-    time = [data['time'][i] for i in inds]
-    time_range = max(time) - min(time)
-    time_min = min(time) - 1.05*time_range
-    time_max = max(time) + 1.05*time_range
+    t0 = min(data['time'])
+    t1 = max(data['time'])
+    data['time'] = data['time'] - t0
+    time_range = t1-t0
+    time_min = -0.05*time_range
+    time_max = 1.05*time_range
 
     source = ColumnDataSource(data=dict({(key, tuple([value[i] for i in circleinds if i not in edgeinds]))
                                         for (key, value) in list(data.items())
                                         if key in fields}))
     dmt = Figure(plot_width=plot_width, plot_height=plot_height,
-                 toolbar_location="left", x_axis_label='Time (s; relative)',
+                 toolbar_location="left", x_axis_label='Time (s; from {0})'.format(t0),
                  y_axis_label='DM (pc/cm3)', x_range=(time_min, time_max),
                  y_range=(dm_min, dm_max),
                  output_backend='webgl', tools=tools)
