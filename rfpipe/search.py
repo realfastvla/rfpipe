@@ -509,7 +509,7 @@ def reproduce_candcollection(cc, data, wisdom=None, spec_std=None, sig_ts=None,
                 else:  # if desired, but not yet calculated
                     if feature == 'snrk':
                         logger.info("Calculating snrk and adding it to CandData")
-                        spec = data_corr.mean(axis=3).mean(axis=1)[candloc[1]]
+                        spec = data_corr.real.mean(axis=3).mean(axis=1)[candloc[1]]
                         significance_kalman = kalman_significance(spec,
                                                                   spec_std,
                                                                   sig_ts=sig_ts,

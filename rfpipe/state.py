@@ -783,7 +783,7 @@ class State(object):
         features calculated in second step (more computationally demanding).
         """
 
-        return self.searchfeatures + self.prefs.calcfeatures
+        return tuple(self.searchfeatures) + tuple(self.prefs.calcfeatures)
 
     @property
     def candsfile(self):
