@@ -1147,6 +1147,12 @@ def kalman_significance(spec, spec_std, sig_ts=[], coeffs=[]):
     From Barak Zackay
     """
 
+    if len(np.where(spec_std == 0.)[0]) > 0:
+        medstd = np.median(spec_std)
+        logger.info("Replacing {0} noise spectrum channels with median noise"
+                    .format(len(np.where(spec_std == 0.)[0])))
+        spec_std = np.where(spec_std == 0., medstd, spec_std)
+
     if not len(sig_ts):
         sig_ts = [x*np.median(spec_std) for x in [0.3, 0.1, 0.03, 0.01]]
     if not len(coeffs):
@@ -1216,6 +1222,12 @@ def kalman_prepare_coeffs(spec_std, sig_ts=None, n_trial=10000):
 
     # calculate sig_ts
     medstd = np.median(spec_std)
+    if len(np.where(spec_std == 0.)[0]) > 0:
+        medstd = np.median(spec_std)
+        logger.info("Replacing {0} noise spectrum channels with median noise"
+                    .format(len(np.where(spec_std == 0.)[0])))
+        spec_std = np.where(spec_std == 0., medstd, spec_std)
+
     if sig_ts is None:
         sig_ts = np.array([x*medstd for x in [0.3, 0.1, 0.03, 0.01]])
     elif isinstance(sig_ts, float):
