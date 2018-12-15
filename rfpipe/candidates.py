@@ -496,7 +496,7 @@ def make_candcollection(st, **kwargs):
     return candcollection
 
 
-def cluster_candidates(cc, downsample=2, returnclusterer=False, label_unclustered=True):
+def cluster_candidates(cc, downsample=1, returnclusterer=False, label_unclustered=True):
     """ Perform density based clustering on candidates using HDBSCAN
     parameters used for clustering: dm, time, l,m.
     label_unclustered adds new cluster label for each unclustered candidate.

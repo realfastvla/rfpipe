@@ -172,7 +172,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                 .format(len(cc), segment))
 
     if st.prefs.clustercands:
-        cc = candidates.cluster_candidates(cc)
+        cc = candidates.cluster_candidates(cc, downsample=1)
 
         # TODO: find a way to return values as systematic data quality test
         candidates.check_mocks(cc)
@@ -433,7 +433,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
 
     # cluster candidates
     if st.prefs.clustercands:
-        cc = candidates.cluster_candidates(cc)
+        cc = candidates.cluster_candidates(cc, downsample=1)
 
         # TODO: find a way to return values as systematic data quality test
         candidates.check_mocks(cc)
