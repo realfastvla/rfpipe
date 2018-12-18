@@ -496,7 +496,7 @@ def make_candcollection(st, **kwargs):
     return candcollection
 
 
-def cluster_candidates(cc, downsample=1, returnclusterer=False, label_unclustered=True):
+def cluster_candidates(cc, downsample_xy=1, returnclusterer=False, label_unclustered=True):
     """ Perform density based clustering on candidates using HDBSCAN
     parameters used for clustering: dm, time, l,m.
     label_unclustered adds new cluster label for each unclustered candidate.
@@ -519,8 +519,8 @@ def cluster_candidates(cc, downsample=1, returnclusterer=False, label_unclustere
                         .format(cc1.prefs.clustercands))
             return cc1
 
-        logger.info("Clustering parameters set to ({0},{1}) and downsampling by {2}."
-                    .format(min_cluster_size, min_samples, downsample))
+        logger.info("Clustering parameters set to ({0},{1}) and downsampling in xy by {2}."
+                    .format(min_cluster_size, min_samples, downsample_xy))
 
         if min_cluster_size > len(cc1):
             logger.info("Setting min_cluster_size to number of cands {0}"
@@ -540,8 +540,8 @@ def cluster_candidates(cc, downsample=1, returnclusterer=False, label_unclustere
         time_ind = np.multiply(timearr_ind, np.array(dtarr).take(dtind))
         peakx_ind, peaky_ind = cc1.state.calcpix(candl, candm, npixx, npixy,
                                                  uvres)
-        data = np.transpose([peakx_ind//downsample, peaky_ind//downsample,
-                             dmind//downsample, time_ind//downsample])
+        data = np.transpose([peakx_ind//downsample_xy, peaky_ind//downsample_xy,
+                             dmind, time_ind])
 
         clusterer = hdbscan.HDBSCAN(metric='hamming',
                                     min_cluster_size=min_cluster_size,
