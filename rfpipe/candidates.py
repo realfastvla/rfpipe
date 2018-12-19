@@ -80,9 +80,7 @@ class CandData(object):
         significance.
         """
 
-        if self.state.prefs.searchtype in ['image', 'imagek']:
-            return (self.snrk**2 + self.snr1**2)**0.5
-        elif self.state.prefs.searchtype == 'armkimage':
+        if self.state.prefs.searchtype in ['image', 'imagek', 'armkimage']:
             return (self.snrk**2 + self.snr1**2)**0.5
         elif self.state.prefs.searchtype == 'armk':
             return (self.snrk**2 + self.snrarms**2)**0.5
@@ -303,17 +301,19 @@ class CandCollection(object):
 
     @property
     def snrtot(self):
-        """ Optimal SNR given searchtype (e.g., snr1 with snrk, if snrk measured)
+        """ Optimal SNR, given fields in cc (quadrature sum)
         """
+        fields = self.array.dtype.fields
+        snr = 0.
 
-        if self.prefs.searchtype == 'image':
-            return self.array['snr1']
-        elif self.prefs.searchtype == 'imagek':
-            return (self.array['snrk']**2 + self.array['snr1']**2)**0.5
-        elif self.prefs.searchtype == 'armkimage':
-            return (self.array['snrk']**2 + self.array['snr1']**2)**0.5
-        elif self.prefs.searchtype == 'armk':
-            return (self.array['snrk']**2 + self.array['snrarms']**2)**0.5
+        if 'snr1' in fields:
+            snr += self.array['snr1']**2
+        if 'snrk' in fields:
+            snr += self.array['snrk']**2
+        if 'snrarms' in fields:
+            snr += self.array['snrkarms']**2
+
+        return snr**0.5
 
     @property
     def state(self):

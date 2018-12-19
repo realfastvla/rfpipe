@@ -172,7 +172,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                 .format(len(cc), segment))
 
     if st.prefs.clustercands:
-        cc = candidates.cluster_candidates(cc, downsample_xy=1)
+        cc = candidates.cluster_candidates(cc)
 
         # TODO: find a way to return values as systematic data quality test
 
@@ -432,7 +432,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
 
     # cluster candidates
     if st.prefs.clustercands:
-        cc = candidates.cluster_candidates(cc, downsample_xy=1)
+        cc = candidates.cluster_candidates(cc)
 
         # TODO: find a way to return values as systematic data quality test
 
@@ -487,14 +487,14 @@ def reproduce_candcollection(cc, data, wisdom=None, spec_std=None, sig_ts=None,
             # kwargs passed to canddata object for plotting/saving
             kwargs = {}
             if 'cluster' in cc.array.dtype.fields:
-                logger.info("Cluster {0}/{1} has {2} candidates and max SNR {3:.1f} at {4}"
+                logger.info("Cluster {0}/{1} has {2} candidates and max detected SNR {3:.1f} at {4}"
                             .format(clusters[i], len(calcinds)-1, cl_count[i],
                                     snr, candloc))
                 # add supplementary plotting and cc info
                 kwargs['cluster'] = clusters[i]
                 kwargs['clustersize'] = cl_count[i]
             else:
-                logger.info("Candidate {0}/{1} has SNR {2:.1f} at {3}"
+                logger.info("Candidate {0}/{1} has detected SNR {2:.1f} at {3}"
                             .format(i, len(calcinds)-1, snr, candloc))
 
             # reproduce candidate and get/calc features
@@ -1168,8 +1168,8 @@ def kalman_significance(spec, spec_std, sig_ts=[], coeffs=[]):
             x_coeff, const_coeff = coeff
             significances.append(x_coeff * score + const_coeff)
 
-        # return prob in units of nats. ignore negative probs
-        return max(0, np.max(significances) * np.log(2))
+        # return prob in nats. no negatives. rounded for reproducibility.
+        return np.round(max(0, np.max(significances) * np.log(2)), 1)
     else:
         logger.warn("No kalman coeffs calculated, no significance calculated.")
         return 0
@@ -1210,7 +1210,7 @@ def kalman_filter_detector(spec, spec_std, sig_t, A_0=None, sig_0=None):
     return cur_log_l - H_0_log_likelihood
 
 
-def kalman_prepare_coeffs(spec_std, sig_ts=None, n_trial=10000):
+def kalman_prepare_coeffs(spec_std, sig_ts=None, n_trial=30000):
     """ Measure kalman significance distribution in random data.
     spec_std is the noise spectrum (per channel)
     sig_ts can be single float or list of values.
@@ -1259,7 +1259,8 @@ def kalman_prepare_coeffs(spec_std, sig_ts=None, n_trial=10000):
         for i in range(n_trial):
             normaldist = np.random.normal(0, spec_std, size=nchan)
             normaldist -= normaldist.mean()
-            random_scores.append(kalman_filter_detector(normaldist, spec_std, sig_t))
+            random_scores.append(kalman_filter_detector(normaldist, spec_std,
+                                                        sig_t))
 
         # Approximating the tail of the distribution as an  exponential tail (probably is justified)
         coeffs.append(np.polyfit([np.percentile(random_scores, 100 * (1 - 2 ** (-i))) for i in range(3, 10)], range(3, 10), 1))
