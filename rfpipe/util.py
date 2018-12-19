@@ -355,19 +355,40 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
     i0 = i
     amp0 = amp
     lm0 = lm
+    snr0 = snr
 
     mocks = []
     for tr in range(ntr):
         if segment is None:
             segment = random.choice(range(st.nsegment))
 
-        if dmind is None:
-            dmind = random.choice(range(len(st.dmarr)))
-        dm = st.dmarr[dmind]
+        if dmind is not None:
+            dm = st.dmarr[dmind]
+#            dmind = random.choice(range(len(st.dmarr)))
+        else:
+            dm = np.random.uniform(50,1000) # pc /cc
 
-        if dtind is None:
-            dtind = random.choice(range(len(st.dtarr)))
-        dt = st.metadata.inttime*min(st.dtarr[dtind], 2)  # dt>2 not yet supported
+            dmarr = np.array(calc_dmarr(st))
+            if dm > np.max(dmarr):
+                logging.warning("Dm of injected transient is greater than the max DM searched.")
+                dmind = len(dmarr) - 1
+            else:
+                dmind = np.argmax(dmarr>dm)
+            
+
+        if dtind is not None:
+            dt = st.metadata.inttime*min(st.dtarr[dtind], 2)  # dt>2 not yet supported
+        else:
+            #dtind = random.choice(range(len(st.dtarr)))
+            dt = np.random.uniform(0.5e-3,50e-3) # s  #like an alias for "dt"
+            if dt < st.metadata.inttime:
+                dtind = 0
+            else:    
+                dtind = int(np.log2(dt/st.metadata.inttime))
+                if dtind >= len(st.dtarr):
+                    dtind = len(st.dtarr) - 1
+                    logging.warning("Width of transient is greater than max dt searched.")
+
 
 # TODO: add support for arb dm/dt
 #        dm = random.uniform(min(st.dmarr), max(st.dmarr))
@@ -389,6 +410,7 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
                 sig = madtostd(datap[i].real)/np.sqrt(datap[i].size*st.dtarr[dtind])
                 amp = snr*sig
                 logger.info("Setting mock amp as {0}*{1}={2}".format(snr, sig, amp))
+                
 
         if lm is None:
             # flip a coin to set either l or m
@@ -405,8 +427,8 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
             l, m = lm
 
         mocks.append((segment, i, dm, dt, amp, l, m))
-        (segment, dmind, dtind, i, amp, lm) = (segment0, dmind0, dtind0, i0,
-                                               amp0, lm0)
+        (segment, dmind, dtind, i, amp, lm, snr) = (segment0, dmind0, dtind0, i0,
+                                               amp0, lm0, snr0)
 
     return mocks
 
