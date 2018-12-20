@@ -506,13 +506,13 @@ def reproduce_candcollection(cc, data, wisdom=None, spec_std=None, sig_ts=None,
                     kwargs[feature] = cc.array[feature][i]
                 else:  # if desired, but not yet calculated
                     if feature == 'snrk':
-                        logger.info("Calculating snrk and adding it to CandData")
                         spec = data_corr.real.mean(axis=3).mean(axis=1)[candloc[1]]
                         significance_kalman = kalman_significance(spec,
                                                                   spec_std,
                                                                   sig_ts=sig_ts,
                                                                   coeffs=kalman_coeffs)
                         snrk = (2*significance_kalman)**0.5
+                        logger.info("Calculated snrk of {0} after detection. Adding it to CandData.".format(snrk))
                         kwargs[feature] = snrk
                     else:
                         logger.warn("Feature calculation {0} not yet supported"

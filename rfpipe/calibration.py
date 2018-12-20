@@ -194,10 +194,11 @@ def flagants(solsin, threshold, onlycomplete):
     return sols
 
 
-def select(sols, time=None, freqs=None, polarization=None):
+def select(sols, time=None, freqs=None, polarization=None, mode='realtime'):
     """ Selects a solution set based on given time and freqs.
     time (in mjd) defines the time to find solutions.
     freqs (in Hz) is frequencies in data.
+    mode can be 'realtime'/'best' to get solutions in past/closest
     """
 
     if not len(sols):
@@ -212,8 +213,13 @@ def select(sols, time=None, freqs=None, polarization=None):
 
     # select by smallest time distance for source
     if time is not None:
-        mjddist = np.abs(time - sols['mjd'])
+        if mode == 'best':
+            mjddist = np.abs(time - sols['mjd'])
+        elif mode == 'realtime':
+            mjddist = time - np.where((time-sols['mjd']) > 0, sols['mjd'], sols['mjd']+time)  # favor solutions in past
+
         mjdselect = mjddist == mjddist.min()
+
     else:
         mjdselect = np.ones(len(sols), dtype=bool)
 
