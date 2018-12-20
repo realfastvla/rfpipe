@@ -637,6 +637,7 @@ def calc_cluster_rank(cc):
 
     return cl_rank, cl_count
 
+
 def save_cands(st, candcollection=None, canddata=None):
     """ Save candidate collection or cand data to pickle file.
     Collection saved as array with metadata and preferences attached.

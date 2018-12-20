@@ -31,26 +31,17 @@ def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1):
                         .format(st.gainfile))
             return data
         else:
+            sols = getsols(st, threshold=threshold, onlycomplete=onlycomplete)
+
             pols = [0, 1]
             reffreq = np.array(st.metadata.spw_reffreq)
             chansize = np.array(st.metadata.spw_chansize)
             nchan = np.array(st.metadata.spw_nchan)
             skyfreqs = np.around(reffreq + (chansize*nchan//2), -6)/1e6  # GN skyfreq is band center
-
-            sols = parseGN(st.gainfile)
             solskyfreqs = np.unique(sols['skyfreq'])
             logger.info("Applying solutions from frequencies {0} to data frequencies {1}"
-                            .format(solskyfreqs, np.unique(skyfreqs)))
-
-            # must run time select before flagants for complete solutions
-            sols = select(sols, time=st.segmenttimes.mean())
-            if st.prefs.flagantsol:
-                sols = flagants(sols, threshold=threshold,
-                                onlycomplete=onlycomplete)
-
+                        .format(solskyfreqs, np.unique(skyfreqs)))
             if len(sols):
-#                print(sols, st.blarr, skyfreqs, pols, chansize[0], nchan[0], sign)
-#                print(type(sols), type(st.blarr), type(skyfreqs), type(pols), type(chansize[0]), type(nchan[0]), type(sign))
                 gaindelay = np.nan_to_num(calcgaindelay(sols, st.blarr,
                                                         skyfreqs, pols,
                                                         chansize[0]/1e6,
@@ -72,6 +63,22 @@ def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1):
         # data should have nchan_orig because no selection done yet
         # TODO: make nchan, npol, nbl selection consistent for all data types
         return data*gaindelay
+
+
+def getsols(st, threshold=1/10., onlycomplete=True):
+    """ Select good set of solutions.
+    TODO: add ability 'realtime' mode that only takes solutions in the past
+    """
+
+    sols = parseGN(st.gainfile)
+
+    # must run time select before flagants for complete solutions
+    sols = select(sols, time=st.segmenttimes.mean())
+    if st.prefs.flagantsol:
+        sols = flagants(sols, threshold=threshold,
+                        onlycomplete=onlycomplete)
+
+    return sols
 
 
 def parseGN(telcalfile):
