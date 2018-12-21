@@ -1145,6 +1145,8 @@ def kalman_significance(spec, spec_std, sig_ts=[], coeffs=[]):
     From Barak Zackay
     """
 
+    # TODO: resample spec_std by dt. currently incorred for dt>1
+
     if len(np.where(spec_std == 0.)[0]) > 0:
         medstd = np.median(spec_std)
         logger.info("Replacing {0} noise spectrum channels with median noise"
@@ -1217,6 +1219,8 @@ def kalman_prepare_coeffs(spec_std, sig_ts=None, n_trial=30000):
     returns tuple (sig_ts, coeffs)
     From Barak Zackay
     """
+
+    # TODO: resample spec_std by dt. currently incorred for dt>1
 
     # calculate sig_ts
     medstd = np.median(spec_std)

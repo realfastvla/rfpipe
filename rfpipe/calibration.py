@@ -216,7 +216,7 @@ def select(sols, time=None, freqs=None, polarization=None, mode='realtime'):
         if mode == 'best':
             mjddist = np.abs(time - sols['mjd'])
         elif mode == 'realtime':
-            mjddist = time - np.where((time-sols['mjd']) > 0, sols['mjd'], sols['mjd']+time)  # favor solutions in past
+            mjddist = time - np.where((time-sols['mjd']) > 0, sols['mjd'], sols['mjd']-time)  # favor solutions in past
 
         mjdselect = mjddist == mjddist.min()
 
@@ -233,9 +233,9 @@ def select(sols, time=None, freqs=None, polarization=None, mode='realtime'):
     sources = np.unique(sols['source'][selection])
     times = np.unique(sols['mjd'][selection])
     if (len(sources) == 1) and (len(times) == 1):
-        logger.info('Selecting {0} solutions from calibrator {1} separated by {2} min.'
+        logger.info('Selecting {0} solutions from calibrator {1} separated by {2} min ({3} mode).'
                     .format(len(selection[0]), sources[0],
-                            mjddist[np.where(mjdselect)][0]*24*60))
+                            mjddist[np.where(mjdselect)][0]*24*60, mode))
     else:
         logger.info('Existing calibration selection includes multiple solutions.')
 

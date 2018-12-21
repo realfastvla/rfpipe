@@ -175,7 +175,7 @@ def pipeline_datacorrect(st, candloc, data_prep=None):
     return data_dmdt
 
 
-def pipeline_imdata(st, candloc, data_dmdt=None, cpuonly=False, **kwargs):
+def pipeline_canddata(st, candloc, data_dmdt=None, cpuonly=False, **kwargs):
     """ Generate image and phased visibility data for candloc.
     Phases to peak pixel in image of candidate.
     Can optionally pass in corrected data, if available.
@@ -192,6 +192,9 @@ def pipeline_imdata(st, candloc, data_dmdt=None, cpuonly=False, **kwargs):
     if data_dmdt is None:
         data_dmdt = pipeline_datacorrect(st, candloc)
 
+    spec_std = data_dmdt.real.mean(axis=3).mean(axis=1).std(axis=0)
+    sig_ts, kalman_coeffs = rfpipe.search.kalman_prepare_coeffs(spec_std)
+
 #    fftmode = 'fftw' if cpuonly else st.fftmode  # can't remember why i did this!
     image = rfpipe.search.grid_image(data_dmdt, uvw, st.npixx, st.npixy, st.uvres,
                                      'fftw', st.prefs.nthread, wisdom=wisdom,
@@ -202,6 +205,15 @@ def pipeline_imdata(st, candloc, data_dmdt=None, cpuonly=False, **kwargs):
     util.phase_shift(data_dmdt, uvw, dl, dm)
     dataph = data_dmdt[max(0, candint-st.prefs.timewindow//2):candint+st.prefs.timewindow//2].mean(axis=1)
     util.phase_shift(data_dmdt, uvw, -dl, -dm)
+
+    spec = data_dmdt.real.mean(axis=3).mean(axis=1)[candloc[1]]
+    significance_kalman = rfpipe.search.kalman_significance(spec,
+                                                            spec_std,
+                                                            sig_ts=sig_ts,
+                                                            coeffs=kalman_coeffs)
+    snrk = (2*significance_kalman)**0.5
+    logger.info("Calculated snrk of {0} after detection. Adding it to CandData.".format(snrk))
+    kwargs['snrk'] = snrk
 
     canddata = candidates.CandData(state=st, loc=tuple(candloc), image=image,
                                    data=dataph, **kwargs)
@@ -218,7 +230,7 @@ def pipeline_candidate(st, candloc, candcollection=None):
     segment, candint, dmind, dtind, beamnum = candloc
 
     if candcollection is None:
-        canddata = pipeline_imdata(st, candloc)
+        canddata = pipeline_canddata(st, candloc)
 
     candcollection = candidates.save_and_plot(canddata)
 
