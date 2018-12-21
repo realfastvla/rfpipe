@@ -222,14 +222,14 @@ def pipeline_canddata(st, candloc, data_dmdt=None, cpuonly=False, **kwargs):
     return canddata
 
 
-def pipeline_candidate(st, candloc, candcollection=None):
+def pipeline_candidate(st, candloc, canddata=None):
     """ End-to-end pipeline to reproduce candidate plot and calculate features.
-    Can optionally pass in image and corrected data, if available.
+    Can optionally pass in canddata, if available.
     """
 
     segment, candint, dmind, dtind, beamnum = candloc
 
-    if candcollection is None:
+    if canddata is None:
         canddata = pipeline_canddata(st, candloc)
 
     candcollection = candidates.save_and_plot(canddata)

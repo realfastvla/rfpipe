@@ -518,8 +518,8 @@ def reproduce_candcollection(cc, data, wisdom=None, spec_std=None, sig_ts=None,
                         logger.warn("Feature calculation {0} not yet supported"
                                     .format(feature))
 
-            cd = rfpipe.reproduce.pipeline_imdata(st, candloc, data_corr,
-                                                  **kwargs)
+            cd = rfpipe.reproduce.pipeline_canddata(st, candloc, data_corr,
+                                                    **kwargs)
             cc1 += candidates.save_and_plot(cd)
 
             # TODO: validate that reproduced features match input features?
