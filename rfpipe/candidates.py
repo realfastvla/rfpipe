@@ -19,6 +19,7 @@ from bokeh.models import HoverTool
 from bokeh.models import Row
 from collections import OrderedDict
 import hdbscan
+from scipy import stats
 
 import logging
 logger = logging.getLogger(__name__)
@@ -242,6 +243,42 @@ def calc_features(canddatalist):
     kwargs = dict(zip(st.features, featurelists))
     kwargs['candloc'] = candlocs
     candcollection = make_candcollection(st, **kwargs)
+    
+    #check rms properties of the candidates
+#    do_rms=0 #for testing and debugging
+#    if do_rms and len(candcollection.array):
+#        rms_test = np.zeros(len(candcollection.array),dtype=np.int8)
+#        #initiate a loop counter
+#        indx_cntr = 0
+#        #send each candidate data to light curve rms checking script
+#        for i, canddata in enumerate(canddatalist):
+#            print('For loop counter:')
+#            print(indx_cntr)
+#            rms_test[indx_cntr]=rms_check(canddata)
+#            #incrememnt index counter
+#            indx_cntr = indx_cntr+1
+#            #rms_test.append(rms_check(canddatalist))
+#        #debugging step
+#        print('RMS test:')
+#        print(rms_test)
+        #remove bad candidates from the list
+        #if len(rms_test[np.where(rms_test==0)]):
+        #    canddatalist.remove(np.where(rms_test==0))
+        
+    #check statistics of candidate light curve
+    do_stat=1 #for testing and debugging
+    if do_stat and len(candcollection.array):
+        stat_test = np.zeros(len(candcollection.array),dtype=np.int8)
+        #initiate a loop counter
+        indx_cntr = 0
+        #send each candidate data to light curve rms checking script
+        for i, canddata in enumerate(canddatalist):
+            print('For loop counter:')
+            print(indx_cntr)
+            stat_test[indx_cntr]=stat_check(canddata)
+            #incrememnt index counter
+            indx_cntr = indx_cntr+1
+        #need to figure out how to remove bad candidates
 
     # make plot for peak snr in collection
     # TODO: think about candidate clustering
@@ -807,6 +844,9 @@ def candplot(canddatalist, snrs=[], outname=''):
         candloc = canddata.loc
         im = canddata.image
         data = canddata.data
+        
+        #insert small change to test that it gets run properly
+        #print('BOOM! Made a change!') #yep, that worked
 
         scan = st.metadata.scan
         segment, candint, dmind, dtind, beamnum = candloc
@@ -1265,3 +1305,125 @@ def deg2HMS(ra=None, dec=None, round=False):
         return (RA, DEC)
     else:
         return RA or DEC
+    
+#first try    
+#def rms_check(canddatalist):
+#    """ script to check the rms properties of candidate light curves
+#    The first ~third of the light curve should be relatively clean
+#    The detection should happen in the center third of the light curve
+#    The tail of the light curve can be messy to account for structure in the 
+#    tail of the detectionm (especially for pulsars)
+#    
+#    Expects dedispersed data (cut out in time, dual pol)
+#    written by Justin D Linford, based on ideas by Sarah Burke-Spolaor
+#    """
+#    #prepare output variable
+#    rms_test = []
+#    #set rms threshold for clipping
+#    rms_thresh = 2.0
+#    #extract dedispersed data light curve
+#    #copied the approach from candplot (above)
+#    for i in range(len(canddatalist)):
+#        canddata = canddatalist[i]
+#        data = canddata.data
+#        spectra = np.swapaxes(data.real, 0, 1)
+#        #note: unlike canaplot, all we care about here is the Stokes I
+#        dd2 = spectra[..., 0] + spectra[..., 1] #Stokes I data
+#        lc2 = dd2.mean(axis=0) #this is the Stokes I light curve
+#        #find rms of total light curve
+#        tot_rms = calc_rms(lc2)
+#        #get rms of clipped light curve
+#        clip_rms = calc_rms(lc2[np.where(lc2<rms_thresh*tot_rms)])
+#        #now get rms for each ~third of light curve
+#        lead_rms = calc_rms(lc2[0:12])
+#        mid_rms = calc_rms(lc2[12:21])
+#        tail_rms = calc_rms(lc2[21::])
+#        #now compare rms values to determine if this is a good candidate
+#        if mid_rms>lead_rms and mid_rms>tail_rms and mid_rms>clip_rms: rms_test.append(1)
+#        else: rms_test.append(0)
+#    return rms_test
+        
+def rms_check(canddata):
+    """ script to check the rms properties of candidate light curves
+    The first ~third of the light curve should be relatively clean
+    The detection should happen in the center third of the light curve
+    The tail of the light curve can be messy to account for structure in the 
+    tail of the detectionm (especially for pulsars)
+    
+    Expects dedispersed data (cut out in time, dual pol)
+    written by Justin D Linford, based on ideas by Sarah Burke-Spolaor
+    """
+    #prepare output variable
+    #rms_test = []
+    #set rms threshold for clipping
+    rms_thresh = 2.0
+    #extract dedispersed data light curve
+    #adapted the approach from candplot (above)
+    data = canddata.data
+    spectra = np.swapaxes(data.real, 0, 1)
+    #note: unlike canaplot, all we care about here is the Stokes I
+    dd2 = spectra[..., 0] + spectra[..., 1] #Stokes I data
+    lc2 = dd2.mean(axis=0) #this is the Stokes I light curve
+    #find rms of total light curve
+    tot_rms = calc_rms(lc2)
+    #get rms of clipped light curve
+    clip_rms = calc_rms(lc2[np.where(lc2<rms_thresh*tot_rms)])
+    #now get rms for each ~third of light curve
+    lead_rms = calc_rms(lc2[0:12])
+    mid_rms = calc_rms(lc2[12:21])
+    tail_rms = calc_rms(lc2[21::])
+    #now compare rms values to determine if this is a good candidate
+    if mid_rms>lead_rms and mid_rms>tail_rms and mid_rms>clip_rms: rms_test=1
+    else: rms_test=0
+    #debugging checks
+    print('RMS check:')
+    print(rms_test)
+    return rms_test
+        
+def calc_rms(in_arr):
+    """ Quick script to calculate root mean square value of light curve
+    Called by rms_check or stat_check
+    Expects 1D light curve array
+    """
+    out_rms = np.sqrt(1.0/len(in_arr)*np.sum(in_arr**2))
+    return out_rms
+
+def stat_check(canddata):
+    """script to measure statistical properties of the 1D light curves
+    Make 4 measurements: RMS, Skew, Kurtosis, and clipped-RMS (2-sigma clip)
+    Use these to determine the likelihood that a candidate is a genuine FRB
+    
+    From simple Monte Carlo simulations, the genuine FRBs will have relatively
+    high RMS/clipped-RMS ratios, positive Skew, and positive Kurtosis
+    
+    Expects dedispersed data (cut out in time, dual pol)
+    written by Justin D. Linford, based on ideas by Sarah Burke-Spolaor and 
+    Casey Law
+    """
+    #set rms threshold for clipping
+    rms_thresh = 2.0
+    #extract dedispersed data light curve
+    #adapted the approach from candplot (above)
+    data = canddata.data
+    spectra = np.swapaxes(data.real, 0, 1)
+    #note: unlike canaplot, all we care about here is the Stokes I
+    dd2 = spectra[..., 0] + spectra[..., 1] #Stokes I data
+    lc2 = dd2.mean(axis=0) #this is the Stokes I light curve
+    #find rms of total light curve
+    tot_rms = calc_rms(lc2)
+    #get rms of clipped light curve
+    clip_rms = calc_rms(lc2[np.where(lc2<rms_thresh*tot_rms)])
+    #calculate the rms/clipped-rms ratio
+    rms_ratio = tot_rms/clip_rms
+    #calculate the skewness
+    lc_skew = stats.skew(lc2)
+    #calculate the kurtosis
+    lc_kurt = stats.kurtosis(lc2)
+    #make candidate choice based on statistical measurements
+    if rms_ratio>1.1 and lc_skew>0.0 and lc_kurt>0.0: stat_test=1
+    else: stat_test=0
+    #debugging checks
+    print('Light curve stat check:')
+    print(stat_test)
+    return stat_test
+    
