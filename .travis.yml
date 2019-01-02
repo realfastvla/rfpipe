@@ -5,8 +5,6 @@ python:
    - 3.6
 #   - 3.7  # no casa-python yet
 
-cache: pip
-
 install:
   - sudo apt-get update -y
   - sudo apt-get install -y libfftw3-dev
