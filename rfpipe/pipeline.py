@@ -41,11 +41,11 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default, devic
     return candcollection
 
 
-def prep_and_search(st, segment, data, devicenum=None):
+def prep_and_search(st, segment, data, devicenum=None, phasecenters=None):
     """ Bundles prep and search functions to improve performance in distributed.
     """
 
-    data = source.data_prep(st, segment, data)
+    data = source.data_prep(st, segment, data, phasecenters=phasecenters)
 
     if st.prefs.fftmode == "cuda":
         candcollection = search.dedisperse_search_cuda(st, segment, data, devicenum=devicenum)

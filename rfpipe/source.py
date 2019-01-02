@@ -20,11 +20,11 @@ except ImportError:
 qa = casautil.tools.quanta()
 
 
-def data_prep(st, segment, data, flagversion="latest"):
+def data_prep(st, segment, data, flagversion="latest", phasecenters=None):
     """ Applies calibration, flags, and subtracts time mean for data.
     flagversion can be "latest" or "rtpipe".
     Optionally prepares data with antenna flags, fixing out of order data,
-    calibration, downsampling, etc..
+    calibration, downsampling, OTF rephasing...
     """
 
     if not np.any(data):
@@ -36,7 +36,7 @@ def data_prep(st, segment, data, flagversion="latest"):
 
     # TODO: check on reusing 'data' to save memory
     datap = np.nan_to_num(np.require(data, requirements='W').take(takepol, axis=3).take(st.chans, axis=2))
-    datap = prep_standard(st, segment, datap)
+    datap = prep_standard(st, segment, datap, phasecenters=phasecenters)
 
     if not np.any(datap):
         logger.info("All data zeros after prep_standard")
@@ -112,9 +112,10 @@ def read_segment(st, segment, cfile=None, timeout=10):
         return data_read
 
 
-def prep_standard(st, segment, data):
+def prep_standard(st, segment, data, phasecenters=None):
     """ Common first data prep stages, incl
     online flags, resampling, and mock transients.
+    phasecenters is a list of tuples with (startmjd, stopmjd, ?)
     """
 
     if not np.any(data):
@@ -129,6 +130,14 @@ def prep_standard(st, segment, data):
 
     if not np.any(data):
         return data
+
+    if st.prefs.simulated_transient is not None or phasecenters is not None:
+        uvw = util.get_uvw_segment(st, segment)
+
+    if phasecenters is not None:
+        for startmjd, stopmjd, l1, m1 in phasecenters:
+            ints = list(range(st.readints))  # TODO: set appropriately
+            util.phase_shift(data, uvw, l1, m1, ints=ints)
 
     # optionally integrate (downsample)
     if ((st.prefs.read_tdownsample > 1) or (st.prefs.read_fdownsample > 1)):
@@ -157,8 +166,6 @@ def prep_standard(st, segment, data):
                                                                       data=data)
 
         assert isinstance(st.prefs.simulated_transient, list), "Simulated transient must be list of tuples."
-
-        uvw = util.get_uvw_segment(st, segment)
 
         for params in st.prefs.simulated_transient:
             assert len(params) == 7 or len(params) == 8, ("Transient requires 7 or 8 parameters: "
