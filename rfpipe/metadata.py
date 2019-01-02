@@ -266,7 +266,7 @@ def sdm_metadata(sdmfile, scan, subscan=1, bdfdir=None):
     meta['datasetId'] = os.path.basename(sdmfile.rstrip('/'))
     meta['filename'] = sdmfile
     meta['scan'] = int(scan)
-    meta['subscan'] = subscan
+    meta['subscan'] = int(subscan)
     meta['bdfdir'] = bdfdir
 #    meta['configid'] = scanobj.configDescriptionId
     bdfstr = scanobj.bdf.fname
@@ -276,7 +276,7 @@ def sdm_metadata(sdmfile, scan, subscan=1, bdfdir=None):
         meta['bdfstr'] = bdfstr
 
     meta['starttime_mjd'] = scanobj.startMJD
-    meta['nints_'] = scanobj.numIntegration
+    meta['nints_'] = int(scanobj.numIntegration)
 
     try:
         inttime = scanobj.bdf.get_integration(0).interval
