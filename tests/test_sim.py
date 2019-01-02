@@ -30,7 +30,7 @@ inprefs = [({'flaglist': [], 'chans': list(range(32)),
 def mockstate(request):
     inprefs, scan = request.param
     t0 = time.Time.now().mjd
-    meta = rfpipe.metadata.mock_metadata(t0, t0+0.1/(24*3600), 27, 4, 32*4, 2,
+    meta = rfpipe.metadata.mock_metadata(t0, t0+0.1/(24*3600), 20, 4, 32*4, 2,
                                          5e3, scan=scan, datasource='sim',
                                          antconfig='D')
     return rfpipe.state.State(inmeta=meta, inprefs=inprefs)
