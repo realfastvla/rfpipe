@@ -128,6 +128,18 @@ class CandData(object):
         return mstats.kurtosis(self.image.flatten())
 
     @property
+    def lc(self):
+        return self.data.real.mean(axis=2).mean(axis=1)
+
+    @property
+    def tskew(self):
+        return mstats.skew(self.lc)
+
+    @property
+    def tkur(self):
+        return mstats.kurtosis(self.lc)
+
+    @property
     def integration_rel(self):
         """ Candidate integration relative to data time window
         """
@@ -473,6 +485,10 @@ def canddata_feature(canddata, feature):
         return canddata.imskew
     elif feature == 'imkur':
         return canddata.imkur
+    elif feature == 'tskew':
+        return canddata.tskew
+    elif feature == 'tkur':
+        return canddata.tkur
     else:
         raise NotImplementedError("Feature {0} calculation not implemented"
                                   .format(feature))
