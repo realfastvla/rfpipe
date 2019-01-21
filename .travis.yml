@@ -5,6 +5,8 @@ python:
    - 3.6
 #   - 3.7  # no casa-python yet
 
+dist: xenial
+
 branches:
   only:
     - master
