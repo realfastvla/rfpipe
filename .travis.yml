@@ -10,7 +10,7 @@ dist: xenial
 branches:
   only:
     - master
-      - development
+    - development
 
 install:
   - sudo apt-get update -y
