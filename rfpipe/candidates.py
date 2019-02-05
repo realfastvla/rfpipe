@@ -215,6 +215,15 @@ class CandCollection(object):
                 self.array = cc.array
         return self
 
+    def __radd__(self, other):
+        """ Support recursive add so we can sum(ccs)
+        """
+
+        if other == 0:
+            return self
+        else:
+            return self.__add__(other)
+
     def __getitem__(self, key):
         return CandCollection(array=self.array.take([key]), prefs=self.prefs,
                               metadata=self.metadata)
@@ -838,7 +847,7 @@ def visualize_clustering(cc, clusterer):
 
 
     # show the results
-    (show(column(row(p,p2),row(p3,p4))))
+    (show(column(row(p, p2), row(p3, p4))))
 
 
 def makesummaryplot(candsfile):
@@ -857,17 +866,20 @@ def makesummaryplot(candsfile):
     dt = []
     l1 = []
     m1 = []
-    for cc in iter_cands(candsfile):
-        time.append(cc.candmjd*(24*3600))
-        segment.append(cc.array['segment'])
-        integration.append(cc.array['integration'])
-        dmind.append(cc.array['dmind'])
-        dtind.append(cc.array['dtind'])
-        snr.append(cc.snrtot)
-        dm.append(cc.canddm)
-        dt.append(cc.canddt)
-        l1.append(cc.array['l1'])
-        m1.append(cc.array['m1'])
+    cc = sum(list(iter_cands(candsfile)))
+    if not len(cc):
+        return 0
+
+    time.append(cc.candmjd*(24*3600))
+    segment.append(cc.array['segment'])
+    integration.append(cc.array['integration'])
+    dmind.append(cc.array['dmind'])
+    dtind.append(cc.array['dtind'])
+    snr.append(cc.snrtot)
+    dm.append(cc.canddm)
+    dt.append(cc.canddt)
+    l1.append(cc.array['l1'])
+    m1.append(cc.array['m1'])
 
     time = np.concatenate(time)
 #    time = time - time.min()  # TODO: try this, or ensure nonzero time array
