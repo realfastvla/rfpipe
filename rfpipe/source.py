@@ -300,7 +300,7 @@ def read_bdf(st, nskip=0):
     return data
 
 
-def save_noise(st, segment, data, chunk=200):
+def save_noise(st, segment, data, chunk=500):
     """ Calculates noise properties and save values to pickle.
     chunk defines window for measurement. at least one measurement always made.
     """
