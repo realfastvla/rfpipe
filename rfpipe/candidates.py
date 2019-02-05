@@ -683,7 +683,7 @@ def save_cands(st, candcollection=None, canddata=None):
             logger.info('Not saving CandData.')
 
     if candcollection is not None:
-        if st.prefs.savecands and len(candcollection):
+        if st.prefs.savecands:
             logger.info('Saving {0} candidate{1} to {2}.'
                         .format(len(candcollection),
                                 's'[not len(candcollection)-1:], st.candsfile))
@@ -701,11 +701,7 @@ def save_cands(st, candcollection=None, canddata=None):
                             'Spilling to new file {0}.'.format(newcandsfile))
                 with open(newcandsfile, 'ab+') as pkl:
                     pickle.dump(candcollection, pkl)
-                    
-        elif st.prefs.savecands and not len(candcollection.array):
-            logger.debug('No candidates to save to {0}.'.format(st.candsfile))
-
-        elif not st.prefs.savecands:
+        else:
             logger.info('Not saving candidates.')
 
 

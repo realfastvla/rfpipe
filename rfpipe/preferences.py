@@ -96,10 +96,13 @@ class Preferences(object):
     @property
     def ordered(self):
         """ Get OrderedDict of preferences sorted by key
+        Excludes "gainfile", since that changes with each datasetId
         """
 
         keys = sorted(self.__dict__)
-        return OrderedDict([(key, self.__dict__[key]) for key in keys])
+        excludekeys = ["gainfile"]
+        return OrderedDict([(key, self.__dict__[key]) for key in keys
+                            if key not in excludekeys])
 
     @property
     def json(self):
