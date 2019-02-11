@@ -114,7 +114,10 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
     # some prep if kalman significance is needed
     if 'snrk' in st.features:
         # TODO: check that this is ok if pointing at bright source
-        spec_std = data.real.mean(axis=3).mean(axis=1).std(axis=0)
+        if data.shape[0] > 1:
+            spec_std = data.real.mean(axis=3).mean(axis=1).std(axis=0)
+        else:
+            spec_std = data[0].real.mean(axis=2).std(axis=0)
         sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
         if not np.all(sig_ts):
             logger.info("sig_ts all zeros. Skipping search.")
@@ -296,7 +299,10 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
     # some prep if kalman significance is needed
     if 'snrk' in st.features:
         # TODO: check that this is ok if pointing at bright source
-        spec_std = data.real.mean(axis=3).mean(axis=1).std(axis=0)
+        if data.shape[0] > 1:
+            spec_std = data.real.mean(axis=3).mean(axis=1).std(axis=0)
+        else:
+            spec_std = data[0].real.mean(axis=2).std(axis=0)
         sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
     else:
         spec_std, sig_ts, kalman_coeffs = None, None, None
@@ -871,7 +877,10 @@ def search_thresh_armk(st, data, uvw, integrations=None, spec_std=None,
         integrations = [integrations]
 
     if spec_std is None:
-        spec_std = data.real.mean(axis=3).mean(axis=1).std(axis=0)
+        if data.shape[0] > 1:
+            spec_std = data.real.mean(axis=3).mean(axis=1).std(axis=0)
+        else:
+            spec_std = data[0].real.mean(axis=2).std(axis=0)
 
     if not len(sig_ts):
         sig_ts = [x*np.median(spec_std) for x in [0.3, 0.1, 0.03, 0.01]]

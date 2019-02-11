@@ -771,8 +771,11 @@ class State(object):
     def searchfeatures(self):
         """ Given searchtype, return features to be extracted during search.
         """
+        # TODO: overload with preference for features as a list of names
 
-        if self.prefs.searchtype in ['image', 'image1', 'imagek']:
+        if self.prefs.searchfeatures is not None:
+            return self.prefs.searchfeatures
+        elif self.prefs.searchtype in ['image', 'image1', 'imagek']:
             return ('snr1', 'snrk', 'immax1', 'l1', 'm1')
         elif self.prefs.searchtype == 'armk':
             return ('snrarms', 'snrk', 'l1', 'm1')

@@ -60,20 +60,17 @@ def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1):
             else:
                 gaindelay = np.zeros_like(data)
 
-        # data should have nchan_orig because no selection done yet
-        # TODO: make nchan, npol, nbl selection consistent for all data types
         return data*gaindelay
 
 
-def getsols(st, threshold=1/10., onlycomplete=True):
+def getsols(st, threshold=1/10., onlycomplete=True, mode='realtime'):
     """ Select good set of solutions.
-    TODO: add ability 'realtime' mode that only takes solutions in the past
     """
 
     sols = parseGN(st.gainfile)
 
     # must run time select before flagants for complete solutions
-    sols = select(sols, time=st.segmenttimes.mean())
+    sols = select(sols, time=st.segmenttimes.mean(), mode=mode)
     if st.prefs.flagantsol:
         sols = flagants(sols, threshold=threshold,
                         onlycomplete=onlycomplete)

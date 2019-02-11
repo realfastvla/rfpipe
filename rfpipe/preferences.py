@@ -71,6 +71,7 @@ class Preferences(object):
     dm_pulsewidth = attr.ib(default=3000)   # in microsec
     searchtype = attr.ib(default='image')  # supported: image, imagestat, imagek, armkimage
     calcfeatures = attr.ib(('specstd', 'specskew', 'speckur', 'imskew', 'imkur', 'tskew', 'tkur'))  # calculated for each candidate saved/plotted
+    searchfeatures = attr.ib(default=None)  # force with tuple of features (e.g., ("snr1"))
 
     sigma_image1 = attr.ib(default=7)  # threshold for image and imagearm algorithms
     sigma_arm = attr.ib(default=None)  # 1arm threshold
