@@ -175,7 +175,8 @@ def pipeline_datacorrect(st, candloc, data_prep=None):
     return data_dmdt
 
 
-def pipeline_canddata(st, candloc, data_dmdt=None, cpuonly=False, **kwargs):
+def pipeline_canddata(st, candloc, data_dmdt=None, cpuonly=False, sig_ts=None,
+                      kalman_coeffs=None, **kwargs):
     """ Generate image and phased visibility data for candloc.
     Phases to peak pixel in image of candidate.
     Can optionally pass in corrected data, if available.
@@ -192,8 +193,12 @@ def pipeline_canddata(st, candloc, data_dmdt=None, cpuonly=False, **kwargs):
     if data_dmdt is None:
         data_dmdt = pipeline_datacorrect(st, candloc)
 
-    spec_std = data_dmdt.real.mean(axis=3).mean(axis=1).std(axis=0)
-    sig_ts, kalman_coeffs = rfpipe.search.kalman_prepare_coeffs(spec_std)
+    if data_dmdt.shape[0] > 1:
+        spec_std = data_dmdt.real.mean(axis=3).mean(axis=1).std(axis=0)
+    else:
+        spec_std = data_dmdt[0].real.mean(axis=2).std(axis=0)
+    if sig_ts is None or kalman_coeffs is None:
+        sig_ts, kalman_coeffs = rfpipe.search.kalman_prepare_coeffs(spec_std)
 
 #    fftmode = 'fftw' if cpuonly else st.fftmode  # can't remember why i did this!
     image = rfpipe.search.grid_image(data_dmdt, uvw, st.npixx, st.npixy, st.uvres,

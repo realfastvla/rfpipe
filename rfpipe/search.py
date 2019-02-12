@@ -525,6 +525,8 @@ def reproduce_candcollection(cc, data, wisdom=None, spec_std=None, sig_ts=None,
                                     .format(feature))
 
             cd = rfpipe.reproduce.pipeline_canddata(st, candloc, data_corr,
+                                                    sig_ts=sig_ts,
+                                                    kalman_coeffs=kalman_coeffs,
                                                     **kwargs)
             cc1 += candidates.save_and_plot(cd)
 
