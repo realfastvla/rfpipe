@@ -445,7 +445,8 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
     # calc other features for cc, plot, save
     if st.prefs.savecands or st.prefs.saveplots:
         cc = reproduce_candcollection(cc, data, spec_std=spec_std,
-                                      sig_ts=sig_ts, kalman_coeffs=kalman_coeffs)
+                                      sig_ts=sig_ts,
+                                      kalman_coeffs=kalman_coeffs)
 
     candidates.save_cands(st, candcollection=cc)
 
