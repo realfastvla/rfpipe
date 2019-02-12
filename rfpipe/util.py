@@ -366,7 +366,7 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
             dm = st.dmarr[dmind]
 #            dmind = random.choice(range(len(st.dmarr)))
         else:
-            dm = np.random.uniform(50,1000) # pc /cc
+            dm = np.random.uniform(min(st.dmarr),max(st.dmarr)) # pc /cc
 
             dmarr = np.array(calc_dmarr(st))
             if dm > np.max(dmarr):
@@ -380,7 +380,7 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
             dt = st.metadata.inttime*min(st.dtarr[dtind], 2)  # dt>2 not yet supported
         else:
             #dtind = random.choice(range(len(st.dtarr)))
-            dt = np.random.uniform(0.5e-3,50e-3) # s  #like an alias for "dt"
+            dt = np.random.uniform(min(st.dtarr), max(st.dtarr)) # s  #like an alias for "dt"
             if dt < st.metadata.inttime:
                 dtind = 0
             else:    
