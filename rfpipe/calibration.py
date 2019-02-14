@@ -82,7 +82,7 @@ def getsols(st, threshold=1/10., onlycomplete=True, mode='realtime', savesols=Fa
         gainpkl = st.candsfile.replace('cands_', 'gain_')
         with fileLock.FileLock(gainpkl+'.lock', timeout=10):
             with open(gainpkl, 'ab+') as pkl:
-                pickle.dump(sols, pkl)
+                pickle.dump((st.segmenttimes.mean(), sols), pkl)
 
     return sols
 
