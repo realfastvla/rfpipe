@@ -14,7 +14,7 @@ _install_dir = os.path.abspath(os.path.dirname(__file__))
 inprefs = [{'simulated_transient': [(0, 0, 0, 5e-3, 1., 0., 0.)], 'timesub': None,
             'flaglist': [], 'maxdm': 0, 'dtarr': [1], 'npix_max': 512},
            {'simulated_transient': [(0, 0, 0, 5e-3, 1., 0., 0.)], 'timesub': None,
-            'flaglist': [], 'maxdm': 0, 'dtarr': [1], 'npix_max': 512,
+            'flaglist': [], 'maxdm': 0, 'dtarr': [1], 'npix_max': 512, 'savesols': True,
             'gainfile': os.path.join(_install_dir,
                                      'data/16A-459_TEST_1hr_000.57633.66130137732.GN')}]
 

@@ -3,9 +3,11 @@ from builtins import bytes, dict, object, range, map, input, str
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
+import pickle
 import numpy as np
 import os.path
 from numba import jit
+from rfpipe import fileLock
 
 import logging
 logger = logging.getLogger(__name__)
