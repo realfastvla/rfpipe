@@ -44,7 +44,7 @@ def data_prep(st, segment, data, flagversion="latest"):
 
     if st.gainfile is not None:
         logger.info("Applying calibration with {0}".format(st.gainfile))
-        datap = calibration.apply_telcal(st, datap)
+        datap = calibration.apply_telcal(st, datap, savesols=st.prefs.savesols)
         if not np.any(datap):
             logger.info("All data zeros after apply_telcal")
             return datap

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 ### Functional form
 
-def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1):
+def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1, savesols=False):
     """ Wrap all telcal functions to parse telcal file and apply it to data
     sign defines if calibration is applied (+1) or backed out (-1).
     assumes dual pol and that each spw has same nch and chansize.
@@ -31,7 +31,7 @@ def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1):
                         .format(st.gainfile))
             return data
         else:
-            sols = getsols(st, threshold=threshold, onlycomplete=onlycomplete)
+            sols = getsols(st, threshold=threshold, onlycomplete=onlycomplete, savesols=savesols)
 
             pols = [0, 1]
             reffreq = np.array(st.metadata.spw_reffreq)
@@ -63,8 +63,10 @@ def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1):
         return data*gaindelay
 
 
-def getsols(st, threshold=1/10., onlycomplete=True, mode='realtime'):
+def getsols(st, threshold=1/10., onlycomplete=True, mode='realtime', savesols=False):
     """ Select good set of solutions.
+    realtime mode will only select solutions in the past.
+    savesols will save the read/selected data to a pkl file for debugging.
     """
 
     sols = parseGN(st.gainfile)
@@ -74,6 +76,11 @@ def getsols(st, threshold=1/10., onlycomplete=True, mode='realtime'):
     if st.prefs.flagantsol:
         sols = flagants(sols, threshold=threshold,
                         onlycomplete=onlycomplete)
+    if savesols:
+        gainpkl = st.candsfile.replace('cands_', 'gain_')
+        with fileLock.FileLock(gainpkl+'.lock', timeout=10):
+            with open(gainpkl, 'ab+') as pkl:
+                pickle.dump(sols, pkl)
 
     return sols
 
