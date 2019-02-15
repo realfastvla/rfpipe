@@ -25,6 +25,7 @@ def data_prep(st, segment, data, flagversion="latest", phasecenters=None):
     flagversion can be "latest" or "rtpipe".
     Optionally prepares data with antenna flags, fixing out of order data,
     calibration, downsampling, OTF rephasing...
+    phasecenters is a tuple of times and phase centers to support OTF mode.
     """
 
     if not np.any(data):
@@ -115,7 +116,7 @@ def read_segment(st, segment, cfile=None, timeout=10):
 def prep_standard(st, segment, data, phasecenters=None):
     """ Common first data prep stages, incl
     online flags, resampling, and mock transients.
-    phasecenters is a list of tuples with (startmjd, stopmjd, ?)
+    phasecenters is a list of tuples with (startmjd, stopmjd, ra_deg, dec_deg)
     """
 
     if not np.any(data):
@@ -135,8 +136,32 @@ def prep_standard(st, segment, data, phasecenters=None):
         uvw = util.get_uvw_segment(st, segment)
 
     if phasecenters is not None:
-        for startmjd, stopmjd, l1, m1 in phasecenters:
-            ints = list(range(st.readints))  # TODO: set appropriately
+        segmenttime0, segmenttime1 = st.segmenttimes[segment]
+        corrections = []   # build list of ints and relative phase centers
+        phaseend = 0
+        for startmjd, stopmjd, ra_deg, dec_deg in phasecenters:   # assuming this is in time order
+            if (segmenttime0 > startmjd) and (segmenttime0 < stopmjd):
+                ra0 = ra_deg
+                dec0 = dec_deg
+                phaseend = stopmjd
+                ints0 = range(0, np.round((stopmjd-segmenttime0)*24*3600/st.inttime, 1).astype(int))
+                logger.info("segment {0} from {1} to {2} is at phase center {3},{4} for ints {5}"
+                            .format(segment, segmenttime0, segmenttime1, ra0,
+                                    dec0, ints0))
+                corrections.append((ints0, 0., 0.),)
+            elif (stopmjd > phaseend) and (segmenttime1 < stopmjd) and (phaseend > 0):
+                # TODO: define new ints to search each step through start/stop/ra/dec
+                l1 = np.radians(ra0-ra_deg)
+                m1 = np.radians(dec0-dec_deg)
+                ints = range(list())
+                corrections.append((ints, l1, m1),)
+                phaseend = stopmjd
+            else:
+                logger.info("phase center at {0},{1} from {2} to {3} not within segment range {4} to {5}"
+                            .format(ra_deg, dec_deg, startmjd, stopmjd,
+                                    segmenttime0, segmenttime1))
+
+        for ints, l1, m1 in corrections:
             util.phase_shift(data, uvw, l1, m1, ints=ints)
 
     # optionally integrate (downsample)
