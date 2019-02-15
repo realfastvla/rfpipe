@@ -25,7 +25,7 @@ def data_prep(st, segment, data, flagversion="latest", phasecenters=None):
     flagversion can be "latest" or "rtpipe".
     Optionally prepares data with antenna flags, fixing out of order data,
     calibration, downsampling, OTF rephasing...
-    phasecenters is a tuple of times and phase centers to support OTF mode.
+    phasecenters is a tuple of times and locations for an OTF scan (for realtime ops).
     """
 
     if not np.any(data):
@@ -140,20 +140,25 @@ def prep_standard(st, segment, data, phasecenters=None):
         corrections = []   # build list of ints and relative phase centers
         phaseend = 0
         for startmjd, stopmjd, ra_deg, dec_deg in phasecenters:   # assuming this is in time order
-            if (segmenttime0 > startmjd) and (segmenttime0 < stopmjd):
+            if (segmenttime0 >= startmjd) and (segmenttime0 < stopmjd):
                 ra0 = ra_deg
                 dec0 = dec_deg
                 phaseend = stopmjd
-                ints0 = range(0, np.round((stopmjd-segmenttime0)*24*3600/st.inttime, 1).astype(int))
+                lastint = np.round((stopmjd-segmenttime0)*24*3600/st.inttime,
+                                   1).astype(int)
+                ints0 = list(range(0, lastint))
                 logger.info("segment {0} from {1} to {2} is at phase center {3},{4} for ints {5}"
                             .format(segment, segmenttime0, segmenttime1, ra0,
                                     dec0, ints0))
                 corrections.append((ints0, 0., 0.),)
-            elif (stopmjd > phaseend) and (segmenttime1 < stopmjd) and (phaseend > 0):
+            elif (phaseend <= startmjd) and (segmenttime1 <= stopmjd) and (phaseend > 0):
                 # TODO: define new ints to search each step through start/stop/ra/dec
                 l1 = np.radians(ra0-ra_deg)
                 m1 = np.radians(dec0-dec_deg)
-                ints = range(list())
+                firstint = np.round((startmjd-segmenttime0)*24*3600/st.inttime, 1).astype(int)
+                endtime = min(segmenttime1, stopmjd)
+                lastint = np.round((endtime-segmenttime0)*24*3600/st.inttime, 1).astype(int)
+                ints = list(range(firstint, lastint))
                 corrections.append((ints, l1, m1),)
                 phaseend = stopmjd
             else:
