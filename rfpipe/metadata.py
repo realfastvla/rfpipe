@@ -172,10 +172,10 @@ def make_metadata(inmeta=None, config=None, sdmfile=None, sdmscan=None,
     """
 
     if isinstance(inmeta, Metadata):
-        return inmeta
+        return inmeta  # does not overload if Metadata object passed in
     else:
         if inmeta is None:
-            inmeta = {}
+            inmeta = {}  # passing in dict will overload other metadata sources
 
         # get metadata
         if (sdmfile is not None) and (sdmscan is not None) and (config is None):
