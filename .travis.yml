@@ -12,6 +12,11 @@ branches:
     - master
     - development
 
+branches:
+  only:
+  - master
+  - development
+
 install:
   - sudo apt-get update -y
   - sudo apt-get install -y libfftw3-dev

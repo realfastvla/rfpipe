@@ -31,28 +31,31 @@ def getsdm(*args, **kwargs):
     return sdm
 
 
-def phase_shift(data, uvw, dl, dm):
+def phase_shift(data, uvw, dl, dm, ints=None):
     """ Applies a phase shift to data for a given (dl, dm).
     """
 
     assert data.shape[1] == uvw[0].shape[0]
     assert data.shape[2] == uvw[0].shape[1]
     data = np.require(data, requirements='W')
-    _phaseshift_jit(data, uvw, dl, dm)
+    _phaseshift_jit(data, uvw, dl, dm, ints=ints)
 
 
 @jit(nogil=True, nopython=True)
-def _phaseshift_jit(data, uvw, dl, dm):
+def _phaseshift_jit(data, uvw, dl, dm, ints=None):
 
     sh = data.shape
     u, v, w = uvw
+
+    if ints is None:
+        ints = range(sh[0])
 
     if (dl != 0.) or (dm != 0.):
         for j in range(sh[1]):
             for k in range(sh[2]):
                 frot = np.exp(-2j*np.pi*(dl*u[j, k] + dm*v[j, k]))
-                for i in range(sh[0]):    # iterate over pols
-                    for l in range(sh[3]):
+                for i in ints:
+                    for l in range(sh[3]):    # iterate over pols
                         # phasor unwraps phase at (dl, dm) per (bl, chan)
                         data[i, j, k, l] = data[i, j, k, l] * frot
 

@@ -20,11 +20,12 @@ except ImportError:
 qa = casautil.tools.quanta()
 
 
-def data_prep(st, segment, data, flagversion="latest"):
+def data_prep(st, segment, data, flagversion="latest", phasecenters=None):
     """ Applies calibration, flags, and subtracts time mean for data.
     flagversion can be "latest" or "rtpipe".
     Optionally prepares data with antenna flags, fixing out of order data,
-    calibration, downsampling, etc..
+    calibration, downsampling, OTF rephasing...
+    phasecenters is a tuple of times and locations for an OTF scan (for realtime ops).
     """
 
     if not np.any(data):
@@ -36,7 +37,7 @@ def data_prep(st, segment, data, flagversion="latest"):
 
     # TODO: check on reusing 'data' to save memory
     datap = np.nan_to_num(np.require(data, requirements='W').take(takepol, axis=3).take(st.chans, axis=2))
-    datap = prep_standard(st, segment, datap)
+    datap = prep_standard(st, segment, datap, phasecenters=phasecenters)
 
     if not np.any(datap):
         logger.info("All data zeros after prep_standard")
@@ -112,9 +113,10 @@ def read_segment(st, segment, cfile=None, timeout=10):
         return data_read
 
 
-def prep_standard(st, segment, data):
+def prep_standard(st, segment, data, phasecenters=None):
     """ Common first data prep stages, incl
     online flags, resampling, and mock transients.
+    phasecenters is a list of tuples with (startmjd, stopmjd, ra_deg, dec_deg)
     """
 
     if not np.any(data):
@@ -129,6 +131,43 @@ def prep_standard(st, segment, data):
 
     if not np.any(data):
         return data
+
+    if st.prefs.simulated_transient is not None or phasecenters is not None:
+        uvw = util.get_uvw_segment(st, segment)
+
+    if phasecenters is not None:
+        segmenttime0, segmenttime1 = st.segmenttimes[segment]
+        corrections = []   # build list of ints and relative phase centers
+        phaseend = 0
+        for startmjd, stopmjd, ra_deg, dec_deg in phasecenters:   # assuming this is in time order
+            if (segmenttime0 >= startmjd) and (segmenttime0 < stopmjd):
+                ra0 = ra_deg
+                dec0 = dec_deg
+                phaseend = stopmjd
+                lastint = np.round((stopmjd-segmenttime0)*24*3600/st.inttime,
+                                   1).astype(int)
+                ints0 = list(range(0, lastint))
+                logger.info("segment {0} from {1} to {2} is at phase center {3},{4} for ints {5}"
+                            .format(segment, segmenttime0, segmenttime1, ra0,
+                                    dec0, ints0))
+                corrections.append((ints0, 0., 0.),)
+            elif (phaseend <= startmjd) and (segmenttime1 <= stopmjd) and (phaseend > 0):
+                # TODO: define new ints to search each step through start/stop/ra/dec
+                l1 = np.radians(ra0-ra_deg)
+                m1 = np.radians(dec0-dec_deg)
+                firstint = np.round((startmjd-segmenttime0)*24*3600/st.inttime, 1).astype(int)
+                endtime = min(segmenttime1, stopmjd)
+                lastint = np.round((endtime-segmenttime0)*24*3600/st.inttime, 1).astype(int)
+                ints = list(range(firstint, lastint))
+                corrections.append((ints, l1, m1),)
+                phaseend = stopmjd
+            else:
+                logger.info("phase center at {0},{1} from {2} to {3} not within segment range {4} to {5}"
+                            .format(ra_deg, dec_deg, startmjd, stopmjd,
+                                    segmenttime0, segmenttime1))
+
+        for ints, l1, m1 in corrections:
+            util.phase_shift(data, uvw, l1, m1, ints=ints)
 
     # optionally integrate (downsample)
     if ((st.prefs.read_tdownsample > 1) or (st.prefs.read_fdownsample > 1)):
@@ -157,8 +196,6 @@ def prep_standard(st, segment, data):
                                                                       data=data)
 
         assert isinstance(st.prefs.simulated_transient, list), "Simulated transient must be list of tuples."
-
-        uvw = util.get_uvw_segment(st, segment)
 
         for params in st.prefs.simulated_transient:
             assert len(params) == 7 or len(params) == 8, ("Transient requires 7 or 8 parameters: "
