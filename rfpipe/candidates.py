@@ -273,8 +273,8 @@ def calc_features(canddatalist):
         indx_cntr = 0
         #send each candidate data to light curve rms checking script
         for i, canddata in enumerate(canddatalist):
-            print('For loop counter:')
-            print(indx_cntr)
+            #print('For loop counter:')
+            #print(indx_cntr)
             stat_test[indx_cntr]=stat_check(canddata)
             #incrememnt index counter
             indx_cntr = indx_cntr+1
@@ -837,6 +837,7 @@ def candplot(canddatalist, snrs=[], outname=''):
         canddatalist = [canddatalist]
 
     logger.info('Making {0} candidate plots.'.format(len(canddatalist)))
+    logger.info('Writing {0} VOEvent files.'.format(len(canddatalist)))
 
     for i in range(len(canddatalist)):
         canddata = canddatalist[i]
@@ -1261,6 +1262,9 @@ def candplot(canddatalist, snrs=[], outname=''):
             logger.info('Wrote candidate plot to {0}'.format(outname))
         except ValueError:
             logger.warn('Could not write figure to {0}'.format(outname))
+            
+        #now create a VOEvent file for the candidate
+        make_voevent(canddata)
 
 
 def source_location(pt_ra, pt_dec, l1, m1):
@@ -1423,7 +1427,199 @@ def stat_check(canddata):
     if rms_ratio>1.1 and lc_skew>0.0 and lc_kurt>0.0: stat_test=1
     else: stat_test=0
     #debugging checks
-    print('Light curve stat check:')
-    print(stat_test)
+    #print('Light curve stat check:')
+    #print(stat_test)
     return stat_test
+
+
+def make_voevent(canddata):
+    """script to generate a VOEvent file for the candidates plotted in candplot
+    Take canddata input and outputs a .xml file with relevant inforation
+    VOEvent format based on Petroff et al. 2017 VOEvent Standard for Fast Radio Busrts
+    See https://github.com/ebpetroff/FRB_VOEvent
+    written by Just D. Linford with input from Casey Law, Sarah Burke-Spolaor
+    and Kshitij Aggarwal
+    """
+    
+    from astropy.coordinates import SkyCoord  #needed to get galactic coordinates of FRB
+    from astropy.time import Time #needed to get MJD to ISOTime
+    import math #need to get RA & DEC into degrees
+
+    #get candata separated into useful parts
+    st = canddata.state
+    candloc = canddata.loc
+    im = canddata.image 
+    data = canddata.data
+    
+    #get some usefult info out of candidate location
+    segment, candint, dmind, dtind, beamnum = candloc
+    
+    #calcualte the image SNR --> NOTE: Stole this from candplot
+    imstd = im.std()  # consistent with rfgpu
+    snrmin = im.min()/imstd
+    snrmax = im.max()/imstd
+    if snrmax > -1*snrmin:
+        l1, m1 = st.pixtolm(np.where(im == im.max()))
+        snrobs = snrmax
+    else:
+        l1, m1 = st.pixtolm(np.where(im == im.min()))
+        snrobs = snrmin
+    
+    #extract 1D Stokes I light curve --> NOTE: Stole this from candplot
+    spectra = np.swapaxes(data.real, 0, 1)
+    dd2 = spectra[..., 0] + spectra[..., 1]
+    lc2 = dd2.mean(axis=0)
+    
+    #get FRB RA & DEC location in degrees --> NOTE: Stoel this from source_location
+    pt_ra, pt_dec = st.metadata.radec
+    src_ra, src_dec = source_location(pt_ra, pt_dec, l1, m1)
+    srcra = np.degrees(pt_ra + l1/math.cos(pt_dec))
+    srcdec = np.degrees(pt_dec + m1)
+    srcloc_err = -999 #TODO: figure out how to quentify uncertainty in position
+    #put location into SkyCoord
+    FRB_loc = SkyCoord(srcra,srcdec,frame='icrs',unit='deg')
+    
+        
+    #WHAT fields
+    #observatory parameters
+    beam_semimaj = -999 # TODO: figure out how to get this info
+    beam_semimin = -999 # TODO: figure out how to get this info
+    beam_rot_ang = -999 # TODO: figure out how to get this info
+    samp_time = np.round(st.inttime, 3)*1e3 #sampling time in ms
+    band_width = np.round((st.freq.max() - st.freq.min())*1.0e3,4)#bandwidth in MHz
+    #band_width = (st.metadata.spw_reffreq[-1] - st.metadata.spw_reffreq[0])/1.0e6 #should be in MHz
+    #print(st.freq.min())
+    num_chan = np.sum(st.metadata.spw_nchan)
+    center_freq = st.metadata.spw_reffreq[int(len(st.metadata.spw_reffreq)/2.0)]/1.0e6 #might work
+    num_pol = int(len(st.metadata.pols_orig))
+    bits_per_sample = 2 #TODO: check that this is always accurate
+    gain_KJy = -999 #TODO: figure out how to get this info
+    Tsys_K = -999 #TODO: figure out how to get this info
+    VLA_backend = 'WIDAR' #may need to find out how to get this info from the data
+    VLA_beam = beamnum #VLA only has a single beam
+    
+    #Event parameters
+    FRB_DM = st.dmarr[dmind]
+    FRB_DM_err = -999 # TODO: calculate some kind of DM uncertainty
+    FRB_width = np.round(st.inttime*st.dtarr[dtind], 3)*1e3 # TODO: figure out how to calculate the width of the burst
+    FRB_SNR = snrobs
+    FRB_flux = max(lc2) #peak of 1D Stokes I light curve
+    FRB_gl = FRB_loc.galactic.l.deg
+    FRB_gb = FRB_loc.galactic.b.deg
+    
+    #Observation Location
+    #time
+    #for now, use the observation start time
+    FRB_obsmjd = st.metadata.starttime_mjd
+    FRB_obstime = Time(FRB_obsmjd,format='mjd',scale='utc')
+    FRB_ISOT = FRB_obstime.isot #convert time to ISOT
+    
+    #Importance parameter
+    FRB_importance = 1.0 #TODO: look into setting this based on candidate decision trees or SNR
+    
+    #build FRB name
+    FRB_YY = FRB_ISOT[2:4] #last 2 digits of year
+    FRB_MM = FRB_ISOT[5:7] #2-digit month
+    FRB_DD = FRB_ISOT[8:10] #2-digit day
+
+    FRB_RADEC_str = FRB_loc.to_string('hmsdms') #convert FRB coordinates to HH:MM:SS.SSSS (+/-)DD:MM:SS.SSSS
+    #print FRB_RADEC_str
+    #find prosition of the 'd' in FRB_RADEC_str
+    d_pos = FRB_RADEC_str.find('d')
+    FRB_RAhh = FRB_RADEC_str[0:2] #RA HH
+    FRB_RAmm = FRB_RADEC_str[3:5] #RA MM
+    FRB_RAss = FRB_RADEC_str[6:8] #RA SS
+    FRB_DECdd = FRB_RADEC_str[d_pos-3:d_pos] #DEC (+/-)DD
+    FRB_DECmm = FRB_RADEC_str[d_pos+1:d_pos+3] #DEC MM
+    FRB_DECss = FRB_RADEC_str[d_pos+4:d_pos+6] #DEC SS
+
+    FRB_NAME = 'FRB'+FRB_YY+FRB_MM+FRB_DD + '.J' + FRB_RAhh+FRB_RAmm+FRB_RAss + FRB_DECdd+FRB_DECmm+FRB_DECss
+    
+    #set filename to FRB_NAME + '_detection.xml'
+    outname = os.path.join(st.prefs.workdir,FRB_NAME+'_detection.xml')
+            
+    try:
+        #write VOEvent file
+        #create a text file with all the VLA fluxes to include in paper
+        VOEvent_of = open(outname,'w')
+        #header
+        VOEvent_of.write("<?xml version='1.0' encoding='UTF-8'?>"+'\n')
+        VOEvent_of.write('<voe:VOEvent xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:voe="http://www.ivoa.net/xml/VOEvent/v2.0" xsi:schemaLocation="http://www.ivoa.net/xml/VOEvent/v2.0 http://www.ivoa.net/xml/VOEvent/VOEvent-v2.0.xsd" version="2.0" role="test" ivorn="ivo://io.realfast/realfast#'+FRB_NAME+'/'+str(FRB_obsmjd)+'">'+'\n')
+        #WHO
+        VOEvent_of.write('\t'+'<Who>'+'\n')
+        VOEvent_of.write('\t\t'+'<AuthorIVORN>ivo://io.realfast/contact</AuthorIVORN>'+'\n')
+        VOEvent_of.write('\t\t'+'<Date>'+FRB_ISOT+'</Date>\n')
+        VOEvent_of.write('\t\t'+'<Author><contactEmail>claw@astro.berkeley.edu</contactEmail><contactName>Casey Law</contactName></Author>\n')
+        VOEvent_of.write('\t</Who>\n')
+        #What
+        VOEvent_of.write('\t<What>\n')
+        VOEvent_of.write('\t\t<Group name="observatory parameters">\n')
+        VOEvent_of.write('\t\t\t<Param dataType="float" name="beam_semi-major_axis" ucd="instr.beam;pos.errorEllipse;phys.angSize.smajAxis" unit="SS" value="'+str(beam_semimaj)+'"/>\n')
+        VOEvent_of.write('\t\t\t<Param dataType="float" name="beam_semi-minor_axis" ucd="instr.beam;pos.errorEllipse;phys.angSize.sminAxis" unit="SS" value="'+str(beam_semimin)+'"/>\n')
+        VOEvent_of.write('\t\t\t<Param dataType="float" name="beam_rotation_angle" ucd="instr.beam;pos.errorEllipse;instr.offset" unit="Degrees" value="'+str(beam_rot_ang)+'"/>\n')
+        VOEvent_of.write('\t\t\t<Param dataType="float" name="sampling_time" ucd="time.resolution" unit="ms" value="'+str(samp_time)+'"/>\n')
+        VOEvent_of.write('\t\t\t<Param dataType="float" name="bandwidth" ucd="instr.bandwidth" unit="MHz" value="'+str(band_width)+'"/>\n')
+        VOEvent_of.write('\t\t\t<Param dataType="float" name="nchan" ucd="meta.number;em.freq;em.bin" unit="None" value="'+str(num_chan)+'"/>\n')
+        VOEvent_of.write('\t\t\t<Param dataType="float" name="centre_frequency" ucd="em.freq;instr" unit="MHz" value="'+str(center_freq)+'"/>\n')
+        VOEvent_of.write('\t\t\t<Param dataType="int" name="npol" unit="None" value="'+str(num_pol)+'"/>\n')
+        VOEvent_of.write('\t\t\t<Param dataType="int" name="bits_per_sample" unit="None" value="'+str(bits_per_sample)+'"/>\n')
+        VOEvent_of.write('\t\t\t<Param dataType="float" name="gain" unit="K/Jy" value="'+str(gain_KJy)+'"/>\n')
+        VOEvent_of.write('\t\t\t<Param dataType="float" name="tsys" ucd="phot.antennaTemp" unit="K" value="'+str(Tsys_K)+'"/>\n')
+        VOEvent_of.write('\t\t\t<Param name="backend" value="'+VLA_backend+'"/>\n')
+        VOEvent_of.write('\t\t\t<Param name="beam" value="'+str(VLA_beam)+'"/><Description>Detection beam number if backend is a multi beam receiver</Description>\n')
+        VOEvent_of.write('\t\t</Group>\n')
+        VOEvent_of.write('\t\t<Group name="event parameters">\n')
+        VOEvent_of.write('\t\t\t<Param dataType="float" name="dm" ucd="phys.dispMeasure;em.radio.'+str(int(np.floor(st.freq.min())))+'000-'+str(int(np.ceil(st.freq.max())))+'000MHz" unit="pc/cm^3" value="'+str(FRB_DM)+'"/>\n')
+        VOEvent_of.write('\t\t\t<Param dataType="float" name="dm_error" ucd="stat.error;phys.dispMeasure" unit="pc/cm^3" value="'+str(FRB_DM_err)+'"/>\n')
+        VOEvent_of.write('\t\t\t<Param dataType="float" name="width" ucd="time.duration;src.var.pulse" unit="ms" value="'+str(FRB_width)+'"/>\n')
+        VOEvent_of.write('\t\t\t<Param dataType="float" name="snr" ucd="stat.snr" value="'+str(FRB_SNR)+'"/>\n')
+        VOEvent_of.write('\t\t\t<Param dataType="float" name="flux" ucd="phot.flux" unit="Jy" value="'+str(FRB_flux)+'"/>\n')
+        VOEvent_of.write('\t\t\t<Param dataType="float" name="gl" ucd="pos.galactic.lon" unit="Degrees" value="'+str(FRB_gl)+'"/>\n')
+        VOEvent_of.write('\t\t\t<Param dataType="float" name="gb" ucd="pos.galactic.lat" unit="Degrees" value="'+str(FRB_gb)+'"/>\n')
+        VOEvent_of.write('\t\t</Group>\n')
+        VOEvent_of.write('\t\t<Group name="advanced parameters">\n')
+        VOEvent_of.write('\t\t\t<Param dataType="float" name="MW_dm_limit" unit="pc/cm^3" value="34.9"/>\n')
+        VOEvent_of.write('\t\t\t\t</Param>\n')
+        VOEvent_of.write('\t\t</Group>\n')
+        VOEvent_of.write('\t</What>\n')
+        #WhereWhen
+        VOEvent_of.write('\t<WhereWhen>\n')
+        VOEvent_of.write('\t\t<ObsDataLocation>\n')
+        VOEvent_of.write('\t\t\t<ObservatoryLocation id="VLA">\n')
+        VOEvent_of.write('\t\t\t<AstroCoordSystem id="UTC-GEOD-TOPO"/>\n')
+        VOEvent_of.write('\t\t\t<AstroCoords coord_system_id="UTC-GEOD-TOPO">\n')
+        VOEvent_of.write('\t\t\t<Position3D unit="deg-deg-m">\n')
+        VOEvent_of.write('\t\t\t  <Value3>\n')
+        VOEvent_of.write('\t\t\t    <C1>107.6184</C1>\n')
+        VOEvent_of.write('\t\t\t    <C2>34.0784</C2>\n')
+        VOEvent_of.write('\t\t\t    <C3>2124.456</C3>\n')
+        VOEvent_of.write('\t\t\t  </Value3>\n')
+        VOEvent_of.write('\t\t\t</Position3D>\n')
+        VOEvent_of.write('\t\t\t</AstroCoords>\n')
+        VOEvent_of.write('\t\t\t</ObservatoryLocation>\n')
+        VOEvent_of.write('\t\t\t<ObservationLocation>\n')
+        VOEvent_of.write('\t\t\t\t<AstroCoordSystem id="UTC-FK5-GEO"/><AstroCoords coord_system_id="UTC-FK5-GEO">\n')
+        VOEvent_of.write('\t\t\t\t<Time unit="s"><TimeInstant><ISOTime>'+FRB_ISOT+'</ISOTime></TimeInstant></Time>\n')
+        VOEvent_of.write('\t\t\t\t<Position2D unit="deg"><Name1>RA</Name1><Name2>Dec</Name2><Value2><C1>'+str(srcra)+'</C1><C2>'+str(srcdec)+'</C2></Value2><Error2Radius>'+str(srcloc_err)+'</Error2Radius></Position2D>\n')
+        VOEvent_of.write('\t\t\t\t</AstroCoords>\n')
+        VOEvent_of.write('\t\t\t</ObservationLocation>\n')
+        VOEvent_of.write('\t\t</ObsDataLocation>\n')
+        VOEvent_of.write('\t</WhereWhen>\n')
+        #How
+        VOEvent_of.write('\t<How>\n')
+        VOEvent_of.write('\t\t</How>\n')
+        #Why
+        VOEvent_of.write('\t<Why importance="'+str(FRB_importance)+'">\n')
+        VOEvent_of.write('\t\t\t<Concept></Concept><Description>Detection of a new FRB by RealFast</Description>\n')
+        VOEvent_of.write('\t\t<Name>'+FRB_NAME+'</Name>\n')
+        VOEvent_of.write('\t</Why>\n')
+        VOEvent_of.write('</voe:VOEvent>')
+        
+        #close file
+        VOEvent_of.close()
+        logger.info('Wrote VOEvent file to {0}'.format(outname))
+        
+    except ValueError:
+        logger.warn('Could not write VOEvent file {0}'.format(outname))
+    
     
