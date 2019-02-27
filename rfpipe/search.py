@@ -62,15 +62,15 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                          .format(name, devicenum))
         except IndexError:
             devicenums = (devicenum,)
-            logger.warn("Could not parse worker name {0}. Using default GPU devicenum {1}"
+            logger.warning("Could not parse worker name {0}. Using default GPU devicenum {1}"
                         .format(name, devicenum))
         except ValueError:
             devicenums = (devicenum,)
-            logger.warn("No worker found. Using default GPU devicenum {0}"
+            logger.warning("No worker found. Using default GPU devicenum {0}"
                         .format(devicenum))
         except ImportError:
             devicenums = (devicenum,)
-            logger.warn("distributed not available. Using default GPU devicenum {0}"
+            logger.warning("distributed not available. Using default GPU devicenum {0}"
                         .format(devicenum))
 
     assert isinstance(devicenums, tuple)
@@ -223,7 +223,7 @@ def rfgpu_gridimage(st, segment, grid, image, vis_raw, vis_grid, img_grid,
                     snr1 = stats['max']/stats['rms']
                 else:
                     snr1 = 0.
-                    logger.warn("rfgpu rms is 0 in int {0}. Skipping."
+                    logger.warning("rfgpu rms is 0 in int {0}. Skipping."
                                 .format(i))
 
                 # threshold image
@@ -275,7 +275,7 @@ def rfgpu_gridimage(st, segment, grid, image, vis_raw, vis_grid, img_grid,
                     elif st.prefs.searchtype == 'armk':
                         raise NotImplementedError
                     else:
-                        logger.warn("searchtype {0} not recognized"
+                        logger.warning("searchtype {0} not recognized"
                                     .format(st.prefs.searchtype))
     return candlocs, l1s, m1s, snr1s, immax1s, snrks
 
@@ -522,7 +522,7 @@ def reproduce_candcollection(cc, data, wisdom=None, spec_std=None, sig_ts=None,
                         logger.info("Calculated snrk of {0} after detection. Adding it to CandData.".format(snrk))
                         kwargs[feature] = snrk
                     else:
-                        logger.warn("Feature calculation {0} not yet supported"
+                        logger.warning("Feature calculation {0} not yet supported"
                                     .format(feature))
 
             cd = rfpipe.reproduce.pipeline_canddata(st, candloc, data_corr,
@@ -555,10 +555,10 @@ def grid_image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,
                                   npixy, uvres, parallel=nthread > 1)
         images = image_fftw(grids, nthread=nthread, wisdom=wisdom)
     elif fftmode == 'cuda':
-        logger.warn("Imaging with cuda not yet supported.")
+        logger.warning("Imaging with cuda not yet supported.")
         images = image_cuda()
     else:
-        logger.warn("Imaging fftmode {0} not supported.".format(fftmode))
+        logger.warning("Imaging fftmode {0} not supported.".format(fftmode))
 
     return images
 
@@ -1185,7 +1185,7 @@ def kalman_significance(spec, spec_std, sig_ts=[], coeffs=[]):
         # return prob in nats. no negatives. rounded for reproducibility.
         return np.round(max(0, np.max(significances) * np.log(2)), 1)
     else:
-        logger.warn("No kalman coeffs calculated, no significance calculated.")
+        logger.warning("No kalman coeffs calculated, no significance calculated.")
         return 0
 
 
@@ -1249,19 +1249,19 @@ def kalman_prepare_coeffs(spec_std, sig_ts=None, n_trial=30000):
     elif isinstance(sig_ts, list):
         sig_ts = np.array(sig_ts)
     else:
-        logger.warn("Not sure what to do with sig_ts {0}".format(sig_ts))
+        logger.warning("Not sure what to do with sig_ts {0}".format(sig_ts))
 
     assert isinstance(sig_ts, np.ndarray)
 
     if not np.all(np.nan_to_num(sig_ts)):
-        logger.warn("sig_ts are bad. Not estimating coeffs.")
+        logger.warning("sig_ts are bad. Not estimating coeffs.")
         return sig_ts, []
 
     logger.info("Measuring Kalman significance distribution for sig_ts {0}".format(sig_ts))
 
     # Are spec_std values ok?
     if not np.any(spec_std):
-        logger.warn("spectrum std all zeros. Not estimating coeffs.")
+        logger.warning("spectrum std all zeros. Not estimating coeffs.")
         return sig_ts, []
     elif len(np.where(spec_std == 0.)[0]) > 0:
         logger.info("Replacing {0} noise spectrum channels with median noise"

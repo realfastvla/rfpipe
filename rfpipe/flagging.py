@@ -26,7 +26,7 @@ def getonlineflags(st, segment):
             flags = getblflags(st.metadata.datasetId, st.blarr,
                                startTime=t0, endTime=t1)
         except (ImportError, Exception):
-            logger.warn("No mcaf antenna flag server flags available")
+            logger.warning("No mcaf antenna flag server flags available")
             flags = np.ones(st.nbl)
 
     if not flags.all():
@@ -53,7 +53,7 @@ def flag_data(st, data):
         elif mode == 'badchtslide':
             flags *= flag_badchtslide(data, arg0, arg1)[:, None, :, :]
         else:
-            logger.warn("Flaging mode {0} not available.".format(mode))
+            logger.warning("Flaging mode {0} not available.".format(mode))
 
     return data*flags
 

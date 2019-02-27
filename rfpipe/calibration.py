@@ -29,7 +29,7 @@ def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1, savesols
         return data
     else:
         if (not os.path.exists(st.gainfile)) or (not os.path.isfile(st.gainfile)):
-            logger.warn('{0} is not a valid gain file. No calibration applied.'
+            logger.warning('{0} is not a valid gain file. No calibration applied.'
                         .format(st.gainfile))
             return data
         else:
@@ -129,7 +129,7 @@ def parseGN(telcalfile):
                 flagged.append('true' == (fields[FLAGGED]))
                 source.append(str(fields[SOURCE]))
             except ValueError:
-                logger.warn('Trouble parsing line of telcal file. Skipping.')
+                logger.warning('Trouble parsing line of telcal file. Skipping.')
                 continue
 
     # TODO: assumes dual pol. update to full pol
@@ -155,7 +155,7 @@ def parseGN(telcalfile):
                             len(np.unique(sols['ifid'])),
                             len(np.unique(sols['antnum']))))
     else:
-        logger.warn('Bad telcalfile {0}. Not parsed properly'.format(telcalfile))
+        logger.warning('Bad telcalfile {0}. Not parsed properly'.format(telcalfile))
         sols = np.array([])
 
     return sols
@@ -330,7 +330,7 @@ class telcal_sol():
             if flagants:
                 self.flagants()
         else:
-            self.logger.warn('Gainfile {0} not found.'.format(telcalfile))
+            self.logger.warning('Gainfile {0} not found.'.format(telcalfile))
             raise IOError
 
     def flagants(self, threshold=50):
@@ -359,11 +359,11 @@ class telcal_sol():
         self.select = self.complete   # use only complete solution sets (set during parse)
         self.blarr = blarr
         if spwind:
-            self.logger.warn('spwind option not used for telcal_sol. Applied based on freqs.')
+            self.logger.warning('spwind option not used for telcal_sol. Applied based on freqs.')
         if radec:
-            self.logger.warn('radec option not used for telcal_sol. Applied based on calname.')
+            self.logger.warning('radec option not used for telcal_sol. Applied based on calname.')
         if dist:
-            self.logger.warn('dist option not used for telcal_sol. Applied based on calname.')
+            self.logger.warning('dist option not used for telcal_sol. Applied based on calname.')
 
         # define pol index
         if 'X' in ''.join(pols) or 'Y' in ''.join(pols):
@@ -380,7 +380,7 @@ class telcal_sol():
                     self.select = self.select[nameselect]       # update overall selection
                     self.logger.debug('Selection down to %d solutions with %s' % (len(self.select), calname))
             if not nameselect:
-                self.logger.warn('Calibrator name %s not found. Ignoring.' % (calname))
+                self.logger.warning('Calibrator name %s not found. Ignoring.' % (calname))
 
         # select freq
         freqselect = np.where([ff in np.around(self.freqs, -6) for ff in np.around(1e6*self.skyfreq[self.select], -6)])   # takes solution if band center is in (rounded) array of chan freqs
@@ -458,7 +458,7 @@ class telcal_sol():
                     el.append(float(fields[EL])); source.append(fields[SOURCE])
 #                   flagreason.append('')  # 18th field not yet implemented
                 except ValueError:
-                    self.logger.warn('Trouble parsing line of telcal file. Skipping.')
+                    self.logger.warning('Trouble parsing line of telcal file. Skipping.')
                     continue
 
         self.mjd = np.array(mjd); self.utc = np.array(utc); self.lstd = np.array(lstd); self.lsts = np.array(lsts)

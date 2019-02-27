@@ -98,11 +98,11 @@ def read_segment(st, segment, cfile=None, timeout=10):
 
     # report bad values
     if np.any(np.isnan(data_read)):
-        logger.warn("Read data has some NaNs")
+        logger.warning("Read data has some NaNs")
     if np.any(np.isinf(data_read)):
-        logger.warn("Read data has some Infs")
+        logger.warning("Read data has some Infs")
     if np.any(np.abs(data_read) > 1e20):
-        logger.warn("Read data has values larger than 1e20")
+        logger.warning("Read data has values larger than 1e20")
 
     if not np.any(data_read):
         logger.info('Read data are all zeros for segment {0}.'.format(segment))
@@ -223,7 +223,7 @@ def prep_standard(st, segment, data, phasecenters=None):
                                                        st.datashape),
                                        requirements='W')
                 except IndexError:
-                    logger.warn("IndexError while adding transient. Skipping...")
+                    logger.warning("IndexError while adding transient. Skipping...")
                     continue
 
                 if st.gainfile is not None:
@@ -367,7 +367,7 @@ def save_noise(st, segment, data, chunk=500):
     except fileLock.FileLock.FileLockException:
         noisefile = ('{0}_seg{1}.pkl'
                      .format(st.noisefile.rstrip('.pkl'), segment))
-        logger.warn('Noise file writing timeout. '
+        logger.warning('Noise file writing timeout. '
                     'Spilling to new file {0}.'.format(noisefile))
         with open(noisefile, 'ab+') as pkl:
             pickle.dump(results, pkl)

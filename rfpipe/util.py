@@ -70,7 +70,7 @@ def meantsub(data, parallel=False):
     if parallel:
 #        _ = _meantsub_gu(np.require(np.swapaxes(data, 0, 3), requirements='W'))
         _meantsub_jit(np.require(data, requirements='W'))
-        logger.warn("Parallel implementation of meantsub not working with flags. Using single threaded version.")
+        logger.warning("Parallel implementation of meantsub not working with flags. Using single threaded version.")
     else:
         _meantsub_jit(np.require(data, requirements='W'))
     return data
@@ -479,6 +479,6 @@ def make_transient_data(st, amp, i0, dm, dt, ampslope=0.):
         model[chans[ir3], i_f[ir3]+1] += f1[ir3]*ampspec[chans[ir3]]
         model[chans[ir3], i_f[ir3]+2] += f2[ir3]*ampspec[chans[ir3]]
     if np.any(i_r >= 4):
-        logger.warn("Some channels broadened more than 3 integrations, which is not yet supported.")
+        logger.warning("Some channels broadened more than 3 integrations, which is not yet supported.")
 
     return model

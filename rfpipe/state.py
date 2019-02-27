@@ -150,7 +150,7 @@ class State(object):
             # TODO: remove for datasource=vys or sim
             spworder = np.argsort(self.metadata.spw_reffreq)
             if np.any(spworder != np.sort(spworder)) and self.metadata.datasource == 'sdm':
-                logger.warn('BDF spw sorted to increasing order from {0}'
+                logger.warning('BDF spw sorted to increasing order from {0}'
                             .format(spworder))
 
             logger.info('\t Freq range: {0:.3f} -- {1:.3f}'
@@ -225,7 +225,7 @@ class State(object):
                     logger.info('\t Clustering candidates wth min_cluster_size={0} and min_samples={1}'
                                 .format(min_cluster_size, min_samples))
                     if min_cluster_size <= len(self.dtarr):
-                        logger.warn("min_cluster_size should be > len(dtarr) for best results")
+                        logger.warning("min_cluster_size should be > len(dtarr) for best results")
                 elif isinstance(self.prefs.clustercands, bool):
                     if self.prefs.clustercands:
                         logger.info('\t Clustering candidates wth default parameters')
@@ -268,7 +268,7 @@ class State(object):
                 return list(range((self.dmshifts[-1]//self.dtarr[dtind]-self.dmshifts[dmind]//self.dtarr[dtind]),
                                   (self.readints//self.dtarr[dtind]-self.dmshifts[dmind]//self.dtarr[dtind])))
         else:
-            logger.warn("No segment {0} in scan".format(segment))
+            logger.warning("No segment {0} in scan".format(segment))
 
     @property
     def version(self):
@@ -422,7 +422,7 @@ class State(object):
         elif isinstance(self.prefs.selectpol, list):
             return [pp for pp in self.metadata.pols_orig if pp in self.prefs.selectpol]
         else:
-            logger.warn('selectpol of {0} not supported'
+            logger.warning('selectpol of {0} not supported'
                         .format(self.prefs.selectpol))
 
     @property
@@ -644,7 +644,7 @@ class State(object):
         # if np.where output
         if isinstance(peaky, np.ndarray):
             if len(peakx) > 1 or len(peaky) > 1:
-                logger.warn("More than one peak pixel ({0}, {1}). Using first."
+                logger.warning("More than one peak pixel ({0}, {1}). Using first."
                             .format(peakx, peaky))
             peaky = peaky[0]
             peakx = peakx[0]
@@ -739,7 +739,7 @@ class State(object):
 #        elif self.prefs.nfalse is not None:
 #            return self.thresholdlevel(self.prefs.nfalse)
 #        else:
-#            logger.warn("Cannot set sigma_image1 from given preferences")
+#            logger.warning("Cannot set sigma_image1 from given preferences")
 
     @property
     def datashape(self):

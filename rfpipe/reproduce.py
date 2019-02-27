@@ -30,7 +30,7 @@ def oldcands_read(candsfile, sdmscan=None):
             loc = np.array(list(ret.keys()))
             prop = np.array(list(ret.values()))
         else:
-            logger.warn("Not sure what we've got in this here cands pkl file...")
+            logger.warning("Not sure what we've got in this here cands pkl file...")
 
     if sdmscan is None:  # and (u'scan' in d['featureind']):
 #        scanind = d['featureind'].index('scan')
@@ -70,7 +70,7 @@ def oldcands_readone(candsfile, scan=None):
             loc = np.array(list(ret.keys()))
             prop = np.array(list(ret.values()))
         else:
-            logger.warn("Not sure what we've got in this here cands pkl file...")
+            logger.warning("Not sure what we've got in this here cands pkl file...")
 
     # detect merged vs nonmerged
     if 'scan' in d['featureind']:

@@ -186,7 +186,7 @@ def make_metadata(inmeta=None, config=None, sdmfile=None, sdmscan=None,
             meta = config_metadata(config, datasource=datasource)
         else:
             if inmeta is None:
-                logger.warn("Provide either inmeta, sdmfile/sdmscan, or config object to define metadata. Empty metadata dict being created.")
+                logger.warning("Provide either inmeta, sdmfile/sdmscan, or config object to define metadata. Empty metadata dict being created.")
             meta = {}
 
         # optionally overload metadata
@@ -197,7 +197,7 @@ def make_metadata(inmeta=None, config=None, sdmfile=None, sdmscan=None,
             for key in meta:
                 logger.debug(key, meta[key], type(meta[key]))
         else:
-            logger.warn("inmeta not dict, Metadata, or None. Not parsed.")
+            logger.warning("inmeta not dict, Metadata, or None. Not parsed.")
 
         return Metadata(**meta)
 
@@ -282,7 +282,7 @@ def sdm_metadata(sdmfile, scan, subscan=1, bdfdir=None):
         inttime = scanobj.bdf.get_integration(0).interval
         meta['inttime'] = inttime
     except (AttributeError, TypeError):
-        logger.warn("No BDF found. inttime not set.")
+        logger.warning("No BDF found. inttime not set.")
 
     meta['source'] = str(scanobj.source)
     meta['intent'] = ' '.join(scanobj.intents)
@@ -300,7 +300,7 @@ def sdm_metadata(sdmfile, scan, subscan=1, bdfdir=None):
     try:
         meta['pols_orig'] = scanobj.bdf.spws[0].pols('cross')
     except AttributeError:
-        logger.warn("No BDF found. Inferring pols from xml.")
+        logger.warning("No BDF found. Inferring pols from xml.")
         meta['pols_orig'] = [pol for pol in (str(sdm['Polarization'][0]
                                                  .corrType)).strip().split(' ')
                              if pol in ['XX', 'YY', 'XY', 'YX',
@@ -317,7 +317,7 @@ def sdm_metadata(sdmfile, scan, subscan=1, bdfdir=None):
                                 for spw in scanobj.bdf.spws]
 
     except AttributeError:
-        logger.warn("No BDF found. spworder/quantization not defined.")
+        logger.warning("No BDF found. spworder/quantization not defined.")
 
     return meta
 
@@ -418,7 +418,7 @@ def mock_metadata(t0, t1, nants, nspw, chans, npol, inttime_micros, scan=1,
         low, high = 40e9, 50e9
         chansize = 2e6
     else:
-        logger.warn("band ({0}) not recognized. Assuming S.".format(band))
+        logger.warning("band ({0}) not recognized. Assuming S.".format(band))
         low, high = 2e9, 4e9
     meta['spw_reffreq'] = np.linspace(low, high, 16)[:nspw]
     meta['spw_chansize'] = [chansize]*nspw
@@ -433,7 +433,7 @@ def mock_metadata(t0, t1, nants, nspw, chans, npol, inttime_micros, scan=1,
         elif npol == 2:
             meta['pols_orig'] = ['A*A', 'B*B']
         else:
-            logger.warn("npol must be 2 or 4 (autos or full pol)")
+            logger.warning("npol must be 2 or 4 (autos or full pol)")
     meta['spworder'] = sorted([('{0}-{1}'.format('AC1', sbid),
                                 meta['spw_reffreq'][sbid])
                                for sbid in range(nspw)], key=lambda x: x[1])

@@ -52,7 +52,7 @@ def prep_and_search(st, segment, data, devicenum=None, phasecenters=None):
     elif st.prefs.fftmode == "fftw":
         candcollection = search.dedisperse_search_fftw(st, segment, data)
     else:
-        logger.warn("fftmode {0} not recognized (cuda, fftw allowed)"
+        logger.warning("fftmode {0} not recognized (cuda, fftw allowed)"
                     .format(st.prefs.fftmode))
 
     return candcollection

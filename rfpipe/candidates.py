@@ -242,10 +242,10 @@ class CandCollection(object):
             if len(segments) == 1:
                 return int(segments[0])
             elif len(segments) > 1:
-                logger.warn("Multiple segments in this collection")
+                logger.warning("Multiple segments in this collection")
                 return segments
             else:
-                logger.warn("No candidates in this collection")
+                logger.warning("No candidates in this collection")
                 return None
         else:
             return None
@@ -407,7 +407,7 @@ def save_and_plot(canddatalist):
         if not len(canddatalist):
             return CandCollection()
     else:
-        logger.warn("argument must be list of CandData object")
+        logger.warning("argument must be list of CandData object")
 
     logger.info('Calculating features for {0} candidate{1}.'
                 .format(len(canddatalist), 's'[not len(canddatalist)-1:]))
@@ -574,7 +574,7 @@ def cluster_candidates(cc, downsample_xy=1, returnclusterer=False, label_unclust
                 logger.info("Not performing clustering")
                 return cc1
         else:
-            logger.warn("No clustering. prefs.clustercands value not valid: {0}."
+            logger.warning("No clustering. prefs.clustercands value not valid: {0}."
                         .format(cc1.prefs.clustercands))
             return cc1
 
@@ -683,7 +683,7 @@ def save_cands(st, candcollection=None, canddata=None):
                 segment = canddata.loc[0]
                 newcandsfile = ('{0}_seg{1}.pkl'
                                 .format(st.candsfile.rstrip('.pkl'), segment))
-                logger.warn('Candidate file writing timeout. '
+                logger.warning('Candidate file writing timeout. '
                             'Spilling to new file {0}.'.format(newcandsfile))
                 with open(newcandsfile, 'ab+') as pkl:
                     pickle.dump(canddata, pkl)
@@ -706,7 +706,7 @@ def save_cands(st, candcollection=None, canddata=None):
                 segment = candcollection.segment
                 newcandsfile = ('{0}_seg{1}.pkl'
                                 .format(st.candsfile.rstrip('.pkl'), segment))
-                logger.warn('Candidate file writing timeout. '
+                logger.warning('Candidate file writing timeout. '
                             'Spilling to new file {0}.'.format(newcandsfile))
                 with open(newcandsfile, 'ab+') as pkl:
                     pickle.dump(candcollection, pkl)
@@ -1522,7 +1522,7 @@ def candplot(canddatalist, snrs=None, cluster=None, outname=''):
             canvas.print_figure(outname)
             logger.info('Wrote candidate plot to {0}'.format(outname))
         except ValueError:
-            logger.warn('Could not write figure to {0}'.format(outname))
+            logger.warning('Could not write figure to {0}'.format(outname))
 
 
 def source_location(pt_ra, pt_dec, l1, m1):
