@@ -1578,8 +1578,8 @@ def make_voevent(canddata):
         VOEvent_of.write('\t\t\t<Param dataType="float" name="gb" ucd="pos.galactic.lat" unit="Degrees" value="'+str(FRB_gb)+'"/>\n')
         VOEvent_of.write('\t\t</Group>\n')
         VOEvent_of.write('\t\t<Group name="advanced parameters">\n')
-        VOEvent_of.write('\t\t\t<Param dataType="float" name="MW_dm_limit" unit="pc/cm^3" value="34.9"/>\n')
-        VOEvent_of.write('\t\t\t\t</Param>\n')
+        #VOEvent_of.write('\t\t\t<Param dataType="float" name="MW_dm_limit" unit="pc/cm^3" value="34.9"/>\n')
+        #VOEvent_of.write('\t\t\t\t</Param>\n')
         VOEvent_of.write('\t\t</Group>\n')
         VOEvent_of.write('\t</What>\n')
         #WhereWhen
