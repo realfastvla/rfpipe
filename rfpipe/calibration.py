@@ -62,6 +62,7 @@ def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1, savesols
             else:
                 gaindelay = np.zeros_like(data)
 
+        # TODO: add ability to return solution date as mjd
         return data*gaindelay
 
 

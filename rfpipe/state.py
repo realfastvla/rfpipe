@@ -303,7 +303,7 @@ class State(object):
     @property
     def freq(self):
         """ Frequencies for each channel in increasing order.
-        Metadata may be out of order, but state/data reading order is sorted.
+        TODO: test effect of metadata spw out of order (but not data reading order?)
         """
 
         # TODO: add support for frequency downsampling

@@ -53,8 +53,9 @@ def prep_and_search(st, segment, data, devicenum=None, phasecenters=None):
         candcollection = search.dedisperse_search_fftw(st, segment, data)
     else:
         logger.warning("fftmode {0} not recognized (cuda, fftw allowed)"
-                    .format(st.prefs.fftmode))
+                       .format(st.prefs.fftmode))
 
+    # TODO: attach telcal solution time as mjd to candcollection
     return candcollection
 
 

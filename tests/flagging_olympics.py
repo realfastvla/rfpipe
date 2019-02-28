@@ -13,7 +13,7 @@ import os.path
 # insert transients at first, middle, and last integration of simulated data
 transients = [(0, i, 50, 5e-3, 0.1, -0.001, -0.001) for i in [0, 20, 42]]
 
-searchtype = 'imagek'
+searchtype = 'image'
 
 # With/without flagging/timesub
 inprefs = [{'dmarr': [50], 'dtarr': [1], 'npix_max': 1024,
@@ -55,7 +55,7 @@ snrs = {'16A-459_TEST_1hr.57623.72670021991.cut': 37.,
         '16A-496_sb32698778_1_02h00m_000.57648.37452900463.cut': 25.,
         '16A-496_sb32698778_1_02h00m_001.57649.37461215278.cut': 29.}
 
-needsdata = pytest.mark.skipif('repeater' not in os.getcwd(),
+needsdata = pytest.mark.skipif('r1' not in os.getcwd(),
                                reason='Must be in repeater data directory')
 
 

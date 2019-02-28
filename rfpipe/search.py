@@ -224,7 +224,7 @@ def rfgpu_gridimage(st, segment, grid, image, vis_raw, vis_grid, img_grid,
                 else:
                     snr1 = 0.
                     logger.warning("rfgpu rms is 0 in int {0}. Skipping."
-                                .format(i))
+                                   .format(i))
 
                 # threshold image
                 if snr1 > st.prefs.sigma_image1:
@@ -799,8 +799,8 @@ def dedisperseresample(data, delay, dt, parallel=False, resamplefirst=True):
     newsh = (int64(nint-delay.max())//dt, nbl, nchan, npol)
 
     if resamplefirst:
-        result = resample(data, dt)
-        result = dedisperse(result, delay//dt)
+        result = resample(data, dt, parallel=parallel)
+        result = dedisperse(result, delay//dt, parallel=parallel)
         return result
     else:
         if parallel:
