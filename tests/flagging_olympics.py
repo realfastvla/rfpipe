@@ -11,9 +11,9 @@ import os.path
 # in four set ups: no timesub/flagging, no timesub, no flagging, with both.
 
 # insert transients at first, middle, and last integration of simulated data
-transients = [(0, i, 50, 5e-3, 0.1, -0.001, -0.001) for i in [0, 20, 42]]
+transients = [(0, i, 50, 5e-3, 0.1, -0.001, -0.001) for i in [0, 20]]
 
-searchtype = 'image'
+searchtype = 'imagek'
 
 # With/without flagging/timesub
 inprefs = [{'dmarr': [50], 'dtarr': [1], 'npix_max': 1024,

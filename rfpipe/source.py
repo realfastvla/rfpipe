@@ -20,7 +20,8 @@ except ImportError:
 qa = casautil.tools.quanta()
 
 
-def data_prep(st, segment, data, flagversion="latest", phasecenters=None):
+def data_prep(st, segment, data, flagversion="latest", phasecenters=None,
+              returnsoltime=False):
     """ Applies calibration, flags, and subtracts time mean for data.
     flagversion can be "latest" or "rtpipe".
     Optionally prepares data with antenna flags, fixing out of order data,
@@ -45,8 +46,13 @@ def data_prep(st, segment, data, flagversion="latest", phasecenters=None):
 
     if st.gainfile is not None:
         logger.info("Applying calibration with {0}".format(st.gainfile))
-        datap = calibration.apply_telcal(st, datap, savesols=st.prefs.savesols)
-        # TODO: add feature to return telcal solution time as mjd
+        ret = calibration.apply_telcal(st, datap, savesols=st.prefs.savesols,
+                                       returnsoltime=returnsoltime)
+        if returnsoltime:
+            datap, soltime = ret
+        else:
+            datap = ret
+
         if not np.any(datap):
             logger.info("All data zeros after apply_telcal")
             return datap
@@ -69,7 +75,10 @@ def data_prep(st, segment, data, flagversion="latest", phasecenters=None):
     if st.prefs.savenoise:
         save_noise(st, segment, datap)
 
-    return datap
+    if returnsoltime:
+        return datap, soltime
+    else:
+        return datap
 
 
 def read_segment(st, segment, cfile=None, timeout=10):

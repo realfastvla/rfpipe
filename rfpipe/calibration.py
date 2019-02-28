@@ -15,7 +15,8 @@ logger = logging.getLogger(__name__)
 
 ### Functional form
 
-def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1, savesols=False):
+def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1,
+                 savesols=False, returnsoltime=False):
     """ Wrap all telcal functions to parse telcal file and apply it to data
     sign defines if calibration is applied (+1) or backed out (-1).
     assumes dual pol and that each spw has same nch and chansize.
@@ -30,7 +31,7 @@ def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1, savesols
     else:
         if (not os.path.exists(st.gainfile)) or (not os.path.isfile(st.gainfile)):
             logger.warning('{0} is not a valid gain file. No calibration applied.'
-                        .format(st.gainfile))
+                           .format(st.gainfile))
             return data
         else:
             sols = getsols(st, threshold=threshold, onlycomplete=onlycomplete, savesols=savesols)
@@ -62,8 +63,11 @@ def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1, savesols
             else:
                 gaindelay = np.zeros_like(data)
 
-        # TODO: add ability to return solution date as mjd
-        return data*gaindelay
+        if returnsoltime:
+            soltime = np.unique(sols['mjd'])
+            return data*gaindelay, soltime
+        else:
+            return data*gaindelay
 
 
 def getsols(st, threshold=1/10., onlycomplete=True, mode='realtime', savesols=False):

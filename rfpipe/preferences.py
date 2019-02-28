@@ -86,7 +86,8 @@ class Preferences(object):
     clustercands = attr.ib(default=None)  # 2-tuple with hdbscan params (min_cluster_size, min_samples)
 
     savenoise = attr.ib(default=False)
-    savecands = attr.ib(default=False)
+    savecandcollection = attr.ib(default=False)
+    savecanddata = attr.ib(default=False)
     saveplots = attr.ib(default=False)
     savesols = attr.ib(default=False)
     candsfile = attr.ib(default=None)
@@ -102,16 +103,18 @@ class Preferences(object):
         """
 
         keys = sorted(self.__dict__)
-        excludekeys = ["gainfile"]
-        return OrderedDict([(key, self.__dict__[key]) for key in keys
-                            if key not in excludekeys])
+        return OrderedDict([(key, self.__dict__[key]) for key in keys])
 
     @property
     def json(self):
         """ json string that can be loaded into elasticsearch or hashed.
         """
 
-        return json.dumps(self.ordered).encode('utf-8')
+        excludekeys = ["gainfile"]
+        ordered2 = OrderedDict([(key, value)
+                                for (key, value) in self.ordered.items()
+                                if key not in excludekeys])
+        return json.dumps(ordered2).encode('utf-8')
 
     @property
     def name(self):

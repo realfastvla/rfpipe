@@ -439,7 +439,7 @@ def save_and_plot(canddatalist):
 
     candcollection = make_candcollection(st, **kwargs)
 
-    if (st.prefs.savecands or st.prefs.saveplots) and len(candcollection.array):
+    if (st.prefs.savecanddata or st.prefs.savecandcollection or st.prefs.saveplots) and len(candcollection):
         if len(candcollection) > 1:
             snrs = candcollection.array['snr1'].flatten()
         elif len(candcollection) == 1:
@@ -447,7 +447,7 @@ def save_and_plot(canddatalist):
 
         # save cc and save/plot each canddata
         for i, canddata in enumerate(canddatalist):
-            if st.prefs.savecands:
+            if st.prefs.savecanddata:
                 save_cands(st, canddata=canddata)
             if st.prefs.saveplots:
                 if canddata.cluster is not None:
@@ -671,7 +671,7 @@ def save_cands(st, candcollection=None, canddata=None):
     """
 
     if canddata is not None:
-        if st.prefs.savecands:
+        if st.prefs.savecanddata:
             logger.info('Saving CandData to {0}.'.format(st.candsfile))
 
             try:
@@ -684,7 +684,7 @@ def save_cands(st, candcollection=None, canddata=None):
                 newcandsfile = ('{0}_seg{1}.pkl'
                                 .format(st.candsfile.rstrip('.pkl'), segment))
                 logger.warning('Candidate file writing timeout. '
-                            'Spilling to new file {0}.'.format(newcandsfile))
+                               'Spilling to new file {0}.'.format(newcandsfile))
                 with open(newcandsfile, 'ab+') as pkl:
                     pickle.dump(canddata, pkl)
 
@@ -692,7 +692,7 @@ def save_cands(st, candcollection=None, canddata=None):
             logger.info('Not saving CandData.')
 
     if candcollection is not None:
-        if st.prefs.savecands:
+        if st.prefs.savecandcollection and len(candcollection):
             logger.info('Saving {0} candidate{1} to {2}.'
                         .format(len(candcollection),
                                 's'[not len(candcollection)-1:], st.candsfile))
@@ -707,7 +707,7 @@ def save_cands(st, candcollection=None, canddata=None):
                 newcandsfile = ('{0}_seg{1}.pkl'
                                 .format(st.candsfile.rstrip('.pkl'), segment))
                 logger.warning('Candidate file writing timeout. '
-                            'Spilling to new file {0}.'.format(newcandsfile))
+                               'Spilling to new file {0}.'.format(newcandsfile))
                 with open(newcandsfile, 'ab+') as pkl:
                     pickle.dump(candcollection, pkl)
         else:

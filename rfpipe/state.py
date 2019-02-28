@@ -147,11 +147,11 @@ class State(object):
             logger.info('\t nchan, nspw: {0}, {1}'
                         .format(self.nchan, self.nspw))
 
-            # TODO: remove for datasource=vys or sim
-            spworder = np.argsort(self.metadata.spw_reffreq)
-            if np.any(spworder != np.sort(spworder)) and self.metadata.datasource == 'sdm':
-                logger.warning('BDF spw sorted to increasing order from {0}'
-                            .format(spworder))
+            # TODO: remove for datasource=vys or sim? or remove altogether?
+#            spworder = np.argsort(self.metadata.spw_reffreq)
+#            if np.any(spworder != np.sort(spworder)) and self.metadata.datasource == 'sdm':
+#                logger.warning('BDF spw sorted to increasing order from {0}'
+#                            .format(spworder))
 
             logger.info('\t Freq range: {0:.3f} -- {1:.3f}'
                         .format(self.freq.min(), self.freq.max()))
@@ -308,7 +308,7 @@ class State(object):
 
         # TODO: add support for frequency downsampling
 
-        return np.sort(self.metadata.freq_orig)[self.chans]
+        return self.metadata.freq_orig[self.chans]
 
     @property
     def chans(self):

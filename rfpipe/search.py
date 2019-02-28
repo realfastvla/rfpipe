@@ -160,7 +160,9 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                 threads.append(ex.submit(rfgpu_gridimage, st, segment,
                                          grids[i_dn], images[i_dn], vis_raw,
                                          vis_grids[i_dn], img_grids[i_dn],
-                                         dminds[i_dn], dtind, devicenums[i_dn]))
+                                         dminds[i_dn], dtind, devicenums[i_dn],
+                                         data=data, uvw=uvw, spec_std=spec_std,
+                                         sig_ts=sig_ts, kalman_coeffs=kalman_coeffs))
 
             for thread in futures.as_completed(threads):
                 candlocs, l1s, m1s, snr1s, immax1s, snrks = thread.result()
@@ -180,11 +182,11 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
         # TODO: find a way to return values as systematic data quality test
 
     # triggers optional plotting and saving
-    if st.prefs.savecands or st.prefs.saveplots:
+    if st.prefs.savecanddata or st.prefs.savecandcollection or st.prefs.saveplots:
         cc = reproduce_candcollection(cc, data, spec_std=spec_std,
                                       sig_ts=sig_ts, kalman_coeffs=kalman_coeffs)
-
-    candidates.save_cands(st, candcollection=cc)
+    if st.prefs.savecandcollection:
+        candidates.save_cands(st, candcollection=cc)
 
     return cc
 
@@ -443,7 +445,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
         # TODO: find a way to return values as systematic data quality test
 
     # calc other features for cc, plot, save
-    if st.prefs.savecands or st.prefs.saveplots:
+    if st.prefs.savecanddata or st.prefs.savecandcollection or st.prefs.saveplots:
         cc = reproduce_candcollection(cc, data, spec_std=spec_std,
                                       sig_ts=sig_ts,
                                       kalman_coeffs=kalman_coeffs)
@@ -523,7 +525,7 @@ def reproduce_candcollection(cc, data, wisdom=None, spec_std=None, sig_ts=None,
                         kwargs[feature] = snrk
                     else:
                         logger.warning("Feature calculation {0} not yet supported"
-                                    .format(feature))
+                                       .format(feature))
 
             cd = rfpipe.reproduce.pipeline_canddata(st, candloc, data_corr,
                                                     sig_ts=sig_ts,
