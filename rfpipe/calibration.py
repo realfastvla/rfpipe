@@ -34,7 +34,8 @@ def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1,
                            .format(st.gainfile))
             return data
         else:
-            sols = getsols(st, threshold=threshold, onlycomplete=onlycomplete, savesols=savesols)
+            sols = getsols(st, threshold=threshold, onlycomplete=onlycomplete,
+                           savesols=savesols)
 
             pols = [0, 1]
             reffreq, nchan, chansize = zip(*sorted(zip(st.metadata.spw_reffreq,
@@ -282,7 +283,7 @@ def calcgaindelay(sols, bls, freqarr, pols, chansize, nch, sign=1):
                 d1 = 0.
                 d2 = 0.
                 for sol in sols:
-                    if ((sol['polarization'] == pols[pi]) and (sol['skyfreq']-freqarr[fi] < chansize) and (not sol['flagged'])):
+                    if ((sol['polarization'] == pols[pi]) and (np.abs(sol['skyfreq']-freqarr[fi]) < chansize) and (not sol['flagged'])):
                         if sol['antnum'] == ant1:
                             g1 = sol['amp']*np.exp(1j*np.radians(sol['phase']))
                             d1 = sol['delay']

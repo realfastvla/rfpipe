@@ -310,7 +310,6 @@ def sdm_metadata(sdmfile, scan, subscan=1, bdfdir=None):
                                         'RR', 'LL', 'RL', 'LR',
                                         'A*A', 'A*B', 'B*A', 'B*B']]
     try:
-        # TODO: remove for datasource=vys or sim?
         meta['spworder'] = sorted(zip(['{0}-{1}'.format(spw.swbb.rstrip('_8BIT'),
                                                         spw.sw-1)
                                        for spw in scanobj.bdf.spws],

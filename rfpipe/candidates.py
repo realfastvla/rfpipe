@@ -1380,6 +1380,7 @@ def candplot(canddatalist, snrs=None, cluster=None, outname=''):
                              interpolation='nearest', aspect='auto',
                              cmap=plt.get_cmap(colormap))
         spw_reffreq = np.sort(st.metadata.spw_reffreq)
+        # TODO: need to find best chan for label even for overlapping spw
         spw_chans = [np.abs(reffreq/1e9-st.freq).argmin() for reffreq in spw_reffreq]
         ax_dynsp1.set_yticks(spw_chans)
         ax_dynsp1.set_yticklabels((spw_reffreq/1e9).round(3))

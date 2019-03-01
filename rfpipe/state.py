@@ -331,6 +331,7 @@ class State(object):
     def spw(self):
         """ List of spectral windows used.
         ** TODO: update for proper naming "basband"+"swindex"
+        ** OR: reflect spworder here and select for spw
         """
 
         if self.prefs.spw:
