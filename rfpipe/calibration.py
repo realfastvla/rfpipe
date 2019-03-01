@@ -37,9 +37,9 @@ def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1,
             sols = getsols(st, threshold=threshold, onlycomplete=onlycomplete, savesols=savesols)
 
             pols = [0, 1]
-            reffreq = np.array(st.metadata.spw_reffreq)
-            chansize = np.array(st.metadata.spw_chansize)
-            nchan = np.array(st.metadata.spw_nchan)
+            reffreq, nchan, chansize = zip(*sorted(zip(st.metadata.spw_reffreq,
+                                                       st.metadata.spw_nchan,
+                                                       st.metadata.spw_chansize)))
             skyfreqs = np.around(reffreq + (chansize*nchan//2), -6)/1e6  # GN skyfreq is band center
             solskyfreqs = np.unique(sols['skyfreq'])
             logger.info("Applying solutions from frequencies {0} to data frequencies {1}"
@@ -70,7 +70,8 @@ def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1,
             return data*gaindelay
 
 
-def getsols(st, threshold=1/10., onlycomplete=True, mode='realtime', savesols=False):
+def getsols(st, threshold=1/10., onlycomplete=True, mode='realtime',
+            savesols=False):
     """ Select good set of solutions.
     realtime mode will only select solutions in the past.
     savesols will save the read/selected data to a pkl file for debugging.
