@@ -1248,7 +1248,7 @@ def candplot(canddatalist, snrs=None, cluster=None, outname=''):
         _ = ax_dynsp3.imshow(dd3, origin='lower', interpolation='nearest',
                              aspect='auto', cmap=plt.get_cmap(colormap))
         ax_dynsp1.set_yticks(list(range(0, len(st.freq), 30)))
-        ax_dynsp1.set_yticklabels(st.freq[::30])
+        ax_dynsp1.set_yticklabels(st.freq[::30].round(3))
         ax_dynsp1.set_ylabel('Freq (GHz)')
         ax_dynsp1.set_xlabel('RR')
         ax_dynsp1.xaxis.set_label_position('top')
@@ -1379,10 +1379,10 @@ def candplot(canddatalist, snrs=None, cluster=None, outname=''):
         _ = ax_dynsp3.imshow(dd3avgcrop, origin='lower',
                              interpolation='nearest', aspect='auto',
                              cmap=plt.get_cmap(colormap))
-        spw_reffreq = np.array(st.metadata.spw_reffreq)
+        spw_reffreq = np.sort(st.metadata.spw_reffreq)
         spw_chans = [np.abs(reffreq/1e9-st.freq).argmin() for reffreq in spw_reffreq]
         ax_dynsp1.set_yticks(spw_chans)
-        ax_dynsp1.set_yticklabels(spw_reffreq/1e9)
+        ax_dynsp1.set_yticklabels((spw_reffreq/1e9).round(3))
         ax_dynsp1.set_ylabel('Freq of SPW (GHz)')
         ax_dynsp1.set_xlabel('RR')
         ax_dynsp1.xaxis.set_label_position('top')

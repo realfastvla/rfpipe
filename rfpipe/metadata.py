@@ -75,13 +75,16 @@ class Metadata(object):
     @property
     def freq_orig(self):
         """Spacing of channel centers in GHz.
-        Out of order metadata order is sorted in state/data reading"""
+        Data is read into spw or increasing frequency order.
+        Note that spworder has increasing freq order, but spw_reffreq need not.
+        """
 
-        return np.concatenate([np.linspace(self.spw_reffreq[ii],
-                                           self.spw_reffreq[ii] +
-                                           (self.spw_nchan[ii]-1) *
-                                           self.spw_chansize[ii],
-                                           self.spw_nchan[ii])
+        reffreq, nchan, chansize = zip(*sorted(zip(self.spw_reffreq,
+                                                   self.spw_nchan,
+                                                   self.spw_chansize)))
+        return np.concatenate([np.linspace(reffreq[ii],
+                                           reffreq[ii]+(nchan[ii]-1)*chansize[ii],
+                                           nchan[ii])
                               for ii in range(len((self.spw_reffreq)))]).astype('float32')/1e9
 
     @property

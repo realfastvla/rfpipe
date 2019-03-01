@@ -321,7 +321,7 @@ def read_bdf_segment(st, segment):
 def read_bdf(st, nskip=0):
     """ Uses sdmpy to read a given range of integrations from sdm of given scan.
     readints=0 will read all of bdf (skipping nskip).
-    Returns data in increasing frequency order.
+    Returns data with spw in increasing frequency order.
     """
 
     assert os.path.exists(st.metadata.filename), ('sdmfile {0} does not exist'

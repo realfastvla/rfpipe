@@ -427,8 +427,7 @@ class State(object):
 
     @property
     def uvres_full(self):
-        return int(round(self.metadata.dishdiameter / (3e-1
-                     / self.freq.min()) / 2))
+        return int(round(self.metadata.dishdiameter / (3e-1/self.freq.min()) / 2))
 
     @property
     def npixx_full(self):
