@@ -45,9 +45,8 @@ def prep_and_search(st, segment, data, devicenum=None, phasecenters=None):
     """ Bundles prep and search functions to improve performance in distributed.
     """
 
-    data, soltime = source.data_prep(st, segment, data,
-                                     phasecenters=phasecenters,
-                                     returnsoltime=True)
+    data = source.data_prep(st, segment, data, phasecenters=phasecenters)
+    # TODO: implement   returnsoltime=True
 
     if st.prefs.fftmode == "cuda":
         candcollection = search.dedisperse_search_cuda(st, segment, data,

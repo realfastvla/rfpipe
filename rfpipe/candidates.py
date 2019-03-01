@@ -678,7 +678,7 @@ def save_cands(st, candcollection=None, canddata=None):
                 with fileLock.FileLock(st.candsfile+'.lock', timeout=10):
                     with open(st.candsfile, 'ab+') as pkl:
                         pickle.dump(canddata, pkl)
-                        
+
             except fileLock.FileLock.FileLockException:
                 segment = canddata.loc[0]
                 newcandsfile = ('{0}_seg{1}.pkl'
@@ -866,8 +866,12 @@ def makesummaryplot(candsfile):
     dt = []
     l1 = []
     m1 = []
-    cc = sum(list(iter_cands(candsfile)))
-    if not len(cc):
+    ccs = list(iter_cands(candsfile))
+    if len(ccs):
+        cc = sum(ccs)
+        if not len(cc):
+            return 0
+    else:
         return 0
 
     time.append(cc.candmjd*(24*3600))
