@@ -6,6 +6,7 @@ from io import open
 import pickle
 import numpy as np
 import os.path
+from collections import Counter
 from numba import jit
 from rfpipe import fileLock
 
@@ -51,18 +52,28 @@ def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1,
                                                         chansize[0]/1e6,
                                                         nchan[0], sign=sign),
                                           copy=False).take(st.chans, axis=1)
-                blinds, chans, pols = np.where(gaindelay == 0)
-                if len(blinds):
-                    counts = list(zip(*np.histogram(st.blarr[np.unique(blinds)].flatten(),
-                                                    bins=np.arange(1,
-                                                                   1+max(st.blarr[np.unique(blinds)].flatten())))))
-
-                    logger.info('Missed {0} solutions: {1}'
-                                .format(len(blinds),
-                                        ', '.join(['Ant {1}: {0}'.format(a, b)
-                                                   for (a, b) in counts])))
             else:
                 gaindelay = np.zeros_like(data)
+
+        # check for repeats or bad values
+        repeats = [(item, count) for item, count in Counter(gaindelay[:,::nchan[0]].flatten()).items() if count > 1]
+        if len(repeats):
+            for item, count in repeats:
+                if item == 0j:
+                    logger.info("{0} of {1} telcal solutions zeroed (flagged)"
+                                .format(count, gaindelay[:, ::nchan[0]].size))
+                    blinds, chans, pols = np.where(gaindelay[:, ::nchan[0]] == 0)
+                    if len(blinds):
+                        counts = list(zip(*np.histogram(st.blarr[np.unique(blinds)].flatten(),
+                                                        bins=np.arange(1,
+                                                                       1+max(st.blarr[np.unique(blinds)].flatten())))))
+
+                        logger.info('Flagged solutions for: {0}'
+                                    .format(', '.join(['Ant {1}: {0}'.format(a, b)
+                                                       for (a, b) in counts])))
+                else:
+                    logger.warn("Repeated telcal solutions ({0}: {1}) found. Likely a parsing error!"
+                                .format(item, count))
 
         if returnsoltime:
             soltime = np.unique(sols['mjd'])
