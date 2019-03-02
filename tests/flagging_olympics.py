@@ -42,7 +42,9 @@ indata = [('16A-459_TEST_1hr.57623.72670021991.cut', 6, '16A-459_TEST_1hr.57623.
           ('16A-496_sb32698778_1_02h00m.57645.38915079861.cut', 16, '16A-496_sb32698778_1_02h00m.57645.38915079861.GN'),
           ('16A-496_sb32698778_1_02h00m_000.57646.38643644676.cut', 32, '16A-496_sb32698778_1_02h00m_000.57646.38643644676.GN'),
           ('16A-496_sb32698778_1_02h00m_000.57648.37452900463.cut', 25, '16A-496_sb32698778_1_02h00m_000.57648.37452900463.GN'),
-          ('16A-496_sb32698778_1_02h00m_001.57649.37461215278.cut', 31, '16A-496_sb32698778_1_02h00m_001.57649.37461215278.GN')]
+          ('16A-496_sb32698778_1_02h00m_001.57649.37461215278.cut', 31, '16A-496_sb32698778_1_02h00m_001.57649.37461215278.GN'),
+          ('realfast_19A-331_sb35982945_1_1.58541.41868983796_1551262870989', 1, '19A-331_sb35982945_1_1.58541.41868983796.GN'),
+          ('realfast_19A-331_sb35982945_1_1.58541.41868983796_1551267058385', 1, '19A-331_sb35982945_1_1.58541.41868983796.GN')]
 
 # ideal SNR of FRB 121102 detections at DM=560.0
 snrs = {'16A-459_TEST_1hr.57623.72670021991.cut': 37.,
@@ -53,9 +55,11 @@ snrs = {'16A-459_TEST_1hr.57623.72670021991.cut': 37.,
         '16A-496_sb32698778_1_02h00m.57645.38915079861.cut': 8,
         '16A-496_sb32698778_1_02h00m_000.57646.38643644676.cut': 15.,
         '16A-496_sb32698778_1_02h00m_000.57648.37452900463.cut': 25.,
-        '16A-496_sb32698778_1_02h00m_001.57649.37461215278.cut': 29.}
+        '16A-496_sb32698778_1_02h00m_001.57649.37461215278.cut': 29.,
+        'realfast_19A-331_sb35982945_1_1.58541.41868983796_1551262870989': 0,
+        'realfast_19A-331_sb35982945_1_1.58541.41868983796_1551267058385': 0}
 
-needsdata = pytest.mark.skipif('r1' not in os.getcwd(),
+needsdata = pytest.mark.skipif('olympics' not in os.getcwd(),
                                reason='Must be in repeater data directory')
 
 
@@ -84,23 +88,26 @@ def data_prep_rfi(stsim):
         data[22, :, i, 0] += np.random.normal(0, 0.1, (stsim.nbl,))
     return rfpipe.source.data_prep(stsim, 0, data)
 
-
+@pytest.mark.simfftw
 def test_fftw_sim_rfi(stsim, data_prep_rfi):
     cc = rfpipe.search.dedisperse_search_fftw(stsim, 0, data_prep_rfi)
     assert len(cc)
 
 
+@pytest.mark.simfftw
 def test_fftw_sim(stsim, data_prep):
     cc = rfpipe.search.dedisperse_search_fftw(stsim, 0, data_prep)
     assert len(cc)
 
 
+@pytest.mark.simcuda
 def test_cuda_sim_rfi(stsim, data_prep_rfi):
     rfgpu = pytest.importorskip('rfgpu')
     cc = rfpipe.search.dedisperse_search_cuda(stsim, 0, data_prep_rfi)
     assert len(cc)
 
 
+@pytest.mark.simcuda
 def test_cuda_sim(stsim, data_prep):
     rfgpu = pytest.importorskip('rfgpu')
     cc = rfpipe.search.dedisperse_search_cuda(stsim, 0, data_prep)
@@ -113,8 +120,8 @@ def test_cuda_sim(stsim, data_prep):
 def stdata(request):
     sdmname, sdmscan, gainfile = request.param
     inmeta = rfpipe.metadata.sdm_metadata(sdmname, sdmscan)
-    inprefs = {'dmarr': [555, 565], 'dtarr': [1], 'npix_max': 1024,
-               'timesub': 'mean', 'gainfile': gainfile, 'sigma_image1': 6.,
+    inprefs = {'maxdm': 600, 'dtarr': [1], 'npix_max': 2048,
+               'timesub': 'mean', 'gainfile': gainfile, 'sigma_image1': 7.,
                'sigma_arm': 3, 'sigma_arms': 5, 'sigma_kalman': 1}
     return rfpipe.state.State(inmeta=inmeta, inprefs=inprefs)
 
@@ -126,22 +133,39 @@ def data_prep_data(stdata):
 
 
 @needsdata
+@pytest.mark.datafftw
 def test_fftw_data(stdata, data_prep_data):
     cc = rfpipe.search.dedisperse_search_fftw(stdata, 0, data_prep_data)
-    snrmax = cc.array['snr1'].max()
-    assert snrmax >= 0.7*snrs[stdata.metadata.datasetId]
+    if len(cc):
+        snrmax = cc.array['snr1'].max()
+    else:
+        snrmax = 0
+    snrnom = snrs[stdata.metadata.datasetId]
+    if snrnom > 0:
+        assert snrmax >= 0.7*snrnom, "Expected snr>{0}, but detected {1}".format(0.7*snrnom, snrmax)
+    else:
+        assert snrmax == snrnom, "Expected no detection, but snrmax is {0}".format(snrmax)
 
 
 @needsdata
+@pytest.mark.datacuda
 def test_cuda_data(stdata, data_prep_data):
     rfgpu = pytest.importorskip('rfgpu')
 
     cc = rfpipe.search.dedisperse_search_cuda(stdata, 0, data_prep_data)
-    snrmax = cc.array['snr1'].max()
-    assert snrmax >= 0.7*snrs[stdata.metadata.datasetId]
+    if len(cc):
+        snrmax = cc.array['snr1'].max()
+    else:
+        snrmax = 0
+    snrnom = snrs[stdata.metadata.datasetId]
+    if snrnom > 0:
+        assert snrmax >= 0.7*snrnom, "Expected snr>{0}, but detected {1}".format(0.7*snrnom, snrmax)
+    else:
+        assert snrmax == snrnom, "Expected no detection, but snrmax is {0}".format(snrmax)
 
 
 @needsdata
+@pytest.mark.datafftwcuda
 def test_prepnsearch(stdata, data_prep_data):
     rfgpu = pytest.importorskip('rfgpu')
 
@@ -149,4 +173,4 @@ def test_prepnsearch(stdata, data_prep_data):
     cc0 = rfpipe.search.dedisperse_search_cuda(stdata, 0, data_prep_data)
     stdata.prefs.fftmode = 'fftw'
     cc1 = rfpipe.search.dedisperse_search_fftw(stdata, 0, data_prep_data)
-    assert len(cc0.array) == len(cc1.array)
+    assert len(cc0.array) == len(cc1.array), "FFTW and CUDA search not returning the same results"
