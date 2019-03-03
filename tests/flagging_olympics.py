@@ -125,17 +125,13 @@ def stdata(request):
                'sigma_arm': 3, 'sigma_arms': 5, 'sigma_kalman': 1}
     return rfpipe.state.State(inmeta=inmeta, inprefs=inprefs)
 
-
-@pytest.fixture(scope="module")
-def data_prep_data(stdata):
-    data = rfpipe.source.read_segment(stdata, 0)
-    return rfpipe.source.data_prep(stdata, 0, data)
-
-
 @needsdata
 @pytest.mark.datafftw
-def test_fftw_data(stdata, data_prep_data):
-    cc = rfpipe.search.dedisperse_search_fftw(stdata, 0, data_prep_data)
+def test_fftw_data(stdata):
+    rfgpu = pytest.importorskip('rfgpu')
+    stdata.prefs.fftmode = 'fftw'
+    cc = rfpipe.pipeline.pipeline_scan(stdata)
+
     if len(cc):
         snrmax = cc.array['snr1'].max()
     else:
@@ -149,10 +145,11 @@ def test_fftw_data(stdata, data_prep_data):
 
 @needsdata
 @pytest.mark.datacuda
-def test_cuda_data(stdata, data_prep_data):
+def test_cuda_data(stdata):
     rfgpu = pytest.importorskip('rfgpu')
+    stdata.prefs.fftmode = 'cuda'
+    cc = rfpipe.pipeline.pipeline_scan(stdata)
 
-    cc = rfpipe.search.dedisperse_search_cuda(stdata, 0, data_prep_data)
     if len(cc):
         snrmax = cc.array['snr1'].max()
     else:
@@ -170,7 +167,7 @@ def test_prepnsearch(stdata, data_prep_data):
     rfgpu = pytest.importorskip('rfgpu')
 
     stdata.prefs.fftmode = 'cuda'
-    cc0 = rfpipe.search.dedisperse_search_cuda(stdata, 0, data_prep_data)
+    cc0 = rfpipe.pipeline.pipeline_scan(stdata)
     stdata.prefs.fftmode = 'fftw'
-    cc1 = rfpipe.search.dedisperse_search_fftw(stdata, 0, data_prep_data)
+    cc1 = rfpipe.pipeline.pipeline_scan(stdata)
     assert len(cc0.array) == len(cc1.array), "FFTW and CUDA search not returning the same results"
