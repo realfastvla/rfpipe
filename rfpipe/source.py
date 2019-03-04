@@ -157,7 +157,7 @@ def prep_standard(st, segment, data, phasecenters=None):
                 lastint = np.round((stopmjd-segmenttime0)*24*3600/st.inttime,
                                    1).astype(int)
                 ints0 = list(range(0, lastint))
-                logger.info("segment {0} from {1} to {2} is at phase center {3},{4} for ints {5}"
+                logger.info("Segment {0} from {1} to {2} is at phase center {3},{4} for ints {5}"
                             .format(segment, segmenttime0, segmenttime1, ra0,
                                     dec0, ints0))
                 corrections.append((ints0, 0., 0.),)
@@ -171,8 +171,11 @@ def prep_standard(st, segment, data, phasecenters=None):
                 ints = list(range(firstint, lastint))
                 corrections.append((ints, l1, m1),)
                 phaseend = stopmjd
+                logger.info("Segment {0} from {1} to {2} shifted phase center to {3},{4} for ints {5}"
+                            .format(segment, segmenttime0, segmenttime1, l1,
+                                    m1, ints))
             else:
-                logger.info("phase center at {0},{1} from {2} to {3} not within segment range {4} to {5}"
+                logger.info("Phase center at {0},{1} from {2} to {3} not within segment range {4} to {5}"
                             .format(ra_deg, dec_deg, startmjd, stopmjd,
                                     segmenttime0, segmenttime1))
 
