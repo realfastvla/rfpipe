@@ -8,7 +8,6 @@ from numba import jit, guvectorize, int64
 import pyfftw
 from rfpipe import util, candidates
 import rfpipe.reproduce  # explicit to avoid circular import
-import scipy.stats
 from concurrent import futures
 from itertools import cycle
 from threading import Lock
@@ -625,7 +624,7 @@ def grid_visibilities(data, uvw, npixx, npixy, uvres, parallel=False):
     return grids
 
 
-@jit(nogil=True, nopython=True)
+@jit(nogil=True, nopython=True, cache=True)
 def _grid_visibilities_jit(data, u, v, w, npixx, npixy, uvres, grids):
     b""" Grid visibilities into rounded uv coordinates using jit on single core.
     Rounding not working here, so minor differences with original and
@@ -698,7 +697,7 @@ def dedisperse(data, delay, parallel=False):
         return result
 
 
-@jit(nogil=True, nopython=True)
+@jit(nogil=True, nopython=True, cache=True)
 def _dedisperse_jit(data, delay, result):
 
     nint, nbl, nchan, npol = data.shape
@@ -752,7 +751,7 @@ def resample(data, dt, parallel=False):
         return result
 
 
-@jit(nogil=True, nopython=True)
+@jit(nogil=True, nopython=True, cache=True)
 def _resample_jit(data, dt, result):
 
     nint, nbl, nchan, npol = data.shape
@@ -816,7 +815,7 @@ def dedisperseresample(data, delay, dt, parallel=False, resamplefirst=True):
             return result
 
 
-@jit(nogil=True, nopython=True)
+@jit(nogil=True, nopython=True, cache=True)
 def _dedisperseresample_jit(data, delay, dt, result):
 
     nint, nbl, nchan, npol = data.shape
@@ -1052,7 +1051,7 @@ def get_uvunit(blind, u, v):
     return e
 
 
-@jit(nopython=True)
+@jit(nopython=True, cache=True)
 def projectarms(dpix0, dpix1, T012, npix2):
     """ Take any two locations relative to center and project in a new direction.
     npix2 is size of direction2.
@@ -1064,7 +1063,7 @@ def projectarms(dpix0, dpix1, T012, npix2):
     return newpix
 
 
-@jit(nopython=True)
+@jit(nopython=True, cache=True)
 def thresh_arms(arm0, arm1, arm2, T012, sigma_arm, sigma_trigger, n_max_cands):
     """ Run 3-arm search with sigma_arm per arm and sigma_trigger overall.
     arm0/1/2 are the 1d arm "images" and T012 is the coefficients to map arm0/1
@@ -1125,7 +1124,7 @@ def thresh_arms(arm0, arm1, arm2, T012, sigma_arm, sigma_trigger, n_max_cands):
     return candinds, armlocs, snrarms
 
 
-@jit(nogil=True, nopython=True)
+@jit(nogil=True, nopython=True, cache=True)
 def grid_visibilities_arm_jit(data, uvd, npix, uvres, grids):
     b""" Grid visibilities into rounded uvd coordinates using jit on single core.
     data/uvd are selected for a single arm
@@ -1191,7 +1190,7 @@ def kalman_significance(spec, spec_std, sig_ts=[], coeffs=[]):
         return 0
 
 
-@jit(nopython=True)
+@jit(nopython=True, cache=True)
 def kalman_filter_detector(spec, spec_std, sig_t, A_0=None, sig_0=None):
     """ Core calculation of Kalman estimator of input 1d spectrum data.
     spec/spec_std are 1d spectra in same units.
@@ -1292,6 +1291,8 @@ def kalman_significance_canddata(canddata, sig_ts=[]):
     Calculates coefficients from data and then adds significance to image snr.
     From Barak Zackay
     """
+
+    import scipy.stats
 
     # TODO check how to automate candidate selection of on/off integrations
     onint = 15

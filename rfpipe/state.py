@@ -5,7 +5,6 @@ from io import open
 
 import os
 import numpy as np
-import scipy.stats
 from astropy import time
 from rfpipe import util, version
 import pwkit.environments.casa.util as casautil
@@ -717,6 +716,7 @@ class State(object):
     def nfalse(self, sigma):
         """ Number of thermal-noise false positives per scan at given sigma
         """
+        import scipy.stats
 
         qfrac = scipy.stats.norm.sf(sigma)
         return int(qfrac*self.ntrials)
@@ -724,6 +724,7 @@ class State(object):
     def thresholdlevel(self, nfalse):
         """ Sigma threshold for a given number of false positives per scan
         """
+        import scipy.stats
 
         return scipy.stats.norm.isf(nfalse/self.ntrials)
 

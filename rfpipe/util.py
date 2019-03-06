@@ -43,7 +43,7 @@ def phase_shift(data, uvw, dl, dm, ints=None):
     _phaseshift_jit(data, uvw, dl, dm, ints=ints)
 
 
-@jit(nogil=True, nopython=True)
+@jit(nogil=True, nopython=True, cache=True)
 def _phaseshift_jit(data, uvw, dl, dm, ints):
 
     sh = data.shape
@@ -75,7 +75,7 @@ def meantsub(data, parallel=False):
     return data
 
 
-@jit(nogil=True, nopython=True)
+@jit(nogil=True, nopython=True, cache=True)
 def _meantsub_jit(data):
     """ Calculate mean in time (ignoring zeros) and subtract in place
 
@@ -125,7 +125,7 @@ def _meantsub_gu(data):
 
 
 @cuda.jit
-def meantsub_cuda(data):
+def meantsub_cuda(data, cache=True):
     """ Calculate mean in time (ignoring zeros) and subtract in place """
 
     x, y, z = cuda.grid(3)

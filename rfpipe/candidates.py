@@ -12,11 +12,10 @@ from numpy.lib.recfunctions import append_fields
 from collections import OrderedDict
 import matplotlib as mpl
 from astropy import time
-import scipy.stats.mstats as mstats
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
-from rfpipe import version, fileLock, state
+from rfpipe import version, fileLock
 from bokeh.plotting import ColumnDataSource, Figure, save, output_file
 from bokeh.models import HoverTool
 from bokeh.models import Row
@@ -36,6 +35,7 @@ class CandData(object):
         image, and resampled data phased to candidate.
         TODO: Need to use search_dimensions to infer candloc meaning
         """
+        import scipy.stats.mstats as mstats
 
         self.state = state
         self.loc = tuple(loc)
@@ -58,7 +58,7 @@ class CandData(object):
         else:
             self.clustersize = None
 
-        assert len(loc) == len(state.search_dimensions), ("candidate location "
+        assert len(loc) == len(self.state.search_dimensions), ("candidate location "
                                                           "should set each of "
                                                           "the st.search_dimensions")
 
@@ -340,6 +340,8 @@ class CandCollection(object):
     def state(self):
         """ Sets state by regenerating from the metadata and prefs.
         """
+
+        from rfpipe import state
 
         if self._state is None:
             self._state = state.State(inmeta=self.metadata, inprefs=self.prefs,
