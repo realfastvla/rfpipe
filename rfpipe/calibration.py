@@ -271,7 +271,7 @@ def select(sols, time=None, freqs=None, polarization=None, mode='realtime'):
     return sols[selection]
 
 
-@jit
+@jit(cache=True)
 def calcgaindelay(sols, bls, freqarr, pols, chansize, nch, sign=1):
     """ Build gain calibraion array with shape to project into data
     freqarr is a list of reffreqs in MHz.
@@ -295,52 +295,6 @@ def calcgaindelay(sols, bls, freqarr, pols, chansize, nch, sign=1):
                 d2 = 0.
                 for sol in sols:
                     if ((sol['polarization'] == pols[pi]) and (np.abs(sol['skyfreq']-freqarr[fi]) < chansize) and (not sol['flagged'])):
-                        if sol['antnum'] == ant1:
-                            g1 = sol['amp']*np.exp(1j*np.radians(sol['phase']))
-                            d1 = sol['delay']
-                        if sol['antnum'] == ant2:
-                            g2 = sol['amp']*np.exp(-1j*np.radians(sol['phase']))
-                            d2 = sol['delay']
-
-                if (g1 != 0.) and (g2 != 0.):
-                    if sign == 1:
-                        g1g2 = 1./(g1*g2)
-                    elif sign == -1:
-                        g1g2 = (g1*g2)
-                else:
-                    g1g2 = 0.
-
-                d1d2 = sign*2*np.pi*((d1-d2) * 1e-9) * relfreq
-                gaindelay[bi, fi*nch:(fi+1)*nch, pi] = g1g2*np.exp(-1j*d1d2)
-
-    return gaindelay
-
-
-@jit
-def calcgaindelay_wrong(sols, bls, freqarr, pols, chansize, nch, sign=1):
-    """ Build gain calibraion array with shape to project into data
-    freqarr is a list of reffreqs in MHz.
-    chansize is channel size per spw in MHz.
-    """
-
-    assert sign in [-1, +1], 'sign must be +1 or -1'
-    nspw = len(freqarr)
-    gaindelay = np.zeros((len(bls), nspw*nch, len(pols)), dtype=np.complex64)
-    g1g2 = 0.
-
-    for bi in range(len(bls)):
-        ant1, ant2 = bls[bi]
-        for fi in range(len(freqarr)):
-            relfreq = chansize*(np.arange(nch) - nch//2)*1e6
-
-            for pi in range(len(pols)):
-                g1 = 0.
-                g2 = 0.
-                d1 = 0.
-                d2 = 0.
-                for sol in sols:
-#                    if ((sol['polarization'] == pols[pi]) and (np.abs(sol['skyfreq']-freqarr[fi]) < chansize) and (not sol['flagged'])):
-                    if ((sol['polarization'] == pols[pi]) and (sol['skyfreq']-freqarr[fi] < chansize) and (not sol['flagged'])):
                         if sol['antnum'] == ant1:
                             g1 = sol['amp']*np.exp(1j*np.radians(sol['phase']))
                             d1 = sol['delay']

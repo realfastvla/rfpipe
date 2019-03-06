@@ -122,7 +122,7 @@ def flag_badchtslide(data, sigma, win):
     return flags
 
 
-@jit
+@jit(cache=True)
 def slidedev(arr, win):
     """ Given a (len x 2) array, calculate the deviation from the median per pol.
     Calculates median over a window, win.
