@@ -6,7 +6,7 @@ from io import open
 import pickle
 import os.path
 import numpy as np
-from rfpipe import state, preferences, util, source, metadata, candidates
+from rfpipe import util
 import rfpipe.search  # explicit to avoid circular import
 import logging
 logger = logging.getLogger(__name__)
@@ -56,6 +56,8 @@ def oldcands_readone(candsfile, scan=None):
     Parsing merged cands file requires sdm locally with bdf for given scan.
     If no scan provided, assumes candsfile is from single scan not merged.
     """
+
+    from rfpipe import preferences, metadata, state, candidates
 
     with open(candsfile, 'rb') as pkl:
         try:
@@ -137,6 +139,8 @@ def pipeline_dataprep(st, candloc):
     """ Prepare (read, cal, flag) data for a given state and candloc.
     """
 
+    from rfpipe import source
+
     segment, candint, dmind, dtind, beamnum = candloc
 
     # propagate through to new candcollection
@@ -182,6 +186,8 @@ def pipeline_canddata(st, candloc, data_dmdt=None, cpuonly=False, sig_ts=None,
     Can optionally pass in corrected data, if available.
     cpuonly argument not being used at present.
     """
+
+    from rfpipe import candidates
 
     segment, candint, dmind, dtind, beamnum = candloc
     dt = st.dtarr[dtind]
@@ -231,6 +237,8 @@ def pipeline_candidate(st, candloc, canddata=None):
     """ End-to-end pipeline to reproduce candidate plot and calculate features.
     Can optionally pass in canddata, if available.
     """
+
+    from rfpipe import candidates
 
     segment, candint, dmind, dtind, beamnum = candloc
 

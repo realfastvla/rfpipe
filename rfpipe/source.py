@@ -6,7 +6,7 @@ import os.path
 import numpy as np
 from astropy import time
 import pwkit.environments.casa.util as casautil
-from rfpipe import util, calibration, fileLock, flagging
+from rfpipe import util, fileLock
 import pickle
 
 import logging
@@ -28,6 +28,8 @@ def data_prep(st, segment, data, flagversion="latest", phasecenters=None,
     calibration, downsampling, OTF rephasing...
     phasecenters is a tuple of times and locations for an OTF scan (for realtime ops).
     """
+
+    from rfpipe import calibration, flagging
 
     if not np.any(data):
         return data
@@ -128,6 +130,8 @@ def prep_standard(st, segment, data, phasecenters=None):
     online flags, resampling, and mock transients.
     phasecenters is a list of tuples with (startmjd, stopmjd, ra_deg, dec_deg)
     """
+
+    from rfpipe import calibration, flagging
 
     if not np.any(data):
         return data

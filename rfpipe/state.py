@@ -7,7 +7,7 @@ import os
 import numpy as np
 import scipy.stats
 from astropy import time
-from rfpipe import util, preferences, metadata, version
+from rfpipe import util, version
 import pwkit.environments.casa.util as casautil
 
 import logging
@@ -43,6 +43,8 @@ class State(object):
         mock metadata from a simulation)
         validate argument will use assertions to test state.
         """
+
+        from rfpipe import preferences, metadata
 
         self.config = config
         self.sdmscan = sdmscan

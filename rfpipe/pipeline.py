@@ -3,8 +3,6 @@ from builtins import bytes, dict, object, range, map, input, str
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
-from rfpipe import source, search, candidates, state, metadata
-
 import logging
 logger = logging.getLogger(__name__)
 vys_timeout_default = 10
@@ -15,6 +13,8 @@ def pipeline_scan(st, segments=None, cfile=None,
     """ Given rfpipe state run search pipline on all segments in a scan.
         state/preference has fftmode that will determine functions used here.
     """
+
+    from rfpipe import candidates
 
     # initialize with empty cc
     candcollection = candidates.CandCollection(prefs=st.prefs,
@@ -35,6 +35,8 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default, devic
     state/preference has fftmode that will determine functions used here.
     """
 
+    from rfpipe import source
+
     data = source.read_segment(st, segment, timeout=vys_timeout, cfile=cfile)
     candcollection = prep_and_search(st, segment, data, devicenum=devicenum)
 
@@ -44,6 +46,8 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default, devic
 def prep_and_search(st, segment, data, devicenum=None, phasecenters=None):
     """ Bundles prep and search functions to improve performance in distributed.
     """
+
+    from rfpipe import source, search
 
     data = source.data_prep(st, segment, data, phasecenters=phasecenters)
     # TODO: implement   returnsoltime=True
@@ -65,6 +69,8 @@ def pipeline_sdm(sdm, inprefs=None, intent='TARGET', preffile=None):
     """ Get scans from SDM and run search.
     intent can be partial match to any of scan intents.
     """
+
+    from rfpipe import state, metadata
 
     scans = list(metadata.getsdm(sdm).scans())
     intents = [scan.intents for scan in scans]
