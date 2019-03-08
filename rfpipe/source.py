@@ -151,38 +151,40 @@ def prep_standard(st, segment, data, phasecenters=None):
 
     if phasecenters is not None:
         segmenttime0, segmenttime1 = st.segmenttimes[segment]
-        corrections = []   # build list of ints and relative phase centers
-        phaseend = 0
-        for startmjd, stopmjd, ra_deg, dec_deg in phasecenters:   # assuming this is in time order
-            if (segmenttime0 >= startmjd) and (segmenttime0 < stopmjd):
-                ra0 = ra_deg
-                dec0 = dec_deg
-                phaseend = stopmjd
-                lastint = np.round((stopmjd-segmenttime0)*24*3600/st.inttime,
-                                   1).astype(int)
-                ints0 = list(range(0, lastint))
-                logger.info("Segment {0} from {1} to {2} is at phase center {3},{4} for ints {5}"
-                            .format(segment, segmenttime0, segmenttime1, ra0,
-                                    dec0, ints0))
-                corrections.append((ints0, 0., 0.),)
-            elif (phaseend <= startmjd) and (segmenttime1 <= stopmjd) and (phaseend > 0):
-                # TODO: define new ints to search each step through start/stop/ra/dec
-                l1 = np.radians(ra0-ra_deg)
-                m1 = np.radians(dec0-dec_deg)
-                firstint = np.round((startmjd-segmenttime0)*24*3600/st.inttime, 1).astype(int)
-                endtime = min(segmenttime1, stopmjd)
-                lastint = np.round((endtime-segmenttime0)*24*3600/st.inttime, 1).astype(int)
-                ints = list(range(firstint, lastint))
-                corrections.append((ints, l1, m1),)
-                phaseend = stopmjd
-                logger.info("Segment {0} from {1} to {2} shifted phase center to {3},{4} for ints {5}"
-                            .format(segment, segmenttime0, segmenttime1, l1,
-                                    m1, ints))
-            else:
-                logger.info("Phase center at {0},{1} from {2} to {3} not within segment range {4} to {5}"
-                            .format(ra_deg, dec_deg, startmjd, stopmjd,
-                                    segmenttime0, segmenttime1))
+        bintimes = segmenttime0 + st.inttime*(0.5+np.arange(len(data)))/(24*3600)
+        pcts = {i: [] for i in range(len(phasecenters))}
+        corrections = []
 
+        # assign integration to a window
+        for i, bintime in enumerate(bintimes):
+            for j, (startmjd, stopmjd, ra_deg, dec_deg) in enumerate(phasecenters):
+                if (bintime >= startmjd) and (bintime < stopmjd):
+                    pcts[j].append(i)
+
+        # calculate corrections
+        ra0, dec0 = -1, 180  # unphysical
+        for j in range(len(phasecenters)):
+            (startmjd, stopmjd, ra_deg, dec_deg) = phasecenters[j]
+            if len(pcts[j]):
+                ints0 = pcts[j]
+                if (ra0 == -1) and (dec0 == 180):
+                    ra0 = ra_deg
+                    dec0 = dec_deg
+
+                l1 = np.radians(ra_deg-ra0)
+                m1 = np.radians(dec_deg-dec0)
+                logger.info("Segment {0}, ints {1} at {2},{3} phase shifted by {4},{5}"
+                            .format(segment, ints0, ra_deg, dec_deg, l1, m1))
+                corrections.append((ints0, l1, m1),)
+            else:
+                logger.debug("Phase center ({0},{1}) not in segment ({2}-{3})"
+                             .format(ra_deg, dec_deg, segmenttime0,
+                                     segmenttime1))
+        if not any(pcts.values()):
+            logger.warning("No integrations in segment {0} has phasecenter"
+                           .format(segment))
+
+        # shift phasecenters to first phasecenter in segment
         for ints, l1, m1 in corrections:
             util.phase_shift(data, uvw, l1, m1, ints=ints)
 
