@@ -184,8 +184,8 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
     if st.prefs.savecanddata or st.prefs.savecandcollection or st.prefs.saveplots:
         cc = reproduce_candcollection(cc, data, spec_std=spec_std,
                                       sig_ts=sig_ts, kalman_coeffs=kalman_coeffs)
-    if st.prefs.savecandcollection:
-        candidates.save_cands(st, candcollection=cc)
+
+    candidates.save_cands(st, candcollection=cc)
 
     return cc
 

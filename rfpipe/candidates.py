@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from rfpipe import version, fileLock
 from bokeh.plotting import ColumnDataSource, Figure, save, output_file
+import scipy.stats.mstats as mstats
 from bokeh.models import HoverTool
 from bokeh.models import Row
 from collections import OrderedDict
@@ -35,7 +36,6 @@ class CandData(object):
         image, and resampled data phased to candidate.
         TODO: Need to use search_dimensions to infer candloc meaning
         """
-        import scipy.stats.mstats as mstats
 
         self.state = state
         self.loc = tuple(loc)
