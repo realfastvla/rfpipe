@@ -16,20 +16,20 @@ transients = [(0, i, 50, 5e-3, 0.1, -0.001, -0.001) for i in [0, 20]]
 searchtype = 'imagek'
 
 # With/without flagging/timesub
-inprefs = [{'dmarr': [50], 'dtarr': [1], 'npix_max': 1024,
-            'simulated_transient': transients, 'memory_limit': 0.4,
+inprefs = [{'dmarr': [50], 'dtarr': [1], 'npix_max': 2048,
+            'simulated_transient': transients, 'memory_limit': 1,
             'timesub': None, 'flaglist': [], 'searchtype': searchtype,
             'sigma_arm': 3, 'sigma_arms': 5, 'sigma_kalman': 1},
-           {'dmarr': [50], 'dtarr': [1], 'npix_max': 1024,
-            'simulated_transient': transients, 'memory_limit': 0.4,
+           {'dmarr': [50], 'dtarr': [1], 'npix_max': 2048,
+            'simulated_transient': transients, 'memory_limit': 1,
             'timesub': 'mean', 'flaglist': [], 'searchtype': searchtype,
             'sigma_arm': 3, 'sigma_arms': 5, 'sigma_kalman': 1},
-           {'dmarr': [50], 'dtarr': [1], 'npix_max': 1024,
-            'simulated_transient': transients, 'memory_limit': 0.4,
+           {'dmarr': [50], 'dtarr': [1], 'npix_max': 2048,
+            'simulated_transient': transients, 'memory_limit': 1,
             'timesub': None, 'searchtype': searchtype,
             'sigma_arm': 3, 'sigma_arms': 5, 'sigma_kalman': 1},
-           {'dmarr': [50], 'dtarr': [1], 'npix_max': 1024,
-            'simulated_transient': transients, 'memory_limit': 0.4,
+           {'dmarr': [50], 'dtarr': [1], 'npix_max': 2048,
+            'simulated_transient': transients, 'memory_limit': 1,
             'timesub': 'mean', 'searchtype': searchtype,
             'sigma_arm': 3, 'sigma_arms': 5, 'sigma_kalman': 1}]
 
@@ -120,9 +120,11 @@ def test_cuda_sim(stsim, data_prep):
 def stdata(request):
     sdmname, sdmscan, gainfile = request.param
     inmeta = rfpipe.metadata.sdm_metadata(sdmname, sdmscan)
-    inprefs = {'maxdm': 600, 'dtarr': [1], 'npix_max': 2048,
+    inprefs = {'maxdm': 600, 'dtarr': [1], 'npix_max': 4096,
                'timesub': 'mean', 'gainfile': gainfile, 'sigma_image1': 7.,
-               'sigma_arm': 3, 'sigma_arms': 5, 'sigma_kalman': 1}
+               'sigma_arm': 3, 'sigma_arms': 5, 'sigma_kalman': 1,
+               'searchfeatures': ('snr1', 'l1', 'm1', 'immax1'),
+               'searchtype': 'image', 'memory_limit': 64}
     return rfpipe.state.State(inmeta=inmeta, inprefs=inprefs)
 
 @needsdata
@@ -130,6 +132,10 @@ def stdata(request):
 def test_fftw_data(stdata):
     rfgpu = pytest.importorskip('rfgpu')
     stdata.prefs.fftmode = 'fftw'
+    stdata.prefs.npix_max = 1024
+    stdata.prefs.memory_limit = 5
+    stdata.clearcache()
+    stdata.summarize()
     cc = rfpipe.pipeline.pipeline_scan(stdata)
 
     if len(cc):
@@ -138,7 +144,7 @@ def test_fftw_data(stdata):
         snrmax = 0
     snrnom = snrs[stdata.metadata.datasetId]
     if snrnom > 0:
-        assert snrmax >= 0.7*snrnom, "Expected snr>{0}, but detected {1}".format(0.7*snrnom, snrmax)
+        assert snrmax >= 0.5*snrnom, "Expected snr>{0}, but detected {1}".format(0.5*snrnom, snrmax)
     else:
         assert snrmax == snrnom, "Expected no detection, but snrmax is {0}".format(snrmax)
 
@@ -148,6 +154,9 @@ def test_fftw_data(stdata):
 def test_cuda_data(stdata):
     rfgpu = pytest.importorskip('rfgpu')
     stdata.prefs.fftmode = 'cuda'
+    stdata.prefs.memory_limit = 5
+    stdata.clearcache()
+    stdata.summarize()
     cc = rfpipe.pipeline.pipeline_scan(stdata)
 
     if len(cc):
@@ -167,7 +176,14 @@ def test_prepnsearch(stdata, data_prep_data):
     rfgpu = pytest.importorskip('rfgpu')
 
     stdata.prefs.fftmode = 'cuda'
+    stdata.prefs.memory_limit = 5
+    stdata.clearcache()
+    stdata.summarize()
     cc0 = rfpipe.pipeline.pipeline_scan(stdata)
     stdata.prefs.fftmode = 'fftw'
+    stdata.prefs.npix_max = 1024
+    stdata.prefs.memory_limit = 5
+    stdata.clearcache()
+    stdata.summarize()
     cc1 = rfpipe.pipeline.pipeline_scan(stdata)
     assert len(cc0.array) == len(cc1.array), "FFTW and CUDA search not returning the same results"
