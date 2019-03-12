@@ -20,13 +20,11 @@ except ImportError:
 qa = casautil.tools.quanta()
 
 
-def data_prep(st, segment, data, flagversion="latest", phasecenters=None,
-              returnsoltime=False):
+def data_prep(st, segment, data, flagversion="latest", returnsoltime=False):
     """ Applies calibration, flags, and subtracts time mean for data.
     flagversion can be "latest" or "rtpipe".
     Optionally prepares data with antenna flags, fixing out of order data,
     calibration, downsampling, OTF rephasing...
-    phasecenters is a tuple of times and locations for an OTF scan (for realtime ops).
     """
 
     from rfpipe import calibration, flagging
@@ -40,7 +38,7 @@ def data_prep(st, segment, data, flagversion="latest", phasecenters=None,
 
     # TODO: check on reusing 'data' to save memory
     datap = np.nan_to_num(np.require(data, requirements='W').take(takepol, axis=3).take(st.chans, axis=2))
-    datap = prep_standard(st, segment, datap, phasecenters=phasecenters)
+    datap = prep_standard(st, segment, datap)
 
     if not np.any(datap):
         logger.info("All data zeros after prep_standard")
@@ -125,10 +123,9 @@ def read_segment(st, segment, cfile=None, timeout=10):
         return data_read
 
 
-def prep_standard(st, segment, data, phasecenters=None):
+def prep_standard(st, segment, data):
     """ Common first data prep stages, incl
     online flags, resampling, and mock transients.
-    phasecenters is a list of tuples with (startmjd, stopmjd, ra_deg, dec_deg)
     """
 
     from rfpipe import calibration, flagging
@@ -146,47 +143,17 @@ def prep_standard(st, segment, data, phasecenters=None):
     if not np.any(data):
         return data
 
-    if st.prefs.simulated_transient is not None or phasecenters is not None:
+    if st.prefs.simulated_transient is not None or st.otfcorrections is not None:
         uvw = util.get_uvw_segment(st, segment)
 
-    if phasecenters is not None:
-        segmenttime0, segmenttime1 = st.segmenttimes[segment]
-        bintimes = segmenttime0 + st.inttime*(0.5+np.arange(len(data)))/(24*3600)
-        pcts = {i: [] for i in range(len(phasecenters))}
-        corrections = []
-
-        # assign integration to a window
-        for i, bintime in enumerate(bintimes):
-            for j, (startmjd, stopmjd, ra_deg, dec_deg) in enumerate(phasecenters):
-                if (bintime >= startmjd) and (bintime < stopmjd):
-                    pcts[j].append(i)
-
-        # calculate corrections
-        ra0, dec0 = -1, 180  # unphysical
-        for j in range(len(phasecenters)):
-            (startmjd, stopmjd, ra_deg, dec_deg) = phasecenters[j]
-            if len(pcts[j]):
-                ints0 = pcts[j]
-                if (ra0 == -1) and (dec0 == 180):
-                    ra0 = ra_deg
-                    dec0 = dec_deg
-
-                l1 = np.radians(ra_deg-ra0)
-                m1 = np.radians(dec_deg-dec0)
-                logger.info("Segment {0}, ints {1} at {2},{3} phase shifted by {4},{5}"
-                            .format(segment, ints0, ra_deg, dec_deg, l1, m1))
-                corrections.append((ints0, l1, m1),)
-            else:
-                logger.debug("Phase center ({0},{1}) not in segment ({2}-{3})"
-                             .format(ra_deg, dec_deg, segmenttime0,
-                                     segmenttime1))
-        if not any(pcts.values()):
-            logger.warning("No integrations in segment {0} has phasecenter"
-                           .format(segment))
-
+    if st.otfcorrections is not None:
         # shift phasecenters to first phasecenter in segment
-        for ints, l1, m1 in corrections:
-            util.phase_shift(data, uvw, l1, m1, ints=ints)
+        if len(st.otfcorrections[segment]) > 1:
+            ints, ra0, dec0 = st.otfcorrections[segment][0]
+            for ints, ra_deg, dec_deg in st.otfcorrections[segment][1:]:
+                l0 = np.radians(ra_deg-ra0)
+                m0 = np.radians(dec_deg-dec0)
+                util.phase_shift(data, uvw, l0, m0, ints=ints)
 
     # optionally integrate (downsample)
     if ((st.prefs.read_tdownsample > 1) or (st.prefs.read_fdownsample > 1)):

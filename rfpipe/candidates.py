@@ -397,7 +397,6 @@ class CandCollection(object):
         else:
             return None
 
-    
     def sdmname(self):
         """ Get name of SDM created by realfast based on naming convention
         """

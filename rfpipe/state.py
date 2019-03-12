@@ -634,6 +634,53 @@ class State(object):
 
         return self._segmenttimes
 
+    @property
+    def otfcorrections(self):
+        """ Use otf phasecenters (if set) to calc the phase shift from 
+        First radec (set in metadata) to actual radec for phase center in segment.
+        """
+
+        corrections = {}
+        if self.metadata.phasecenters is not None:
+            for segment in range(self.nsegment):
+                segmenttime0, segmenttime1 = self.segmenttimes[segment]
+                bintimes = segmenttime0 + self.inttime*(0.5+np.arange(len(self.readints)))/(24*3600)
+                pcts = {i: [] for i in range(len(self.metadata.phasecenters))}
+                corrs = []
+
+                # assign integration to a window
+                for i, bintime in enumerate(bintimes):
+                    for j, (startmjd, stopmjd, ra_deg, dec_deg) in enumerate(self.metadata.phasecenters):
+                        if (bintime >= startmjd) and (bintime < stopmjd):
+                            pcts[j].append(i)
+
+                # calculate corrections
+#                ra0, dec0 = -1, 180  # unphysical
+                for j in range(len(self.metadata.phasecenters)):
+                    (startmjd, stopmjd, ra_deg, dec_deg) = self.metadata.phasecenters[j]
+                    if len(pcts[j]):
+                        ints0 = pcts[j]
+#                        if (ra0 == -1) and (dec0 == 180):
+#                            ra0 = ra_deg
+#                            dec0 = dec_deg
+#                        l0 = np.radians(ra_deg-ra0)
+#                        m0 = np.radians(dec_deg-dec0)
+                        logger.info("Segment {0}, ints {1} at phase center {2},{3}"
+                                    .format(segment, ints0, ra_deg, dec_deg))
+                        corrs.append((ints0, ra_deg, dec_deg),)
+                    else:
+                        logger.debug("Phase center ({0},{1}) not in segment ({2}-{3})"
+                                     .format(ra_deg, dec_deg, segmenttime0,
+                                             segmenttime1))
+                if not any(pcts.values()):
+                    logger.warning("No integrations in segment {0} has phasecenter"
+                                   .format(segment))
+
+                corrections[segment] = corrs
+            return corrections
+        else:
+            return None
+
     def pixtolm(self, pix):
         """ Helper function to calculate (l,m) coords of given pixel.
         Example: st.pixtolm(np.where(im == im.max()))
