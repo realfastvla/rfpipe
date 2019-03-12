@@ -203,15 +203,16 @@ class CandCollection(object):
         Adding empty cc ok, too.
         """
 
+        later = self
         if len(cc):
             # TODO: update to allow different simulated_transient fields that get added into single list
             assert self.prefs.name == cc.prefs.name, "Cannot add collections with different preferences"
             assert self.state.dmarr == cc.state.dmarr,  "Cannot add collections with different dmarr"
             assert self.state.dtarr == cc.state.dtarr,  "Cannot add collections with different dmarr"
+
             # standard case
             if self.state.nsegment == cc.state.nsegment:
                 assert (self.state.segmenttimes == cc.state.segmenttimes).all(),  "Cannot add collections with different segmenttimes"
-                later = self
             # OTF case (one later than the other)
             else:
                 if self.state.nsegment > cc.state.nsegment:
@@ -227,6 +228,7 @@ class CandCollection(object):
                 later.array = np.concatenate((self.array, cc.array))
             else:
                 later.array = cc.array
+
         return later
 
     def __radd__(self, other):
@@ -1129,7 +1131,13 @@ def candplot(canddatalist, snrs=None, cluster=None, outname=''):
         logger.info('Plotting candloc {0} with SNR {1:.1f} and image/data shapes: {2}/{3}'
                     .format(str(candloc), snrim, str(im.shape), str(data.shape)))
 
-        pt_ra, pt_dec = st.metadata.radec
+        # either standard radec or otf phasecenter radec
+        if st.otfcorrections is not None:
+            ints, pt_ra_deg, pt_dec_deg = st.otfcorrections[segment][0]
+            pt_ra = np.radians(pt_ra_deg)
+            pt_dec = np.radians(pt_dec_deg)
+        else:
+            pt_ra, pt_dec = st.metadata.radec
         src_ra, src_dec = source_location(pt_ra, pt_dec, l1, m1)
         logger.info('Peak (RA, Dec): ({0}, {1})'.format(src_ra, src_dec))
 

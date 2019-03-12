@@ -275,7 +275,7 @@ def rfgpu_gridimage(st, segment, grid, image, vis_raw, vis_grid, img_grid,
                         raise NotImplementedError
                     else:
                         logger.warning("searchtype {0} not recognized"
-                                    .format(st.prefs.searchtype))
+                                       .format(st.prefs.searchtype))
     return candlocs, l1s, m1s, snr1s, immax1s, snrks
 
 
