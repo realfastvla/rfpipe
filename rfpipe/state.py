@@ -665,7 +665,7 @@ class State(object):
 #                            dec0 = dec_deg
 #                        l0 = np.radians(ra_deg-ra0)
 #                        m0 = np.radians(dec_deg-dec0)
-                        logger.info("Segment {0}, ints {1} at phase center {2},{3}"
+                        logger.info("Segment {0}, ints {1} will have phase center at {2},{3}"
                                     .format(segment, ints0, ra_deg, dec_deg))
                         corrs.append((ints0, ra_deg, dec_deg),)
                     else:
@@ -673,7 +673,7 @@ class State(object):
                                      .format(ra_deg, dec_deg, segmenttime0,
                                              segmenttime1))
                 if not any(pcts.values()):
-                    logger.warning("No integrations in segment {0} has phasecenter"
+                    logger.warning("phasecenters found, but not overlapping with segment {0}"
                                    .format(segment))
 
                 corrections[segment] = corrs
