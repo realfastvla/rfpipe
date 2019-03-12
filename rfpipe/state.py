@@ -644,7 +644,7 @@ class State(object):
         if self.metadata.phasecenters is not None:
             for segment in range(self.nsegment):
                 segmenttime0, segmenttime1 = self.segmenttimes[segment]
-                bintimes = segmenttime0 + self.inttime*(0.5+np.arange(len(self.readints)))/(24*3600)
+                bintimes = segmenttime0 + self.inttime*(0.5+np.arange(self.readints))/(24*3600)
                 pcts = {i: [] for i in range(len(self.metadata.phasecenters))}
                 corrs = []
 
