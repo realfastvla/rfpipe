@@ -203,6 +203,7 @@ class CandCollection(object):
         Adding empty cc ok, too.
         """
 
+        later = self
         if len(cc):
             # TODO: update to allow different simulated_transient fields that get added into single list
             assert self.prefs.name == cc.prefs.name, "Cannot add collections with different preferences"
@@ -211,7 +212,6 @@ class CandCollection(object):
             # standard case
             if self.state.nsegment == cc.state.nsegment:
                 assert (self.state.segmenttimes == cc.state.segmenttimes).all(),  "Cannot add collections with different segmenttimes"
-                later = self
             # OTF case (one later than the other)
             else:
                 if self.state.nsegment > cc.state.nsegment:
