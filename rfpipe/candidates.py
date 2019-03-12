@@ -708,7 +708,7 @@ def save_cands(st, candcollection=None, canddata=None):
             logger.info('Not saving CandData.')
 
     if candcollection is not None:
-        if st.prefs.savecandcollection and len(candcollection):
+        if st.prefs.savecandcollection:
             logger.info('Saving {0} candidate{1} to {2}.'
                         .format(len(candcollection),
                                 's'[not len(candcollection)-1:], st.candsfile))

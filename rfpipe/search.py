@@ -178,8 +178,6 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
     if st.prefs.clustercands:
         cc = candidates.cluster_candidates(cc)
 
-        # TODO: find a way to return values as systematic data quality test
-
     # triggers optional plotting and saving
     if st.prefs.savecanddata or st.prefs.savecandcollection or st.prefs.saveplots:
         cc = reproduce_candcollection(cc, data, spec_std=spec_std,
