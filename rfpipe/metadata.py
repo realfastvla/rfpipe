@@ -40,6 +40,7 @@ class Metadata(object):
     inttime = attr.ib(default=None)  # seconds
     nints_ = attr.ib(default=None)
     telescope = attr.ib(default=None)
+    phasecenters = attr.ib(default=None)  # list of tuples with (startmjd, stopmjd, ra_deg, dec_deg)
 
     # array/antenna info
     starttime_mjd = attr.ib(default=None)  # float
@@ -220,7 +221,6 @@ def config_metadata(config, datasource='vys'):
     meta['datasetId'] = config.datasetId
     meta['scan'] = config.scanNo
     meta['subscan'] = config.subscanNo
-#    meta['configid'] = config.Id
 
     meta['starttime_mjd'] = config.startTime
     meta['endtime_mjd_'] = config.stopTime

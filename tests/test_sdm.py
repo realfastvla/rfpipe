@@ -52,3 +52,19 @@ def test_simulated_source(mockstate):
                                   mockstate.uvres, mockstate.fftmode,
                                   1, integrations=0)
     assert im[0].max()/im[0].std() > 10
+
+
+def test_simulated_source_zeroshift(mockstate):
+    segment = 0
+    mockstate.metadata.phasecenters = [(mockstate.metadata.starttime_mjd, mockstate.metadata.starttime_mjd+1, 0., 0.),]
+    data = rfpipe.source.read_segment(mockstate, segment)
+    dataprep = rfpipe.source.data_prep(mockstate, segment, data)
+    assert dataprep.mean() > 0.9
+
+    im = rfpipe.search.grid_image(dataprep,
+                                  rfpipe.util.get_uvw_segment(mockstate,
+                                                              segment),
+                                  mockstate.npixx, mockstate.npixy,
+                                  mockstate.uvres, mockstate.fftmode,
+                                  1, integrations=0)
+    assert im[0].max()/im[0].std() > 10
