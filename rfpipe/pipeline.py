@@ -43,13 +43,13 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default, devic
     return candcollection
 
 
-def prep_and_search(st, segment, data, devicenum=None, phasecenters=None):
+def prep_and_search(st, segment, data, devicenum=None):
     """ Bundles prep and search functions to improve performance in distributed.
     """
 
     from rfpipe import source, search
 
-    data = source.data_prep(st, segment, data, phasecenters=phasecenters)
+    data = source.data_prep(st, segment, data)
     # TODO: implement   returnsoltime=True
 
     if st.prefs.fftmode == "cuda":

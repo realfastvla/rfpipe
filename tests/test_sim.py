@@ -57,3 +57,42 @@ def test_pipelinescan(mockstate):
     cc = rfpipe.pipeline.pipeline_scan(mockstate)
     if mockstate.prefs.simulated_transient is not None:
         rfpipe.candidates.makesummaryplot(mockstate.candsfile)
+    assert cc is not None
+
+
+def test_phasecenter_detection():
+    inprefs = {'simulated_transient': [(0, 0, 0, 5e-3, 0.3, 0., 0.),
+                                       (0, 9, 0, 5e-3, 0.3, 0., 0.),
+                                       (0, 10, 0, 5e-3, 0.3, 0., 0.),
+                                       (0, 19, 0, 5e-3, 0.3, 0., 0.)],
+               'dmarr': [0], 'dtarr': [1], 'timesub': None, 'fftmode': 'fftw', 'searchtype': 'image',
+               'sigma_image1': 10, 'flaglist': []}
+
+    t0 = time.Time.now().mjd
+    meta = rfpipe.metadata.mock_metadata(t0, t0+0.1/(24*3600), 20, 4, 32*4, 2,
+                                         5e3, scan=1, datasource='sim',
+                                         antconfig='D')
+
+    print("Try phasecenter shift at integration 10")
+    meta['phasecenters'] = [(t0, t0+0.05/(24*3600), 0., 0.),
+                            (t0+0.05/(24*3600), t0+0.1/(24*3600), 0.001, 0.)]
+    st = rfpipe.state.State(inmeta=meta, inprefs=inprefs)
+    cc = rfpipe.pipeline.pipeline_scan(st)
+    assert all(cc.array['l1'] == 0.)
+    assert all(cc.array['m1'] == 0.)
+
+    print("Try phasecenter shift at integration 2")
+    meta['phasecenters'] = [(t0, t0+0.01/(24*3600), 0., 0.),
+                            (t0+0.01/(24*3600), t0+0.1/(24*3600), 0.001, 0.)]
+    st = rfpipe.state.State(inmeta=meta, inprefs=inprefs)
+    cc = rfpipe.pipeline.pipeline_scan(st)
+    assert all(cc.array['l1'] == 0.)
+    assert all(cc.array['m1'] == 0.)
+
+    print("Try phasecenter shift at integration 19")
+    meta['phasecenters'] = [(t0, t0+0.095/(24*3600), 0., 0.),
+                            (t0+0.095/(24*3600), t0+0.1/(24*3600), 0.001, 0.)]
+    st = rfpipe.state.State(inmeta=meta, inprefs=inprefs)
+    cc = rfpipe.pipeline.pipeline_scan(st)
+    assert all(cc.array['l1'] == 0.)
+    assert all(cc.array['m1'] == 0.)
