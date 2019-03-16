@@ -63,8 +63,8 @@ def test_pipelinescan(mockstate):
 def test_phasecenter_detection():
     inprefs = {'simulated_transient': [(0, 0, 0, 5e-3, 0.3, 0., 0.),
                                        (0, 9, 0, 5e-3, 0.3, 0., 0.),
-                                       (0, 10, 0, 5e-3, 0.3, 0., 0.),
-                                       (0, 19, 0, 5e-3, 0.3, 0., 0.)],
+                                       (0, 10, 0, 5e-3, 0.3, 0.001, 0.),
+                                       (0, 19, 0, 5e-3, 0.3, 0.001, 0.)],
                'dmarr': [0], 'dtarr': [1], 'timesub': None, 'fftmode': 'fftw', 'searchtype': 'image',
                'sigma_image1': 10, 'flaglist': []}
 
@@ -86,7 +86,7 @@ def test_phasecenter_detection():
                             (t0+0.01/(24*3600), t0+0.1/(24*3600), 0.001, 0.)]
     st = rfpipe.state.State(inmeta=meta, inprefs=inprefs)
     cc = rfpipe.pipeline.pipeline_scan(st)
-    assert all(cc.array['l1'] == 0.)
+    assert all(cc.array['l1'][0,2,3] == 0.)
     assert all(cc.array['m1'] == 0.)
 
     print("Try phasecenter shift at integration 19")
@@ -94,5 +94,5 @@ def test_phasecenter_detection():
                             (t0+0.095/(24*3600), t0+0.1/(24*3600), 0.001, 0.)]
     st = rfpipe.state.State(inmeta=meta, inprefs=inprefs)
     cc = rfpipe.pipeline.pipeline_scan(st)
-    assert all(cc.array['l1'] == 0.)
+    assert not all(cc.array['l1'][0,1,3] == 0.)
     assert all(cc.array['m1'] == 0.)
