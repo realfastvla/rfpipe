@@ -43,7 +43,7 @@ def flag_data(st, data):
     """ Identifies bad data and flags it to 0.
     """
 
-#    data = np.ma.masked_equal(data, 0j)  # TODO remove this and ignore zeros manually
+    data = np.ma.masked_equal(data, 0j)  # TODO remove this and ignore zeros manually
     flags = np.ones_like(data, dtype=bool)
 
     for flagparams in st.prefs.flaglist:
@@ -52,6 +52,9 @@ def flag_data(st, data):
             data *= flag_blstd(data, arg0, arg1)[:, None, :, :]
         elif mode == 'badchtslide':
             data *= flag_badchtslide(data, arg0, arg1)[:, None, :, :]
+        elif mode == 'badspw':
+            spwchans = st.spw_chan_select
+            data *= flag_badspw(data, spwchans, arg0, arg1)[None, None, :, None]
         else:
             logger.warning("Flaging mode {0} not available.".format(mode))
 
@@ -118,6 +121,40 @@ def flag_badchtslide(data, sigma, win):
 
     for i in range(len(badt[0])):
         flags[badt[0][i], :, badt[1][i]] = False
+
+    return flags
+
+
+def flag_badspw(data, spwchans, sigma, win):
+    """ Use data median variance between spw to flag spw
+    """
+
+    sh = data.shape
+    nspw = len(spwchans)
+    flags = np.ones((sh[2],), dtype=bool)
+    if nspw >= 4:
+        # calc badspw
+        spec = np.abs(data).mean(axis=3).mean(axis=1).mean(axis=0)
+        specmed = slidedev(spec, win)
+        variances = []
+        for i, chans in enumerate(spwchans):
+            if len(chans) > 3:
+                variances.append(np.var(specmed[chans]))
+            else:
+                variances.append(np.nan)
+        variances = np.nan_to_num(variances)
+
+        if np.median(variances):
+            badspw = np.where(variances > sigma*np.median(variances))[0]
+            logger.info("flagged by badspw: {0}/{1} spw."
+                        .format(len(badspw), nspw))
+            for i in range(len(badspw)):
+                flags[spwchans[i]] = False
+        else:
+            logger.warning("flagged no badspw (no variance found)")
+
+    else:
+        logger.warning("Fewer than 4 spw. Not performing badspw detetion.")
 
     return flags
 

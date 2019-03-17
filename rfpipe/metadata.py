@@ -74,15 +74,24 @@ class Metadata(object):
 #        return chanr
 
     @property
+    def spw_sorted_properties(self):
+        """ Returns reffreq, nchan, chansize tuple
+        each has spw properties in freq-sorted order.
+        """
+
+        reffreq, nchan, chansize = zip(*sorted(zip(self.spw_reffreq,
+                                                   self.spw_nchan,
+                                                   self.spw_chansize)))
+        return reffreq, nchan, chansize
+
+    @property
     def freq_orig(self):
         """Spacing of channel centers in GHz.
         Data is read into spw or increasing frequency order.
         Note that spworder has increasing freq order, but spw_reffreq need not.
         """
 
-        reffreq, nchan, chansize = zip(*sorted(zip(self.spw_reffreq,
-                                                   self.spw_nchan,
-                                                   self.spw_chansize)))
+        reffreq, nchan, chansize = self.spw_sorted_properties
         return np.concatenate([np.linspace(reffreq[ii],
                                            reffreq[ii]+(nchan[ii]-1)*chansize[ii],
                                            nchan[ii])

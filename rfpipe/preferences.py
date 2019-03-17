@@ -44,10 +44,10 @@ class Preferences(object):
     l0 = attr.ib(default=0.)  # in radians
     m0 = attr.ib(default=0.)  # in radians
     timesub = attr.ib(default=None)
-    flaglist = attr.ib(default=[('badchtslide', 3., 10),
-                                ('badchtslide', 3., 10),
-                                ('badchtslide', 3., 10),
-                                ('blstd', 3.0, 0.008)])
+    flaglist = attr.ib(default=[('badchtslide', 5., 10),
+                                ('badchtslide', 4., 10),
+                                ('blstd', 4.0, 0.008),
+                                ('badspw', 2., 10)])
     flagantsol = attr.ib(default=True)
     badspwpol = attr.ib(default=2.)  # 0 means no flagging done
     applyonlineflags = attr.ib(default=True)

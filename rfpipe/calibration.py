@@ -39,9 +39,7 @@ def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1,
                            savesols=savesols)
 
             pols = [0, 1]
-            reffreq, nchan, chansize = zip(*sorted(zip(st.metadata.spw_reffreq,
-                                                       st.metadata.spw_nchan,
-                                                       st.metadata.spw_chansize)))
+            reffreq, nchan, chansize = st.metadata.spw_sorted_properties
             skyfreqs = np.around([reffreq[i] + (chansize[i]*nchan[i]//2) for i in range(len(nchan))], -6)/1e6  # GN skyfreq is band center
             solskyfreqs = np.unique(sols['skyfreq'])
             logger.info("Applying solutions from frequencies {0} to data frequencies {1}"

@@ -378,20 +378,20 @@ class State(object):
 
         return max(self.dmshifts)*self.inttime
 
-#    @property
-#    def spw_nchan_select(self):
-#        return [len([ch for ch in range(self.metadata.spw_chanr[i][0], self.metadata.spw_chanr[i][1]) if ch in self.chans])
-#                for i in range(len(self.metadata.spw_chanr))]
+    @property
+    def spw_chan_select(self):
+        """ List of lists with selected channels per spw.
+        Channel numbers assume selected data.
+        """
 
-#    @property
-#    def spw_chanr_select(self):
-#        chanr_select = []
-#        i0 = 0
-#        for nch in self.spw_nchan_select:
-#            chanr_select.append((i0, i0+nch))
-#            i0 += nch
-#
-#        return chanr_select
+        reffreq, nchan, chansize = self.metadata.spw_sorted_properties
+        chanlist = []
+        for spwi in range(len(reffreq)):
+            nch = nchan[spwi]
+            chans = [self.chans.index(ch) for ch in list(range(nch*spwi, nch*(spwi+1))) if ch in self.chans]
+            chanlist.append(chans)
+
+        return chanlist
 
     @property
     def uvres(self):
