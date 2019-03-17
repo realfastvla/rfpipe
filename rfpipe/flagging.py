@@ -49,13 +49,13 @@ def flag_data(st, data):
     for flagparams in st.prefs.flaglist:
         mode, arg0, arg1 = flagparams
         if mode == 'blstd':
-            flags *= flag_blstd(data, arg0, arg1)[:, None, :, :]
+            data *= flag_blstd(data, arg0, arg1)[:, None, :, :]
         elif mode == 'badchtslide':
-            flags *= flag_badchtslide(data, arg0, arg1)[:, None, :, :]
+            data *= flag_badchtslide(data, arg0, arg1)[:, None, :, :]
         else:
             logger.warning("Flaging mode {0} not available.".format(mode))
 
-    return data*flags
+    return data
 
 
 def flag_blstd(data, sigma, convergence):

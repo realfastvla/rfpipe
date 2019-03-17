@@ -36,12 +36,9 @@ def data_prep(st, segment, data, flagversion="latest", returnsoltime=False):
     takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
     logger.debug('Selecting pols {0} and chans {1}'.format(st.pols, st.chans))
 
-    logger.info('data flags: {0}'.format(data.flags))
     # TODO: check on reusing 'data' to save memory
     datap = np.nan_to_num(np.require(data, requirements='W').take(takepol, axis=3).take(st.chans, axis=2))
-    logger.info('datap flags: {0}'.format(datap.flags))
     datap = prep_standard(st, segment, datap)
-    logger.info('datap flags: {0}'.format(datap.flags))
 
     if not np.any(datap):
         logger.info("All data zeros after prep_standard")
