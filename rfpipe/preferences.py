@@ -46,8 +46,8 @@ class Preferences(object):
     timesub = attr.ib(default=None)
     flaglist = attr.ib(default=[('badchtslide', 5., 10),
                                 ('badchtslide', 4., 10),
-                                ('blstd', 4.0, 0.008),
-                                ('badspw', 2., 10)])
+                                ('blstd', 4., 0.008),
+                                ('badspw', 3., 10)])
     flagantsol = attr.ib(default=True)
     badspwpol = attr.ib(default=2.)  # 0 means no flagging done
     applyonlineflags = attr.ib(default=True)
