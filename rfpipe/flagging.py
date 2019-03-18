@@ -148,6 +148,10 @@ def flag_badspw(data, spwchans, sigma, win):
             badspw = np.where(variances > sigma*np.median(variances))[0]
             logger.info("flagged by badspw: {0}/{1} spw."
                         .format(len(badspw), nspw))
+            if len(badspw) > nspw//2:
+                logger.warning("more than half of spw flagged. flagging all spw.")
+                badspw = list(range(nspw))
+
             for i in range(len(badspw)):
                 flags[spwchans[i]] = False
         else:

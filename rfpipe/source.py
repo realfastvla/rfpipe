@@ -66,6 +66,11 @@ def data_prep(st, segment, data, flagversion="latest", returnsoltime=False):
     elif flagversion == "rtpipe":
         datap = flagging.flag_data_rtpipe(st, datap)
 
+    zerofrac = 1-np.count_nonzero(datap)/datap.size
+    if zerofrac > 0.5:
+        logger.warning('More than half of data zeroed after flagging. Zeroing all.')
+        return np.array([])
+
     if st.prefs.timesub == 'mean':
         logger.info('Subtracting mean visibility in time.')
         datap = util.meantsub(datap, parallel=st.prefs.nthread > 1)
