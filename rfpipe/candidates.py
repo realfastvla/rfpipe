@@ -216,11 +216,11 @@ class CandCollection(object):
         else:
             if self.state.nsegment > cc.state.nsegment:
                 assert self.metadata.starttime_mjd == cc.metadata.starttime_mjd, "OTF segments should have same start time"
-                assert (self.state.segmenttimes[cc.state.nsegment] == cc.state.segmenttimes).all(),  "OTF segments should have shared segmenttimes"
+                assert (self.state.segmenttimes[:cc.state.nsegment] == cc.state.segmenttimes).all(),  "OTF segments should have shared segmenttimes"
                 later = self
             elif self.state.nsegment < cc.state.nsegment:
                 assert self.metadata.starttime_mjd == cc.metadata.starttime_mjd, "OTF segments should have same start time"
-                assert (self.state.segmenttimes == cc.state.segmenttimes[self.state.nsegment]).all(),  "OTF segments should have shared segmenttimes"
+                assert (self.state.segmenttimes == cc.state.segmenttimes[:self.state.nsegment]).all(),  "OTF segments should have shared segmenttimes"
                 later = cc
 
         if len(later) and len(cc):
