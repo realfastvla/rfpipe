@@ -112,9 +112,10 @@ class Preferences(object):
     @property
     def json(self):
         """ json string that can be loaded into elasticsearch or hashed.
+        "gainfile" and "simulated_transient" are ignored in json/name properties.
         """
 
-        excludekeys = ["gainfile"]
+        excludekeys = ["gainfile", "simulated_transient"]
         ordered2 = OrderedDict([(key, value)
                                 for (key, value) in self.ordered.items()
                                 if key not in excludekeys])

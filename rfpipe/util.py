@@ -368,7 +368,7 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
             dm = st.dmarr[dmind]
 #            dmind = random.choice(range(len(st.dmarr)))
         else:
-            dm = np.random.uniform(min(st.dmarr),max(st.dmarr)) # pc /cc
+            dm = np.random.uniform(min(st.dmarr), max(st.dmarr)) # pc /cc
 
             dmarr = np.array(calc_dmarr(st))
             if dm > np.max(dmarr):
@@ -379,14 +379,14 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
             
 
         if dtind is not None:
-            dt = st.metadata.inttime*min(st.dtarr[dtind], 2)  # dt>2 not yet supported
+            dt = st.inttime*min(st.dtarr[dtind], 2)  # dt>2 not yet supported
         else:
             #dtind = random.choice(range(len(st.dtarr)))
-            dt = np.random.uniform(min(st.dtarr), max(st.dtarr)) # s  #like an alias for "dt"
-            if dt < st.metadata.inttime:
+            dt = st.inttime*np.random.uniform(min(st.dtarr), max(st.dtarr)) # s  #like an alias for "dt"
+            if dt < st.inttime:
                 dtind = 0
             else:    
-                dtind = int(np.log2(dt/st.metadata.inttime))
+                dtind = int(np.log2(dt/st.inttime))
                 if dtind >= len(st.dtarr):
                     dtind = len(st.dtarr) - 1
                     logging.warning("Width of transient is greater than max dt searched.")

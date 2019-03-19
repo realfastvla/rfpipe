@@ -205,7 +205,7 @@ class CandCollection(object):
 
         later = self
         # TODO: update to allow different simulated_transient fields that get added into single list
-        assert self.prefs.name == cc.prefs.name, "Cannot add collections with different preferences"
+        assert self.prefs.name == cc.prefs.name, "Cannot add collections with different preference name/hash"
         assert self.state.dmarr == cc.state.dmarr,  "Cannot add collections with different dmarr"
         assert self.state.dtarr == cc.state.dtarr,  "Cannot add collections with different dmarr"
 
@@ -223,10 +223,14 @@ class CandCollection(object):
                 assert (self.state.segmenttimes == cc.state.segmenttimes[:self.state.nsegment]).all(),  "OTF segments should have shared segmenttimes"
                 later = cc
 
+        # combine candidate arrays
         if len(later) and len(cc):
             later.array = np.concatenate((later.array, cc.array))
         elif not len(later) and len(cc):
             later.array = cc.array
+
+        # combine prefs simulated_transient
+        later.prefs.simulated_transient = later.prefs.simulated_transient or cc.prefs.simulated_transient
 
         return later
 
