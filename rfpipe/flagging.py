@@ -47,14 +47,14 @@ def flag_data(st, data):
 #    data = np.ma.masked_equal(data, 0j)  # TODO remove this and ignore zeros manually
     flags = np.ones_like(data, dtype=bool)
 
+    spwchans = st.spw_chan_select
     for flagparams in st.prefs.flaglist:
         mode, arg0, arg1 = flagparams
         if mode == 'blstd':
             data *= flag_blstd(data, arg0, arg1)[:, None, :, :]
         elif mode == 'badchtslide':
-            data *= flag_badchtslide(data, arg0, arg1)[:, None, :, :]
+            data *= flag_badchtslide(data, spwchans, arg0, arg1)[:, None, :, :]
         elif mode == 'badspw':
-            spwchans = st.spw_chan_select
             data *= flag_badspw(data, spwchans, arg0, arg1)[None, None, :, None]
         else:
             logger.warning("Flaging mode {0} not available.".format(mode))
@@ -93,7 +93,7 @@ def flag_blstd(data, sigma, convergence):
     return flags
 
 
-def flag_badchtslide(data, sigma, win):
+def flag_badchtslide(data, spwchans, sigma, win):
     """ Use data (4d) to calculate (int, chan, pol) to be flagged
     """
 
@@ -101,14 +101,15 @@ def flag_badchtslide(data, sigma, win):
     flags = np.ones((sh[0], sh[2], sh[3]), dtype=bool)
 
     meanamp = np.abs(data).mean(axis=1)
-    spec = meanamp.mean(axis=0)
-    lc = meanamp.mean(axis=1)
 
     # calc badch as deviation from median of window
-    specmed = slidedev(spec, win)
+    spec = meanamp.mean(axis=0)
+#    specmed = slidedev(spec, win)
+    specmed = np.concatenate([spec[chans] - np.median(spec[chans]) for chans in spwchans])
     badch = np.where(specmed > sigma*np.nanstd(specmed, axis=0))
 
     # calc badt as deviation from median of window
+    lc = meanamp.mean(axis=1)
     lcmed = slidedev(lc, win)
     badt = np.where(lcmed > sigma*np.nanstd(lcmed, axis=0))
 
@@ -136,11 +137,11 @@ def flag_badspw(data, spwchans, sigma, win):
     if nspw >= 4:
         # calc badspw
         spec = np.abs(data).mean(axis=3).mean(axis=1).mean(axis=0)
-        specmed = slidedev(spec, win)
+#        specmed = slidedev(spec, win)
         variances = []
-        for i, chans in enumerate(spwchans):
+        for chans in spwchans:
             if len(chans) > 3:
-                variances.append(np.var(specmed[chans]))
+                variances.append(np.var(spec[chans]-np.median(spec[chans])))
             else:
                 variances.append(np.nan)
         variances = np.nan_to_num(variances)
