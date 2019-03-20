@@ -41,9 +41,10 @@ def getonlineflags(st, segment):
 
 def flag_data(st, data):
     """ Identifies bad data and flags it to 0.
+    Should pass in masked array.
     """
 
-    data = np.ma.masked_equal(data, 0j)  # TODO remove this and ignore zeros manually
+#    data = np.ma.masked_equal(data, 0j)  # TODO remove this and ignore zeros manually
     flags = np.ones_like(data, dtype=bool)
 
     for flagparams in st.prefs.flaglist:
