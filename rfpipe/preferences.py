@@ -53,8 +53,8 @@ class Preferences(object):
     badspwpol = attr.ib(default=2.)  # 0 means no flagging done
     applyonlineflags = attr.ib(default=True)
     gainfile = attr.ib(default=None)
-    apply_chweights = attr.ib(default=False)  # calculate weight per ch and scale data
-    apply_blweights = attr.ib(default=False)  # calculate weight per bl and scale data
+    apply_chweights = attr.ib(default=True)  # calculate weight per ch and scale data
+    apply_blweights = attr.ib(default=True)  # calculate weight per bl and scale data
     # simulate transients from list of tuples with
     # values/units: (segment, i0/int, dm/pc/cm3, dt/s, amp/sys, dl/rad, dm/rad)
     # or an int that defines number of mocks to create per scan

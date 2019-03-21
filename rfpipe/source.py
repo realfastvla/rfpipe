@@ -77,17 +77,22 @@ def data_prep(st, segment, data, flagversion="latest", returnsoltime=False):
     else:
         logger.info('No visibility subtraction done.')
 
-    if st.prefs.apply_chweights and st.readints > 3:
-        logger.info('Reweighting data by channel variances')
-        chvar = np.var(np.abs(datap).mean(axis=1), axis=0)
-        chvar_mean = chvar.mean(axis=0)
-        datap = datap*chvar[None,None,:,:]/chvar_mean[None,None,None,:]
+    if (st.prefs.apply_chweights or st.prefs.apply_blweights) and st.readints > 3:
+        if st.prefs.apply_chweights:
+            chvar = np.std(np.abs(datap).mean(axis=1), axis=0)
+            chvar_norm = np.mean(1/chvar**2, axis=0)
 
-    if st.prefs.apply_blweights and st.readints > 3:
-        logger.info('Reweighting data by baseline variances')
-        blvar = np.var(np.abs(datap).mean(axis=2), axis=0)
-        blvar_mean = blvar.mean(axis=0)
-        datap = datap*blvar[None,None,:,:]/blvar_mean[None,None,None,:]
+        if st.prefs.apply_blweights:
+            blvar = np.std(np.abs(datap).mean(axis=2), axis=0)
+            blvar_norm = np.mean(1/blvar**2, axis=0)
+
+        if st.prefs.apply_chweights:
+            logger.info('Reweighting data by channel variances')
+            datap = (datap/chvar[None, None, :, :])/chvar_norm[None, None, None, :]
+
+        if st.prefs.apply_blweights:
+            logger.info('Reweighting data by baseline variances')
+            datap = (datap/blvar[None, :, None, :])/blvar_norm[None, None, None, :]
 
     if st.prefs.savenoise:
         save_noise(st, segment, datap)
