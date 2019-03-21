@@ -66,6 +66,11 @@ def data_prep(st, segment, data, flagversion="latest", returnsoltime=False):
     elif flagversion == "rtpipe":
         datap = flagging.flag_data_rtpipe(st, datap)
 
+    zerofrac = 1-np.count_nonzero(datap)/datap.size
+    if zerofrac > 0.75:
+        logger.warning('More than 75% of data zeroed after flagging. Zeroing all.')
+        return np.array([])
+
     if st.prefs.timesub == 'mean':
         logger.info('Subtracting mean visibility in time.')
         datap = util.meantsub(datap, parallel=st.prefs.nthread > 1)
@@ -146,17 +151,6 @@ def prep_standard(st, segment, data):
     if st.prefs.simulated_transient is not None or st.otfcorrections is not None:
         uvw = util.get_uvw_segment(st, segment)
 
-    if st.otfcorrections is not None:
-        # shift phasecenters to first phasecenter in segment
-        if len(st.otfcorrections[segment]) > 1:
-            ints, ra0, dec0 = st.otfcorrections[segment][0]  # new phase center for segment
-            logger.info("Correcting {0} phasecenters to first at RA,Dec = {1},{2}"
-                        .format(len(st.otfcorrections[segment]), ra0, dec0))
-            for ints, ra_deg, dec_deg in st.otfcorrections[segment][1:]:
-                l0 = np.radians(ra_deg-ra0)
-                m0 = np.radians(dec_deg-dec0)
-                util.phase_shift(data, uvw, l0, m0, ints=ints)
-
     # optionally integrate (downsample)
     if ((st.prefs.read_tdownsample > 1) or (st.prefs.read_fdownsample > 1)):
         data2 = np.zeros(st.datashape, dtype='complex64')
@@ -218,6 +212,17 @@ def prep_standard(st, segment, data):
                     model = calibration.apply_telcal(st, model, sign=-1)
                 util.phase_shift(model, uvw, -l, -m)
                 data += model
+
+    if st.otfcorrections is not None:
+        # shift phasecenters to first phasecenter in segment
+        if len(st.otfcorrections[segment]) > 1:
+            ints, ra0, dec0 = st.otfcorrections[segment][0]  # new phase center for segment
+            logger.info("Correcting {0} phasecenters to first at RA,Dec = {1},{2}"
+                        .format(len(st.otfcorrections[segment])-1, ra0, dec0))
+            for ints, ra_deg, dec_deg in st.otfcorrections[segment][1:]:
+                l0 = np.radians(ra_deg-ra0)
+                m0 = np.radians(dec_deg-dec0)
+                util.phase_shift(data, uvw, l0, m0, ints=ints)
 
     return data
 

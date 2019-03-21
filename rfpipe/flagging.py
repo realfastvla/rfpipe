@@ -10,6 +10,155 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def flag_data(st, data):
+    """ Identifies bad data and flags it to 0.
+    Should pass in masked array.
+    """
+
+    data = np.ma.masked_equal(data, 0j)  # TODO remove this and ignore zeros manually?
+    flags = np.ones_like(data, dtype=bool)
+
+    spwchans = st.spw_chan_select
+    for flagparams in st.prefs.flaglist:
+        if len(flagparams) == 3:
+            mode, arg0, arg1 = flagparams
+        else:
+            mode, arg0 = flagparams
+
+        if mode == 'blstd':
+            data *= flag_blstd(data, arg0, arg1)[:, None, :, :]
+        elif mode == 'badchtslide':
+            data *= flag_badchtslide(data, spwchans, arg0, arg1)[:, None, :, :]
+        elif mode == 'badspw':
+            data *= flag_badspw(data, spwchans, arg0)[None, None, :, None]
+        else:
+            logger.warning("Flaging mode {0} not available.".format(mode))
+
+    return data
+
+
+def flag_blstd(data, sigma, convergence):
+    """ Use data (4d) to calculate (int, chan, pol) to be flagged.
+    Masked arrays assumed as input.
+    """
+
+    sh = data.shape
+    flags = np.ones((sh[0], sh[2], sh[3]), dtype=bool)
+
+    blstd = np.ma.std(data, axis=1)
+
+    # iterate to good median and std values
+    blstdmednew = np.ma.median(blstd)
+    blstdstdnew = np.ma.std(blstd)
+    blstdstd = blstdstdnew*2  # TODO: is this initialization used?
+    while (blstdstd-blstdstdnew)/blstdstd > convergence:
+        blstdstd = blstdstdnew
+        blstdmed = blstdmednew
+        blstd = np.ma.masked_where(blstd > blstdmed + sigma*blstdstd, blstd, copy=False)
+        blstdmednew = np.ma.median(blstd)
+        blstdstdnew = np.ma.std(blstd)
+
+    # flag blstd too high
+    badt, badch, badpol = np.where(blstd > blstdmednew + sigma*blstdstdnew)
+    logger.info("flagged by blstd: {0} of {1} total channel/time/pol cells."
+                .format(len(badt), sh[0]*sh[2]*sh[3]))
+
+    for i in range(len(badt)):
+        flags[badt[i], badch[i], badpol[i]] = False
+
+    return flags
+
+
+def flag_badchtslide(data, spwchans, sigma, win):
+    """ Use data (4d) to calculate (int, chan, pol) to be flagged
+    """
+
+    sh = data.shape
+    flags = np.ones((sh[0], sh[2], sh[3]), dtype=bool)
+
+    meanamp = np.abs(data).mean(axis=1)
+
+    # calc badch as deviation from median of window
+    spec = meanamp.mean(axis=0)
+#    specmed = slidedev(spec, win)
+    specmed = np.concatenate([spec[chans] - np.median(spec[chans]) for chans in spwchans])
+    badch = np.where(specmed > sigma*np.nanstd(specmed, axis=0))
+
+    # calc badt as deviation from median of window
+    lc = meanamp.mean(axis=1)
+    lcmed = slidedev(lc, win)
+    badt = np.where(lcmed > sigma*np.ma.std(lcmed, axis=0))
+
+    badtcnt = len(np.ma.unique(badt))
+    badchcnt = len(np.ma.unique(badch))
+    logger.info("flagged by badchtslide: {0}/{1} pol-times and {2}/{3} pol-chans."
+                .format(badtcnt, sh[0]*sh[3], badchcnt, sh[2]*sh[3]))
+
+    for i in range(len(badch[0])):
+        flags[:, badch[0][i], badch[1][i]] = False
+
+    for i in range(len(badt[0])):
+        flags[badt[0][i], :, badt[1][i]] = False
+
+    return flags
+
+
+def flag_badspw(data, spwchans, sigma):
+    """ Use data median variance between spw to flag spw
+    """
+
+    sh = data.shape
+    nspw = len(spwchans)
+    flags = np.ones((sh[2],), dtype=bool)
+    if nspw >= 4:
+        # calc badspw
+        spec = np.abs(data).mean(axis=3).mean(axis=1).mean(axis=0)
+        variances = []
+        for chans in spwchans:
+            if len(chans) > 3:
+                variances.append(np.ma.var(spec[chans]-np.median(spec[chans])))
+            else:
+                variances.append(np.nan)
+        variances = np.ma.masked_invalid(np.nan_to_num(variances))
+        logger.debug("Variance per spw: {0}".format(variances))
+
+        if np.ma.median(variances):
+            badspw = []
+            badspwnew = np.where(variances > sigma*np.ma.median(variances))[0]
+            while len(badspwnew) > len(badspw):
+                badspw = badspwnew
+                goodspw = [spw for spw in range(nspw) if spw not in badspw]
+                badspwnew = np.where(variances > sigma*np.ma.median(variances.take(goodspw)))[0]
+
+            logger.info("flagged {0}/{1} spw ({2})"
+                        .format(len(badspw), nspw, badspw))
+
+
+            for i in badspw:
+                flags[spwchans[i]] = False
+        else:
+            logger.warning("flagged no badspw (no variance found)")
+
+    else:
+        logger.warning("Fewer than 4 spw. Not performing badspw detetion.")
+
+    return flags
+
+
+@jit(cache=True)
+def slidedev(arr, win):
+    """ Given a (len x 2) array, calculate the deviation from the median per pol.
+    Calculates median over a window, win.
+    """
+
+    med = np.zeros_like(arr)
+    for i in range(len(arr)):
+        inds = list(range(max(0, i-win//2), i)) + list(range(i+1, min(i+win//2, len(arr))))
+        med[i] = np.ma.median(arr.take(inds, axis=0), axis=0)
+
+    return arr-med
+
+
 def getonlineflags(st, segment):
     """ Gets antenna flags for a given segment from either sdm or mcaf server.
     Returns an array of flags (1: good, 0: bad) for each baseline.
@@ -37,103 +186,6 @@ def getonlineflags(st, segment):
                     .format(t0, t1))
 
     return flags
-
-
-def flag_data(st, data):
-    """ Identifies bad data and flags it to 0.
-    """
-
-#    data = np.ma.masked_equal(data, 0j)  # TODO remove this and ignore zeros manually
-    flags = np.ones_like(data, dtype=bool)
-
-    for flagparams in st.prefs.flaglist:
-        mode, arg0, arg1 = flagparams
-        if mode == 'blstd':
-            flags *= flag_blstd(data, arg0, arg1)[:, None, :, :]
-        elif mode == 'badchtslide':
-            flags *= flag_badchtslide(data, arg0, arg1)[:, None, :, :]
-        else:
-            logger.warning("Flaging mode {0} not available.".format(mode))
-
-    return data*flags
-
-
-def flag_blstd(data, sigma, convergence):
-    """ Use data (4d) to calculate (int, chan, pol) to be flagged.
-    """
-
-    sh = data.shape
-    flags = np.ones((sh[0], sh[2], sh[3]), dtype=bool)
-
-    blstd = np.nanstd(data, axis=1)
-
-    # iterate to good median and std values
-    blstdmednew = np.ma.median(blstd)
-    blstdstdnew = np.nanstd(blstd)
-    blstdstd = blstdstdnew*2  # TODO: is this initialization used?
-    while (blstdstd-blstdstdnew)/blstdstd > convergence:
-        blstdstd = blstdstdnew
-        blstdmed = blstdmednew
-        blstd = np.ma.masked_where(blstd > blstdmed + sigma*blstdstd, blstd, copy=False)
-        blstdmednew = np.ma.median(blstd)
-        blstdstdnew = np.nanstd(blstd)
-
-    # flag blstd too high
-    badt, badch, badpol = np.where(blstd > blstdmednew + sigma*blstdstdnew)
-    logger.info("flagged by blstd: {0} of {1} total channel/time/pol cells."
-                .format(len(badt), sh[0]*sh[2]*sh[3]))
-
-    for i in range(len(badt)):
-        flags[badt[i], badch[i], badpol[i]] = False
-
-    return flags
-
-
-def flag_badchtslide(data, sigma, win):
-    """ Use data (4d) to calculate (int, chan, pol) to be flagged
-    """
-
-    sh = data.shape
-    flags = np.ones((sh[0], sh[2], sh[3]), dtype=bool)
-
-    meanamp = np.abs(data).mean(axis=1)
-    spec = meanamp.mean(axis=0)
-    lc = meanamp.mean(axis=1)
-
-    # calc badch as deviation from median of window
-    specmed = slidedev(spec, win)
-    badch = np.where(specmed > sigma*np.nanstd(specmed, axis=0))
-
-    # calc badt as deviation from median of window
-    lcmed = slidedev(lc, win)
-    badt = np.where(lcmed > sigma*np.nanstd(lcmed, axis=0))
-
-    badtcnt = len(np.unique(badt))
-    badchcnt = len(np.unique(badch))
-    logger.info("flagged by badchtslide: {0}/{1} pol-times and {2}/{3} pol-chans."
-                .format(badtcnt, sh[0]*sh[3], badchcnt, sh[2]*sh[3]))
-
-    for i in range(len(badch[0])):
-        flags[:, badch[0][i], badch[1][i]] = False
-
-    for i in range(len(badt[0])):
-        flags[badt[0][i], :, badt[1][i]] = False
-
-    return flags
-
-
-@jit(cache=True)
-def slidedev(arr, win):
-    """ Given a (len x 2) array, calculate the deviation from the median per pol.
-    Calculates median over a window, win.
-    """
-
-    med = np.zeros_like(arr)
-    for i in range(len(arr)):
-        inds = list(range(max(0, i-win//2), i)) + list(range(i+1, min(i+win//2, len(arr))))
-        med[i] = np.ma.median(arr.take(inds, axis=0), axis=0)
-
-    return arr-med
 
 
 def flag_data_rtpipe(st, data):

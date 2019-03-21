@@ -51,6 +51,7 @@ class State(object):
             sdmfile = sdmfile.rstrip('/')
         self.sdmfile = sdmfile
         self.lock = lock
+        self._corrections = None
 
         # set prefs according to inprefs type
         if isinstance(inprefs, preferences.Preferences):
@@ -243,7 +244,8 @@ class State(object):
 
     def clearcache(self):
         cached = ['_dmarr', '_dmshifts', '_npol', '_blarr',
-                  '_segmenttimes', '_npixx_full', '_npixy_full']
+                  '_segmenttimes', '_npixx_full', '_npixy_full',
+                  '_corrections']
         for obj in cached:
             try:
                 delattr(self, obj)
@@ -323,9 +325,13 @@ class State(object):
 #            list(range(sum(self.metadata.spw_nchan)))
             chanlist = []
             nch = np.unique(self.metadata.spw_nchan)[0]  # assume 1 nchan/spw
+            if self.prefs.ignore_spwedge:
+                edge = int(self.prefs.ignore_spwedge*nch)
+            else:
+                edge = 0
             for spw in self.spw:
                 spwi = self.metadata.spw_orig.index(spw)
-                chanlist += list(range(nch*spwi, nch*(spwi+1)))
+                chanlist += list(range(nch*spwi+edge, nch*(spwi+1)-edge))
             return chanlist
 
     @property
@@ -376,20 +382,20 @@ class State(object):
 
         return max(self.dmshifts)*self.inttime
 
-#    @property
-#    def spw_nchan_select(self):
-#        return [len([ch for ch in range(self.metadata.spw_chanr[i][0], self.metadata.spw_chanr[i][1]) if ch in self.chans])
-#                for i in range(len(self.metadata.spw_chanr))]
+    @property
+    def spw_chan_select(self):
+        """ List of lists with selected channels per spw.
+        Channel numbers assume selected data.
+        """
 
-#    @property
-#    def spw_chanr_select(self):
-#        chanr_select = []
-#        i0 = 0
-#        for nch in self.spw_nchan_select:
-#            chanr_select.append((i0, i0+nch))
-#            i0 += nch
-#
-#        return chanr_select
+        reffreq, nchan, chansize = self.metadata.spw_sorted_properties
+        chanlist = []
+        for spwi in range(len(reffreq)):
+            nch = nchan[spwi]
+            chans = [self.chans.index(ch) for ch in list(range(nch*spwi, nch*(spwi+1))) if ch in self.chans]
+            chanlist.append(chans)
+
+        return chanlist
 
     @property
     def uvres(self):
@@ -640,8 +646,11 @@ class State(object):
         First radec (set in metadata) to actual radec for phase center in segment.
         """
 
-        corrections = {}
-        if self.metadata.phasecenters is not None:
+        if self.metadata.phasecenters is None:
+            return None
+
+        if self._corrections is None and self.metadata.phasecenters is not None:
+            self._corrections = {}
             for segment in range(self.nsegment):
                 segmenttime0, segmenttime1 = self.segmenttimes[segment]
                 bintimes = segmenttime0 + self.inttime*(0.5+np.arange(self.readints))/(24*3600)
@@ -655,16 +664,10 @@ class State(object):
                             pcts[j].append(i)
 
                 # calculate corrections
-#                ra0, dec0 = -1, 180  # unphysical
                 for j in range(len(self.metadata.phasecenters)):
                     (startmjd, stopmjd, ra_deg, dec_deg) = self.metadata.phasecenters[j]
                     if len(pcts[j]):
                         ints0 = pcts[j]
-#                        if (ra0 == -1) and (dec0 == 180):
-#                            ra0 = ra_deg
-#                            dec0 = dec_deg
-#                        l0 = np.radians(ra_deg-ra0)
-#                        m0 = np.radians(dec_deg-dec0)
                         logger.info("Segment {0}, ints {1} will have phase center at {2},{3}"
                                     .format(segment, ints0, ra_deg, dec_deg))
                         corrs.append((ints0, ra_deg, dec_deg),)
@@ -676,10 +679,9 @@ class State(object):
                     logger.warning("phasecenters found, but not overlapping with segment {0}"
                                    .format(segment))
 
-                corrections[segment] = corrs
-            return corrections
-        else:
-            return None
+                self._corrections[segment] = corrs
+
+        return self._corrections
 
     def pixtolm(self, pix):
         """ Helper function to calculate (l,m) coords of given pixel.

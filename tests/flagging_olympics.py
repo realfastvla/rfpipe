@@ -124,7 +124,8 @@ def stdata(request):
                'timesub': 'mean', 'gainfile': gainfile, 'sigma_image1': 7.,
                'sigma_arm': 3, 'sigma_arms': 5, 'sigma_kalman': 1,
                'searchfeatures': ('snr1', 'l1', 'm1', 'immax1'),
-               'searchtype': 'image', 'memory_limit': 64}
+               'searchtype': 'image', 'memory_limit': 64,}
+#               'flaglist': [('badchtslide', 5., 10), ('badchtslide', 4., 10), ('badchtslide', 3., 10), ('blstd', 4.0, 0.008), ('blstd', 3.0, 0.008)]}
     return rfpipe.state.State(inmeta=inmeta, inprefs=inprefs)
 
 @needsdata

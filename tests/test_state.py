@@ -22,7 +22,7 @@ def mockstate():
 
 
 def test_mock(mockstate):
-    assert mockstate.datashape == (60, 351, 128, 2)
+    assert mockstate.datashape == (60, 351, mockstate.nchan, 2)
 
 
 def test_pol(mockstate):

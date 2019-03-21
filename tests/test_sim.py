@@ -6,6 +6,7 @@ from io import open
 import rfpipe
 import pytest
 from astropy import time
+from numpy import degrees
 
 tparams = [(0, 0, 0, 5e-3, 0.3, 0.0001, 0.0),]
 # simulate no flag, transient/no flag, transient/flag
@@ -73,18 +74,17 @@ def test_phasecenter_detection():
                                          5e3, scan=1, datasource='sim',
                                          antconfig='D')
 
+    print("Try no phasecenter shift")
+    st = rfpipe.state.State(inmeta=meta, inprefs=inprefs)
+    cc = rfpipe.pipeline.pipeline_scan(st)
+    assert all(cc.array['l1'][0:2] == 0.)
+    assert not any(cc.array['l1'][2:] == 0.)
+    assert all(cc.array['m1'] == 0.)
+
     print("Try phasecenter shift at integration 10")
     meta['phasecenters'] = [(t0, t0+0.05/(24*3600), 0., 0.),
-                            (t0+0.05/(24*3600), t0+0.1/(24*3600), 0.001, 0.)]
+                            (t0+0.05/(24*3600), t0+0.1/(24*3600), degrees(0.001), 0.)]
     st = rfpipe.state.State(inmeta=meta, inprefs=inprefs)
     cc = rfpipe.pipeline.pipeline_scan(st)
     assert all(cc.array['l1'] == 0.)
-    assert all(cc.array['m1'] == 0.)
-
-    print("Try phasecenter shift at integration 19")
-    meta['phasecenters'] = [(t0, t0+0.095/(24*3600), 0., 0.),
-                            (t0+0.095/(24*3600), t0+0.1/(24*3600), 0.001, 0.)]
-    st = rfpipe.state.State(inmeta=meta, inprefs=inprefs)
-    cc = rfpipe.pipeline.pipeline_scan(st)
-    assert not all(cc.array['l1'] == 0.)
     assert all(cc.array['m1'] == 0.)

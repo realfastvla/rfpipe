@@ -44,10 +44,11 @@ class Preferences(object):
     l0 = attr.ib(default=0.)  # in radians
     m0 = attr.ib(default=0.)  # in radians
     timesub = attr.ib(default=None)
-    flaglist = attr.ib(default=[('badchtslide', 3., 10),
-                                ('badchtslide', 3., 10),
-                                ('badchtslide', 3., 10),
-                                ('blstd', 3.0, 0.008)])
+    flaglist = attr.ib(default=[('badchtslide', 4., 20),
+                                ('badchtslide', 4., 20),
+                                ('badspw', 3.),
+                                ('blstd', 3., 0.008)])
+    ignore_spwedge = attr.ib(default=0.075)  # fraction of each spw edge to ignore when selecting data
     flagantsol = attr.ib(default=True)
     badspwpol = attr.ib(default=2.)  # 0 means no flagging done
     applyonlineflags = attr.ib(default=True)
@@ -111,9 +112,10 @@ class Preferences(object):
     @property
     def json(self):
         """ json string that can be loaded into elasticsearch or hashed.
+        "gainfile" and "simulated_transient" are ignored in json/name properties.
         """
 
-        excludekeys = ["gainfile"]
+        excludekeys = ["gainfile", "simulated_transient"]
         ordered2 = OrderedDict([(key, value)
                                 for (key, value) in self.ordered.items()
                                 if key not in excludekeys])

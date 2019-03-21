@@ -191,7 +191,7 @@ def calc_dmarr(state):
     dt0 = lambda dm: np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2)
     dt1 = lambda dm, ddm: np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2 + ((k*ddm*bw)/(freq**3.))**2)
     loss = lambda dm, ddm: 1 - np.sqrt(dt0(dm)/dt1(dm, ddm))
-    loss_cordes = lambda ddm, dfreq, dm_pulsewidth, freq: 1 - (np.sqrt(np.pi) / (2 * 6.91e-3 * ddm * dfreq / (dm_pulsewidth*freq**3))) * erf(6.91e-3 * ddm * dfreq / (dm_pulsewidth*freq**3))  # not quite right for underresolved pulses
+#    loss_cordes = lambda ddm, dfreq, dm_pulsewidth, freq: 1 - (np.sqrt(np.pi) / (2 * 6.91e-3 * ddm * dfreq / (dm_pulsewidth*freq**3))) * erf(6.91e-3 * ddm * dfreq / (dm_pulsewidth*freq**3))  # not quite right for underresolved pulses
 
     if maxdm == 0:
         return [0]
@@ -368,7 +368,7 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
             dm = st.dmarr[dmind]
 #            dmind = random.choice(range(len(st.dmarr)))
         else:
-            dm = np.random.uniform(min(st.dmarr),max(st.dmarr)) # pc /cc
+            dm = np.random.uniform(min(st.dmarr), max(st.dmarr)) # pc /cc
 
             dmarr = np.array(calc_dmarr(st))
             if dm > np.max(dmarr):
@@ -379,14 +379,14 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
             
 
         if dtind is not None:
-            dt = st.metadata.inttime*min(st.dtarr[dtind], 2)  # dt>2 not yet supported
+            dt = st.inttime*min(st.dtarr[dtind], 2)  # dt>2 not yet supported
         else:
             #dtind = random.choice(range(len(st.dtarr)))
-            dt = np.random.uniform(min(st.dtarr), max(st.dtarr)) # s  #like an alias for "dt"
-            if dt < st.metadata.inttime:
+            dt = st.inttime*np.random.uniform(min(st.dtarr), max(st.dtarr)) # s  #like an alias for "dt"
+            if dt < st.inttime:
                 dtind = 0
             else:    
-                dtind = int(np.log2(dt/st.metadata.inttime))
+                dtind = int(np.log2(dt/st.inttime))
                 if dtind >= len(st.dtarr):
                     dtind = len(st.dtarr) - 1
                     logging.warning("Width of transient is greater than max dt searched.")
