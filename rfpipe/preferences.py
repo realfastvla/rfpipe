@@ -46,9 +46,7 @@ class Preferences(object):
     timesub = attr.ib(default=None)
     flaglist = attr.ib(default=[('badchtslide', 4., 10),
                                 ('badchtslide', 4., 10),
-                                ('badchtslide', 4., 10),
-                                ('badspw', 3., 10),
-                                ('badspw', 3., 10),
+                                ('badspw', 3.),
                                 ('blstd', 3., 0.01)])
     ignore_spwedge = attr.ib(default=0.075)  # fraction of each spw edge to ignore when selecting data
     flagantsol = attr.ib(default=True)
