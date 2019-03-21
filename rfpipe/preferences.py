@@ -47,8 +47,9 @@ class Preferences(object):
     flaglist = attr.ib(default=[('badchtslide', 4., 10),
                                 ('badchtslide', 4., 10),
                                 ('badchtslide', 4., 10),
-                                ('badspw', 2.5, 10),
-                                ('blstd', 3., 0.005)])
+                                ('badspw', 3., 10),
+                                ('badspw', 3., 10),
+                                ('blstd', 3., 0.01)])
     ignore_spwedge = attr.ib(default=0.075)  # fraction of each spw edge to ignore when selecting data
     flagantsol = attr.ib(default=True)
     badspwpol = attr.ib(default=2.)  # 0 means no flagging done

@@ -44,7 +44,7 @@ def flag_data(st, data):
     Should pass in masked array.
     """
 
-#    data = np.ma.masked_equal(data, 0j)  # TODO remove this and ignore zeros manually
+    data = np.ma.masked_equal(data, 0j)  # TODO remove this and ignore zeros manually
     flags = np.ones_like(data, dtype=bool)
 
     spwchans = st.spw_chan_select
@@ -145,16 +145,17 @@ def flag_badspw(data, spwchans, sigma, win):
             else:
                 variances.append(np.nan)
         variances = np.nan_to_num(variances)
+        logger.debug("Variance per spw: {0}".format(variances))
 
         if np.median(variances):
             badspw = np.where(variances > sigma*np.median(variances))[0]
-            logger.info("flagged by badspw: {0}/{1} spw."
-                        .format(len(badspw), nspw))
+            logger.info("flagged {0}/{1} spw ({2})"
+                        .format(len(badspw), nspw, badspw))
             if len(badspw) > nspw//2:
                 logger.warning("more than half of spw flagged. flagging all spw.")
                 badspw = list(range(nspw))
 
-            for i in range(len(badspw)):
+            for i in badspw:
                 flags[spwchans[i]] = False
         else:
             logger.warning("flagged no badspw (no variance found)")

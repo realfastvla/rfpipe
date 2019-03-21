@@ -67,8 +67,8 @@ def data_prep(st, segment, data, flagversion="latest", returnsoltime=False):
         datap = flagging.flag_data_rtpipe(st, datap)
 
     zerofrac = 1-np.count_nonzero(datap)/datap.size
-    if zerofrac > 0.5:
-        logger.warning('More than half of data zeroed after flagging. Zeroing all.')
+    if zerofrac > 0.75:
+        logger.warning('More than 75% of data zeroed after flagging. Zeroing all.')
         return np.array([])
 
     if st.prefs.timesub == 'mean':
