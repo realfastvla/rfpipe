@@ -12,11 +12,10 @@ logger = logging.getLogger(__name__)
 
 def flag_data(st, data):
     """ Identifies bad data and flags it to 0.
-    Should pass in masked array.
+    Converts to masked array for flagging, but returns zeroed numpy array.
     """
 
-    data = np.ma.masked_equal(data, 0j)  # TODO remove this and ignore zeros manually?
-    flags = np.ones_like(data, dtype=bool)
+    datam = np.ma.masked_equal(data, 0j)  # TODO remove this and ignore zeros manually?
 
     spwchans = st.spw_chan_select
     for flagparams in st.prefs.flaglist:
@@ -26,15 +25,15 @@ def flag_data(st, data):
             mode, arg0 = flagparams
 
         if mode == 'blstd':
-            data *= flag_blstd(data, arg0, arg1)[:, None, :, :]
+            flag_blstd(datam, arg0, arg1)
         elif mode == 'badchtslide':
-            data *= flag_badchtslide(data, spwchans, arg0, arg1)[:, None, :, :]
+            flag_badchtslide(datam, spwchans, arg0, arg1)
         elif mode == 'badspw':
-            data *= flag_badspw(data, spwchans, arg0)[None, None, :, None]
+            flag_badspw(datam, spwchans, arg0)
         else:
             logger.warning("Flaging mode {0} not available.".format(mode))
 
-    return data
+    return datam.data*~datam.mask  # mask false => keep data
 
 
 def flag_blstd(data, sigma, convergence):
@@ -43,7 +42,7 @@ def flag_blstd(data, sigma, convergence):
     """
 
     sh = data.shape
-    flags = np.ones((sh[0], sh[2], sh[3]), dtype=bool)
+#    flags = np.zeros((sh[0], sh[2], sh[3]), dtype=bool)
 
     blstd = np.ma.std(data, axis=1)
 
@@ -64,9 +63,9 @@ def flag_blstd(data, sigma, convergence):
                 .format(len(badt), sh[0]*sh[2]*sh[3]))
 
     for i in range(len(badt)):
-        flags[badt[i], badch[i], badpol[i]] = False
+        data.mask[badt[i], :, badch[i], badpol[i]] = True
 
-    return flags
+#    return data
 
 
 def flag_badchtslide(data, spwchans, sigma, win):
@@ -74,15 +73,15 @@ def flag_badchtslide(data, spwchans, sigma, win):
     """
 
     sh = data.shape
-    flags = np.ones((sh[0], sh[2], sh[3]), dtype=bool)
+#    flags = np.zeros((sh[0], sh[2], sh[3]), dtype=bool)
 
     meanamp = np.abs(data).mean(axis=1)
 
     # calc badch as deviation from median of window
     spec = meanamp.mean(axis=0)
 #    specmed = slidedev(spec, win)
-    specmed = np.concatenate([spec[chans] - np.median(spec[chans]) for chans in spwchans])
-    badch = np.where(specmed > sigma*np.nanstd(specmed, axis=0))
+    specmed = np.concatenate([spec[chans] - np.ma.median(spec[chans]) for chans in spwchans])
+    badch = np.where(specmed > sigma*np.ma.std(specmed, axis=0))
 
     # calc badt as deviation from median of window
     lc = meanamp.mean(axis=1)
@@ -95,12 +94,12 @@ def flag_badchtslide(data, spwchans, sigma, win):
                 .format(badtcnt, sh[0]*sh[3], badchcnt, sh[2]*sh[3]))
 
     for i in range(len(badch[0])):
-        flags[:, badch[0][i], badch[1][i]] = False
+        data.mask[:, :, badch[0][i], badch[1][i]] = True
 
     for i in range(len(badt[0])):
-        flags[badt[0][i], :, badt[1][i]] = False
+        data.mask[badt[0][i], :, :, badt[1][i]] = True
 
-    return flags
+#    return data
 
 
 def flag_badspw(data, spwchans, sigma):
@@ -109,17 +108,18 @@ def flag_badspw(data, spwchans, sigma):
 
     sh = data.shape
     nspw = len(spwchans)
-    flags = np.ones((sh[2],), dtype=bool)
+#    flags = np.zeros((sh[2],), dtype=bool)
+
     if nspw >= 4:
         # calc badspw
         spec = np.abs(data).mean(axis=3).mean(axis=1).mean(axis=0)
         variances = []
         for chans in spwchans:
             if len(chans) > 3:
-                variances.append(np.ma.var(spec[chans]-np.median(spec[chans])))
+                variances.append(np.ma.var(spec[chans]-np.ma.median(spec[chans])))
             else:
-                variances.append(np.nan)
-        variances = np.ma.masked_invalid(np.nan_to_num(variances))
+                variances.append(0)
+        variances = np.ma.masked_equal(variances, 0)
         logger.debug("Variance per spw: {0}".format(variances))
 
         if np.ma.median(variances):
@@ -135,14 +135,14 @@ def flag_badspw(data, spwchans, sigma):
 
 
             for i in badspw:
-                flags[spwchans[i]] = False
+                data.mask[:, :, spwchans[i], :] = True
         else:
             logger.warning("flagged no badspw (no variance found)")
 
     else:
         logger.warning("Fewer than 4 spw. Not performing badspw detetion.")
 
-    return flags
+#    return data
 
 
 @jit(cache=True)
