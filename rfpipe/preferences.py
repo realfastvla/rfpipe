@@ -44,8 +44,8 @@ class Preferences(object):
     l0 = attr.ib(default=0.)  # in radians
     m0 = attr.ib(default=0.)  # in radians
     timesub = attr.ib(default=None)
-    flaglist = attr.ib(default=[('badchtslide', 4., 10),
-                                ('badchtslide', 4., 10),
+    flaglist = attr.ib(default=[('badchtslide', 4., 20),
+                                ('badchtslide', 4., 20),
                                 ('badspw', 3.),
                                 ('blstd', 3., 0.01)])
     ignore_spwedge = attr.ib(default=0.075)  # fraction of each spw edge to ignore when selecting data
