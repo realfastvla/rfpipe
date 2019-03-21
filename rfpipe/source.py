@@ -77,6 +77,18 @@ def data_prep(st, segment, data, flagversion="latest", returnsoltime=False):
     else:
         logger.info('No visibility subtraction done.')
 
+    if st.prefs.apply_chweights and st.readints > 3:
+        logger.info('Reweighting data by channel variances')
+        chvar = np.var(np.abs(datap).mean(axis=1), axis=0)
+        chvar_mean = chvar.mean(axis=0)
+        datap = datap*chvar[None,None,:,:]/chvar_mean[None,None,None,:]
+
+    if st.prefs.apply_blweights and st.readints > 3:
+        logger.info('Reweighting data by baseline variances')
+        blvar = np.var(np.abs(datap).mean(axis=2), axis=0)
+        blvar_mean = blvar.mean(axis=0)
+        datap = datap*blvar[None,None,:,:]/blvar_mean[None,None,None,:]
+
     if st.prefs.savenoise:
         save_noise(st, segment, datap)
 
