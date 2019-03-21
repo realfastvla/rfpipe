@@ -64,23 +64,25 @@ def flag_data(st, data):
 
 def flag_blstd(data, sigma, convergence):
     """ Use data (4d) to calculate (int, chan, pol) to be flagged.
+    Masked arrays assumed as input.
     """
+    # TODO: check what happens if half of data is flagged before this is run. does if flag everything?
 
     sh = data.shape
     flags = np.ones((sh[0], sh[2], sh[3]), dtype=bool)
 
-    blstd = np.nanstd(data, axis=1)
+    blstd = np.ma.std(data, axis=1)
 
     # iterate to good median and std values
     blstdmednew = np.ma.median(blstd)
-    blstdstdnew = np.nanstd(blstd)
+    blstdstdnew = np.ma.std(blstd)
     blstdstd = blstdstdnew*2  # TODO: is this initialization used?
     while (blstdstd-blstdstdnew)/blstdstd > convergence:
         blstdstd = blstdstdnew
         blstdmed = blstdmednew
         blstd = np.ma.masked_where(blstd > blstdmed + sigma*blstdstd, blstd, copy=False)
         blstdmednew = np.ma.median(blstd)
-        blstdstdnew = np.nanstd(blstd)
+        blstdstdnew = np.ma.std(blstd)
 
     # flag blstd too high
     badt, badch, badpol = np.where(blstd > blstdmednew + sigma*blstdstdnew)
@@ -111,10 +113,10 @@ def flag_badchtslide(data, spwchans, sigma, win):
     # calc badt as deviation from median of window
     lc = meanamp.mean(axis=1)
     lcmed = slidedev(lc, win)
-    badt = np.where(lcmed > sigma*np.nanstd(lcmed, axis=0))
+    badt = np.where(lcmed > sigma*np.ma.std(lcmed, axis=0))
 
-    badtcnt = len(np.unique(badt))
-    badchcnt = len(np.unique(badch))
+    badtcnt = len(np.ma.unique(badt))
+    badchcnt = len(np.ma.unique(badch))
     logger.info("flagged by badchtslide: {0}/{1} pol-times and {2}/{3} pol-chans."
                 .format(badtcnt, sh[0]*sh[3], badchcnt, sh[2]*sh[3]))
 
@@ -141,14 +143,15 @@ def flag_badspw(data, spwchans, sigma, win):
         variances = []
         for chans in spwchans:
             if len(chans) > 3:
-                variances.append(np.var(spec[chans]-np.median(spec[chans])))
+                variances.append(np.ma.var(spec[chans]-np.median(spec[chans])))
             else:
                 variances.append(np.nan)
-        variances = np.nan_to_num(variances)
+#        variances = np.nan_to_num(variances)
         logger.debug("Variance per spw: {0}".format(variances))
 
-        if np.median(variances):
-            badspw = np.where(variances > sigma*np.median(variances))[0]
+        # TODO: this should iterate rather than having the function rerun
+        if np.ma.median(variances):
+            badspw = np.where(variances > sigma*np.ma.median(variances))[0]
             logger.info("flagged {0}/{1} spw ({2})"
                         .format(len(badspw), nspw, badspw))
             if len(badspw) > nspw//2:
