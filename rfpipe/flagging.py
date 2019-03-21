@@ -15,7 +15,7 @@ def flag_data(st, data):
     Converts to masked array for flagging, but returns zeroed numpy array.
     """
 
-    datam = np.ma.masked_equal(data, 0j)  # TODO remove this and ignore zeros manually?
+    datam = np.ma.masked_values(data, 0j, copy=False, shrink=False)
 
     spwchans = st.spw_chan_select
     for flagparams in st.prefs.flaglist:
@@ -33,7 +33,7 @@ def flag_data(st, data):
         else:
             logger.warning("Flaging mode {0} not available.".format(mode))
 
-    return datam.data*~datam.mask  # mask false => keep data
+    return datam.filled(0)
 
 
 def flag_blstd(data, sigma, convergence):
@@ -65,15 +65,12 @@ def flag_blstd(data, sigma, convergence):
     for i in range(len(badt)):
         data.mask[badt[i], :, badch[i], badpol[i]] = True
 
-#    return data
-
 
 def flag_badchtslide(data, spwchans, sigma, win):
     """ Use data (4d) to calculate (int, chan, pol) to be flagged
     """
 
     sh = data.shape
-#    flags = np.zeros((sh[0], sh[2], sh[3]), dtype=bool)
 
     meanamp = np.abs(data).mean(axis=1)
 
@@ -99,16 +96,12 @@ def flag_badchtslide(data, spwchans, sigma, win):
     for i in range(len(badt[0])):
         data.mask[badt[0][i], :, :, badt[1][i]] = True
 
-#    return data
-
 
 def flag_badspw(data, spwchans, sigma):
     """ Use data median variance between spw to flag spw
     """
 
-    sh = data.shape
     nspw = len(spwchans)
-#    flags = np.zeros((sh[2],), dtype=bool)
 
     if nspw >= 4:
         # calc badspw
@@ -133,7 +126,6 @@ def flag_badspw(data, spwchans, sigma):
             logger.info("flagged {0}/{1} spw ({2})"
                         .format(len(badspw), nspw, badspw))
 
-
             for i in badspw:
                 data.mask[:, :, spwchans[i], :] = True
         else:
@@ -141,8 +133,6 @@ def flag_badspw(data, spwchans, sigma):
 
     else:
         logger.warning("Fewer than 4 spw. Not performing badspw detetion.")
-
-#    return data
 
 
 @jit(cache=True)
