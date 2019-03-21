@@ -31,7 +31,7 @@ def mockstate(request):
 
 def test_cal_and_uncal(mockstate):
     segment = 0
-    data = rfpipe.source.read_segment(mockstate, segment)
+    data = rfpipe.source.read_segment(mockstate, segment).take(mockstate.chans, axis=2)
     assert np.any(data)
 
     datacal = rfpipe.calibration.apply_telcal(mockstate, data, sign=1)

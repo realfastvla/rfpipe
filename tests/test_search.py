@@ -22,7 +22,7 @@ def st():
 @pytest.fixture(scope="module")
 def data(st):
         segment = 0
-        return rfpipe.source.read_segment(st, segment)
+        return rfpipe.source.data_prep(st, segment, rfpipe.source.read_segment(st, segment))
 
 
 def test_prepsearch(st, data):

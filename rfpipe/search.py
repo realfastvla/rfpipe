@@ -685,6 +685,8 @@ def dedisperse(data, delay, parallel=False):
 
     nint, nbl, nchan, npol = data.shape
     newsh = (nint-delay.max(), nbl, nchan, npol)
+
+    assert nchan == len(delay), "Number of channels in delay must be same as in data"
     if parallel:
         data = data.copy()
         _ = _dedisperse_gu(np.swapaxes(data, 0, 1), delay)
