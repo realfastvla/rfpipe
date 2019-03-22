@@ -120,10 +120,11 @@ def test_cuda_sim(stsim, data_prep):
 def stdata(request):
     sdmname, sdmscan, gainfile = request.param
     inmeta = rfpipe.metadata.sdm_metadata(sdmname, sdmscan)
-    inprefs = {'mindm': 500, 'maxdm': 600, 'dtarr': [1], 'npix_max': 4096, 'dm_maxloss': 0.025,
+    inprefs = {'mindm': 500, 'maxdm': 600, 'dtarr': [1], 'npix_max': 4096,
+               'clustercands': True,
                'timesub': 'mean', 'gainfile': gainfile, 'sigma_image1': 7.,
                'sigma_arm': 3, 'sigma_arms': 5, 'sigma_kalman': 1,
-               'searchfeatures': ('snr1', 'l1', 'm1', 'immax1'), 'clustercands': True,
+               'searchfeatures': ('snr1', 'l1', 'm1', 'immax1'),
                'searchtype': 'image', 'memory_limit': 64, 'saveplots': True,
                'apply_chweights': False, 'apply_blweights': False}
     return rfpipe.state.State(inmeta=inmeta, inprefs=inprefs)
@@ -145,7 +146,7 @@ def test_fftw_data(stdata):
         snrmax = 0
     snrnom = snrs[stdata.metadata.datasetId]
     if snrnom > 0:
-        assert snrmax >= max(7, 0.5*snrnom), "Expected snr>{0}, but detected {1}".format(max(7, 0.5*snrnom), snrmax)
+        assert snrmax >= max(8, 0.5*snrnom), "Expected snr>{0}, but detected {1}".format(max(8, 0.5*snrnom), snrmax)
     else:
         assert snrmax == snrnom, "Expected no detection, but snrmax is {0}".format(snrmax)
 
@@ -166,7 +167,7 @@ def test_cuda_data(stdata):
         snrmax = 0
     snrnom = snrs[stdata.metadata.datasetId]
     if snrnom > 0:
-        assert snrmax >= 0.6*snrnom, "Expected snr>{0}, but detected {1}".format(0.6*snrnom, snrmax)
+        assert snrmax >= max(8, 0.5*snrnom), "Expected snr>{0}, but detected {1}".format(max(8, 0.5*snrnom), snrmax)
     else:
         assert snrmax == snrnom, "Expected no detection, but snrmax is {0}".format(snrmax)
 
