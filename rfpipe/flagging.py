@@ -135,7 +135,6 @@ def flag_badspw(data, spwchans, sigma):
         logger.warning("Fewer than 4 spw. Not performing badspw detetion.")
 
 
-@jit(cache=True)
 def slidedev(arr, win):
     """ Given a (len x 2) array, calculate the deviation from the median per pol.
     Calculates median over a window, win.
