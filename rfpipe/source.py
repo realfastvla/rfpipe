@@ -79,6 +79,7 @@ def data_prep(st, segment, data, flagversion="latest", returnsoltime=False):
 
     if (st.prefs.apply_chweights or st.prefs.apply_blweights) and st.readints > 3:
         if st.prefs.apply_chweights:
+            # TODO: find better estimator. Currently loses sensitivity to FRB 121102 bursts.
             chvar = np.std(np.abs(datap).mean(axis=1), axis=0)
             chvar_norm = np.mean(1/chvar**2, axis=0)
 
