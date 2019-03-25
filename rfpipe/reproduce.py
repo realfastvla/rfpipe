@@ -8,6 +8,7 @@ import os.path
 import numpy as np
 from rfpipe import util
 import rfpipe.search  # explicit to avoid circular import
+from kalman_detector import kalman_prepare_coeffs, kalman_significance
 import logging
 logger = logging.getLogger(__name__)
 
@@ -199,12 +200,15 @@ def pipeline_canddata(st, candloc, data_dmdt=None, cpuonly=False, sig_ts=None,
     if data_dmdt is None:
         data_dmdt = pipeline_datacorrect(st, candloc)
 
-    if data_dmdt.shape[0] > 1:
-        spec_std = data_dmdt.real.mean(axis=3).mean(axis=1).std(axis=0)
+    if 'snrk' in st.features:
+        if data_dmdt.shape[0] > 1:
+            spec_std = data_dmdt.real.mean(axis=3).mean(axis=1).std(axis=0)
+        else:
+            spec_std = data_dmdt[0].real.mean(axis=2).std(axis=0)
+        if sig_ts is None or kalman_coeffs is None:
+            sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
     else:
-        spec_std = data_dmdt[0].real.mean(axis=2).std(axis=0)
-    if sig_ts is None or kalman_coeffs is None:
-        sig_ts, kalman_coeffs = rfpipe.search.kalman_prepare_coeffs(spec_std)
+        spec_std, sig_ts, kalman_coeffs = None, None, None
 
 #    fftmode = 'fftw' if cpuonly else st.fftmode  # can't remember why i did this!
     image = rfpipe.search.grid_image(data_dmdt, uvw, st.npixx, st.npixy, st.uvres,
@@ -218,13 +222,14 @@ def pipeline_canddata(st, candloc, data_dmdt=None, cpuonly=False, sig_ts=None,
     util.phase_shift(data_dmdt, uvw, -dl, -dm)
 
     spec = data_dmdt.real.mean(axis=3).mean(axis=1)[candloc[1]]
-    significance_kalman = rfpipe.search.kalman_significance(spec,
-                                                            spec_std,
-                                                            sig_ts=sig_ts,
-                                                            coeffs=kalman_coeffs)
-    snrk = (2*significance_kalman)**0.5
-    logger.info("Calculated snrk of {0} after detection. Adding it to CandData.".format(snrk))
-    kwargs['snrk'] = snrk
+
+    if 'snrk' in st.features:
+        significance_kalman = -kalman_significance(spec, spec_std,
+                                                   sig_ts=sig_ts,
+                                                   coeffs=kalman_coeffs)
+        snrk = (2*significance_kalman)**0.5
+        logger.info("Calculated snrk of {0} after detection. Adding it to CandData.".format(snrk))
+        kwargs['snrk'] = snrk
 
     canddata = candidates.CandData(state=st, loc=tuple(candloc), image=image,
                                    data=dataph, **kwargs)
