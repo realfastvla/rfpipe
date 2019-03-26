@@ -39,9 +39,10 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
     assert all([st.dtarr[dtind]*2 == st.dtarr[dtind+1]
                 for dtind in range(len(st.dtarr)-1)]), ("dtarr must increase "
                                                         "by factors of 2")
-
-    if not np.any(data):
-        logger.info("Data is all zeros. Skipping search.")
+    anydata = np.any(data)
+    if not anydata or st.prefs.searchtype is None:
+        if not anydata:
+            logger.info("Data is all zeros. Skipping search.")
         return candidates.CandCollection(prefs=st.prefs,
                                          metadata=st.metadata)
 
@@ -291,8 +292,10 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
     ** dmind, dtind, beamnum assumed to represent current state of data
     """
 
-    if not np.any(data):
-        logger.info("Data is all zeros. Skipping search.")
+    anydata = np.any(data)
+    if not anydata or st.prefs.searchtype is None:
+        if not anydata:
+            logger.info("Data is all zeros. Skipping search.")
         return candidates.CandCollection(prefs=st.prefs,
                                          metadata=st.metadata)
 
