@@ -127,9 +127,9 @@ class State(object):
             assert self.prefs.sigma_kalman is not None, "Must set sigma_kalman"
 
         # supported algorithms for gpu/cpu
-        if self.prefs.fftmode == 'cuda':
+        if self.prefs.fftmode == 'cuda' and self.prefs.searchtype is not None:
             assert self.prefs.searchtype in ['image', 'imagek']
-        elif self.prefs.fftmode == 'fftw':
+        elif self.prefs.fftmode == 'fftw' and self.prefs.searchtype is not None:
             assert self.prefs.searchtype in ['image', 'imagek', 'armkimage', 'armk']
 
         return True
@@ -833,6 +833,8 @@ class State(object):
             return ('snrarms', 'snrk', 'l1', 'm1')
         elif self.prefs.searchtype == 'armkimage':
             return ('snrarms', 'snrk', 'snr1', 'immax1', 'l1', 'm1')
+        else:
+            return ()
 
     @property
     def features(self):

@@ -29,6 +29,10 @@ def test_prepsearch(st, data):
     segment = 0
     cc = rfpipe.pipeline.prep_and_search(st, segment, data)
 
+def test_nosearch(st, data):
+    segment = 0
+    st.prefs.searchtype = None
+    cc = rfpipe.pipeline.prep_and_search(st, segment, data)
 
 def test_dm_singlemulti(st, data):
     dm = 100

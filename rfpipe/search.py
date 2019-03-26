@@ -274,7 +274,7 @@ def rfgpu_gridimage(st, segment, grid, image, vis_raw, vis_grid, img_grid,
                         raise NotImplementedError
                     elif st.prefs.searchtype == 'armk':
                         raise NotImplementedError
-                    else:
+                    elif st.prefs.searchtype is not None:
                         logger.warning("searchtype {0} not recognized"
                                        .format(st.prefs.searchtype))
     return candlocs, l1s, m1s, snr1s, immax1s, snrks
@@ -428,7 +428,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
                         canddict['m1'].append(m1)
                         canddict['snrarms'].append(snrarms)
                         canddict['snrk'].append(snrk)
-            else:
+            elif st.prefs.searchtype is not None:
                 raise NotImplemented("only searchtype=image, imagek, armk, armkimage implemented")
 
     # save search results and its features
