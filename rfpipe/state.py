@@ -6,7 +6,7 @@ from io import open
 import os
 import numpy as np
 from astropy import time
-from rfpipe import util, version
+from rfpipe import version
 import pwkit.environments.casa.util as casautil
 
 import logging
@@ -293,6 +293,7 @@ class State(object):
             return self.prefs.dmarr
         else:
             if not hasattr(self, '_dmarr'):
+                from rfpipe import util
                 self._dmarr = util.calc_dmarr(self)
             return self._dmarr
 
@@ -370,6 +371,7 @@ class State(object):
         """
 
         if not hasattr(self, '_dmshifts'):
+            from rfpipe import util
             self._dmshifts = [util.calc_delay(self.freq, self.freq.max(), dm,
                               self.inttime).max()
                               for dm in self.dmarr]
@@ -634,6 +636,7 @@ class State(object):
 #            elif self.prefs.nsegment:
 #                self._segmenttimes = calc_segment_times(self, self.prefs.nsegment)
             else:
+                from rfpipe import util
                 self._segmenttimes = util.calc_segment_times(self, 1.)
                 if self.memory_total > self.prefs.memory_limit:
                     util.find_segment_times(self)

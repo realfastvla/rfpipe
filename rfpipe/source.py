@@ -6,7 +6,7 @@ import os.path
 import numpy as np
 from astropy import time
 import pwkit.environments.casa.util as casautil
-from rfpipe import util, fileLock
+from rfpipe import fileLock
 import pickle
 
 import logging
@@ -27,7 +27,7 @@ def data_prep(st, segment, data, flagversion="latest", returnsoltime=False):
     calibration, downsampling, OTF rephasing...
     """
 
-    from rfpipe import calibration, flagging
+    from rfpipe import calibration, flagging, util
 
     if not np.any(data):
         return data
@@ -151,7 +151,7 @@ def prep_standard(st, segment, data):
     online flags, resampling, and mock transients.
     """
 
-    from rfpipe import calibration, flagging
+    from rfpipe import calibration, flagging, util
 
     if not np.any(data):
         return data
@@ -325,6 +325,8 @@ def read_bdf(st, nskip=0):
     Returns data with spw in increasing frequency order.
     """
 
+    from rfpipe import util
+
     assert os.path.exists(st.metadata.filename), ('sdmfile {0} does not exist'
                                                   .format(st.metadata.filename))
     assert st.metadata.bdfstr, ('bdfstr not defined for scan {0}'
@@ -355,6 +357,7 @@ def save_noise(st, segment, data, chunk=500):
     """
 
     from rfpipe.search import grid_image
+    from rfpipe import util
 
     uvw = util.get_uvw_segment(st, segment)
     chunk = min(chunk, max(1, st.readints-1))  # ensure at least one measurement
@@ -430,6 +433,8 @@ def simulate_segment(st, loc=0., scale=1., segment=None):
 
 def sdm_sources(sdmname):
     """ Use sdmpy to get all sources and ra,dec per scan as dict """
+
+    from rfpipe import util
 
     sdm = util.getsdm(sdmname)
     sourcedict = {}

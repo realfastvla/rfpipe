@@ -6,8 +6,6 @@ from io import open
 import pickle
 import os.path
 import numpy as np
-from rfpipe import util
-import rfpipe.search  # explicit to avoid circular import
 from kalman_detector import kalman_prepare_coeffs, kalman_significance
 import logging
 logger = logging.getLogger(__name__)
@@ -160,6 +158,9 @@ def pipeline_datacorrect(st, candloc, data_prep=None):
     Can optionally pass in prepared (flagged, calibrated) data, if available.
     """
 
+    from rfpipe import util
+    import rfpipe.search
+
     if data_prep is None:
         data_prep = pipeline_dataprep(st, candloc)
 
@@ -188,7 +189,8 @@ def pipeline_canddata(st, candloc, data_dmdt=None, cpuonly=False, sig_ts=None,
     cpuonly argument not being used at present.
     """
 
-    from rfpipe import candidates
+    from rfpipe import candidates, util
+    import rfpipe.search
 
     segment, candint, dmind, dtind, beamnum = candloc
     dt = st.dtarr[dtind]

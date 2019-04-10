@@ -6,8 +6,6 @@ from io import open
 import numpy as np
 from numba import jit, guvectorize, int64
 import pyfftw
-from rfpipe import util, candidates
-import rfpipe.reproduce  # explicit to avoid circular import
 from kalman_detector import kalman_prepare_coeffs, kalman_filter_detector, kalman_significance
 from concurrent import futures
 from itertools import cycle
@@ -34,6 +32,8 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
     devicenum is int or tuple of ints that set gpu(s) to use.
     If not set, then it can be inferred with distributed.
     """
+
+    from rfpipe import candidates, util
 
     assert st.dtarr[0] == 1, "st.dtarr[0] assumed to be 1"
     assert all([st.dtarr[dtind]*2 == st.dtarr[dtind+1]
@@ -196,6 +196,8 @@ def rfgpu_gridimage(st, segment, grid, image, vis_raw, vis_grid, img_grid,
     """ Dedisperse, grid, image, threshold with rfgpu
     """
 
+    from rfpipe import util
+
     beamnum = 0
     candlocs, l1s, m1s, snr1s, immax1s, snrks = [], [], [], [], [], []
     for dmind in dminds:
@@ -291,6 +293,8 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
     ** only supports threshold > image max (no min)
     ** dmind, dtind, beamnum assumed to represent current state of data
     """
+
+    from rfpipe import candidates, util
 
     anydata = np.any(data)
     if not anydata or st.prefs.searchtype is None:
@@ -465,6 +469,9 @@ def reproduce_candcollection(cc, data, wisdom=None, spec_std=None, sig_ts=None,
     Calculates features not used directly for search (as defined in
     state.prefs.calcfeatures).
     """
+
+    from rfpipe import candidates
+    import rfpipe.reproduce  # explicit to avoid circular import
 
     # set up output cc
     st = cc.state
@@ -878,6 +885,8 @@ def search_thresh_armk(st, data, uvw, integrations=None, spec_std=None,
                        sig_ts=[], coeffs=[]):
     """
     """
+
+    from rfpipe import util
 
     if integrations is None:
         integrations = list(range(len(data)))

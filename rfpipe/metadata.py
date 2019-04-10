@@ -7,7 +7,6 @@ import os.path
 import attr
 
 import numpy as np
-from rfpipe.util import getsdm, calc_uvw
 import pwkit.environments.casa.util as casautil
 
 import logging
@@ -160,6 +159,7 @@ class Metadata(object):
 
     @property
     def uvrange_orig(self):
+        from rfpipe.util import calc_uvw
         (ur, vr, wr) = calc_uvw(datetime=self.starttime_string,
                                      radec=self.radec,
                                      antpos=self.antpos,
@@ -269,6 +269,7 @@ def sdm_metadata(sdmfile, scan, subscan=1, bdfdir=None):
     """
 
     logger.info('Reading metadata from {0}, scan {1}'.format(sdmfile, scan))
+    from rfpipe.util import getsdm
 
     sdm = getsdm(sdmfile, bdfdir=bdfdir)
     scanobj = sdm.scan(scan)
