@@ -119,6 +119,13 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
             spec_std = data.real.mean(axis=3).mean(axis=1).std(axis=0)
         else:
             spec_std = data[0].real.mean(axis=2).std(axis=0)
+
+        if len(np.where(spec_std == 0.)[0]) > 0:
+            medstd = np.median(spec_std)
+            logger.info("Replacing {0} noise spectrum channels with median noise"
+                        .format(len(np.where(spec_std == 0.)[0])))
+            spec_std = np.where(spec_std == 0., medstd, spec_std)
+
         sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
         if not np.all(sig_ts):
             logger.info("sig_ts all zeros. Skipping search.")
@@ -310,6 +317,13 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
             spec_std = data.real.mean(axis=3).mean(axis=1).std(axis=0)
         else:
             spec_std = data[0].real.mean(axis=2).std(axis=0)
+
+        if len(np.where(spec_std == 0.)[0]) > 0:
+            medstd = np.median(spec_std)
+            logger.info("Replacing {0} noise spectrum channels with median noise"
+                        .format(len(np.where(spec_std == 0.)[0])))
+            spec_std = np.where(spec_std == 0., medstd, spec_std)
+
         sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
     else:
         spec_std, sig_ts, kalman_coeffs = None, None, None

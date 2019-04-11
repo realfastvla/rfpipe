@@ -187,6 +187,8 @@ def calc_dmarr(state):
     bw = 1e3*(state.freq.max() - state.freq.min())  # in MHz
     ch = 1e-6*state.metadata.spw_chansize[0]  # in MHz ** first spw only
 
+#    print(dm_maxloss, dm_pulsewidth, tsamp, freq, bw, ch)
+
     # width functions and loss factor
     dt0 = lambda dm: np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2)
     dt1 = lambda dm, ddm: np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2 + ((k*ddm*bw)/(freq**3.))**2)
