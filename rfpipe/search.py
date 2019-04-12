@@ -126,11 +126,14 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                         .format(len(np.where(spec_std == 0.)[0])))
             spec_std = np.where(spec_std == 0., medstd, spec_std)
 
-        if not np.any(spec_std) or not np.all(np.nan_to_num(sig_ts)):
+        if not np.any(spec_std):
             logger.warning("spectrum std all zeros. Not estimating coeffs.")
             kalman_coeffs = []
         else:
             sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
+
+        if not np.all(np.nan_to_num(sig_ts)):
+            kalman_coeffs = []
 
         if not np.all(sig_ts):
             logger.info("sig_ts all zeros. Skipping search.")
@@ -329,11 +332,14 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
                         .format(len(np.where(spec_std == 0.)[0])))
             spec_std = np.where(spec_std == 0., medstd, spec_std)
 
-        if not np.any(spec_std) or not np.all(np.nan_to_num(sig_ts)):
+        if not np.any(spec_std):
             logger.warning("spectrum std all zeros. Not estimating coeffs.")
             kalman_coeffs = []
         else:
             sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
+
+        if not np.all(np.nan_to_num(sig_ts)):
+            kalman_coeffs = []
 
     else:
         spec_std, sig_ts, kalman_coeffs = None, None, None
@@ -927,11 +933,14 @@ def search_thresh_armk(st, data, uvw, integrations=None, spec_std=None,
         sig_ts = [x*np.median(spec_std) for x in [0.3, 0.1, 0.03, 0.01]]
 
     if not len(coeffs):
-        if not np.any(spec_std) or not np.all(np.nan_to_num(sig_ts)):
+        if not np.any(spec_std):
             logger.warning("spectrum std all zeros. Not estimating coeffs.")
             kalman_coeffs = []
         else:
             sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
+
+        if not np.all(np.nan_to_num(sig_ts)):
+            kalman_coeffs = []
 
     n_max_cands = 10  # TODO set with function of sigma_arms
 

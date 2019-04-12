@@ -12,7 +12,7 @@ import numpy as np
 @pytest.fixture(scope="module")
 def st():
         inprefs = {'flaglist': [], 'npix_max': 128, 'uvres': 500, 'nthread': 1,
-                   'fftmode': 'fftw'}
+                   'fftmode': 'fftw', 'searchtype': 'imagek'}
         t0 = time.Time.now().mjd
         meta = rfpipe.metadata.mock_metadata(t0, t0+0.05/(24*3600), 10, 4, 32*4,
                                              2, 5e3, datasource='sim', antconfig='D')
@@ -27,6 +27,7 @@ def data(st):
 
 def test_prepsearch(st, data):
     segment = 0
+    data[:,:,10:12] = 0j  # test zeroed channels
     cc = rfpipe.pipeline.prep_and_search(st, segment, data)
 
 def test_nosearch(st, data):
