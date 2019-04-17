@@ -37,7 +37,6 @@ def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1,
         else:
             sols = getsols(st, threshold=threshold, onlycomplete=onlycomplete,
                            savesols=savesols)
-
             pols = [0, 1]
             reffreq, nchan, chansize = st.metadata.spw_sorted_properties
             skyfreqs = np.around([reffreq[i] + (chansize[i]*nchan[i]//2) for i in range(len(nchan))], -6)/1e6  # GN skyfreq is band center
@@ -54,7 +53,7 @@ def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1,
                 gaindelay = np.zeros_like(data)
 
         # check for repeats or bad values
-        repeats = [(item, count) for item, count in Counter(gaindelay[:,::nchan[0]].flatten()).items() if count > 1]
+        repeats = [(item, count) for item, count in Counter(gaindelay[:, ::nchan[0]].flatten()).items() if count > 1]
         if len(repeats):
             for item, count in repeats:
                 if item == 0j:
@@ -89,8 +88,11 @@ def getsols(st, threshold=1/10., onlycomplete=True, mode='realtime',
 
     sols = parseGN(st.gainfile)
 
-    # must run time select before flagants for complete solutions
-    sols = select(sols, time=st.segmenttimes.mean(), mode=mode)
+    # must run time/freq select before flagants for complete solutions
+    reffreq, nchan, chansize = st.metadata.spw_sorted_properties
+    skyfreqs = np.around([reffreq[i] + (chansize[i]*nchan[i]//2) for i in range(len(nchan))], -6)/1e6  # GN skyfreq is band center
+
+    sols = select(sols, time=st.segmenttimes.mean(), freqs=skyfreqs, mode=mode)
     if st.prefs.flagantsol:
         sols = flagants(sols, threshold=threshold,
                         onlycomplete=onlycomplete)
@@ -228,7 +230,10 @@ def select(sols, time=None, freqs=None, polarization=None, mode='realtime'):
 
     # select freq if solution band center is in (rounded) array of chan freqs
     if freqs is not None:
-        freqselect = [ff in np.around(freqs, -6)
+        deltaf = freqs[1] - freqs[0]
+        fmin = freqs.min() - deltaf
+        fmax = freqs.max() + deltaf
+        freqselect = [(ff > fmin) and (ff < fmax)
                       for ff in np.around(1e6*sols['skyfreq'], -6)]
     else:
         freqselect = np.ones(len(sols), dtype=bool)
@@ -238,7 +243,8 @@ def select(sols, time=None, freqs=None, polarization=None, mode='realtime'):
         if mode == 'best':
             mjddist = np.abs(time - sols['mjd'])
         elif mode == 'realtime':
-            mjddist = time - np.where((time-sols['mjd']) > 0, sols['mjd'], sols['mjd']-time)  # favor solutions in past
+            mjddist = time - np.where((time-sols['mjd']) > 0, sols['mjd'],
+                                      sols['mjd']-time)  # past solutions valid
 
         mjdselect = mjddist == mjddist.min()
 
