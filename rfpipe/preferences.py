@@ -14,6 +14,13 @@ from rfpipe.version import __version__
 import logging
 logger = logging.getLogger(__name__)
 
+# to parse tuples in yaml
+class PrettySafeLoader(yaml.SafeLoader):
+    def construct_python_tuple(self, node):
+        return tuple(self.construct_sequence(node))
+PrettySafeLoader.add_constructor(u'tag:yaml.org,2002:python/tuple',
+                                 PrettySafeLoader.construct_python_tuple)
+
 
 @attr.s
 class Preferences(object):
@@ -37,11 +44,17 @@ class Preferences(object):
     l0 = attr.ib(default=0.)  # in radians
     m0 = attr.ib(default=0.)  # in radians
     timesub = attr.ib(default=None)
-    flaglist = attr.ib(default=[('badchtslide', 4., 10), ('blstd', 3.0, 0.05)])
+    flaglist = attr.ib(default=[('badchtslide', 4., 20),
+                                ('badchtslide', 4., 20),
+                                ('badspw', 3.),
+                                ('blstd', 3., 0.008)])
+    ignore_spwedge = attr.ib(default=0.075)  # fraction of each spw edge to ignore when selecting data
     flagantsol = attr.ib(default=True)
     badspwpol = attr.ib(default=2.)  # 0 means no flagging done
     applyonlineflags = attr.ib(default=True)
     gainfile = attr.ib(default=None)
+    apply_chweights = attr.ib(default=False)  # calculate weight per ch and scale data
+    apply_blweights = attr.ib(default=False)  # calculate weight per bl and scale data
     # simulate transients from list of tuples with
     # values/units: (segment, i0/int, dm/pc/cm3, dt/s, amp/sys, dl/rad, dm/rad)
     # or an int that defines number of mocks to create per scan
@@ -63,19 +76,26 @@ class Preferences(object):
     maxdm = attr.ib(default=0)  # in pc/cm3
     dm_pulsewidth = attr.ib(default=3000)   # in microsec
     searchtype = attr.ib(default='image')  # supported: image, imagestat, imagek, armkimage
+    calcfeatures = attr.ib(('specstd', 'specskew', 'speckur', 'imskew', 'imkur', 'tskew', 'tkur'))  # calculated for each candidate saved/plotted
+    searchfeatures = attr.ib(default=None)  # force with tuple of features (e.g., ("snr1"))
+
     sigma_image1 = attr.ib(default=7)  # threshold for image and imagearm algorithms
     sigma_arm = attr.ib(default=None)  # 1arm threshold
     sigma_arms = attr.ib(default=None)  # all-arm threshold
-    sigma_kalman = attr.ib(default=None)  # threshold on kalman prediction alone
+    sigma_kalman = attr.ib(default=0)  # threshold on kalman prediction alone
     nfalse = attr.ib(default=None)  # number of thermal false positives per scan
     uvres = attr.ib(default=0)  # in lambda
     npixx = attr.ib(default=0)  # set number of x pixels in image
     npixy = attr.ib(default=0)  # set number of y pixels in image
     npix_max = attr.ib(default=0)  # set max number of pixels in image
     uvoversample = attr.ib(default=1.)  # scale factor for to overresolve grid
+    clustercands = attr.ib(default=None)  # 2-tuple with hdbscan params (min_cluster_size, min_samples)
 
     savenoise = attr.ib(default=False)
-    savecands = attr.ib(default=False)
+    savecandcollection = attr.ib(default=False)
+    savecanddata = attr.ib(default=False)
+    saveplots = attr.ib(default=False)
+    savesols = attr.ib(default=False)
     candsfile = attr.ib(default=None)
     workdir = attr.ib(default=getcwd())  # set upon import
     timewindow = attr.ib(default=30)
@@ -85,6 +105,7 @@ class Preferences(object):
     @property
     def ordered(self):
         """ Get OrderedDict of preferences sorted by key
+        Excludes "gainfile", since that changes with each datasetId
         """
 
         keys = sorted(self.__dict__)
@@ -93,9 +114,14 @@ class Preferences(object):
     @property
     def json(self):
         """ json string that can be loaded into elasticsearch or hashed.
+        "gainfile" and "simulated_transient" are ignored in json/name properties.
         """
 
-        return json.dumps(self.ordered).encode('utf-8')
+        excludekeys = ["gainfile", "simulated_transient"]
+        ordered2 = OrderedDict([(key, value)
+                                for (key, value) in self.ordered.items()
+                                if key not in excludekeys])
+        return json.dumps(ordered2).encode('utf-8')
 
     @property
     def name(self):
@@ -173,7 +199,7 @@ def _parsepref_yaml(preffile, name=None):
     logger.info("Parsing preffile for preference set {0}".format(name))
 
     with open(preffile, 'r') as fp:
-        yamlpars = yaml.load(fp)
+        yamlpars = yaml.load(fp, Loader=PrettySafeLoader)
         pars = yamlpars['rfpipe'][name]
 
     return pars

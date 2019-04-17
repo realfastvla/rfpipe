@@ -3,18 +3,18 @@ from builtins import bytes, dict, object, range, map, input, str
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
-from rfpipe import source, search, candidates, state, metadata
-
 import logging
 logger = logging.getLogger(__name__)
 vys_timeout_default = 10
 
 
 def pipeline_scan(st, segments=None, cfile=None,
-                  vys_timeout=vys_timeout_default):
+                  vys_timeout=vys_timeout_default, devicenum=None):
     """ Given rfpipe state run search pipline on all segments in a scan.
         state/preference has fftmode that will determine functions used here.
     """
+
+    from rfpipe import candidates
 
     # initialize with empty cc
     candcollection = candidates.CandCollection(prefs=st.prefs,
@@ -24,7 +24,7 @@ def pipeline_scan(st, segments=None, cfile=None,
         segments = list(range(st.nsegment))
 
     for segment in segments:
-        candcollection += pipeline_seg(st, segment, cfile=cfile,
+        candcollection += pipeline_seg(st, segment, devicenum=devicenum, cfile=cfile,
                                        vys_timeout=vys_timeout)
 
     return candcollection
@@ -34,6 +34,8 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default, devic
     """ Submit pipeline processing of a single segment on a single node.
     state/preference has fftmode that will determine functions used here.
     """
+
+    from rfpipe import source
 
     data = source.read_segment(st, segment, timeout=vys_timeout, cfile=cfile)
     candcollection = prep_and_search(st, segment, data, devicenum=devicenum)
@@ -45,16 +47,21 @@ def prep_and_search(st, segment, data, devicenum=None):
     """ Bundles prep and search functions to improve performance in distributed.
     """
 
+    from rfpipe import source, search
+
     data = source.data_prep(st, segment, data)
+    # TODO: implement   returnsoltime=True
 
     if st.prefs.fftmode == "cuda":
-        candcollection = search.dedisperse_search_cuda(st, segment, data, devicenum=devicenum)
+        candcollection = search.dedisperse_search_cuda(st, segment, data,
+                                                       devicenum=devicenum)
     elif st.prefs.fftmode == "fftw":
         candcollection = search.dedisperse_search_fftw(st, segment, data)
     else:
-        logger.warn("fftmode {0} not recognized (cuda, fftw allowed)"
-                    .format(st.prefs.fftmode))
+        logger.warning("fftmode {0} not recognized (cuda, fftw allowed)"
+                       .format(st.prefs.fftmode))
 
+    # TODO: attach telcal solution time as mjd to candcollection
     return candcollection
 
 
@@ -62,6 +69,8 @@ def pipeline_sdm(sdm, inprefs=None, intent='TARGET', preffile=None):
     """ Get scans from SDM and run search.
     intent can be partial match to any of scan intents.
     """
+
+    from rfpipe import state, metadata
 
     scans = list(metadata.getsdm(sdm).scans())
     intents = [scan.intents for scan in scans]

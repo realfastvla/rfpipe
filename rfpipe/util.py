@@ -10,6 +10,7 @@ from numba import cuda, guvectorize
 from numba import jit, complex64, int64
 import pwkit.environments.casa.util as casautil
 import sdmpy
+from rfpipe import calibration
 
 import logging
 logger = logging.getLogger(__name__)
@@ -30,16 +31,20 @@ def getsdm(*args, **kwargs):
     return sdm
 
 
-def phase_shift(data, uvw, dl, dm):
+def phase_shift(data, uvw, dl, dm, ints=None):
     """ Applies a phase shift to data for a given (dl, dm).
     """
 
+    assert data.shape[1] == uvw[0].shape[0]
+    assert data.shape[2] == uvw[0].shape[1]
     data = np.require(data, requirements='W')
-    _phaseshift_jit(data, uvw, dl, dm)
+    if ints is None:
+        ints = list(range(len(data)))
+    _phaseshift_jit(data, uvw, dl, dm, ints=ints)
 
 
-@jit(nogil=True, nopython=True)
-def _phaseshift_jit(data, uvw, dl, dm):
+@jit(nogil=True, nopython=True, cache=True)
+def _phaseshift_jit(data, uvw, dl, dm, ints):
 
     sh = data.shape
     u, v, w = uvw
@@ -48,8 +53,8 @@ def _phaseshift_jit(data, uvw, dl, dm):
         for j in range(sh[1]):
             for k in range(sh[2]):
                 frot = np.exp(-2j*np.pi*(dl*u[j, k] + dm*v[j, k]))
-                for i in range(sh[0]):    # iterate over pols
-                    for l in range(sh[3]):
+                for i in ints:
+                    for l in range(sh[3]):    # iterate over pols
                         # phasor unwraps phase at (dl, dm) per (bl, chan)
                         data[i, j, k, l] = data[i, j, k, l] * frot
 
@@ -59,17 +64,20 @@ def meantsub(data, parallel=False):
     Parallel controls use of multithreaded algorithm.
     """
 
+    # TODO: make outlier resistant to avoid oversubtraction
+
     if parallel:
-        _ = _meantsub_gu(np.require(np.swapaxes(data, 0, 3), requirements='W'))
+#        _ = _meantsub_gu(np.require(np.swapaxes(data, 0, 3), requirements='W'))
+        _meantsub_jit(np.require(data, requirements='W'))
+        logger.warning("Parallel implementation of meantsub not working with flags. Using single threaded version.")
     else:
         _meantsub_jit(np.require(data, requirements='W'))
     return data
 
 
-@jit(nogil=True, nopython=True)
+@jit(nogil=True, nopython=True, cache=True)
 def _meantsub_jit(data):
     """ Calculate mean in time (ignoring zeros) and subtract in place
-
     Could ultimately parallelize by computing only on subset of data.
     """
 
@@ -101,13 +109,14 @@ def _meantsub_gu(data):
     b""" Subtract time mean while ignoring zeros.
     Vectorizes over time axis.
     Assumes time axis is last so use np.swapaxis(0,3) when passing visibility array in
+    **CURRENTLY NOT WORKING WITH FLAGS**
     """
 
     ss = complex64(0)
     weight = int64(0)
     for i in range(data.shape[0]):
         ss += data[i]
-        if data[i] != 0j:
+        if data[i] != complex64(0):
             weight += 1
     mean = ss/weight
     for i in range(data.shape[0]):
@@ -115,7 +124,7 @@ def _meantsub_gu(data):
 
 
 @cuda.jit
-def meantsub_cuda(data):
+def meantsub_cuda(data, cache=True):
     """ Calculate mean in time (ignoring zeros) and subtract in place """
 
     x, y, z = cuda.grid(3)
@@ -136,13 +145,15 @@ def calc_delay(freq, freqref, dm, inttime, scale=None):
     """ Calculates the delay in integration time bins due to dispersion delay.
     freq is array of frequencies. delay is relative to freqref.
     default scale is 4.1488e-3 as linear prefactor (reproducing for rtpipe<=1.54 requires 4.2e-3).
+    Casts to int, so it uses a floor operation, not round.
     """
 
     scale = 4.1488e-3 if not scale else scale
     delay = np.zeros(len(freq), dtype=np.int32)
 
     for i in range(len(freq)):
-        delay[i] = np.round(scale * dm * (1./freq[i]**2 - 1./freqref**2)/inttime, 0)
+#        delay[i] = np.round(scale * dm * (1./freq[i]**2 - 1./freqref**2)/inttime, 0)
+        delay[i] = int(scale * dm * (1./freq[i]**2 - 1./freqref**2)/inttime)
 
     return delay
 
@@ -179,7 +190,7 @@ def calc_dmarr(state):
     dt0 = lambda dm: np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2)
     dt1 = lambda dm, ddm: np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2 + ((k*ddm*bw)/(freq**3.))**2)
     loss = lambda dm, ddm: 1 - np.sqrt(dt0(dm)/dt1(dm, ddm))
-    loss_cordes = lambda ddm, dfreq, dm_pulsewidth, freq: 1 - (np.sqrt(np.pi) / (2 * 6.91e-3 * ddm * dfreq / (dm_pulsewidth*freq**3))) * erf(6.91e-3 * ddm * dfreq / (dm_pulsewidth*freq**3))  # not quite right for underresolved pulses
+#    loss_cordes = lambda ddm, dfreq, dm_pulsewidth, freq: 1 - (np.sqrt(np.pi) / (2 * 6.91e-3 * ddm * dfreq / (dm_pulsewidth*freq**3))) * erf(6.91e-3 * ddm * dfreq / (dm_pulsewidth*freq**3))  # not quite right for underresolved pulses
 
     if maxdm == 0:
         return [0]
@@ -329,8 +340,8 @@ def madtostd(array):
     return 1.4826*np.median(np.abs(array-np.median(array)))
 
 
-def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None, i=None,
-                          amp=None, lm=None, snr=None, data=None):
+def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
+                          i=None, amp=None, lm=None, snr=None, data=None):
     """ Given a state, create ntr randomized detectable transients.
     Returns list of ntr tuples of parameters.
     If data provided, it is used to inject transient at fixed SNR.
@@ -345,36 +356,62 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None, i=Non
     i0 = i
     amp0 = amp
     lm0 = lm
+    snr0 = snr
 
     mocks = []
     for tr in range(ntr):
         if segment is None:
             segment = random.choice(range(st.nsegment))
 
-        if dmind is None:
-            dmind = random.choice(range(len(st.dmarr)))
-        dm = st.dmarr[dmind]
+        if dmind is not None:
+            dm = st.dmarr[dmind]
+#            dmind = random.choice(range(len(st.dmarr)))
+        else:
+            dm = np.random.uniform(min(st.dmarr), max(st.dmarr)) # pc /cc
 
-        if dtind is None:
-            dtind = random.choice(range(len(st.dtarr)))
-        dt = st.metadata.inttime*st.dtarr[dtind]
+            dmarr = np.array(calc_dmarr(st))
+            if dm > np.max(dmarr):
+                logging.warning("Dm of injected transient is greater than the max DM searched.")
+                dmind = len(dmarr) - 1
+            else:
+                dmind = np.argmax(dmarr>dm)
+            
+
+        if dtind is not None:
+            dt = st.inttime*min(st.dtarr[dtind], 2)  # dt>2 not yet supported
+        else:
+            #dtind = random.choice(range(len(st.dtarr)))
+            dt = st.inttime*np.random.uniform(min(st.dtarr), max(st.dtarr)) # s  #like an alias for "dt"
+            if dt < st.inttime:
+                dtind = 0
+            else:    
+                dtind = int(np.log2(dt/st.inttime))
+                if dtind >= len(st.dtarr):
+                    dtind = len(st.dtarr) - 1
+                    logging.warning("Width of transient is greater than max dt searched.")
+
 
 # TODO: add support for arb dm/dt
 #        dm = random.uniform(min(st.dmarr), max(st.dmarr))
 #        dt = random.uniform(min(st.dtarr), max(st.dtarr))
 
         if i is None:
-            i = random.choice(st.get_search_ints(segment, dmind, 0))  # dt=0 is ok
+            i = random.choice(st.get_search_ints(segment, dmind, dtind))
 
         if amp is None:
             if data is None:
-                amp = 0.3
+                amp = random.uniform(0.1, 0.5)
+                logger.info("Setting mock amp to {0}".format(amp))
             else:
                 if snr is None:
-                    snr = 50.
-                # TODO: support flagged data in size calc and injection
-                sig = madtostd(data[i].real)/np.sqrt(data[i].size*st.dtarr[dtind])
+                    snr = random.uniform(10, 50)
+                    logger.info("Setting mock snr to {0}".format(snr))
+                    # TODO: support flagged data in size calc and injection
+                datap = calibration.apply_telcal(st, data)
+                sig = madtostd(datap[i].real)/np.sqrt(datap[i].size*st.dtarr[dtind])
                 amp = snr*sig
+                logger.info("Setting mock amp as {0}*{1}={2}".format(snr, sig, amp))
+                
 
         if lm is None:
             # flip a coin to set either l or m
@@ -391,8 +428,8 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None, i=Non
             l, m = lm
 
         mocks.append((segment, i, dm, dt, amp, l, m))
-        (segment, dmind, dtind, i, amp, lm) = (segment0, dmind0, dtind0, i0,
-                                               amp0, lm0)
+        (segment, dmind, dtind, i, amp, lm, snr) = (segment0, dmind0, dtind0, i0,
+                                               amp0, lm0, snr0)
 
     return mocks
 
@@ -405,9 +442,9 @@ def make_transient_data(st, amp, i0, dm, dt, ampslope=0.):
     ampslope adds to a linear slope up to amp+ampslope at last channel.
     """
 
-    model = np.zeros((st.metadata.nchan_orig, st.readints), dtype='complex64')
-    chans = np.arange(st.nchan)
-    ampspec = amp + ampslope*(np.linspace(0, 1, num=st.nchan))
+    chans = np.arange(len(st.freq))
+    model = np.zeros((len(st.freq), st.readints), dtype='complex64')
+    ampspec = amp + ampslope*(np.linspace(0, 1, num=len(chans)))
 
     i = i0 + calc_delay2(st.freq, st.freq.max(), dm)/st.inttime
 #    print(i)
@@ -439,5 +476,7 @@ def make_transient_data(st, amp, i0, dm, dt, ampslope=0.):
         model[chans[ir3], i_f[ir3]] += f0[ir3]*ampspec[chans[ir3]]
         model[chans[ir3], i_f[ir3]+1] += f1[ir3]*ampspec[chans[ir3]]
         model[chans[ir3], i_f[ir3]+2] += f2[ir3]*ampspec[chans[ir3]]
+    if np.any(i_r >= 4):
+        logger.warning("Some channels broadened more than 3 integrations, which is not yet supported.")
 
     return model

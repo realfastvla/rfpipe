@@ -4,10 +4,9 @@ from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 
 import os.path
 import numpy as np
-from numba import jit
 from astropy import time
 import pwkit.environments.casa.util as casautil
-from rfpipe import util, calibration, fileLock, flagging
+from rfpipe import util, fileLock
 import pickle
 
 import logging
@@ -19,32 +18,41 @@ except ImportError:
     pass
 
 qa = casautil.tools.quanta()
-default_timeout = 10  # multiple of read time in seconds to wait
 
 
-def data_prep(st, segment, data, flagversion="latest"):
+def data_prep(st, segment, data, flagversion="latest", returnsoltime=False):
     """ Applies calibration, flags, and subtracts time mean for data.
     flagversion can be "latest" or "rtpipe".
     Optionally prepares data with antenna flags, fixing out of order data,
-    calibration, downsampling, etc..
+    calibration, downsampling, OTF rephasing...
     """
+
+    from rfpipe import calibration, flagging
 
     if not np.any(data):
         return data
 
     # take pols of interest
     takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
-    logger.debug('Selecting pols {0}'.format(st.pols))
+    logger.debug('Selecting pols {0} and chans {1}'.format(st.pols, st.chans))
 
     # TODO: check on reusing 'data' to save memory
-    datap = np.nan_to_num(data.take(takepol, axis=3), copy=True)
+    datap = np.nan_to_num(np.require(data, requirements='W').take(takepol, axis=3).take(st.chans, axis=2))
     datap = prep_standard(st, segment, datap)
+
     if not np.any(datap):
         logger.info("All data zeros after prep_standard")
         return datap
 
     if st.gainfile is not None:
-        datap = calibration.apply_telcal(st, datap)
+        logger.info("Applying calibration with {0}".format(st.gainfile))
+        ret = calibration.apply_telcal(st, datap, savesols=st.prefs.savesols,
+                                       returnsoltime=returnsoltime)
+        if returnsoltime:
+            datap, soltime = ret
+        else:
+            datap = ret
+
         if not np.any(datap):
             logger.info("All data zeros after apply_telcal")
             return datap
@@ -52,10 +60,16 @@ def data_prep(st, segment, data, flagversion="latest"):
         logger.info("No gainfile found, so not applying calibration.")
 
     # support backwards compatibility for reproducible flagging
+    logger.info("Flagging with version: {0}".format(flagversion))
     if flagversion == "latest":
         datap = flagging.flag_data(st, datap)
     elif flagversion == "rtpipe":
         datap = flagging.flag_data_rtpipe(st, datap)
+
+    zerofrac = 1-np.count_nonzero(datap)/datap.size
+    if zerofrac > 0.8:
+        logger.warning('Flagged {0:.1f}% of data. Zeroing all if greater than 80%.'.format(zerofrac*100))
+        return np.array([])
 
     if st.prefs.timesub == 'mean':
         logger.info('Subtracting mean visibility in time.')
@@ -63,35 +77,72 @@ def data_prep(st, segment, data, flagversion="latest"):
     else:
         logger.info('No visibility subtraction done.')
 
+    if (st.prefs.apply_chweights or st.prefs.apply_blweights) and st.readints > 3:
+        if st.prefs.apply_chweights:
+            # TODO: find better estimator. Currently loses sensitivity to FRB 121102 bursts.
+            chvar = np.std(np.abs(datap).mean(axis=1), axis=0)
+            chvar_norm = np.mean(1/chvar**2, axis=0)
+
+        if st.prefs.apply_blweights:
+            blvar = np.std(np.abs(datap).mean(axis=2), axis=0)
+            blvar_norm = np.mean(1/blvar**2, axis=0)
+
+        if st.prefs.apply_chweights:
+            logger.info('Reweighting data by channel variances')
+            datap = (datap/chvar[None, None, :, :])/chvar_norm[None, None, None, :]
+
+        if st.prefs.apply_blweights:
+            logger.info('Reweighting data by baseline variances')
+            datap = (datap/blvar[None, :, None, :])/blvar_norm[None, None, None, :]
+
     if st.prefs.savenoise:
-        save_noise(st, segment, datap.take(st.chans, axis=2))
+        save_noise(st, segment, datap)
 
-    logger.debug('Selecting chans {0}'.format(st.chans))
+    if returnsoltime:
+        return datap, soltime
+    else:
+        return datap
 
-    return datap.take(st.chans, axis=2)
 
-
-def read_segment(st, segment, cfile=None, timeout=default_timeout):
+def read_segment(st, segment, cfile=None, timeout=10):
     """ Read a segment of data.
     cfile and timeout are specific to vys data.
+    cfile used as proxy for real-time environment when simulating data.
     Returns data as defined in metadata (no downselection yet)
+    default timeout is multiple of read time in seconds to wait.
     """
 
     # assumed read shape (st.readints, st.nbl, st.metadata.nchan_orig, st.npol)
+    logger.info("Reading segment {0} of datasetId {1}"
+                .format(segment, st.metadata.datasetId))
     if st.metadata.datasource == 'sdm':
         data_read = read_bdf_segment(st, segment)
     elif st.metadata.datasource == 'vys':
         data_read = read_vys_segment(st, segment, cfile=cfile, timeout=timeout)
     elif st.metadata.datasource == 'sim':
-        data_read = simulate_segment(st)
+        simseg = segment if cfile else None
+        data_read = simulate_segment(st, segment=simseg)
+    elif st.metadata.datasource == 'vyssim':
+        data_read = read_vys_segment(st, segment, cfile=cfile, timeout=timeout,
+                                     returnsim=True)
     else:
         logger.error('Datasource {0} not recognized.'
                      .format(st.metadata.datasource))
 
+    # report bad values
+    if np.any(np.isnan(data_read)):
+        logger.warning("Read data has some NaNs")
+    if np.any(np.isinf(data_read)):
+        logger.warning("Read data has some Infs")
+    if np.any(np.abs(data_read) > 1e20):
+        logger.warning("Read data has values larger than 1e20")
+
     if not np.any(data_read):
-        logger.info('No data read.')
+        logger.info('Read data are all zeros for segment {0}.'.format(segment))
         return np.array([])
     else:
+        logger.info('Read data with zero fraction of {0:.3f} for segment {1}'
+                    .format(1-np.count_nonzero(data_read)/data_read.size, segment))
         return data_read
 
 
@@ -100,19 +151,23 @@ def prep_standard(st, segment, data):
     online flags, resampling, and mock transients.
     """
 
+    from rfpipe import calibration, flagging
+
     if not np.any(data):
         return data
 
     # read and apply flags for given ant/time range. 0=bad, 1=good
     if st.prefs.applyonlineflags and st.metadata.datasource in ['vys', 'sdm']:
         flags = flagging.getonlineflags(st, segment)
-        data = np.where(flags[None, :, None, None],
-                        np.require(data, requirements='W'), 0j)
+        data = np.where(flags[None, :, None, None], data, 0j)
     else:
         logger.info('Not applying online flags.')
 
     if not np.any(data):
         return data
+
+    if st.prefs.simulated_transient is not None or st.otfcorrections is not None:
+        uvw = util.get_uvw_segment(st, segment)
 
     # optionally integrate (downsample)
     if ((st.prefs.read_tdownsample > 1) or (st.prefs.read_fdownsample > 1)):
@@ -136,13 +191,12 @@ def prep_standard(st, segment, data):
         if isinstance(st.prefs.simulated_transient, int):
             logger.info("Filling simulated_transient with {0} random transients"
                         .format(st.prefs.simulated_transient))
-            st.prefs.simulated_transient = util.make_transient_params(st,
+            st.prefs.simulated_transient = util.make_transient_params(st, segment=segment,
                                                                       ntr=st.prefs.simulated_transient,
                                                                       data=data)
 
         assert isinstance(st.prefs.simulated_transient, list), "Simulated transient must be list of tuples."
 
-        uvw = util.get_uvw_segment(st, segment)
         for params in st.prefs.simulated_transient:
             assert len(params) == 7 or len(params) == 8, ("Transient requires 7 or 8 parameters: "
                                                           "(segment, i0/int, dm/pc/cm3, dt/s, "
@@ -153,22 +207,23 @@ def prep_standard(st, segment, data):
                     (mock_segment, i0, dm, dt, amp, l, m) = params
                     ampslope = 0
 
-                    logger.info("Adding transient to segment {0} at int {1}, DM {2}, "
-                                "dt {3} with amp {4} and l,m={5},{6}"
+                    logger.info("Adding transient to segment {0} at int {1}, "
+                                "DM {2}, dt {3} with amp {4} and l,m={5},{6}"
                                 .format(mock_segment, i0, dm, dt, amp, l, m))
                 elif len(params) == 8:
                     (mock_segment, i0, dm, dt, amp, l, m, ampslope) = params
-                    logger.info("Adding transient to segment {0} at int {1}, DM {2}, "
-                                "dt {3} with amp {4}-{5} and l,m={6},{7}"
+                    logger.info("Adding transient to segment {0} at int {1}, "
+                                " DM {2}, dt {3} with amp {4}-{5} and "
+                                "l,m={6},{7}"
                                 .format(mock_segment, i0, dm, dt, amp,
                                         amp+ampslope, l, m))
                 try:
                     model = np.require(np.broadcast_to(util.make_transient_data(st, amp, i0, dm, dt, ampslope=ampslope)
                                                        .transpose()[:, None, :, None],
-                                                       data.shape),
+                                                       st.datashape),
                                        requirements='W')
                 except IndexError:
-                    logger.warn("IndexError while adding transient. Skipping...")
+                    logger.warning("IndexError while adding transient. Skipping...")
                     continue
 
                 if st.gainfile is not None:
@@ -176,15 +231,27 @@ def prep_standard(st, segment, data):
                 util.phase_shift(model, uvw, -l, -m)
                 data += model
 
+    if st.otfcorrections is not None:
+        # shift phasecenters to first phasecenter in segment
+        if len(st.otfcorrections[segment]) > 1:
+            ints, ra0, dec0 = st.otfcorrections[segment][0]  # new phase center for segment
+            logger.info("Correcting {0} phasecenters to first at RA,Dec = {1},{2}"
+                        .format(len(st.otfcorrections[segment])-1, ra0, dec0))
+            for ints, ra_deg, dec_deg in st.otfcorrections[segment][1:]:
+                l0 = np.radians(ra_deg-ra0)
+                m0 = np.radians(dec_deg-dec0)
+                util.phase_shift(data, uvw, l0, m0, ints=ints)
+
     return data
 
 
-def read_vys_segment(st, seg, cfile=None, timeout=default_timeout, offset=4):
+def read_vys_segment(st, seg, cfile=None, timeout=10, offset=4, returnsim=False):
     """ Read segment seg defined by state st from vys stream.
     Uses vysmaw application timefilter to receive multicast messages and pull
     spectra on the CBE.
     timeout is a multiple of read time in seconds to wait.
     offset is extra time in seconds to keep vys reader open.
+    returnsim can optionally swap in sim data if vys client returns anything.
     """
 
     # TODO: support for time downsampling
@@ -192,8 +259,8 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout, offset=4):
     t0 = time.Time(st.segmenttimes[seg][0], format='mjd', precision=9).unix
     t1 = time.Time(st.segmenttimes[seg][1], format='mjd', precision=9).unix
 
-    logger.info('Reading {0} s ints into shape {1} from {2} - {3} unix seconds'
-                .format(st.metadata.inttime, st.datashape_orig, t0, t1))
+    logger.info('Reading segment {0}: {1} s ints with shape {2} from {3} - {4} unix seconds'
+                .format(seg, st.metadata.inttime, st.datashape_orig, t0, t1))
 
     # TODO: vysmaw currently pulls all data, but allocates buffer based on these.
     # buffer will be too small if taking subset of all data.
@@ -205,8 +272,11 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout, offset=4):
                           int(spw.split('-')[1])) for spw in spwlist],
                         dtype=np.int32)
 
+    # TODO: move pol selection up and into vysmaw filter function
     assert st.prefs.selectpol in ['auto', 'all'], 'auto and all pol selection supported in vys'
     polauto = st.prefs.selectpol == 'auto'
+    logger.info("Passing to vysmaw: antlist {0} \n\t bbsplist {1} \n"
+                .format(antlist, bbsplist))
     with vysmaw_reader.Reader(t0, t1, antlist, bbsplist, polauto,
                               inttime_micros=st.metadata.inttime*1000000.,
                               nchan=st.metadata.spw_nchan[0],
@@ -218,11 +288,13 @@ def read_vys_segment(st, seg, cfile=None, timeout=default_timeout, offset=4):
         else:
             data = None
 
-    # TODO: move pol selection up and into vysmaw filter function
     if data is not None:
         return data
     else:
-        return np.array([])
+        if (reader is not None) and returnsim:
+            return simulate_segment(st)
+        else:
+            return np.array([])
 
 
 def read_bdf_segment(st, segment):
@@ -250,7 +322,7 @@ def read_bdf_segment(st, segment):
 def read_bdf(st, nskip=0):
     """ Uses sdmpy to read a given range of integrations from sdm of given scan.
     readints=0 will read all of bdf (skipping nskip).
-    Returns data in increasing frequency order.
+    Returns data with spw in increasing frequency order.
     """
 
     assert os.path.exists(st.metadata.filename), ('sdmfile {0} does not exist'
@@ -277,7 +349,7 @@ def read_bdf(st, nskip=0):
     return data
 
 
-def save_noise(st, segment, data, chunk=200):
+def save_noise(st, segment, data, chunk=500):
     """ Calculates noise properties and save values to pickle.
     chunk defines window for measurement. at least one measurement always made.
     """
@@ -306,7 +378,7 @@ def save_noise(st, segment, data, chunk=200):
     except fileLock.FileLock.FileLockException:
         noisefile = ('{0}_seg{1}.pkl'
                      .format(st.noisefile.rstrip('.pkl'), segment))
-        logger.warn('Noise file writing timeout. '
+        logger.warning('Noise file writing timeout. '
                     'Spilling to new file {0}.'.format(noisefile))
         with open(noisefile, 'ab+') as pkl:
             pickle.dump(results, pkl)
@@ -329,16 +401,29 @@ def estimate_noiseperbl(data):
     return noiseperbl
 
 
-def simulate_segment(st, loc=0., scale=1.):
+def simulate_segment(st, loc=0., scale=1., segment=None):
     """ Simulates visibilities for a segment.
+    If segment (int) given, then read will behave like vysmaw client and skip if too late.
     """
 
+    # mimic real-time environment by skipping simulation when late
+    if segment is not None:
+        currenttime = time.Time.now().mjd
+        t1 = st.segmenttimes[segment][1]
+        if currenttime > t1:
+            logger.info('Current time {0} is later than window end {1}. '
+                        'Skipping segment {2}.'
+                        .format(currenttime, t1, segment))
+            return np.array([])
+
     logger.info('Simulating data with shape {0}'.format(st.datashape_orig))
+
     data = np.empty(st.datashape_orig, dtype='complex64', order='C')
-    data.real = np.random.normal(loc=loc, scale=scale,
-                                 size=st.datashape_orig).astype(np.float32)
-    data.imag = np.random.normal(loc=loc, scale=scale,
-                                 size=st.datashape_orig).astype(np.float32)
+    for i in range(len(data)):
+        data[i].real = np.random.normal(loc=loc, scale=scale,
+                                        size=st.datashape_orig[1:]).astype(np.float32)
+        data[i].imag = np.random.normal(loc=loc, scale=scale,
+                                        size=st.datashape_orig[1:]).astype(np.float32)
 
     return data
 

@@ -4,11 +4,9 @@ from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
 import os
-from datetime import date
 import numpy as np
-import scipy.stats
 from astropy import time
-from rfpipe import util, preferences, metadata, version
+from rfpipe import util, version
 import pwkit.environments.casa.util as casautil
 
 import logging
@@ -20,7 +18,7 @@ qa = casautil.tools.quanta()
 class State(object):
     """ Defines initial search from preferences and methods.
     State properties are used to calculate quantities for the search.
-
+    
     Approach:
     1) initial preferences can overload state properties
     2) read metadata from observation for given scan
@@ -35,15 +33,17 @@ class State(object):
         """ Initialize preference attributes with text file, preffile.
         name can select preference set from within yaml file.
         preferences are overloaded with inprefs.
-
+        
         Metadata source can be either:
         1) Config object is a scan_config object (see evla_mcast library) or
         2) sdmfile and sdmscan (optional bdfdir for reading from CBE).
-
+        
         inmeta is a dict with key-value pairs to overload metadata (e.g., to
         mock metadata from a simulation)
         validate argument will use assertions to test state.
         """
+
+        from rfpipe import preferences, metadata
 
         self.config = config
         self.sdmscan = sdmscan
@@ -51,6 +51,7 @@ class State(object):
             sdmfile = sdmfile.rstrip('/')
         self.sdmfile = sdmfile
         self.lock = lock
+        self._corrections = None
 
         # set prefs according to inprefs type
         if isinstance(inprefs, preferences.Preferences):
@@ -59,38 +60,20 @@ class State(object):
             # default values will result in empty dict
             prefs = preferences.parsepreffile(preffile, inprefs=inprefs,
                                               name=name)
-            self.prefs = preferences.Preferences(**prefs)
+            try:
+                self.prefs = preferences.Preferences(**prefs)
+            except TypeError as exc:
+                from fuzzywuzzy import fuzz
+                badarg = exc.args[0].split('\'')[1]
+                closeprefs = [pref for pref in list(preferences.Preferences().__dict__) if fuzz.ratio(badarg, pref) > 50]
+                raise TypeError("Preference {0} not recognized. Did you mean {1}?".format(badarg, ', '.join(closeprefs)))
 
         # TODO: not working
         logger.parent.setLevel(getattr(logging, self.prefs.loglevel))
 
-        if isinstance(inmeta, metadata.Metadata):
-            self.metadata = inmeta
-        else:
-            if inmeta is None:
-                inmeta = {}
-
-            # get metadata
-            if (self.sdmfile and self.sdmscan) and not self.config:
-                meta = metadata.sdm_metadata(sdmfile, sdmscan, bdfdir=bdfdir)
-            elif self.config and not (self.sdmfile or self.sdmscan):
-                # config datasource can be vys or simulated data
-                datasource = inmeta['datasource'] if 'datasource' in inmeta else 'vys'
-                meta = metadata.config_metadata(config, datasource=datasource)
-            else:
-                meta = {}
-
-            # optionally overload metadata
-            if isinstance(inmeta, dict):
-                for key in inmeta:
-                    meta[key] = inmeta[key]
-
-                for key in meta:
-                    logger.debug(key, meta[key], type(meta[key]))
-            else:
-                logger.warn("inmeta not dict, Metadata, or None. Not parsed.")
-
-            self.metadata = metadata.Metadata(**meta)
+        self.metadata = metadata.make_metadata(config=config, sdmfile=sdmfile,
+                                               sdmscan=sdmscan, inmeta=inmeta,
+                                               bdfdir=bdfdir)
 
         if validate:
             assert self.validate() is True
@@ -122,6 +105,8 @@ class State(object):
                                                  'Pipeline will fail!'
                                                  .format(self.t_overlap,
                                                          self.t_segment))
+        assert self.readints >= max(self.dtarr)
+
         if self.prefs.timesub is not None:
             assert self.inttime < self.fringetime_orig, ('Integration time '
                                                          'must be less than '
@@ -142,9 +127,9 @@ class State(object):
             assert self.prefs.sigma_kalman is not None, "Must set sigma_kalman"
 
         # supported algorithms for gpu/cpu
-        if self.prefs.fftmode == 'cuda':
+        if self.prefs.fftmode == 'cuda' and self.prefs.searchtype is not None:
             assert self.prefs.searchtype in ['image', 'imagek']
-        elif self.prefs.fftmode == 'fftw':
+        elif self.prefs.fftmode == 'fftw' and self.prefs.searchtype is not None:
             assert self.prefs.searchtype in ['image', 'imagek', 'armkimage', 'armk']
 
         return True
@@ -164,11 +149,11 @@ class State(object):
             logger.info('\t nchan, nspw: {0}, {1}'
                         .format(self.nchan, self.nspw))
 
-            # TODO: remove for datasource=vys or sim
-            spworder = np.argsort(self.metadata.spw_reffreq)
-            if np.any(spworder != np.sort(spworder)) and self.metadata.datasource == 'sdm':
-                logger.warn('BDF spw sorted to increasing order from {0}'
-                            .format(spworder))
+            # TODO: remove for datasource=vys or sim? or remove altogether?
+#            spworder = np.argsort(self.metadata.spw_reffreq)
+#            if np.any(spworder != np.sort(spworder)) and self.metadata.datasource == 'sdm':
+#                logger.warning('BDF spw sorted to increasing order from {0}'
+#                            .format(spworder))
 
             logger.info('\t Freq range: {0:.3f} -- {1:.3f}'
                         .format(self.freq.min(), self.freq.max()))
@@ -204,11 +189,7 @@ class State(object):
 
             logger.info('\t Using pols {0}'.format(self.pols))
             if self.gainfile is not None:
-                if os.path.exists(self.gainfile) and os.path.isfile(self.gainfile):
-                    logger.info('\t Found telcal file {0}'.format(self.gainfile))
-                else:
-                    logger.warn('\t Gainfile preference ({0}) is not a valid telcal file'
-                                .format(self.gainfile))
+                logger.info('\t Found telcal file {0}'.format(self.gainfile))
             else:
                 logger.info("No gainfile specified or found.")
 
@@ -240,6 +221,16 @@ class State(object):
                         .format(self.npixx, self.npixy, self.uvres, self.chunksize))
             logger.info('\t Expect {0} thermal false positives per scan.'
                         .format(self.nfalse(self.prefs.sigma_image1)))
+            if self.prefs.clustercands is not None:
+                if isinstance(self.prefs.clustercands, tuple):
+                    min_cluster_size, min_samples = self.prefs.clustercands
+                    logger.info('\t Clustering candidates wth min_cluster_size={0} and min_samples={1}'
+                                .format(min_cluster_size, min_samples))
+                    if min_cluster_size <= len(self.dtarr):
+                        logger.warning("min_cluster_size should be > len(dtarr) for best results")
+                elif isinstance(self.prefs.clustercands, bool):
+                    if self.prefs.clustercands:
+                        logger.info('\t Clustering candidates wth default parameters')
 
             logger.info('')
             if self.fftmode == "fftw":
@@ -253,7 +244,8 @@ class State(object):
 
     def clearcache(self):
         cached = ['_dmarr', '_dmshifts', '_npol', '_blarr',
-                  '_segmenttimes', '_npixx_full', '_npixy_full']
+                  '_segmenttimes', '_npixx_full', '_npixy_full',
+                  '_corrections']
         for obj in cached:
             try:
                 delattr(self, obj)
@@ -266,12 +258,20 @@ class State(object):
         """
 
         if segment == 0:
-            return list(range((self.readints-self.dmshifts[dmind])//self.dtarr[dtind]))
+            if self.prefs.fftmode == 'fftw':
+                return list(range((self.readints-self.dmshifts[dmind])//self.dtarr[dtind]))
+            elif self.prefs.fftmode == 'cuda':
+                return list(range(self.readints//self.dtarr[dtind]-self.dmshifts[dmind]//self.dtarr[dtind]))
         elif segment < self.nsegment:
-            return list(range((self.dmshifts[-1]-self.dmshifts[dmind])//self.dtarr[dtind],
-                              (self.readints-self.dmshifts[dmind])//self.dtarr[dtind]))
+            if self.prefs.fftmode == 'fftw':
+                return list(range((self.dmshifts[-1]-self.dmshifts[dmind])//self.dtarr[dtind],
+                                  (self.readints-self.dmshifts[dmind])//self.dtarr[dtind]))
+            elif self.prefs.fftmode == 'cuda':
+                # TODO: fix this
+                return list(range((self.dmshifts[-1]//self.dtarr[dtind]-self.dmshifts[dmind]//self.dtarr[dtind]),
+                                  (self.readints//self.dtarr[dtind]-self.dmshifts[dmind]//self.dtarr[dtind])))
         else:
-            logger.warn("No segment {0} in scan".format(segment))
+            logger.warning("No segment {0} in scan".format(segment))
 
     @property
     def version(self):
@@ -289,13 +289,12 @@ class State(object):
 
     @property
     def dmarr(self):
-        if not hasattr(self, '_dmarr'):
-            if self.prefs.dmarr:
-                self._dmarr = self.prefs.dmarr
-            else:
+        if self.prefs.dmarr:
+            return self.prefs.dmarr
+        else:
+            if not hasattr(self, '_dmarr'):
                 self._dmarr = util.calc_dmarr(self)
-
-        return self._dmarr
+            return self._dmarr
 
     @property
     def dtarr(self):
@@ -307,27 +306,49 @@ class State(object):
     @property
     def freq(self):
         """ Frequencies for each channel in increasing order.
-        Metadata may be out of order, but state/data reading order is sorted.
+        TODO: test effect of metadata spw out of order (but not data reading order?)
         """
 
-        # TODO: need to support spw selection and downsampling, e.g.:
-        #    if spectralwindow[ii] in d['spw']:
-        #    np.array([np.mean(spwch[i:i+d['read_fdownsample']]) for i in range(0, len(spwch), d['read_fdownsample'])], dtype='float32') / 1e9
+        # TODO: add support for frequency downsampling
 
-        return np.sort(self.metadata.freq_orig)[self.chans]
+        return self.metadata.freq_orig[self.chans]
 
     @property
     def chans(self):
         """ List of channel indices to use. Drawn from preferences,
-        with backup to take all defined in metadata.
+        with backup to take all those for preferred spw.
         """
-
-        # TODO: support for frequency downsampling
 
         if self.prefs.chans:
             return self.prefs.chans
         else:
-            return list(range(sum(self.metadata.spw_nchan)))
+#            list(range(sum(self.metadata.spw_nchan)))
+            chanlist = []
+            nch = np.unique(self.metadata.spw_nchan)[0]  # assume 1 nchan/spw
+            if self.prefs.ignore_spwedge:
+                edge = int(self.prefs.ignore_spwedge*nch)
+            else:
+                edge = 0
+            for spw in self.spw:
+                spwi = self.metadata.spw_orig.index(spw)
+                chanlist += list(range(nch*spwi+edge, nch*(spwi+1)-edge))
+            return chanlist
+
+    @property
+    def spw(self):
+        """ List of spectral windows used.
+        ** TODO: update for proper naming "basband"+"swindex"
+        ** OR: reflect spworder here and select for spw
+        """
+
+        if self.prefs.spw:
+            return self.prefs.spw
+        else:
+            return self.metadata.spw_orig
+
+    @property
+    def nspw(self):
+        return len(self.spw)
 
     @property
     def inttime(self):
@@ -362,34 +383,19 @@ class State(object):
         return max(self.dmshifts)*self.inttime
 
     @property
-    def spw(self):
-        """ List of spectral windows used.
-        ** TODO: update for proper naming "basband"+"swindex"
+    def spw_chan_select(self):
+        """ List of lists with selected channels per spw.
+        Channel numbers assume selected data.
         """
 
-        if self.prefs.spw:
-            return self.prefs.spw
-        else:
-            return self.metadata.spw_orig
+        reffreq, nchan, chansize = self.metadata.spw_sorted_properties
+        chanlist = []
+        for spwi in range(len(reffreq)):
+            nch = nchan[spwi]
+            chans = [self.chans.index(ch) for ch in list(range(nch*spwi, nch*(spwi+1))) if ch in self.chans]
+            chanlist.append(chans)
 
-    @property
-    def nspw(self):
-        return len(self.spw)
-
-#    @property
-#    def spw_nchan_select(self):
-#        return [len([ch for ch in range(self.metadata.spw_chanr[i][0], self.metadata.spw_chanr[i][1]) if ch in self.chans])
-#                for i in range(len(self.metadata.spw_chanr))]
-
-#    @property
-#    def spw_chanr_select(self):
-#        chanr_select = []
-#        i0 = 0
-#        for nch in self.spw_nchan_select:
-#            chanr_select.append((i0, i0+nch))
-#            i0 += nch
-#
-#        return chanr_select
+        return chanlist
 
     @property
     def uvres(self):
@@ -409,7 +415,11 @@ class State(object):
 
     @property
     def pols(self):
-        """ Polarizations to use based on preference in prefs.selectpol """
+        """
+        Polarizations to use based on preference in prefs.selectpol
+        Can provide description ('auto', 'all', 'cross') or list of pol
+        names to select from all listed in metadata.
+        """
 
         if self.prefs.selectpol == 'auto':
             return [pp for pp in self.metadata.pols_orig if pp[0] == pp[-1]]
@@ -417,14 +427,15 @@ class State(object):
             return [pp for pp in self.metadata.pols_orig if pp[0] != pp[-1]]
         elif self.prefs.selectpol == 'all':
             return self.metadata.pols_orig
+        elif isinstance(self.prefs.selectpol, list):
+            return [pp for pp in self.metadata.pols_orig if pp in self.prefs.selectpol]
         else:
-            logger.warn('selectpol of {0} not supported'
+            logger.warning('selectpol of {0} not supported'
                         .format(self.prefs.selectpol))
 
     @property
     def uvres_full(self):
-        return int(round(self.metadata.dishdiameter / (3e-1
-                     / self.freq.min()) / 2))
+        return int(round(self.metadata.dishdiameter / (3e-1/self.freq.min()) / 2))
 
     @property
     def npixx_full(self):
@@ -558,26 +569,22 @@ class State(object):
     @property
     def gainfile(self):
         """ Calibration file (telcal) from preferences or found from ".GN"
-        suffix.
+        suffix with datasetId. Default behavior is to find file in workdir.
         Value of None means none will be applied.
-        Any other value will attempt to apply. Bad files will result in blanked data.
         """
 
         if self.prefs.gainfile is None:
-            today = date.today()
-            # look for gainfile in mchammer
-            gainfile = os.path.join('/home/mchammer/evladata/telcal/'
-                                    '{0}/{1:02}/{2}.GN'
-                                    .format(today.year, today.month,
-                                            self.metadata.datasetId))
-            if (not os.path.exists(gainfile)) or (not os.path.isfile(gainfile)):
-                gainfile = None
+            gainfile = os.path.join(self.prefs.workdir,
+                                    self.metadata.datasetId) + ".GN"
         else:
             if os.path.dirname(self.prefs.gainfile):  # use full path if given
                 gainfile = self.prefs.gainfile
             else:  # else assume workdir
                 gainfile = os.path.join(self.prefs.workdir,
                                         self.prefs.gainfile)
+
+        if (not os.path.exists(gainfile)) or (not os.path.isfile(gainfile)):
+            gainfile = None
 
         return gainfile
 
@@ -633,6 +640,49 @@ class State(object):
 
         return self._segmenttimes
 
+    @property
+    def otfcorrections(self):
+        """ Use otf phasecenters (if set) to calc the phase shift from 
+        First radec (set in metadata) to actual radec for phase center in segment.
+        """
+
+        if self.metadata.phasecenters is None:
+            return None
+
+        if self._corrections is None and self.metadata.phasecenters is not None:
+            self._corrections = {}
+            for segment in range(self.nsegment):
+                segmenttime0, segmenttime1 = self.segmenttimes[segment]
+                bintimes = segmenttime0 + self.inttime*(0.5+np.arange(self.readints))/(24*3600)
+                pcts = {i: [] for i in range(len(self.metadata.phasecenters))}
+                corrs = []
+
+                # assign integration to a window
+                for i, bintime in enumerate(bintimes):
+                    for j, (startmjd, stopmjd, ra_deg, dec_deg) in enumerate(self.metadata.phasecenters):
+                        if (bintime >= startmjd) and (bintime < stopmjd):
+                            pcts[j].append(i)
+
+                # calculate corrections
+                for j in range(len(self.metadata.phasecenters)):
+                    (startmjd, stopmjd, ra_deg, dec_deg) = self.metadata.phasecenters[j]
+                    if len(pcts[j]):
+                        ints0 = pcts[j]
+                        logger.info("Segment {0}, ints {1} will have phase center at {2},{3}"
+                                    .format(segment, ints0, ra_deg, dec_deg))
+                        corrs.append((ints0, ra_deg, dec_deg),)
+                    else:
+                        logger.debug("Phase center ({0},{1}) not in segment ({2}-{3})"
+                                     .format(ra_deg, dec_deg, segmenttime0,
+                                             segmenttime1))
+                if not any(pcts.values()):
+                    logger.warning("phasecenters found, but not overlapping with segment {0}"
+                                   .format(segment))
+
+                self._corrections[segment] = corrs
+
+        return self._corrections
+
     def pixtolm(self, pix):
         """ Helper function to calculate (l,m) coords of given pixel.
         Example: st.pixtolm(np.where(im == im.max()))
@@ -644,7 +694,7 @@ class State(object):
         # if np.where output
         if isinstance(peaky, np.ndarray):
             if len(peakx) > 1 or len(peaky) > 1:
-                logger.warn("More than one peak pixel ({0}, {1}). Using first."
+                logger.warning("More than one peak pixel ({0}, {1}). Using first."
                             .format(peakx, peaky))
             peaky = peaky[0]
             peakx = peakx[0]
@@ -715,6 +765,7 @@ class State(object):
     def nfalse(self, sigma):
         """ Number of thermal-noise false positives per scan at given sigma
         """
+        import scipy.stats
 
         qfrac = scipy.stats.norm.sf(sigma)
         return int(qfrac*self.ntrials)
@@ -722,6 +773,7 @@ class State(object):
     def thresholdlevel(self, nfalse):
         """ Sigma threshold for a given number of false positives per scan
         """
+        import scipy.stats
 
         return scipy.stats.norm.isf(nfalse/self.ntrials)
 
@@ -739,7 +791,7 @@ class State(object):
 #        elif self.prefs.nfalse is not None:
 #            return self.thresholdlevel(self.prefs.nfalse)
 #        else:
-#            logger.warn("Cannot set sigma_image1 from given preferences")
+#            logger.warning("Cannot set sigma_image1 from given preferences")
 
     @property
     def datashape(self):
@@ -768,24 +820,29 @@ class State(object):
         return ('segment', 'integration', 'dmind', 'dtind', 'beamnum')
 
     @property
-    def features(self):
-        """ Given searchtype, return features to be extracted in initial
-        analysis.
+    def searchfeatures(self):
+        """ Given searchtype, return features to be extracted during search.
         """
+        # TODO: overload with preference for features as a list of names
 
-        if self.prefs.searchtype in ['image', 'image1']:
-            return ('snr1', 'immax1', 'l1', 'm1')
-        elif self.prefs.searchtype == 'imagek':
+        if self.prefs.searchfeatures is not None:
+            return self.prefs.searchfeatures
+        elif self.prefs.searchtype in ['image', 'image1', 'imagek']:
             return ('snr1', 'snrk', 'immax1', 'l1', 'm1')
         elif self.prefs.searchtype == 'armk':
-            return ('snrarm', 'snrk', 'l1', 'm1')
+            return ('snrarms', 'snrk', 'l1', 'm1')
         elif self.prefs.searchtype == 'armkimage':
-            return ('snrarm', 'snrk', 'snr1', 'immax1', 'l1', 'm1')
-# TODO: find better way to set features separately from search algorithm
-#        elif self.prefs.searchtype in ['imagestats', 'image1stats']:
-#            # note: spec statistics are all or nothing.
-#            return ('snr1', 'immax1', 'l1', 'm1', 'specstd', 'specskew',
-#                    'speckurtosis', 'imskew', 'imkurtosis')
+            return ('snrarms', 'snrk', 'snr1', 'immax1', 'l1', 'm1')
+        else:
+            return ()
+
+    @property
+    def features(self):
+        """ Sum of search features (those used to detect candidate) and
+        features calculated in second step (more computationally demanding).
+        """
+
+        return tuple(self.searchfeatures) + tuple(self.prefs.calcfeatures)
 
     @property
     def candsfile(self):

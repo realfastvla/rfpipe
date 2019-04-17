@@ -6,8 +6,9 @@ from io import open
 import pickle
 import os.path
 import numpy as np
-from rfpipe import preferences, state, util, search, source, metadata, candidates
-
+from rfpipe import util
+import rfpipe.search  # explicit to avoid circular import
+from kalman_detector import kalman_prepare_coeffs, kalman_significance
 import logging
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ def oldcands_read(candsfile, sdmscan=None):
             loc = np.array(list(ret.keys()))
             prop = np.array(list(ret.values()))
         else:
-            logger.warn("Not sure what we've got in this here cands pkl file...")
+            logger.warning("Not sure what we've got in this here cands pkl file...")
 
     if sdmscan is None:  # and (u'scan' in d['featureind']):
 #        scanind = d['featureind'].index('scan')
@@ -57,6 +58,8 @@ def oldcands_readone(candsfile, scan=None):
     If no scan provided, assumes candsfile is from single scan not merged.
     """
 
+    from rfpipe import preferences, metadata, state, candidates
+
     with open(candsfile, 'rb') as pkl:
         try:
             d = pickle.load(pkl)
@@ -70,7 +73,7 @@ def oldcands_readone(candsfile, scan=None):
             loc = np.array(list(ret.keys()))
             prop = np.array(list(ret.values()))
         else:
-            logger.warn("Not sure what we've got in this here cands pkl file...")
+            logger.warning("Not sure what we've got in this here cands pkl file...")
 
     # detect merged vs nonmerged
     if 'scan' in d['featureind']:
@@ -137,7 +140,9 @@ def pipeline_dataprep(st, candloc):
     """ Prepare (read, cal, flag) data for a given state and candloc.
     """
 
-    segment, candint, dmind, dtind, beamnum = candloc.astype(int)
+    from rfpipe import source
+
+    segment, candint, dmind, dtind, beamnum = candloc
 
     # propagate through to new candcollection
     st.prefs.segmenttimes = st._segmenttimes.tolist()
@@ -158,7 +163,7 @@ def pipeline_datacorrect(st, candloc, data_prep=None):
     if data_prep is None:
         data_prep = pipeline_dataprep(st, candloc)
 
-    segment, candint, dmind, dtind, beamnum = candloc.astype(int)
+    segment, candint, dmind, dtind, beamnum = candloc
     dt = st.dtarr[dtind]
     dm = st.dmarr[dmind]
 
@@ -168,56 +173,83 @@ def pipeline_datacorrect(st, candloc, data_prep=None):
     delay = util.calc_delay(st.freq, st.freq.max(), dm, st.inttime,
                             scale=scale)
 
-    data_dmdt = search.dedisperseresample(data_prep, delay, dt)
-#    data_dmdt = search.resample(data_dm, dt)
+    data_dmdt = rfpipe.search.dedisperseresample(data_prep, delay, dt,
+                                                 parallel=st.prefs.nthread > 1,
+                                                 resamplefirst=st.fftmode=='cuda')
 
     return data_dmdt
 
 
-def pipeline_imdata(st, candloc, data_dmdt=None):
+def pipeline_canddata(st, candloc, data_dmdt=None, cpuonly=False, sig_ts=None,
+                      kalman_coeffs=None, **kwargs):
     """ Generate image and phased visibility data for candloc.
     Phases to peak pixel in image of candidate.
     Can optionally pass in corrected data, if available.
+    cpuonly argument not being used at present.
     """
 
-    segment, candint, dmind, dtind, beamnum = candloc.astype(int)
+    from rfpipe import candidates
+
+    segment, candint, dmind, dtind, beamnum = candloc
     dt = st.dtarr[dtind]
     dm = st.dmarr[dmind]
 
     uvw = util.get_uvw_segment(st, segment)
-    wisdom = search.set_wisdom(st.npixx, st.npixy)
+    wisdom = rfpipe.search.set_wisdom(st.npixx, st.npixy)
 
     if data_dmdt is None:
         data_dmdt = pipeline_datacorrect(st, candloc)
 
-    i = candint//dt
-    image = search.grid_image(data_dmdt, uvw, st.npixx, st.npixy, st.uvres,
-                              st.fftmode, st.prefs.nthread, wisdom=wisdom,
-                              integrations=[i])[0]
+    if 'snrk' in st.features:
+        if data_dmdt.shape[0] > 1:
+            spec_std = data_dmdt.real.mean(axis=3).mean(axis=1).std(axis=0)
+        else:
+            spec_std = data_dmdt[0].real.mean(axis=2).std(axis=0)
+        if sig_ts is None or kalman_coeffs is None:
+            sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
+    else:
+        spec_std, sig_ts, kalman_coeffs = None, None, None
+
+#    fftmode = 'fftw' if cpuonly else st.fftmode  # can't remember why i did this!
+    image = rfpipe.search.grid_image(data_dmdt, uvw, st.npixx, st.npixy, st.uvres,
+                                     'fftw', st.prefs.nthread, wisdom=wisdom,
+                                     integrations=[candint])[0]
+
+    # TODO: allow dl,dm as args and reproduce detection for other SNRs
     dl, dm = st.pixtolm(np.where(image == image.max()))
     util.phase_shift(data_dmdt, uvw, dl, dm)
-    dataph = data_dmdt[i-st.prefs.timewindow//2:i+st.prefs.timewindow//2].mean(axis=1)
+    dataph = data_dmdt[max(0, candint-st.prefs.timewindow//2):candint+st.prefs.timewindow//2].mean(axis=1)
     util.phase_shift(data_dmdt, uvw, -dl, -dm)
 
-    canddata = candidates.CandData(state=st, loc=tuple(candloc), image=image,
-                                   data=dataph)
+    spec = data_dmdt.real.mean(axis=3).mean(axis=1)[candloc[1]]
 
-    candcollection = candidates.calc_features(canddata)
+    if 'snrk' in st.features:
+        significance_kalman = -kalman_significance(spec, spec_std,
+                                                   sig_ts=sig_ts,
+                                                   coeffs=kalman_coeffs)
+        snrk = (2*significance_kalman)**0.5
+        logger.info("Calculated snrk of {0} after detection. Adding it to CandData.".format(snrk))
+        kwargs['snrk'] = snrk
+
+    canddata = candidates.CandData(state=st, loc=tuple(candloc), image=image,
+                                   data=dataph, **kwargs)
 
     # output is as from searching functions
-    return candcollection
+    return canddata
 
 
-def pipeline_candidate(st, candloc, candcollection=None):
+def pipeline_candidate(st, candloc, canddata=None):
     """ End-to-end pipeline to reproduce candidate plot and calculate features.
-    Can optionally pass in image and corrected data, if available.
+    Can optionally pass in canddata, if available.
     """
 
-    segment, candint, dmind, dtind, beamnum = candloc.astype(int)
+    from rfpipe import candidates
 
-    if candcollection is None:
-        candcollection = pipeline_imdata(st, candloc)
+    segment, candint, dmind, dtind, beamnum = candloc
 
-    candidates.save_cands(candcollection)
+    if canddata is None:
+        canddata = pipeline_canddata(st, candloc)
+
+    candcollection = candidates.save_and_plot(canddata)
 
     return candcollection

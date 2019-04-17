@@ -3,9 +3,12 @@ from builtins import bytes, dict, object, range, map, input, str
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
+import pickle
 import numpy as np
 import os.path
+from collections import Counter
 from numba import jit
+from rfpipe import fileLock
 
 import logging
 logger = logging.getLogger(__name__)
@@ -13,12 +16,13 @@ logger = logging.getLogger(__name__)
 
 ### Functional form
 
-def apply_telcal(st, data, threshold=1/50., onlycomplete=True, sign=+1):
+def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1,
+                 savesols=False, returnsoltime=False):
     """ Wrap all telcal functions to parse telcal file and apply it to data
     sign defines if calibration is applied (+1) or backed out (-1).
     assumes dual pol and that each spw has same nch and chansize.
     Threshold is minimum ratio of gain amp to median gain amp.
-    If no solution or gainfile found, it will blank the data to zeros.
+    If no solution found, it will blank the data to zeros.
     """
 
     assert sign in [-1, +1], 'sign must be +1 or -1'
@@ -27,38 +31,76 @@ def apply_telcal(st, data, threshold=1/50., onlycomplete=True, sign=+1):
         return data
     else:
         if (not os.path.exists(st.gainfile)) or (not os.path.isfile(st.gainfile)):
-            logger.warn('{0} is not a valid telcal file. Zeroed {1} calibration applied.'
-                        .format(st.gainfile, ['', 'forward', 'inverse'][sign]))
-            gaindelay = np.zeros_like(data)
+            logger.warning('{0} is not a valid gain file. No calibration applied.'
+                           .format(st.gainfile))
+            return data
         else:
+            sols = getsols(st, threshold=threshold, onlycomplete=onlycomplete,
+                           savesols=savesols)
+
             pols = [0, 1]
-            reffreq = np.array(st.metadata.spw_reffreq)
-            chansize = np.array(st.metadata.spw_chansize)
-            nchan = np.array(st.metadata.spw_nchan)
-            skyfreqs = np.around(reffreq + (chansize*nchan/2), -6)/1e6  # GN skyfreq is band center
-
-            sols = parseGN(st.gainfile)
-            # must run time select before flagants for complete solutions
-            sols = select(sols, time=st.segmenttimes.mean())
-            sols = flagants(sols, threshold=threshold, onlycomplete=onlycomplete)  
-
+            reffreq, nchan, chansize = st.metadata.spw_sorted_properties
+            skyfreqs = np.around([reffreq[i] + (chansize[i]*nchan[i]//2) for i in range(len(nchan))], -6)/1e6  # GN skyfreq is band center
+            solskyfreqs = np.unique(sols['skyfreq'])
+            logger.info("Applying solutions from frequencies {0} to data frequencies {1}"
+                        .format(solskyfreqs, np.unique(skyfreqs)))
             if len(sols):
-#                print(sols, st.blarr, skyfreqs, pols, chansize[0], nchan[0], sign)
-#                print(type(sols), type(st.blarr), type(skyfreqs), type(pols), type(chansize[0]), type(nchan[0]), type(sign))
                 gaindelay = np.nan_to_num(calcgaindelay(sols, st.blarr,
                                                         skyfreqs, pols,
                                                         chansize[0]/1e6,
                                                         nchan[0], sign=sign),
-                                          copy=False)
-                blinds, chans, pols = np.where(gaindelay == 0)
-                if len(blinds):
-                    logger.info('Missed {0} solutions with bls {1}'.format(len(blinds), st.blarr[np.unique(blinds)]))
+                                          copy=False).take(st.chans, axis=1)
             else:
                 gaindelay = np.zeros_like(data)
 
-        # data should have nchan_orig because no selection done yet
-        # TODO: make nchan, npol, nbl selection consistent for all data types
-        return data*gaindelay
+        # check for repeats or bad values
+        repeats = [(item, count) for item, count in Counter(gaindelay[:,::nchan[0]].flatten()).items() if count > 1]
+        if len(repeats):
+            for item, count in repeats:
+                if item == 0j:
+                    logger.info("{0} of {1} telcal solutions zeroed (flagged)"
+                                .format(count, gaindelay[:, ::nchan[0]].size))
+                    blinds, chans, pols = np.where(gaindelay[:, ::nchan[0]] == 0)
+                    if len(blinds):
+                        counts = list(zip(*np.histogram(st.blarr[np.unique(blinds)].flatten(),
+                                                        bins=np.arange(1,
+                                                                       1+max(st.blarr[np.unique(blinds)].flatten())))))
+
+                        logger.info('Flagged solutions for: {0}'
+                                    .format(', '.join(['Ant {1}: {0}'.format(a, b)
+                                                       for (a, b) in counts])))
+                else:
+                    logger.warn("Repeated telcal solutions ({0}: {1}) found. Likely a parsing error!"
+                                .format(item, count))
+
+        if returnsoltime:
+            soltime = np.unique(sols['mjd'])
+            return data*gaindelay, soltime
+        else:
+            return data*gaindelay
+
+
+def getsols(st, threshold=1/10., onlycomplete=True, mode='realtime',
+            savesols=False):
+    """ Select good set of solutions.
+    realtime mode will only select solutions in the past.
+    savesols will save the read/selected data to a pkl file for debugging.
+    """
+
+    sols = parseGN(st.gainfile)
+
+    # must run time select before flagants for complete solutions
+    sols = select(sols, time=st.segmenttimes.mean(), mode=mode)
+    if st.prefs.flagantsol:
+        sols = flagants(sols, threshold=threshold,
+                        onlycomplete=onlycomplete)
+    if savesols:
+        gainpkl = st.candsfile.replace('cands_', 'gain_')
+        with fileLock.FileLock(gainpkl+'.lock', timeout=10):
+            with open(gainpkl, 'ab+') as pkl:
+                pickle.dump((st.segmenttimes.mean(), sols), pkl)
+
+    return sols
 
 
 def parseGN(telcalfile):
@@ -103,12 +145,15 @@ def parseGN(telcalfile):
                 flagged.append('true' == (fields[FLAGGED]))
                 source.append(str(fields[SOURCE]))
             except ValueError:
-                logger.warn('Trouble parsing line of telcal file. Skipping.')
+                logger.warning('Trouble parsing line of telcal file. Skipping.')
                 continue
 
     # TODO: assumes dual pol. update to full pol
     polarization = [('C' in i0 or 'D' in i0) for i0 in ifid]
     fields = [u'mjd', u'ifid', u'skyfreq', u'antnum', u'polarization', u'source', u'amp', u'phase', u'delay', u'flagged']
+#    fields = [str('mjd'), str('ifid'), str('skyfreq'), str('antnum'),
+#              str('polarization'), str('source'), str('amp'), str('phase'),
+#              str('delay'), str('flagged')]
     types = ['<f8', 'U4', '<f8', 'i8', 'i8', 'U20', '<f8', '<f8', '<f8', '?']
     dtype = np.dtype({'names': fields, 'formats': types})
     if (len(mjd) == len(phase)) and (len(phase) > 0):
@@ -126,7 +171,7 @@ def parseGN(telcalfile):
                             len(np.unique(sols['ifid'])),
                             len(np.unique(sols['antnum']))))
     else:
-        logger.warn('Bad telcalfile {0}. Not parsed properly'.format(telcalfile))
+        logger.warning('Bad telcalfile {0}. Not parsed properly'.format(telcalfile))
         sols = np.array([])
 
     return sols
@@ -171,10 +216,11 @@ def flagants(solsin, threshold, onlycomplete):
     return sols
 
 
-def select(sols, time=None, freqs=None, polarization=None):
+def select(sols, time=None, freqs=None, polarization=None, mode='realtime'):
     """ Selects a solution set based on given time and freqs.
     time (in mjd) defines the time to find solutions.
     freqs (in Hz) is frequencies in data.
+    mode can be 'realtime'/'best' to get solutions in past/closest
     """
 
     if not len(sols):
@@ -189,8 +235,13 @@ def select(sols, time=None, freqs=None, polarization=None):
 
     # select by smallest time distance for source
     if time is not None:
-        mjddist = np.abs(time - sols['mjd'])
+        if mode == 'best':
+            mjddist = np.abs(time - sols['mjd'])
+        elif mode == 'realtime':
+            mjddist = time - np.where((time-sols['mjd']) > 0, sols['mjd'], sols['mjd']-time)  # favor solutions in past
+
         mjdselect = mjddist == mjddist.min()
+
     else:
         mjdselect = np.ones(len(sols), dtype=bool)
 
@@ -204,9 +255,9 @@ def select(sols, time=None, freqs=None, polarization=None):
     sources = np.unique(sols['source'][selection])
     times = np.unique(sols['mjd'][selection])
     if (len(sources) == 1) and (len(times) == 1):
-        logger.info('Selecting {0} solutions from calibrator {1} separated by {2} min.'
+        logger.info('Selecting {0} solutions from calibrator {1} separated by {2} min ({3} mode).'
                     .format(len(selection[0]), sources[0],
-                            mjddist[np.where(mjdselect)][0]*24*60))
+                            mjddist[np.where(mjdselect)][0]*24*60, mode))
     else:
         logger.info('Existing calibration selection includes multiple solutions.')
 
@@ -218,7 +269,7 @@ def select(sols, time=None, freqs=None, polarization=None):
     return sols[selection]
 
 
-@jit
+@jit(cache=True)
 def calcgaindelay(sols, bls, freqarr, pols, chansize, nch, sign=1):
     """ Build gain calibraion array with shape to project into data
     freqarr is a list of reffreqs in MHz.
@@ -241,7 +292,7 @@ def calcgaindelay(sols, bls, freqarr, pols, chansize, nch, sign=1):
                 d1 = 0.
                 d2 = 0.
                 for sol in sols:
-                    if ((sol['polarization'] == pols[pi]) and (sol['skyfreq']-freqarr[fi] < chansize) and (not sol['flagged'])):
+                    if ((sol['polarization'] == pols[pi]) and (np.abs(sol['skyfreq']-freqarr[fi]) < chansize) and (not sol['flagged'])):
                         if sol['antnum'] == ant1:
                             g1 = sol['amp']*np.exp(1j*np.radians(sol['phase']))
                             d1 = sol['delay']
@@ -295,7 +346,7 @@ class telcal_sol():
             if flagants:
                 self.flagants()
         else:
-            self.logger.warn('Gainfile {0} not found.'.format(telcalfile))
+            self.logger.warning('Gainfile {0} not found.'.format(telcalfile))
             raise IOError
 
     def flagants(self, threshold=50):
@@ -324,11 +375,11 @@ class telcal_sol():
         self.select = self.complete   # use only complete solution sets (set during parse)
         self.blarr = blarr
         if spwind:
-            self.logger.warn('spwind option not used for telcal_sol. Applied based on freqs.')
+            self.logger.warning('spwind option not used for telcal_sol. Applied based on freqs.')
         if radec:
-            self.logger.warn('radec option not used for telcal_sol. Applied based on calname.')
+            self.logger.warning('radec option not used for telcal_sol. Applied based on calname.')
         if dist:
-            self.logger.warn('dist option not used for telcal_sol. Applied based on calname.')
+            self.logger.warning('dist option not used for telcal_sol. Applied based on calname.')
 
         # define pol index
         if 'X' in ''.join(pols) or 'Y' in ''.join(pols):
@@ -345,7 +396,7 @@ class telcal_sol():
                     self.select = self.select[nameselect]       # update overall selection
                     self.logger.debug('Selection down to %d solutions with %s' % (len(self.select), calname))
             if not nameselect:
-                self.logger.warn('Calibrator name %s not found. Ignoring.' % (calname))
+                self.logger.warning('Calibrator name %s not found. Ignoring.' % (calname))
 
         # select freq
         freqselect = np.where([ff in np.around(self.freqs, -6) for ff in np.around(1e6*self.skyfreq[self.select], -6)])   # takes solution if band center is in (rounded) array of chan freqs
@@ -423,7 +474,7 @@ class telcal_sol():
                     el.append(float(fields[EL])); source.append(fields[SOURCE])
 #                   flagreason.append('')  # 18th field not yet implemented
                 except ValueError:
-                    self.logger.warn('Trouble parsing line of telcal file. Skipping.')
+                    self.logger.warning('Trouble parsing line of telcal file. Skipping.')
                     continue
 
         self.mjd = np.array(mjd); self.utc = np.array(utc); self.lstd = np.array(lstd); self.lsts = np.array(lsts)
@@ -521,4 +572,4 @@ class telcal_sol():
                     # apply delay correction
                     d1d2 = sign*self.calcdelay(ant1, ant2, skyfreq, pol)
                     delayrot = 2*np.pi*(d1d2[0] * 1e-9) * relfreq      # phase to rotate across band
-                    data[:,i,chans,pol-self.polind[0]] = data[:,i,chans,pol-self.polind[0]] * np.exp(-1j*delayrot[None, None, :])     # do rotation
+                    data[:,i,chans,pol-self.polind[0]] = data[:,i,chans,pol-self.polind[0]] * np.exp(-1j*delayrot[None, None, :]) # do rotation

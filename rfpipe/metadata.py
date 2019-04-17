@@ -26,7 +26,7 @@ class Metadata(object):
     """
 
     # basics
-    datasource = attr.ib(default=None)
+    datasource = attr.ib(default=None)  # 'vys', 'sdm', 'sim', 'vyssim'
     datasetId = attr.ib(default=None)
     filename = attr.ib(default=None)  # full path to SDM (optional)
     scan = attr.ib(default=None)  # int
@@ -40,6 +40,7 @@ class Metadata(object):
     inttime = attr.ib(default=None)  # seconds
     nints_ = attr.ib(default=None)
     telescope = attr.ib(default=None)
+    phasecenters = attr.ib(default=None)  # list of tuples with (startmjd, stopmjd, ra_deg, dec_deg)
 
     # array/antenna info
     starttime_mjd = attr.ib(default=None)  # float
@@ -47,11 +48,12 @@ class Metadata(object):
     dishdiameter = attr.ib(default=None)
     intent = attr.ib(default=None)
     antids = attr.ib(default=None)
-    stationids = attr.ib(default=None) # needed?
+    stationids = attr.ib(default=None)  # needed?
     xyz = attr.ib(default=None)  # in m, geocentric
 
     # spectral info
     spworder = attr.ib(default=None)
+    quantization = attr.ib(default=None)
     spw_orig = attr.ib(default=None)  # indexes for spw
     spw_nchan = attr.ib(default=None)  # channels per spw
     spw_reffreq = attr.ib(default=None)  # reference frequency (ch0) in Hz
@@ -72,15 +74,27 @@ class Metadata(object):
 #        return chanr
 
     @property
+    def spw_sorted_properties(self):
+        """ Returns reffreq, nchan, chansize tuple
+        each has spw properties in freq-sorted order.
+        """
+
+        reffreq, nchan, chansize = zip(*sorted(zip(self.spw_reffreq,
+                                                   self.spw_nchan,
+                                                   self.spw_chansize)))
+        return reffreq, nchan, chansize
+
+    @property
     def freq_orig(self):
         """Spacing of channel centers in GHz.
-        Out of order metadata order is sorted in state/data reading"""
+        Data is read into spw or increasing frequency order.
+        Note that spworder has increasing freq order, but spw_reffreq need not.
+        """
 
-        return np.concatenate([np.linspace(self.spw_reffreq[ii],
-                                           self.spw_reffreq[ii] +
-                                           (self.spw_nchan[ii]-1) *
-                                           self.spw_chansize[ii],
-                                           self.spw_nchan[ii])
+        reffreq, nchan, chansize = self.spw_sorted_properties
+        return np.concatenate([np.linspace(reffreq[ii],
+                                           reffreq[ii]+(nchan[ii]-1)*chansize[ii],
+                                           nchan[ii])
                               for ii in range(len((self.spw_reffreq)))]).astype('float32')/1e9
 
     @property
@@ -165,6 +179,42 @@ class Metadata(object):
         return '{0}.{1}.{2}'.format(self.datasetId, self.scan, self.subscan)
 
 
+def make_metadata(inmeta=None, config=None, sdmfile=None, sdmscan=None,
+                  sdmsubscan=1, bdfdir=None):
+    """ Given range of potential metadata sources, create Metadata object
+    """
+
+    if isinstance(inmeta, Metadata):
+        return inmeta  # does not overload if Metadata object passed in
+    else:
+        if inmeta is None:
+            inmeta = {}  # passing in dict will overload other metadata sources
+
+        # get metadata
+        if (sdmfile is not None) and (sdmscan is not None) and (config is None):
+            meta = sdm_metadata(sdmfile, sdmscan, sdmsubscan, bdfdir=bdfdir)
+        elif config is not None and (sdmfile is None) and (sdmscan is None):
+            # config datasource can be vys or simulated data
+            datasource = inmeta['datasource'] if 'datasource' in inmeta else 'vys'
+            meta = config_metadata(config, datasource=datasource)
+        else:
+            if inmeta is None:
+                logger.warning("Provide either inmeta, sdmfile/sdmscan, or config object to define metadata. Empty metadata dict being created.")
+            meta = {}
+
+        # optionally overload metadata
+        if isinstance(inmeta, dict):
+            for key in inmeta:
+                meta[key] = inmeta[key]
+
+            for key in meta:
+                logger.debug(key, meta[key], type(meta[key]))
+        else:
+            logger.warning("inmeta not dict, Metadata, or None. Not parsed.")
+
+        return Metadata(**meta)
+
+
 def config_metadata(config, datasource='vys'):
     """ Creates dict holding metadata from evla_mcast scan config object.
     Parallel structure to sdm_metadata, so this inherits some of its
@@ -180,7 +230,6 @@ def config_metadata(config, datasource='vys'):
     meta['datasetId'] = config.datasetId
     meta['scan'] = config.scanNo
     meta['subscan'] = config.subscanNo
-#    meta['configid'] = config.Id
 
     meta['starttime_mjd'] = config.startTime
     meta['endtime_mjd_'] = config.stopTime
@@ -209,11 +258,13 @@ def config_metadata(config, datasource='vys'):
     meta['spworder'] = sorted([('{0}-{1}'.format(sb.IFid, sb.sbid),
                                 meta['spw_reffreq'][subbands.index(sb)])
                                for sb in subbands], key=lambda x: x[1])
+    meta['quantization'] = ['{0}'.format(bbn.split('_')[-1])
+                            for bbn in config.baseBandNames]
 
     return meta
 
 
-def sdm_metadata(sdmfile, scan, bdfdir=None):
+def sdm_metadata(sdmfile, scan, subscan=1, bdfdir=None):
     """ Wraps Metadata call to provide immutable, attribute-filled class instance.
     """
 
@@ -227,7 +278,7 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
     meta['datasetId'] = os.path.basename(sdmfile.rstrip('/'))
     meta['filename'] = sdmfile
     meta['scan'] = int(scan)
-    meta['subscan'] = 1  # TODO: update for more than one subscan per scan
+    meta['subscan'] = int(subscan)
     meta['bdfdir'] = bdfdir
 #    meta['configid'] = scanobj.configDescriptionId
     bdfstr = scanobj.bdf.fname
@@ -237,13 +288,13 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
         meta['bdfstr'] = bdfstr
 
     meta['starttime_mjd'] = scanobj.startMJD
-    meta['nints_'] = scanobj.numIntegration
+    meta['nints_'] = int(scanobj.numIntegration)
 
     try:
         inttime = scanobj.bdf.get_integration(0).interval
         meta['inttime'] = inttime
-    except AttributeError:
-        logger.warn("No BDF found. inttime not set.")
+    except (AttributeError, TypeError):
+        logger.warning("No BDF found. inttime not set.")
 
     meta['source'] = str(scanobj.source)
     meta['intent'] = ' '.join(scanobj.intents)
@@ -254,38 +305,40 @@ def sdm_metadata(sdmfile, scan, bdfdir=None):
 
     meta['radec'] = scanobj.coordinates.tolist()
     meta['dishdiameter'] = float(str(sdm['Antenna'][0].dishDiameter).strip())
-    meta['spw_orig'] = [int(str(spw).split('_')[1]) for spw in scanobj.spws]
+    meta['spw_orig'] = list(range(len(scanobj.spws)))
     meta['spw_nchan'] = scanobj.numchans
     meta['spw_reffreq'] = scanobj.reffreqs
     meta['spw_chansize'] = scanobj.chanwidths
     try:
         meta['pols_orig'] = scanobj.bdf.spws[0].pols('cross')
     except AttributeError:
-        logger.warn("No BDF found. Inferring pols from xml.")
+        logger.warning("No BDF found. Inferring pols from xml.")
         meta['pols_orig'] = [pol for pol in (str(sdm['Polarization'][0]
                                                  .corrType)).strip().split(' ')
                              if pol in ['XX', 'YY', 'XY', 'YX',
                                         'RR', 'LL', 'RL', 'LR',
                                         'A*A', 'A*B', 'B*A', 'B*B']]
     try:
-        # TODO: remove for datasource=vys or sim?
         meta['spworder'] = sorted(zip(['{0}-{1}'.format(spw.swbb.rstrip('_8BIT'),
                                                         spw.sw-1)
                                        for spw in scanobj.bdf.spws],
                                       np.array(scanobj.reffreqs)/1e6),
                                   key=lambda x: x[1])
+        meta['quantization'] = ['{0}'.format(spw.swbb.split('_')[-1])
+                                for spw in scanobj.bdf.spws]
+
     except AttributeError:
-        logger.warn("No BDF found. spworder not defined.")
+        logger.warning("No BDF found. spworder/quantization not defined.")
 
     return meta
 
 
 def mock_metadata(t0, t1, nants, nspw, chans, npol, inttime_micros, scan=1,
-                  subscan=1, datasource='vys', datasetid=None, antconfig='B'):
+                  subscan=1, band='S', datasource='vys', datasetid=None, antconfig='B'):
     """ Wraps Metadata call to provide immutable, attribute-filled class instance.
     Parallel structure to sdm_metadata, so this inherits some of its
     nomenclature. t0, t1 are times in mjd. Supports up to nant=27, npol=4, and
-    nspw=32. chans is total number of channels over all spw (equal per spw).
+    nspw=16. chans is total number of channels over all spw (equal per spw).
     datasource is expected source of data (typically vys when mocking).
     datasetid default is "test_<t0>".
     antconfig defines extent of array and can be 'D', 'C', 'B', or 'A'.
@@ -346,14 +399,43 @@ def mock_metadata(t0, t1, nants, nspw, chans, npol, inttime_micros, scan=1,
     dxyz = xyz - xyz.mean(axis=0)
     scale = antconfigs.index(antconfig) - 2  # referenced to B config
     meta['xyz'] = dxyz * (3**scale) + xyz.mean(axis=0)
-
     meta['radec'] = [0., 0.]
     meta['dishdiameter'] = 25
-    meta['spw_orig'] = list(range(nspw))
-    meta['spw_reffreq'] = np.linspace(2e9, 4e9, 33)[:nspw]
-    meta['spw_chansize'] = [2000000]*nspw
+
+    # set up spw
+    meta['spw_orig'] = list(range(16))[:nspw]
+    if band == 'L':
+        low, high = 1e9, 2e9
+        chansize = 1e6
+    elif band == 'S':
+        low, high = 2e9, 4e9
+        chansize = 2e6
+    elif band == 'C':
+        low, high = 4e9, 8e9
+        chansize = 2e6
+    elif band == 'X':
+        low, high = 8e9, 12e9
+        chansize = 2e6
+    elif band == 'Ku':
+        low, high = 12e9, 18e9
+        chansize = 2e6
+    elif band == 'K':
+        low, high = 18e9, 26.5e9
+        chansize = 2e6
+    elif band == 'Ka':
+        low, high = 26.5e9, 30e9
+        chansize = 2e6
+    elif band == 'Q':
+        low, high = 40e9, 50e9
+        chansize = 2e6
+    else:
+        logger.warning("band ({0}) not recognized. Assuming S.".format(band))
+        low, high = 2e9, 4e9
+    meta['spw_reffreq'] = np.linspace(low, high, 16)[:nspw]
+    meta['spw_chansize'] = [chansize]*nspw
     chanperspw = chans//nspw
     meta['spw_nchan'] = [chanperspw]*nspw
+
     if datasource == 'vys':  # hack to make consistent with vysmaw_reader app
         meta['pols_orig'] = ['A*A', 'B*B']
     else:
@@ -362,7 +444,7 @@ def mock_metadata(t0, t1, nants, nspw, chans, npol, inttime_micros, scan=1,
         elif npol == 2:
             meta['pols_orig'] = ['A*A', 'B*B']
         else:
-            logger.warn("npol must be 2 or 4 (autos or full pol)")
+            logger.warning("npol must be 2 or 4 (autos or full pol)")
     meta['spworder'] = sorted([('{0}-{1}'.format('AC1', sbid),
                                 meta['spw_reffreq'][sbid])
                                for sbid in range(nspw)], key=lambda x: x[1])

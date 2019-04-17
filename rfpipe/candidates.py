@@ -5,25 +5,26 @@ from io import open
 
 import pickle
 import os
-import sys
+from copy import deepcopy
 import numpy as np
+from math import cos, radians
 from numpy.lib.recfunctions import append_fields
 from collections import OrderedDict
 import matplotlib as mpl
+from astropy import time
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
-from rfpipe import util, version, fileLock, state
+from rfpipe import version, fileLock
 from bokeh.plotting import ColumnDataSource, Figure, save, output_file
+import scipy.stats.mstats as mstats
 from bokeh.models import HoverTool
 from bokeh.models import Row
 from collections import OrderedDict
 import hdbscan
-from scipy import stats
 
 import logging
 logger = logging.getLogger(__name__)
-#killroy was here
 
 class CandData(object):
     """ Object that bundles data from search stage to candidate visualization.
@@ -44,17 +45,109 @@ class CandData(object):
             self.snrk = kwargs['snrk']
         else:
             self.snrk = None
-        if 'snrarm' in kwargs:  # hack to allow detection level calculation in
-            self.snrarm = kwargs['snrarm']
+        if 'snrarms' in kwargs:  # hack to allow detection level calculation in
+            self.snrarms = kwargs['snrarms']
         else:
-            self.snrarm = None
+            self.snrarms = None
+        if 'cluster' in kwargs:
+            self.cluster = kwargs['cluster']
+        else:
+            self.cluster = None
+        if 'clustersize' in kwargs:
+            self.clustersize = kwargs['clustersize']
+        else:
+            self.clustersize = None
 
-        assert len(loc) == len(state.search_dimensions), ("candidate location "
+        assert len(loc) == len(self.state.search_dimensions), ("candidate location "
                                                           "should set each of "
                                                           "the st.search_dimensions")
 
     def __repr__(self):
         return 'CandData for scanId {0} at loc {1}'.format(self.state.metadata.scanId, self.loc)
+
+    @property
+    def searchtype(self):
+        return self.state.prefs.searchtype
+
+    @property
+    def features(self):
+        return self.state.features
+
+    @property
+    def snrtot(self):
+        """ Optimal SNR given searchtype (e.g., snr1 with snrk, if snrk measured)
+        Note that snrk can be calclated after detection, so snrtot represents post detection
+        significance.
+        """
+
+        if self.state.prefs.searchtype in ['image', 'imagek', 'armkimage']:
+            return (self.snrk**2 + self.snr1**2)**0.5
+        elif self.state.prefs.searchtype == 'armk':
+            return (self.snrk**2 + self.snrarms**2)**0.5
+
+    @property
+    def snr1(self):
+# TODO: find good estimate for both CPU and GPU
+#       imstd = util.madtostd(image)  # outlier resistant
+        return self.image.max()/self.image.std()
+
+    @property
+    def immax1(self):
+        return self.image.max()
+
+    @property
+    def l1(self):
+        return self.peak_lm[0]
+
+    @property
+    def m1(self):
+        return self.peak_lm[1]
+
+    @property
+    def spec(self):
+        return self.data.real.mean(axis=2)[self.integration_rel]
+
+    @property
+    def specstd(self):
+        return self.spec.std()
+
+    @property
+    def specskew(self):
+        return mstats.skew(self.spec)
+
+    @property
+    def speckur(self):
+        return mstats.kurtosis(self.spec)
+
+    @property
+    def imskew(self):
+        return mstats.skew(self.image.flatten())
+
+    @property
+    def imkur(self):
+        return mstats.kurtosis(self.image.flatten())
+
+    @property
+    def lc(self):
+        return self.data.real.mean(axis=2).mean(axis=1)
+
+    @property
+    def tskew(self):
+        return mstats.skew(self.lc)
+
+    @property
+    def tkur(self):
+        return mstats.kurtosis(self.lc)
+
+    @property
+    def integration_rel(self):
+        """ Candidate integration relative to data time window
+        """
+
+        if self.loc[1] < self.state.prefs.timewindow//2:
+            return self.loc[1]
+        else:
+            return self.state.prefs.timewindow//2
 
     @property
     def peak_lm(self):
@@ -110,16 +203,45 @@ class CandCollection(object):
         Adding empty cc ok, too.
         """
 
-        if len(cc):
-            assert self.prefs.name == cc.prefs.name, "Cannot add collections with different preferences"
-            assert self.state.dmarr == cc.state.dmarr,  "Cannot add collections with different dmarr"
-            assert self.state.dtarr == cc.state.dtarr,  "Cannot add collections with different dmarr"
+        later = self
+        # TODO: update to allow different simulated_transient fields that get added into single list
+        assert self.prefs.name == cc.prefs.name, "Cannot add collections with different preference name/hash"
+        assert self.state.dmarr == cc.state.dmarr,  "Cannot add collections with different dmarr"
+        assert self.state.dtarr == cc.state.dtarr,  "Cannot add collections with different dmarr"
+
+        # standard case
+        if self.state.nsegment == cc.state.nsegment:
             assert (self.state.segmenttimes == cc.state.segmenttimes).all(),  "Cannot add collections with different segmenttimes"
-            if len(self):
-                self.array = np.concatenate((self.array, cc.array))
-            else:
-                self.array = cc.array
-        return self
+        # OTF case (one later than the other)
+        else:
+            if self.state.nsegment > cc.state.nsegment:
+                assert self.metadata.starttime_mjd == cc.metadata.starttime_mjd, "OTF segments should have same start time"
+                assert (self.state.segmenttimes[:cc.state.nsegment] == cc.state.segmenttimes).all(),  "OTF segments should have shared segmenttimes"
+                later = self
+            elif self.state.nsegment < cc.state.nsegment:
+                assert self.metadata.starttime_mjd == cc.metadata.starttime_mjd, "OTF segments should have same start time"
+                assert (self.state.segmenttimes == cc.state.segmenttimes[:self.state.nsegment]).all(),  "OTF segments should have shared segmenttimes"
+                later = cc
+
+        # combine candidate arrays
+        if len(later) and len(cc):
+            later.array = np.concatenate((later.array, cc.array))
+        elif not len(later) and len(cc):
+            later.array = cc.array
+
+        # combine prefs simulated_transient
+        later.prefs.simulated_transient = later.prefs.simulated_transient or cc.prefs.simulated_transient
+
+        return later
+
+    def __radd__(self, other):
+        """ Support recursive add so we can sum(ccs)
+        """
+
+        if other == 0:
+            return self
+        else:
+            return self.__add__(other)
 
     def __getitem__(self, key):
         return CandCollection(array=self.array.take([key]), prefs=self.prefs,
@@ -139,10 +261,10 @@ class CandCollection(object):
             if len(segments) == 1:
                 return int(segments[0])
             elif len(segments) > 1:
-                logger.warn("Multiple segments in this collection")
+                logger.warning("Multiple segments in this collection")
                 return segments
             else:
-                logger.warn("No candidates in this collection")
+                logger.warning("No candidates in this collection")
                 return None
         else:
             return None
@@ -161,7 +283,7 @@ class CandCollection(object):
         """
 
 #        dt_inf = util.calc_delay2(1e5, self.state.freq.max(), self.canddm)
-        t_top = np.array(self.state.segmenttimes)[self.array['segment'], 0] + (self.array['integration']*self.state.inttime)/(24*3600)
+        t_top = np.array(self.state.segmenttimes)[self.array['segment'], 0] + (self.array['integration']*self.canddt)/(24*3600)
 
         return t_top
 
@@ -198,9 +320,47 @@ class CandCollection(object):
         return self.array['m1']
 
     @property
+    def cluster(self):
+        """ Return cluster label
+        """
+
+        if self.prefs.clustercands:
+            return self.array['cluster']
+        else:
+            return None
+
+    @property
+    def clustersize(self):
+        """ Return size of cluster
+        """
+
+        if self.prefs.clustercands:
+            return self.array['clustersize']
+        else:
+            return None
+
+    @property
+    def snrtot(self):
+        """ Optimal SNR, given fields in cc (quadrature sum)
+        """
+        fields = self.array.dtype.fields
+        snr = 0.
+
+        if 'snr1' in fields:
+            snr += self.array['snr1']**2
+        if 'snrk' in fields:
+            snr += self.array['snrk']**2
+        if 'snrarms' in fields:
+            snr += self.array['snrkarms']**2
+
+        return snr**0.5
+
+    @property
     def state(self):
         """ Sets state by regenerating from the metadata and prefs.
         """
+
+        from rfpipe import state
 
         if self._state is None:
             self._state = state.State(inmeta=self.metadata, inprefs=self.prefs,
@@ -208,10 +368,54 @@ class CandCollection(object):
 
         return self._state
 
+    @property
+    def mock_map(self):
+        """ Look for mock in candcollection
+        TODO: return values that help user know mocks found and missed.
+        """
+        
+        if self.prefs.simulated_transient is not None:
+            clusters = self.array['cluster'].astype(int)
+            cl_rank, cl_count = calc_cluster_rank(self)
+            mock_labels = []
+            map_mocks = {}
+            for mock in self.prefs.simulated_transient:
+                (segment, integration, dm, dt, amp, l0, m0) = mock
+                dmind0 = np.abs((np.array(self._state.dmarr)-dm)).argmin()
+                dtind0 = np.abs((np.array(self._state.dtarr)-dt)).argmin()
+                mockloc = (segment, integration, dmind0, dtind0, 0)
 
-def calc_features(canddatalist):
-    """ Converts a canddata list into a candcollection by
-    calculating the candidate features for CandData instance(s).
+                if mockloc in self.locs:
+                    label = clusters[self.locs.index(mockloc)]
+                    mock_labels.append(label)
+                    clustersize = cl_count[self.locs.index(mockloc)]
+                    map_mocks[mock] = np.array(self.locs)[clusters == label].tolist()
+                    logger.info("Found mock ({0}, {1}, {2:.2f}, {3:.2f}, {4:.2f}, {5:.4f}, {6:.4f}) at loc {7} with label {8} of size {9}"\
+                     .format(segment, integration, dm, dt, amp, l0,\
+                             m0 ,mockloc, label, clustersize))
+                else:
+                    map_mocks[mock] = []
+                    mock_labels.append(-2)
+                    logger.info("The mock ({0}, {1}, {2:.2f}, {3:.2f}, {4:.2f}, {5:.4f}, {6:.4f}) wasn't found at loc {7}"\
+                     .format(segment, integration, dm, dt, amp, l0, m0 ,mockloc))
+            return map_mocks, mock_labels
+        else:
+            return None
+
+    def sdmname(self):
+        """ Get name of SDM created by realfast based on naming convention
+        """
+
+        segment = self.segment
+        segmenttimes = self.state.segmenttimes
+        startTime = segmenttimes[segment][0]
+        bdftime = int(time.Time(startTime, format='mjd').unix*1e3)
+        return 'realfast_{0}_{1}'.format(self.state.metadata.datasetId, bdftime)
+
+
+def save_and_plot(canddatalist):
+    """ Converts a canddata list into a plots and a candcollection.
+    Calculates candidate features from CandData instance(s).
     Returns structured numpy array of candidate features labels defined in
     st.search_dimensions.
     Generates png plot for peak cands, if so defined in preferences.
@@ -223,73 +427,59 @@ def calc_features(canddatalist):
         if not len(canddatalist):
             return CandCollection()
     else:
-        logger.warn("argument must be list of CandData object")
+        logger.warning("argument must be list of CandData object")
 
     logger.info('Calculating features for {0} candidate{1}.'
                 .format(len(canddatalist), 's'[not len(canddatalist)-1:]))
 
     st = canddatalist[0].state
 
+    # TODO: should this be all features, calcfeatures, searchfeatures?
     featurelists = []
-    for feature in st.features:
+    for feature in st.searchfeatures:
         ff = []
         for i, canddata in enumerate(canddatalist):
             ff.append(canddata_feature(canddata, feature))
         featurelists.append(ff)
+    kwargs = dict(zip(st.searchfeatures, featurelists))
+
     candlocs = []
     for i, canddata in enumerate(canddatalist):
         candlocs.append(canddata_feature(canddata, 'candloc'))
+        kwargs['candloc'] = candlocs
 
-    kwargs = dict(zip(st.features, featurelists))
-    kwargs['candloc'] = candlocs
-    candcollection = make_candcollection(st, **kwargs)
-    
-    #check rms properties of the candidates
-#    do_rms=0 #for testing and debugging
-#    if do_rms and len(candcollection.array):
-#        rms_test = np.zeros(len(candcollection.array),dtype=np.int8)
-#        #initiate a loop counter
-#        indx_cntr = 0
-#        #send each candidate data to light curve rms checking script
-#        for i, canddata in enumerate(canddatalist):
-#            print('For loop counter:')
-#            print(indx_cntr)
-#            rms_test[indx_cntr]=rms_check(canddata)
-#            #incrememnt index counter
-#            indx_cntr = indx_cntr+1
-#            #rms_test.append(rms_check(canddatalist))
-#        #debugging step
-#        print('RMS test:')
-#        print(rms_test)
-        #remove bad candidates from the list
-        #if len(rms_test[np.where(rms_test==0)]):
-        #    canddatalist.remove(np.where(rms_test==0))
-        
-    #check statistics of candidate light curve
-    do_stat=1 #for testing and debugging
-    if do_stat and len(candcollection.array):
-        stat_test = np.zeros(len(candcollection.array),dtype=np.int8)
-        #initiate a loop counter
-        indx_cntr = 0
-        #send each candidate data to light curve rms checking script
+    if canddata.cluster is not None:
+        clusters = []
+        clustersizes = []
         for i, canddata in enumerate(canddatalist):
-            #print('For loop counter:')
-            #print(indx_cntr)
-            stat_test[indx_cntr]=stat_check(canddata)
-            #incrememnt index counter
-            indx_cntr = indx_cntr+1
-        #need to figure out how to remove bad candidates
+            clusters.append(canddata_feature(canddata, 'cluster'))
+            clustersizes.append(canddata_feature(canddata, 'clustersize'))
+        kwargs['cluster'] = clusters
+        kwargs['clustersize'] = clustersizes
 
-    # make plot for peak snr in collection
-    # TODO: think about candidate clustering
-    if st.prefs.savecands and len(candcollection.array):
-        snrs = candcollection.array['snr1'].flatten()
-        maxindex = np.argmax(snrs)
-        # save plot and canddata at peaksnr
-        candplot(canddatalist[maxindex], snrs=snrs)
-        save_cands(st, canddata=canddatalist[maxindex])
+    candcollection = make_candcollection(st, **kwargs)
 
-    return candcollection  # return tuple as handle on pipeline
+    if (st.prefs.savecanddata or st.prefs.savecandcollection or st.prefs.saveplots) and len(candcollection):
+        if len(candcollection) > 1:
+            snrs = candcollection.array['snr1'].flatten()
+        elif len(candcollection) == 1:
+            snrs = None
+
+        # save cc and save/plot each canddata
+        for i, canddata in enumerate(canddatalist):
+            if st.prefs.savecanddata:
+                save_cands(st, canddata=canddata)
+            if st.prefs.saveplots:
+                if canddata.cluster is not None:
+                    clustertuple = (clusters[i], clustersizes[i])
+                else:
+                    clustertuple = None
+                candplot(canddata, cluster=clustertuple, snrs=snrs)
+        
+        #make VOEvents from the candcollection
+        make_voevent(candcollection)
+
+    return candcollection
 
 
 def canddata_feature(canddata, feature):
@@ -297,34 +487,40 @@ def canddata_feature(canddata, feature):
     feature must be name from st.features or 'candloc'.
     """
 
-    st = canddata.state
-    image = canddata.image
-    dataph = canddata.data
-    candloc = canddata.loc
+#    TODO: update this to take feature as canddata property
 
     if feature == 'candloc':
-        return candloc
+        return canddata.loc
     elif feature == 'snr1':
-# TODO: find good estimate for both CPU and GPU
-#       imstd = util.madtostd(image)  # outlier resistant
-        imstd = image.std()  # consistent with rfgpu
-        logger.debug('{0} {1}'.format(image.shape, imstd))
-        snrmax = image.max()/imstd
-#        snrmin = image.min()/imstd
-#        snr = snrmax if snrmax >= snrmin else snrmin
-        return snrmax
-    elif feature == 'snrarm':
-        return canddata.snrarm
+        return canddata.snr1
+    elif feature == 'snrarms':
+        return canddata.snrarms
     elif feature == 'snrk':
         return canddata.snrk
+    elif feature == 'cluster':
+        return canddata.cluster
+    elif feature == 'clustersize':
+        return canddata.clustersize
+    elif feature == 'specstd':
+        return canddata.specstd
+    elif feature == 'specskew':
+        return canddata.specskew
+    elif feature == 'speckur':
+        return canddata.speckur
     elif feature == 'immax1':
-        return image.max()
+        return canddata.immax1
     elif feature == 'l1':
-        l1, m1 = st.pixtolm(np.where(image == image.max()))
-        return float(l1)
+        return canddata.l1
     elif feature == 'm1':
-        l1, m1 = st.pixtolm(np.where(image == image.max()))
-        return float(m1)
+        return canddata.m1
+    elif feature == 'imskew':
+        return canddata.imskew
+    elif feature == 'imkur':
+        return canddata.imkur
+    elif feature == 'tskew':
+        return canddata.tskew
+    elif feature == 'tkur':
+        return canddata.tkur
     else:
         raise NotImplementedError("Feature {0} calculation not implemented"
                                   .format(feature))
@@ -339,6 +535,13 @@ def make_candcollection(st, **kwargs):
     """
 
     if len(kwargs):
+        remove = []
+        for k, v in iteritems(kwargs):
+            if (len(v) == 0) and (k != 'candloc'):
+                remove.append(k)
+        for k in remove:
+            _ = kwargs.pop(k)
+
         # assert 1-to-1 mapping of input lists
         assert 'candloc' in kwargs
         assert isinstance(kwargs['candloc'], list)
@@ -346,13 +549,17 @@ def make_candcollection(st, **kwargs):
             assert len(v) == len(kwargs['candloc'])
 
         candlocs = kwargs['candloc']
-        features = list(kwargs.keys())  # TODO: confirm that order is ok
+        features = [kw for kw in list(kwargs.keys())]
         features.remove('candloc')
-        nfeat = len(features)
-
-        fields = [str(ff) for ff in st.search_dimensions + tuple(features)]
-        types = [str(tt)
-                 for tt in len(st.search_dimensions)*['<i4'] + nfeat*['<f4']]
+        fields = []
+        types = []
+        for ff in st.search_dimensions + tuple(features):
+            fields.append(str(ff))
+            if ff in st.search_dimensions + ('cluster', 'clustersize'):
+                tt = '<i4'
+            else:
+                tt = '<f4'
+            types.append(str(tt))
 
         dtype = np.dtype({'names': fields, 'formats': types})
         array = np.zeros(len(candlocs), dtype=dtype)
@@ -371,72 +578,112 @@ def make_candcollection(st, **kwargs):
     return candcollection
 
 
-def cluster_candidates(cc, min_cluster_size=5,
-                       returnclusterer=False):
+def cluster_candidates(cc, downsample_xy=1, returnclusterer=False, label_unclustered=True):
     """ Perform density based clustering on candidates using HDBSCAN
     parameters used for clustering: dm, time, l,m.
+    label_unclustered adds new cluster label for each unclustered candidate.
     Returns label for each row in candcollection.
     """
 
-    if len(cc) > 1:
-        if min_cluster_size > len(cc):
-            logger.info("Setting min_cluster_size to number of cands {0}".format(len(cc)))
-            min_cluster_size = len(cc)
-        candl = cc.candl
-        candm = cc.candm
-        npixx = cc.state.npixx
-        npixy = cc.state.npixy
-        uvres = cc.state.uvres
+    cc1 = deepcopy(cc)
+    if len(cc1) > 1:
+        if isinstance(cc1.prefs.clustercands, tuple):
+            min_cluster_size, min_samples = cc1.prefs.clustercands
+        elif isinstance(cc1.prefs.clustercands, bool):
+            if cc1.prefs.clustercands:
+                min_cluster_size = 5
+                min_samples = 3
+            else:
+                logger.info("Not performing clustering")
+                return cc1
+        else:
+            logger.warning("No clustering. prefs.clustercands value not valid: {0}."
+                        .format(cc1.prefs.clustercands))
+            return cc1
 
-        peakx_ind, peaky_ind = cc.state.calcpix(candl, candm, npixx, npixy,
-                                                uvres)
+        logger.info("Clustering parameters set to ({0},{1}) and downsampling in xy by {2}."
+                    .format(min_cluster_size, min_samples, downsample_xy))
 
-        dm_ind = cc.array['dmind']
-        timearr_ind = cc.array['integration']  # time index of all the candidates
-        snr = cc.array['snr1']
-        dtind = cc.array['dtind']
-        dmarr = cc.state.dmarr
-        time_ind = np.multiply(timearr_ind,
-                               np.power(2,
-                                        np.array(cc.state.dtarr).take(dtind)))
-        data = np.transpose([peakx_ind, peaky_ind, dm_ind, time_ind, snr])
+        if min_cluster_size > len(cc1):
+            logger.info("Setting min_cluster_size to number of cands {0}"
+                        .format(len(cc1)))
+            min_cluster_size = len(cc1)
+        candl = cc1.candl
+        candm = cc1.candm
+        npixx = cc1.state.npixx
+        npixy = cc1.state.npixy
+        uvres = cc1.state.uvres
 
-        clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size,
-                                    min_samples=2,
+        dmind = cc1.array['dmind']
+        dtind = cc1.array['dtind']
+        dtarr = cc1.state.dtarr
+        timearr_ind = cc1.array['integration']  # time index of all the candidates
+
+        time_ind = np.multiply(timearr_ind, np.array(dtarr).take(dtind))
+        peakx_ind, peaky_ind = cc1.state.calcpix(candl, candm, npixx, npixy,
+                                                 uvres)
+        data = np.transpose([peakx_ind//downsample_xy, peaky_ind//downsample_xy,
+                             dmind, time_ind])
+
+        clusterer = hdbscan.HDBSCAN(metric='hamming',
+                                    min_cluster_size=min_cluster_size,
+                                    min_samples=min_samples,
                                     cluster_selection_method='eom',
                                     allow_single_cluster=True).fit(data)
         nclustered = np.max(clusterer.labels_ + 1)
         nunclustered = len(np.where(clusterer.labels_ == -1)[0])
 
-        logger.info("Found {0} clustered and {1} unclustered candidates for "
+        logger.info("Found {0} clusters and {1} unclustered candidates for "
                     "min cluster size {2}"
                     .format(nclustered, nunclustered, min_cluster_size))
-
-    #    clustered_cands = []
-    #    for labels in range(nclusters):
-    #        max_snr = np.amax(snr[clusterer.labels_ == labels])
-    #        ind_maxsnr = np.argmax(snr[clusterer.labels_ == labels])
-    #        dm_maxind = dmarr[dm_ind[ind_maxsnr]]
-    #        dt_maxind = dtind[ind_maxsnr]
-    #        integration_maxind = timearr_ind[ind_maxsnr]
-    #        l_maxind = candl[ind_maxsnr]
-    #        m_maxind = candm[ind_maxsnr]
-    #        logger.info("Returning Max SNR cand of cluster {0}: (snr:{1}, dm:{2}, dt:{3}, int:{4}, l:{5}, m:{6})"
-    #                    .format(labels, max_snr, dm_maxind, dt_maxind, integration_maxind, l_maxind, m_maxind))
-    #        clustered_cands.append((max_snr, dm_maxind, dt_maxind, integration_maxind, l_maxind, m_maxind))  #list of tuples of max snr cluster candidates       
 
         labels = clusterer.labels_.astype(np.int32)
     else:
         clusterer = None
-        labels = -1*np.ones(len(cc), dtype=np.int32)
+        labels = -1*np.ones(len(cc1), dtype=np.int32)
+
+    if -1 in labels and label_unclustered:
+        unclustered = np.where(labels == -1)[0]
+        logger.info("Adding {0} unclustered candidates as individual clusters"
+                    .format(len(unclustered)))
+        newind = max(labels)
+        for cli in unclustered:
+            newind += 1
+            labels[cli] = newind
 
     # TODO: rebuild array with new col or accept broken python 2 or create cc with 'cluster' set to -1
-    cc.array = append_fields(cc.array, 'cluster', labels, usemask=False)
+    if 'cluster' not in cc1.array.dtype.fields:
+        cc1.array = append_fields(cc1.array, 'cluster', labels, usemask=False)
+    else:
+        cc1.array['cluster'] = labels
 
     if returnclusterer:
-        return cc, clusterer
+        return cc1, clusterer
     else:
-        return cc
+        return cc1
+
+
+def calc_cluster_rank(cc):
+    """ Given cluster array of candcollection, calculate rank relative
+    to total count in each cluster.
+    Rank ranges from 1 (highest SNR in cluster) to total count in cluster.
+    """
+
+    assert 'cluster' in cc.array.dtype.fields
+
+    # get count in cluster and snr rank of each in its cluster
+    clusters = cc.array['cluster'].astype(int)
+    cl_rank = np.zeros(len(clusters), dtype=int)
+    cl_count = np.zeros(len(clusters), dtype=int)
+
+    # TODO: check on best way to find max SNR with kalman, etc
+    for cluster in np.unique(clusters):
+        clusterinds = np.where(cluster == clusters)[0]
+        snrs = cc.array['snr1'][clusterinds]
+        cl_rank[clusterinds] = np.argsort(np.argsort(snrs)[::-1])+1 
+        cl_count[clusterinds] = len(clusterinds)
+
+    return cl_rank, cl_count
 
 
 def save_cands(st, candcollection=None, canddata=None):
@@ -447,19 +694,20 @@ def save_cands(st, candcollection=None, canddata=None):
     """
 
     if canddata is not None:
-        if st.prefs.savecands:
+        if st.prefs.savecanddata:
             logger.info('Saving CandData to {0}.'.format(st.candsfile))
 
             try:
                 with fileLock.FileLock(st.candsfile+'.lock', timeout=10):
                     with open(st.candsfile, 'ab+') as pkl:
                         pickle.dump(canddata, pkl)
+
             except fileLock.FileLock.FileLockException:
                 segment = canddata.loc[0]
                 newcandsfile = ('{0}_seg{1}.pkl'
                                 .format(st.candsfile.rstrip('.pkl'), segment))
-                logger.warn('Candidate file writing timeout. '
-                            'Spilling to new file {0}.'.format(newcandsfile))
+                logger.warning('Candidate file writing timeout. '
+                               'Spilling to new file {0}.'.format(newcandsfile))
                 with open(newcandsfile, 'ab+') as pkl:
                     pickle.dump(canddata, pkl)
 
@@ -467,7 +715,7 @@ def save_cands(st, candcollection=None, canddata=None):
             logger.info('Not saving CandData.')
 
     if candcollection is not None:
-        if st.prefs.savecands and len(candcollection):
+        if st.prefs.savecandcollection:
             logger.info('Saving {0} candidate{1} to {2}.'
                         .format(len(candcollection),
                                 's'[not len(candcollection)-1:], st.candsfile))
@@ -476,19 +724,16 @@ def save_cands(st, candcollection=None, canddata=None):
                 with fileLock.FileLock(st.candsfile+'.lock', timeout=10):
                     with open(st.candsfile, 'ab+') as pkl:
                         pickle.dump(candcollection, pkl)
+
             except fileLock.FileLock.FileLockException:
                 segment = candcollection.segment
                 newcandsfile = ('{0}_seg{1}.pkl'
                                 .format(st.candsfile.rstrip('.pkl'), segment))
-                logger.warn('Candidate file writing timeout. '
-                            'Spilling to new file {0}.'.format(newcandsfile))
+                logger.warning('Candidate file writing timeout. '
+                               'Spilling to new file {0}.'.format(newcandsfile))
                 with open(newcandsfile, 'ab+') as pkl:
                     pickle.dump(candcollection, pkl)
-
-        elif st.prefs.savecands and not len(candcollection.array):
-            logger.debug('No candidates to save to {0}.'.format(st.candsfile))
-
-        elif not st.prefs.savecands:
+        else:
             logger.info('Not saving candidates.')
 
 
@@ -554,67 +799,84 @@ def iter_noise(noisefile):
 
 
 ### bokeh summary plot
-
-def cluster_plotting_bokeh(candcollection, clusterer):
-    """to be modified if needed!
-    Generates bokeh plots of various parameters for visualising clustering
-    """
-
-    from bokeh.layouts import row, column
+def visualize_clustering(cc, clusterer):
+    
     import seaborn as sns
-
-    cc = candcollection
-
-    color_palette = sns.color_palette('deep', np.max(clusterer.labels_) + 1) #get a color palette with number
+    from bokeh.plotting import figure, output_file, show, output_notebook
+    from bokeh.layouts import row,column
+    from bokeh.models import HoverTool
+    from bokeh.models.sources import ColumnDataSource
+    
+    color_palette = sns.color_palette('deep', np.max(cc.cluster) + 1) #get a color palette with number of colors = number of clusters
     cluster_colors = [color_palette[x] if x >= 0
                       else (0.5, 0.5, 0.5)
-                      for x in clusterer.labels_]    #assigning each cluster a color, and making a list of equal length
+                      for x in cc.cluster]    #assigning each cluster a color, and making a list
 
     cluster_member_colors = [sns.desaturate(x, p) for x, p in
                              zip(cluster_colors, clusterer.probabilities_)]
-
     cluster_colors = list(map(mpl.colors.rgb2hex, cluster_member_colors)) #converting sns colors to hex for bokeh
-
+    
     width = 450
     height = 350
+    alpha = 0.1
     output_notebook()
 
     TOOLS = 'crosshair, box_zoom, reset, box_select, tap, hover, wheel_zoom'
-#data = dict(l= peakx_ind, m= peaky_ind, dm= dm_ind, time= time_ind, snr= snr, colors = cluster_colors)
-    data = dict(l= candl, m= candm, dm= canddm, time= time_ind, snr= snr, colors = cluster_colors)
+    
+    candl = cc.candl
+    candm = cc.candm
+    npixx = cc.state.npixx
+    npixy = cc.state.npixy
+    uvres = cc.state.uvres
+
+    dmind = cc.array['dmind']
+    dtind = cc.array['dtind']
+    dtarr = cc.state.dtarr
+    timearr_ind = cc.array['integration']  # time index of all the candidates
+
+    time_ind = np.multiply(timearr_ind, np.array(dtarr).take(dtind))
+    peakx_ind, peaky_ind = cc.state.calcpix(candl, candm, npixx, npixy, uvres)
+    
+    snr = cc.snrtot    
+    
+    data = dict(l= peakx_ind, m= peaky_ind, dm= dmind, time= time_ind, snr= snr, colors = cluster_colors)
     source=ColumnDataSource(data=data)
 
+
     p = figure(title="m vs l", x_axis_label='l', y_axis_label='m',plot_width=width, plot_height=height, tools = TOOLS)
-    p.circle(x='l',y='m', size='snr', line_width = 1, color = 'colors', fill_alpha=0.3, source = source) # linewidth=0,
-#p.circle(x=df.l,y=df.m, size=5, line_width = 1, color = cluster_colors, fill_alpha=0.5) # linewidth=0,
+    p.circle(x='l',y='m', size='snr', line_width = 1, color = 'colors', fill_alpha=alpha, source = source) # linewidth=0,
+    #p.circle(x=df.l,y=df.m, size=5, line_width = 1, color = cluster_colors, fill_alpha=0.5) # linewidth=0,
     hover = p.select(dict(type=HoverTool))
     hover.tooltips = [("m", "@m"), ("l", "@l"), ("time", "@time"), ("DM", "@dm"), ("SNR", "@snr")]
 
-#p.circle(x,y, size=5, line_width = 1, color = colors)#, , fill_alpha=1) # linewidth=0,
-#p.circle(x="x", y="y", source=source, size=7, color="color", line_color=None, fill_alpha="alpha")
+    #p.circle(x,y, size=5, line_width = 1, color = colors)#, , fill_alpha=1) # linewidth=0,
+    #p.circle(x="x", y="y", source=source, size=7, color="color", line_color=None, fill_alpha="alpha")
     p2 = figure(title="DM vs time", x_axis_label='time', y_axis_label='DM',plot_width=width, plot_height=height, tools = TOOLS)
-    p2.circle(x='time',y='dm', size='snr', line_width = 1, color = 'colors', fill_alpha=0.3, source=source) # linewidth=0,
+    p2.circle(x='time',y='dm', size='snr', line_width = 1, color = 'colors', fill_alpha=alpha, source=source) # linewidth=0,
     hover = p2.select(dict(type=HoverTool))
     hover.tooltips = [("m", "@m"), ("l", "@l"), ("time", "@time"), ("DM", "@dm"), ("SNR", "@snr")]
 
+
     p3 = figure(title="DM vs l", x_axis_label='l', y_axis_label='DM',plot_width=width, plot_height=height, tools = TOOLS)
-    p3.circle(x='l',y='dm', size='snr', line_width = 1, color = 'colors', fill_alpha=0.3, source=source) # linewidth=0,
+    p3.circle(x='l',y='dm', size='snr', line_width = 1, color = 'colors', fill_alpha=alpha, source=source) # linewidth=0,
     hover = p3.select(dict(type=HoverTool))
     hover.tooltips = [("m", "@m"), ("l", "@l"), ("time", "@time"), ("DM", "@dm"), ("SNR", "@snr")]
 
+
     p4 = figure(title="time vs l", x_axis_label='l', y_axis_label='time',plot_width=width, plot_height=height, tools = TOOLS)
-    p4.circle(x='l',y='time', size='snr', line_width = 1, color = 'colors', fill_alpha=0.3, source=source) # linewidth=0,
+    p4.circle(x='l',y='time', size='snr', line_width = 1, color = 'colors', fill_alpha=alpha, source=source) # linewidth=0,
     hover = p4.select(dict(type=HoverTool))
     hover.tooltips = [("m", "@m"), ("l", "@l"), ("time", "@time"), ("DM", "@dm"), ("SNR", "@snr")]
 
 
-# show the results
-    show(column(row(p, p2), row(p3, p4)))
+    # show the results
+    (show(column(row(p, p2), row(p3, p4))))
 
 
 def makesummaryplot(candsfile):
     """ Given a scan's candsfile, read all candcollections and create
     bokeh summary plot
+    TODO: modify to take candcollection
     """
 
     time = []
@@ -627,20 +889,27 @@ def makesummaryplot(candsfile):
     dt = []
     l1 = []
     m1 = []
-    for cc in iter_cands(candsfile):
-        time.append(cc.candmjd*(24*3600))
-        segment.append(cc.array['segment'])
-        integration.append(cc.array['integration'])
-        dmind.append(cc.array['dmind'])
-        dtind.append(cc.array['dtind'])
-        snr.append(cc.array['snr1'])
-        dm.append(cc.canddm)
-        dt.append(cc.canddt)
-        l1.append(cc.array['l1'])
-        m1.append(cc.array['m1'])
+    ccs = list(iter_cands(candsfile))
+    if len(ccs):
+        cc = sum(ccs)
+        if not len(cc):
+            return 0
+    else:
+        return 0
+
+    time.append(cc.candmjd*(24*3600))
+    segment.append(cc.array['segment'])
+    integration.append(cc.array['integration'])
+    dmind.append(cc.array['dmind'])
+    dtind.append(cc.array['dtind'])
+    snr.append(cc.snrtot)
+    dm.append(cc.canddm)
+    dt.append(cc.canddt)
+    l1.append(cc.array['l1'])
+    m1.append(cc.array['m1'])
 
     time = np.concatenate(time)
-    time = time - time.min()
+#    time = time - time.min()  # TODO: try this, or ensure nonzero time array
     segment = np.concatenate(segment)
     integration = np.concatenate(integration)
     dmind = np.concatenate(dmind)
@@ -659,8 +928,8 @@ def makesummaryplot(candsfile):
     data = dict(snrs=snr, dm=dm, l1=l1, m1=m1, time=time, sizes=sizes,
                 colors=colors, keys=keys)
 
-    dmt = plotdmt(data)
-    loc = plotloc(data)
+    dmt = plotdmt(data, yrange=(min(cc.state.dmarr), max(cc.state.dmarr)))
+    loc = plotloc(data, extent=radians(cc.state.fieldsize_deg))
     combined = Row(dmt, loc, width=950)
 
     htmlfile = candsfile.replace('.pkl', '.html')
@@ -669,10 +938,12 @@ def makesummaryplot(candsfile):
     logger.info("Saved summary plot {0} with {1} candidate{2}"
                 .format(htmlfile, len(segment), 's'[not len(segment)-1:]))
 
+    return len(cc)
+
 
 def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
             tools="hover,pan,box_select,wheel_zoom,reset", plot_width=450,
-            plot_height=400):
+            plot_height=400, yrange=None):
     """ Make a light-weight dm-time figure """
 
     fields = ['dm', 'time', 'sizes', 'colors', 'snrs', 'keys']
@@ -683,17 +954,24 @@ def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
     # set ranges
     inds = circleinds + crossinds + edgeinds
     dm = [data['dm'][i] for i in inds]
-    dm_min = min(min(dm), max(dm)/1.2)
-    dm_max = max(max(dm), min(dm)*1.2)
-    time = [data['time'][i] for i in inds]
-    time_min = min(time)*0.95
-    time_max = max(time)*1.05
+    if yrange is None:
+        dm_min = min(min(dm), max(dm)/1.05)
+        dm_max = max(max(dm), min(dm)*1.05)
+    else:
+        assert isinstance(yrange, tuple)
+        dm_min, dm_max = yrange
+    t0 = min(data['time'])
+    t1 = max(data['time'])
+    data['time'] = data['time'] - t0
+    time_range = t1-t0
+    time_min = -0.05*time_range
+    time_max = 1.05*time_range
 
     source = ColumnDataSource(data=dict({(key, tuple([value[i] for i in circleinds if i not in edgeinds]))
                                         for (key, value) in list(data.items())
                                         if key in fields}))
     dmt = Figure(plot_width=plot_width, plot_height=plot_height,
-                 toolbar_location="left", x_axis_label='Time (s; relative)',
+                 toolbar_location="left", x_axis_label='Time (s; from {0})'.format(t0),
                  y_axis_label='DM (pc/cm3)', x_range=(time_min, time_max),
                  y_range=(dm_min, dm_max),
                  output_backend='webgl', tools=tools)
@@ -721,8 +999,11 @@ def plotdmt(data, circleinds=[], crossinds=[], edgeinds=[],
 
 def plotloc(data, circleinds=[], crossinds=[], edgeinds=[],
             tools="hover,pan,box_select,wheel_zoom,reset", plot_width=450,
-            plot_height=400):
-    """ Make a light-weight loc figure """
+            plot_height=400, extent=None):
+    """
+    Make a light-weight loc figure
+    extent is half size of (square) lm plot.
+    """
 
     fields = ['l1', 'm1', 'sizes', 'colors', 'snrs', 'keys']
 
@@ -732,19 +1013,17 @@ def plotloc(data, circleinds=[], crossinds=[], edgeinds=[],
     # set ranges
     inds = circleinds + crossinds + edgeinds
     l1 = [data['l1'][i] for i in inds]
-    l1_min = min(l1)*0.95
-    l1_max = max(l1)*1.05
     m1 = [data['m1'][i] for i in inds]
-    m1_min = min(m1)*0.95
-    m1_max = max(m1)*1.05
+    if extent is None:
+        extent = max([max(m1), -min(m1), max(l1), -min(l1)])
 
     source = ColumnDataSource(data=dict({(key, tuple([value[i] for i in circleinds if i not in edgeinds]))
                                         for (key, value) in list(data.items())
                                         if key in fields}))
     loc = Figure(plot_width=plot_width, plot_height=plot_height,
                  toolbar_location="left", x_axis_label='l1 (rad)',
-                 y_axis_label='m1 (rad)', x_range=(l1_min, l1_max),
-                 y_range=(m1_min, m1_max),
+                 y_axis_label='m1 (rad)', x_range=(-extent, extent),
+                 y_range=(-extent, extent),
                  output_backend='webgl', tools=tools)
     loc.circle('l1', 'm1', size='sizes', fill_color='colors',
                line_color=None, fill_alpha=0.2, source=source)
@@ -755,9 +1034,8 @@ def plotloc(data, circleinds=[], crossinds=[], edgeinds=[],
     return loc
 
 
-def calcsize(values, sizerange=(2, 70), inds=None, plaw=3):
+def calcsize(values, sizerange=(4, 70), inds=None, plaw=2):
     """ Use set of values to calculate symbol size.
-
     values is a list of floats for candidate significance.
     inds is an optional list of indexes to use to calculate symbol size.
     Scaling of symbol size min max set by sizerange tuple (min, max).
@@ -822,13 +1100,13 @@ def calcinds(data, threshold, ignoret=None):
     return inds
 
 
-def candplot(canddatalist, snrs=[], outname=''):
+def candplot(canddatalist, snrs=None, cluster=None, outname=''):
     """ Takes output of search_thresh (CandData objects) to make
     candidate plots.
     Expects pipeline state, candidate location, image, and
     phased, dedispersed data (cut out in time, dual-pol).
-
     snrs is array for an (optional) SNR histogram plot.
+    cluster allows cluster info to be passed in as (cluster_label, size).
     Written by Bridget Andersen and modified by Casey for rfpipe.
     """
 
@@ -837,7 +1115,6 @@ def candplot(canddatalist, snrs=[], outname=''):
         canddatalist = [canddatalist]
 
     logger.info('Making {0} candidate plots.'.format(len(canddatalist)))
-    logger.info('Writing {0} VOEvent files.'.format(len(canddatalist)))
 
     for i in range(len(canddatalist)):
         canddata = canddatalist[i]
@@ -845,9 +1122,6 @@ def candplot(canddatalist, snrs=[], outname=''):
         candloc = canddata.loc
         im = canddata.image
         data = canddata.data
-        
-        #insert small change to test that it gets run properly
-        #print('BOOM! Made a change!') #yep, that worked
 
         scan = st.metadata.scan
         segment, candint, dmind, dtind, beamnum = candloc
@@ -855,19 +1129,19 @@ def candplot(canddatalist, snrs=[], outname=''):
         # calc source location
 #        imstd = util.madtostd(im)  # outlier resistant
         imstd = im.std()  # consistent with rfgpu
-        snrmin = im.min()/imstd
-        snrmax = im.max()/imstd
-        if snrmax > -1*snrmin:
-            l1, m1 = st.pixtolm(np.where(im == im.max()))
-            snrobs = snrmax
-        else:
-            l1, m1 = st.pixtolm(np.where(im == im.min()))
-            snrobs = snrmin
+        snrim = im.max()/imstd
+        l1, m1 = st.pixtolm(np.where(im == im.max()))
 
         logger.info('Plotting candloc {0} with SNR {1:.1f} and image/data shapes: {2}/{3}'
-                    .format(str(candloc), snrobs, str(im.shape), str(data.shape)))
+                    .format(str(candloc), snrim, str(im.shape), str(data.shape)))
 
-        pt_ra, pt_dec = st.metadata.radec
+        # either standard radec or otf phasecenter radec
+        if st.otfcorrections is not None:
+            ints, pt_ra_deg, pt_dec_deg = st.otfcorrections[segment][0]
+            pt_ra = np.radians(pt_ra_deg)
+            pt_dec = np.radians(pt_dec_deg)
+        else:
+            pt_ra, pt_dec = st.metadata.radec
         src_ra, src_dec = source_location(pt_ra, pt_dec, l1, m1)
         logger.info('Peak (RA, Dec): ({0}, {1})'.format(src_ra, src_dec))
 
@@ -931,9 +1205,25 @@ def candplot(canddatalist, snrs=[], outname=''):
                 + ' ms',
                 fontname='sans-serif', transform=ax.transAxes,
                 fontsize='small')
-        ax.text(left, start-10*space, 'SNR: ' + str(np.round(snrobs, 1)),
+        defstr = 'SNR (im'
+        snrstr = str(np.round(snrim, 1))
+        if canddata.snrk is not None:
+            defstr += '/k): '
+            snrstr += '/' + str(np.round(canddata.snrk, 1))
+        else:
+            defstr += '): '
+        ax.text(left, start-10*space, defstr+snrstr,
                 fontname='sans-serif', transform=ax.transAxes,
                 fontsize='small')
+
+        if cluster is not None:
+            label, size = cluster
+            ax.text(left, start-11*space, 'Cluster label: {0}'.format(str(label)),
+                    fontname='sans-serif',
+                    transform=ax.transAxes, fontsize='small')
+            ax.text(left, start-12*space, 'Cluster size: {0}'.format(size),
+                    fontname='sans-serif', transform=ax.transAxes,
+                    fontsize='small')
 
         # set the plot invisible so that it doesn't interfere with annotations
         ax.get_xaxis().set_visible(False)
@@ -985,7 +1275,7 @@ def candplot(canddatalist, snrs=[], outname=''):
         _ = ax_dynsp3.imshow(dd3, origin='lower', interpolation='nearest',
                              aspect='auto', cmap=plt.get_cmap(colormap))
         ax_dynsp1.set_yticks(list(range(0, len(st.freq), 30)))
-        ax_dynsp1.set_yticklabels(st.freq[::30])
+        ax_dynsp1.set_yticklabels(st.freq[::30].round(3))
         ax_dynsp1.set_ylabel('Freq (GHz)')
         ax_dynsp1.set_xlabel('RR')
         ax_dynsp1.xaxis.set_label_position('top')
@@ -999,7 +1289,7 @@ def candplot(canddatalist, snrs=[], outname=''):
         ax_dynsp1.get_yticklabels()[0].set_visible(False)
         # plot stokes I spectrum of the candidate pulse (assume middle bin)
         # select stokes I middle bin
-        spectrum = spectra[:, len(spectra[0])//2].mean(axis=1)
+        spectrum = spectra[:, canddata.integration_rel].mean(axis=1)
         ax_sp.plot(spectrum, list(range(len(spectrum))), 'k.')
         # plot 0 Jy dotted line
         ax_sp.plot(np.zeros(len(spectrum)), list(range(len(spectrum))), 'r:')
@@ -1053,7 +1343,7 @@ def candplot(canddatalist, snrs=[], outname=''):
         [label.set_visible(False) for label in ax_sp.get_yticklabels()]
 
         # calculate the channels to average together for SNR=2
-        n = int((2.*(len(spectra))**0.5/snrobs)**2)
+        n = int((2.*(len(spectra))**0.5/snrim)**2)
         if n == 0:  # if n==0 then don't average
             dd1avg = dd1
             dd3avg = dd3
@@ -1116,9 +1406,12 @@ def candplot(canddatalist, snrs=[], outname=''):
         _ = ax_dynsp3.imshow(dd3avgcrop, origin='lower',
                              interpolation='nearest', aspect='auto',
                              cmap=plt.get_cmap(colormap))
-        ax_dynsp1.set_yticks(list(range(0, len(st.freq), 30)))
-        ax_dynsp1.set_yticklabels(st.freq[::30])
-        ax_dynsp1.set_ylabel('Freq (GHz)')
+        spw_reffreq = np.sort(st.metadata.spw_reffreq)
+        # TODO: need to find best chan for label even for overlapping spw
+        spw_chans = [np.abs(reffreq/1e9-st.freq).argmin() for reffreq in spw_reffreq]
+        ax_dynsp1.set_yticks(spw_chans)
+        ax_dynsp1.set_yticklabels((spw_reffreq/1e9).round(3))
+        ax_dynsp1.set_ylabel('Freq of SPW (GHz)')
         ax_dynsp1.set_xlabel('RR')
         ax_dynsp1.xaxis.set_label_position('top')
         ax_dynsp2.set_xlabel('Integration (rel)')
@@ -1129,7 +1422,7 @@ def candplot(canddatalist, snrs=[], outname=''):
         ax_dynsp3.xaxis.set_label_position('top')
 
         # plot stokes I spectrum of the candidate pulse from middle integration
-        ax_sp.plot(dd2avgcrop[:, len(dd2avgcrop[0])//2]/2.,
+        ax_sp.plot(dd2avgcrop[:, canddata.integration_rel]/2.,
                    list(range(len(dd2avgcrop))), 'k.')
         ax_sp.plot(np.zeros(len(dd2avgcrop)), list(range(len(dd2avgcrop))),
                    'r:')
@@ -1205,7 +1498,7 @@ def candplot(canddatalist, snrs=[], outname=''):
 
         # create SNR versus N histogram for the whole observation
         # (properties for each candidate in the observation given by prop)
-        if len(snrs):
+        if snrs is not None:
             left, width = 0.45, 0.2
             bottom, height = 0.6, 0.3
             rect_snr = [left, bottom, width, height]
@@ -1248,7 +1541,7 @@ def candplot(canddatalist, snrs=[], outname=''):
             ax_snr.set_ylabel('N')
             ax_snr.set_yscale('log')
             # draw vertical line where the candidate SNR is
-            ax_snr.axvline(x=np.abs(snrobs), linewidth=1, color='y', alpha=0.7)
+            ax_snr.axvline(x=snrim, linewidth=1, color='y', alpha=0.7)
 
         if not outname:
             outname = os.path.join(st.prefs.workdir,
@@ -1261,19 +1554,15 @@ def candplot(canddatalist, snrs=[], outname=''):
             canvas.print_figure(outname)
             logger.info('Wrote candidate plot to {0}'.format(outname))
         except ValueError:
-            logger.warn('Could not write figure to {0}'.format(outname))
-            
-        #now create a VOEvent file for the candidate
-        make_voevent(canddata)
-
+            logger.warning('Could not write figure to {0}'.format(outname))
+        
 
 def source_location(pt_ra, pt_dec, l1, m1):
     """ Takes phase center and src l,m in radians to get ra,dec of source.
     Returns string ('hh mm ss', 'dd mm ss')
     """
-    import math
 
-    srcra = np.degrees(pt_ra + l1/math.cos(pt_dec))
+    srcra = np.degrees(pt_ra + l1/cos(pt_dec))
     srcdec = np.degrees(pt_dec + m1)
 
     return deg2HMS(srcra, srcdec)
@@ -1309,317 +1598,198 @@ def deg2HMS(ra=None, dec=None, round=False):
         return (RA, DEC)
     else:
         return RA or DEC
-    
-#first try    
-#def rms_check(canddatalist):
-#    """ script to check the rms properties of candidate light curves
-#    The first ~third of the light curve should be relatively clean
-#    The detection should happen in the center third of the light curve
-#    The tail of the light curve can be messy to account for structure in the 
-#    tail of the detectionm (especially for pulsars)
-#    
-#    Expects dedispersed data (cut out in time, dual pol)
-#    written by Justin D Linford, based on ideas by Sarah Burke-Spolaor
-#    """
-#    #prepare output variable
-#    rms_test = []
-#    #set rms threshold for clipping
-#    rms_thresh = 2.0
-#    #extract dedispersed data light curve
-#    #copied the approach from candplot (above)
-#    for i in range(len(canddatalist)):
-#        canddata = canddatalist[i]
-#        data = canddata.data
-#        spectra = np.swapaxes(data.real, 0, 1)
-#        #note: unlike canaplot, all we care about here is the Stokes I
-#        dd2 = spectra[..., 0] + spectra[..., 1] #Stokes I data
-#        lc2 = dd2.mean(axis=0) #this is the Stokes I light curve
-#        #find rms of total light curve
-#        tot_rms = calc_rms(lc2)
-#        #get rms of clipped light curve
-#        clip_rms = calc_rms(lc2[np.where(lc2<rms_thresh*tot_rms)])
-#        #now get rms for each ~third of light curve
-#        lead_rms = calc_rms(lc2[0:12])
-#        mid_rms = calc_rms(lc2[12:21])
-#        tail_rms = calc_rms(lc2[21::])
-#        #now compare rms values to determine if this is a good candidate
-#        if mid_rms>lead_rms and mid_rms>tail_rms and mid_rms>clip_rms: rms_test.append(1)
-#        else: rms_test.append(0)
-#    return rms_test
-        
-def rms_check(canddata):
-    """ script to check the rms properties of candidate light curves
-    The first ~third of the light curve should be relatively clean
-    The detection should happen in the center third of the light curve
-    The tail of the light curve can be messy to account for structure in the 
-    tail of the detectionm (especially for pulsars)
-    
-    Expects dedispersed data (cut out in time, dual pol)
-    written by Justin D Linford, based on ideas by Sarah Burke-Spolaor
-    """
-    #prepare output variable
-    #rms_test = []
-    #set rms threshold for clipping
-    rms_thresh = 2.0
-    #extract dedispersed data light curve
-    #adapted the approach from candplot (above)
-    data = canddata.data
-    spectra = np.swapaxes(data.real, 0, 1)
-    #note: unlike canaplot, all we care about here is the Stokes I
-    dd2 = spectra[..., 0] + spectra[..., 1] #Stokes I data
-    lc2 = dd2.mean(axis=0) #this is the Stokes I light curve
-    #find rms of total light curve
-    tot_rms = calc_rms(lc2)
-    #get rms of clipped light curve
-    clip_rms = calc_rms(lc2[np.where(lc2<rms_thresh*tot_rms)])
-    #now get rms for each ~third of light curve
-    lead_rms = calc_rms(lc2[0:12])
-    mid_rms = calc_rms(lc2[12:21])
-    tail_rms = calc_rms(lc2[21::])
-    #now compare rms values to determine if this is a good candidate
-    if mid_rms>lead_rms and mid_rms>tail_rms and mid_rms>clip_rms: rms_test=1
-    else: rms_test=0
-    #debugging checks
-    print('RMS check:')
-    print(rms_test)
-    return rms_test
-        
-def calc_rms(in_arr):
-    """ Quick script to calculate root mean square value of light curve
-    Called by rms_check or stat_check
-    Expects 1D light curve array
-    """
-    out_rms = np.sqrt(1.0/len(in_arr)*np.sum(in_arr**2))
-    return out_rms
-
-def stat_check(canddata):
-    """script to measure statistical properties of the 1D light curves
-    Make 4 measurements: RMS, Skew, Kurtosis, and clipped-RMS (2-sigma clip)
-    Use these to determine the likelihood that a candidate is a genuine FRB
-    
-    From simple Monte Carlo simulations, the genuine FRBs will have relatively
-    high RMS/clipped-RMS ratios, positive Skew, and positive Kurtosis
-    
-    Expects dedispersed data (cut out in time, dual pol)
-    written by Justin D. Linford, based on ideas by Sarah Burke-Spolaor and 
-    Casey Law
-    """
-    #set rms threshold for clipping
-    rms_thresh = 2.0
-    #extract dedispersed data light curve
-    #adapted the approach from candplot (above)
-    data = canddata.data
-    spectra = np.swapaxes(data.real, 0, 1)
-    #note: unlike canaplot, all we care about here is the Stokes I
-    dd2 = spectra[..., 0] + spectra[..., 1] #Stokes I data
-    lc2 = dd2.mean(axis=0) #this is the Stokes I light curve
-    #find rms of total light curve
-    tot_rms = calc_rms(lc2)
-    #get rms of clipped light curve
-    clip_rms = calc_rms(lc2[np.where(lc2<rms_thresh*tot_rms)])
-    #calculate the rms/clipped-rms ratio
-    rms_ratio = tot_rms/clip_rms
-    #calculate the skewness
-    lc_skew = stats.skew(lc2)
-    #calculate the kurtosis
-    lc_kurt = stats.kurtosis(lc2)
-    #make candidate choice based on statistical measurements
-    if rms_ratio>1.1 and lc_skew>0.0 and lc_kurt>0.0: stat_test=1
-    else: stat_test=0
-    #debugging checks
-    #print('Light curve stat check:')
-    #print(stat_test)
-    return stat_test
 
 
-def make_voevent(canddata):
-    """script to generate a VOEvent file for the candidates plotted in candplot
-    Take canddata input and outputs a .xml file with relevant inforation
+def make_voevent(candcollection):    
+    """ Script to generate a VOEvent file from the CandCollection 
+    Takes Candcollection info and writes a .xml file with relevant inforation
     VOEvent format based on Petroff et al. 2017 VOEvent Standard for Fast Radio Busrts
     See https://github.com/ebpetroff/FRB_VOEvent
-    written by Just D. Linford with input from Casey Law, Sarah Burke-Spolaor
+    written by Justin D. Linford with input from Casey Law, Sarah Burke-Spolaor
     and Kshitij Aggarwal
+    --please excuse my terrible, self-taught python habits--
     """
-    
     from astropy.coordinates import SkyCoord  #needed to get galactic coordinates of FRB
     from astropy.time import Time #needed to get MJD to ISOTime
     import math #need to get RA & DEC into degrees
-
+    
     #get candata separated into useful parts
-    st = canddata.state
-    candloc = canddata.loc
-    im = canddata.image 
-    data = canddata.data
+    st = candcollection.state
     
-    #get some usefult info out of candidate location
-    segment, candint, dmind, dtind, beamnum = candloc
+    #LOOP TO STEP THROUGH ENTREES IN CANDCOLLECTION
     
-    #calcualte the image SNR --> NOTE: Stole this from candplot
-    imstd = im.std()  # consistent with rfgpu
-    snrmin = im.min()/imstd
-    snrmax = im.max()/imstd
-    if snrmax > -1*snrmin:
-        l1, m1 = st.pixtolm(np.where(im == im.max()))
-        snrobs = snrmax
-    else:
-        l1, m1 = st.pixtolm(np.where(im == im.min()))
-        snrobs = snrmin
+    for n1 in range(len(candcollection.locs)):
     
-    #extract 1D Stokes I light curve --> NOTE: Stole this from candplot
-    spectra = np.swapaxes(data.real, 0, 1)
-    dd2 = spectra[..., 0] + spectra[..., 1]
-    lc2 = dd2.mean(axis=0)
-    
-    #get FRB RA & DEC location in degrees --> NOTE: Stoel this from source_location
-    pt_ra, pt_dec = st.metadata.radec
-    src_ra, src_dec = source_location(pt_ra, pt_dec, l1, m1)
-    srcra = np.degrees(pt_ra + l1/math.cos(pt_dec))
-    srcdec = np.degrees(pt_dec + m1)
-    srcloc_err = -999 #TODO: figure out how to quentify uncertainty in position
-    #put location into SkyCoord
-    FRB_loc = SkyCoord(srcra,srcdec,frame='icrs',unit='deg')
-    
+        candloc = candcollection.locs[n1]
+        #get some usefult info out of candidate location
+        segment = candcollection.segment
+        candint = candloc[1]
+        dmind = candloc[2]
+        dtind = candloc[3]
+        beamnum = candloc[4]
         
-    #WHAT fields
-    #observatory parameters
-    beam_semimaj = -999 # TODO: figure out how to get this info
-    beam_semimin = -999 # TODO: figure out how to get this info
-    beam_rot_ang = -999 # TODO: figure out how to get this info
-    samp_time = np.round(st.inttime, 3)*1e3 #sampling time in ms
-    band_width = np.round((st.freq.max() - st.freq.min())*1.0e3,4)#bandwidth in MHz
-    #band_width = (st.metadata.spw_reffreq[-1] - st.metadata.spw_reffreq[0])/1.0e6 #should be in MHz
-    #print(st.freq.min())
-    num_chan = np.sum(st.metadata.spw_nchan)
-    center_freq = st.metadata.spw_reffreq[int(len(st.metadata.spw_reffreq)/2.0)]/1.0e6 #might work
-    num_pol = int(len(st.metadata.pols_orig))
-    bits_per_sample = 2 #TODO: check that this is always accurate
-    gain_KJy = -999 #TODO: figure out how to get this info
-    Tsys_K = -999 #TODO: figure out how to get this info
-    VLA_backend = 'WIDAR' #may need to find out how to get this info from the data
-    VLA_beam = beamnum #VLA only has a single beam
+        #Basic data easily accessible from CandCollection
+        FRB_DM = candcollection.canddm[n1]
+        #FRB_DM_err = -999 #TODO: need to figure out how to get DM nucertainty
+        #DM uncertainty: From Cordes & McLaughlin 2003, FWHM in S/N vs delDM distribution should be 
+        #delta-DM ~ 506 * pulse width [ms] * observing freq ^3 [Ghz] / bandwidth [MHz]  (Eq. 14)
+        #by definition, FWHM = 2*sqrt(2*ln2)*sigma for a Gaussian
+        #DM_err ~ 506/(2*sqrt(2 ln2)) * Width(ms) * ObsFrequency(GHz)^3 / bandwidth(MHz)
+        FRB_obsmjd = candcollection.candmjd[n1]
+        FRB_width = candcollection.canddt[n1]*1.0e3 #approximate pulse width in ms
+        snr1 = candcollection.array['snr1'].flatten()
+        FRB_SNR = snr1[n1]
+        l1 = candcollection.candl[n1]
+        m1 = candcollection.candm[n1]
+        
+        #get FRB RA & DEC location in degrees --> NOTE: Stole this from source_location
+        pt_ra, pt_dec = st.metadata.radec
+        srcra = np.degrees(pt_ra + l1/math.cos(pt_dec))
+        srcdec = np.degrees(pt_dec + m1)
+        im_pix_scale = np.degrees((st.npixx*st.uvres)**-1.0) #degrees per pixel
+        srcloc_err = im_pix_scale #set source location uncertainty to the pixel scale, for now --> assumes source only fills a single pixel
+        #put location into SkyCoord
+        FRB_loc = SkyCoord(srcra,srcdec,frame='icrs',unit='deg')
+        #FRB galactic coordinates
+        FRB_gl = FRB_loc.galactic.l.deg
+        FRB_gb = FRB_loc.galactic.b.deg
+        
+        #WHAT fields
+        #observatory parameters
+        beam_size = st.beamsize_deg #estimate of beam size in degrees
+        #TODO: is st.beamsize)deg an estimate of the primary beam or the restoring beam?
+        beam_semimaj = max(beam_size) * 3600.0 # TODO: figure out how to get this info
+        beam_semimin = min(beam_size) * 3600.0 # TODO: figure out how to get this info
+        beam_rot_ang = -999 # TODO: figure out how to get this info
+        samp_time = np.round(st.inttime, 3)*1e3 #sampling time in ms
+        band_width = np.round((st.freq.max() - st.freq.min())*1.0e3,4)#bandwidth in MHz
+        num_chan = np.sum(st.metadata.spw_nchan)
+        center_freq = st.metadata.spw_reffreq[int(len(st.metadata.spw_reffreq)/2.0)]/1.0e6 #should be center freq in MHz
+        num_pol = int(len(st.metadata.pols_orig))
+        bits_per_sample = 2 #TODO: check that this is always accurate
+        gain_KJy = -999 #TODO: figure out how to get this info
+        Tsys_K = -999 #TODO: figure out how to get this info
+        VLA_backend = 'WIDAR' #may need to find out how to get this info from the data
+        VLA_beam = beamnum #VLA only has a single beam
+        
+        #should now have all the necessary numbers to calculate DM uncertainty
+        FRB_DM_err = (506.0/(2.0*np.sqrt(2.0*np.log(2.0)))) * FRB_width * (center_freq*1.0e-3)**3 / band_width
+        
+        #now compare beam size to pixel scale
+        #if the 1/2 beam semi-minor axis is larger than the pixel scale, set the location uncertainty to 1/2 the semi-minor axis
+        if 0.5*min(beam_size)>im_pix_scale: srcloc_err = 0.5*min(beam_size)
+        
+        FRB_obstime = Time(FRB_obsmjd,format='mjd',scale='utc')
+        #print(FRB_obstime)
+        FRB_ISOT = FRB_obstime.isot #convert time to ISOT
+        #print(FRB_ISOT)
+        #get the hour of the observation for FRB name
+        t_pos = FRB_ISOT.find('T')
+        FRB_ISOT_UTHH = 'UT'+FRB_ISOT[t_pos+1:t_pos+3]
+        
+        #Importance parameter
+        FRB_importance = 0.8 #default to relatively high importance #TODO: look into setting this based on candidate decision trees or SNR
+        if candcollection.clustersize is not None:
+            if candcollection.clustersize[n1]>10. and FRB_SNR>30.: FRB_importance=1.0
+            if candcollection.clustersize[n1]>10. and FRB_SNR<30. and FRB_SNR>20.: FRB_importance=0.9
+            if candcollection.clustersize[n1]<5.0 and FRB_SNR<20.0: FRB_importance=0.5
+        else:
+            if FRB_SNR>30.: FRB_importance=0.95
+            if FRB_SNR>20. and FRB_SNR<30.: FRB_importance=0.85
+        
+        #build FRB name
+        FRB_YY = FRB_ISOT[2:4] #last 2 digits of year
+        FRB_MM = FRB_ISOT[5:7] #2-digit month
+        FRB_DD = FRB_ISOT[8:10] #2-digit day
     
-    #Event parameters
-    FRB_DM = st.dmarr[dmind]
-    FRB_DM_err = -999 # TODO: calculate some kind of DM uncertainty
-    FRB_width = np.round(st.inttime*st.dtarr[dtind], 3)*1e3 # TODO: figure out how to calculate the width of the burst
-    FRB_SNR = snrobs
-    FRB_flux = max(lc2) #peak of 1D Stokes I light curve
-    FRB_gl = FRB_loc.galactic.l.deg
-    FRB_gb = FRB_loc.galactic.b.deg
-    
-    #Observation Location
-    #time
-    #for now, use the observation start time
-    FRB_obsmjd = st.metadata.starttime_mjd
-    FRB_obstime = Time(FRB_obsmjd,format='mjd',scale='utc')
-    FRB_ISOT = FRB_obstime.isot #convert time to ISOT
-    
-    #Importance parameter
-    FRB_importance = 1.0 #TODO: look into setting this based on candidate decision trees or SNR
-    
-    #build FRB name
-    FRB_YY = FRB_ISOT[2:4] #last 2 digits of year
-    FRB_MM = FRB_ISOT[5:7] #2-digit month
-    FRB_DD = FRB_ISOT[8:10] #2-digit day
-
-    FRB_RADEC_str = FRB_loc.to_string('hmsdms') #convert FRB coordinates to HH:MM:SS.SSSS (+/-)DD:MM:SS.SSSS
-    #print FRB_RADEC_str
-    #find prosition of the 'd' in FRB_RADEC_str
-    d_pos = FRB_RADEC_str.find('d')
-    FRB_RAhh = FRB_RADEC_str[0:2] #RA HH
-    FRB_RAmm = FRB_RADEC_str[3:5] #RA MM
-    FRB_RAss = FRB_RADEC_str[6:8] #RA SS
-    FRB_DECdd = FRB_RADEC_str[d_pos-3:d_pos] #DEC (+/-)DD
-    FRB_DECmm = FRB_RADEC_str[d_pos+1:d_pos+3] #DEC MM
-    FRB_DECss = FRB_RADEC_str[d_pos+4:d_pos+6] #DEC SS
-
-    FRB_NAME = 'FRB'+FRB_YY+FRB_MM+FRB_DD + '.J' + FRB_RAhh+FRB_RAmm+FRB_RAss + FRB_DECdd+FRB_DECmm+FRB_DECss
-    
-    #set filename to FRB_NAME + '_detection.xml'
-    outname = os.path.join(st.prefs.workdir,FRB_NAME+'_detection.xml')
+        FRB_RADEC_str = FRB_loc.to_string('hmsdms') #convert FRB coordinates to HH:MM:SS.SSSS (+/-)DD:MM:SS.SSSS
+        
+        #FRB_NAME = 'FRB'+FRB_YY+FRB_MM+FRB_DD + '.J' + FRB_RAhh+FRB_RAmm+FRB_RAss + FRB_DECdd+FRB_DECmm+FRB_DECss
+        FRB_NAME = 'FRB'+FRB_YY+FRB_MM+FRB_DD + FRB_ISOT_UTHH
+        
+        #set filename to FRB_NAME + '_detection.xml'
+        outname = os.path.join(st.prefs.workdir,FRB_NAME+'_detection_CC.xml')
+        
+        try:
+            #write VOEvent file
+            #create a text file with all the VLA fluxes to include in paper
+            VOEvent_of = open(outname,'w')
+            #header
+            VOEvent_of.write("<?xml version='1.0' encoding='UTF-8'?>"+'\n')
+            VOEvent_of.write('<voe:VOEvent xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:voe="http://www.ivoa.net/xml/VOEvent/v2.0" xsi:schemaLocation="http://www.ivoa.net/xml/VOEvent/v2.0 http://www.ivoa.net/xml/VOEvent/VOEvent-v2.0.xsd" version="2.0" role="test" ivorn="ivo://io.realfast/realfast#'+FRB_NAME+'/'+str(FRB_obsmjd)+'">'+'\n')
+            #WHO
+            VOEvent_of.write('\t'+'<Who>'+'\n')
+            VOEvent_of.write('\t\t'+'<AuthorIVORN>ivo://io.realfast/contact</AuthorIVORN>'+'\n')
+            VOEvent_of.write('\t\t'+'<Date>'+FRB_ISOT+'</Date>\n')
+            VOEvent_of.write('\t\t'+'<Author><contactEmail>claw@astro.berkeley.edu</contactEmail><contactName>Casey Law</contactName></Author>\n')
+            VOEvent_of.write('\t</Who>\n')
+            #What
+            VOEvent_of.write('\t<What>\n')
+            VOEvent_of.write('\t\t<Group name="observatory parameters">\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="beam_semi-major_axis" ucd="instr.beam;pos.errorEllipse;phys.angSize.smajAxis" unit="SS" value="'+str(beam_semimaj)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="beam_semi-minor_axis" ucd="instr.beam;pos.errorEllipse;phys.angSize.sminAxis" unit="SS" value="'+str(beam_semimin)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="beam_rotation_angle" ucd="instr.beam;pos.errorEllipse;instr.offset" unit="Degrees" value="'+str(beam_rot_ang)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="sampling_time" ucd="time.resolution" unit="ms" value="'+str(samp_time)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="bandwidth" ucd="instr.bandwidth" unit="MHz" value="'+str(band_width)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="nchan" ucd="meta.number;em.freq;em.bin" unit="None" value="'+str(num_chan)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="centre_frequency" ucd="em.freq;instr" unit="MHz" value="'+str(center_freq)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="int" name="npol" unit="None" value="'+str(num_pol)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="int" name="bits_per_sample" unit="None" value="'+str(bits_per_sample)+'"/>\n')
+            #VOEvent_of.write('\t\t\t<Param dataType="float" name="gain" unit="K/Jy" value="'+str(gain_KJy)+'"/>\n')  #FOR NOW: do not report gain
+            #VOEvent_of.write('\t\t\t<Param dataType="float" name="tsys" ucd="phot.antennaTemp" unit="K" value="'+str(Tsys_K)+'"/>\n')  #FOR NOW: do not report Tsys
+            VOEvent_of.write('\t\t\t<Param name="backend" value="'+VLA_backend+'"/>\n')
+            #VOEvent_of.write('\t\t\t<Param name="beam" value="'+str(VLA_beam)+'"/><Description>Detection beam number if backend is a multi beam receiver</Description>\n')
+            VOEvent_of.write('\t\t</Group>\n')
+            VOEvent_of.write('\t\t<Group name="event parameters">\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="dm" ucd="phys.dispMeasure;em.radio.'+str(int(np.floor(st.freq.min())))+'000-'+str(int(np.ceil(st.freq.max())))+'000MHz" unit="pc/cm^3" value="'+str(FRB_DM)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="dm_error" ucd="stat.error;phys.dispMeasure" unit="pc/cm^3" value="'+str(int(np.ceil(FRB_DM_err)))+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="width" ucd="time.duration;src.var.pulse" unit="ms" value="'+str(FRB_width)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="snr" ucd="stat.snr" value="'+str(FRB_SNR)+'"/>\n')
+            #VOEvent_of.write('\t\t\t<Param dataType="float" name="flux" ucd="phot.flux" unit="Jy" value="'+str(FRB_flux)+'"/>\n') #FOR NOW: do not report flux density.  We do not have good enough absolute flux density calibration
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="gl" ucd="pos.galactic.lon" unit="Degrees" value="'+str(FRB_gl)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="gb" ucd="pos.galactic.lat" unit="Degrees" value="'+str(FRB_gb)+'"/>\n')
+            VOEvent_of.write('\t\t</Group>\n')
+            VOEvent_of.write('\t\t<Group name="advanced parameters">\n')
+            #VOEvent_of.write('\t\t\t<Param dataType="float" name="MW_dm_limit" unit="pc/cm^3" value="34.9"/>\n')
+            #VOEvent_of.write('\t\t\t\t</Param>\n')
+            VOEvent_of.write('\t\t</Group>\n')
+            VOEvent_of.write('\t</What>\n')
+            #WhereWhen
+            VOEvent_of.write('\t<WhereWhen>\n')
+            VOEvent_of.write('\t\t<ObsDataLocation>\n')
+            VOEvent_of.write('\t\t\t<ObservatoryLocation id="VLA">\n')
+            VOEvent_of.write('\t\t\t<AstroCoordSystem id="UTC-GEOD-TOPO"/>\n')
+            VOEvent_of.write('\t\t\t<AstroCoords coord_system_id="UTC-GEOD-TOPO">\n')
+            VOEvent_of.write('\t\t\t<Position3D unit="deg-deg-m">\n')
+            VOEvent_of.write('\t\t\t  <Value3>\n')
+            VOEvent_of.write('\t\t\t    <C1>107.6184</C1>\n')
+            VOEvent_of.write('\t\t\t    <C2>34.0784</C2>\n')
+            VOEvent_of.write('\t\t\t    <C3>2124.456</C3>\n')
+            VOEvent_of.write('\t\t\t  </Value3>\n')
+            VOEvent_of.write('\t\t\t</Position3D>\n')
+            VOEvent_of.write('\t\t\t</AstroCoords>\n')
+            VOEvent_of.write('\t\t\t</ObservatoryLocation>\n')
+            VOEvent_of.write('\t\t\t<ObservationLocation>\n')
+            VOEvent_of.write('\t\t\t\t<AstroCoordSystem id="UTC-FK5-GEO"/><AstroCoords coord_system_id="UTC-FK5-GEO">\n')
+            VOEvent_of.write('\t\t\t\t<Time unit="s"><TimeInstant><ISOTime>'+FRB_ISOT+'</ISOTime></TimeInstant></Time>\n')
+            VOEvent_of.write('\t\t\t\t<Position2D unit="deg"><Name1>RA</Name1><Name2>Dec</Name2><Value2><C1>'+str(srcra)+'</C1><C2>'+str(srcdec)+'</C2></Value2><Error2Radius>'+str(srcloc_err)+'</Error2Radius></Position2D>\n')
+            VOEvent_of.write('\t\t\t\t</AstroCoords>\n')
+            VOEvent_of.write('\t\t\t</ObservationLocation>\n')
+            VOEvent_of.write('\t\t</ObsDataLocation>\n')
+            VOEvent_of.write('\t</WhereWhen>\n')
+            #How
+            VOEvent_of.write('\t<How>\n')
+            VOEvent_of.write('\t\t</How>\n')
+            #Why
+            VOEvent_of.write('\t<Why importance="'+str(FRB_importance)+'">\n')
+            VOEvent_of.write('\t\t\t<Concept></Concept><Description>Detection of a new FRB by RealFast</Description>\n')
+            VOEvent_of.write('\t\t<Name>'+FRB_NAME+'</Name>\n')
+            VOEvent_of.write('\t</Why>\n')
+            VOEvent_of.write('</voe:VOEvent>')
             
-    try:
-        #write VOEvent file
-        #create a text file with all the VLA fluxes to include in paper
-        VOEvent_of = open(outname,'w')
-        #header
-        VOEvent_of.write("<?xml version='1.0' encoding='UTF-8'?>"+'\n')
-        VOEvent_of.write('<voe:VOEvent xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:voe="http://www.ivoa.net/xml/VOEvent/v2.0" xsi:schemaLocation="http://www.ivoa.net/xml/VOEvent/v2.0 http://www.ivoa.net/xml/VOEvent/VOEvent-v2.0.xsd" version="2.0" role="test" ivorn="ivo://io.realfast/realfast#'+FRB_NAME+'/'+str(FRB_obsmjd)+'">'+'\n')
-        #WHO
-        VOEvent_of.write('\t'+'<Who>'+'\n')
-        VOEvent_of.write('\t\t'+'<AuthorIVORN>ivo://io.realfast/contact</AuthorIVORN>'+'\n')
-        VOEvent_of.write('\t\t'+'<Date>'+FRB_ISOT+'</Date>\n')
-        VOEvent_of.write('\t\t'+'<Author><contactEmail>claw@astro.berkeley.edu</contactEmail><contactName>Casey Law</contactName></Author>\n')
-        VOEvent_of.write('\t</Who>\n')
-        #What
-        VOEvent_of.write('\t<What>\n')
-        VOEvent_of.write('\t\t<Group name="observatory parameters">\n')
-        VOEvent_of.write('\t\t\t<Param dataType="float" name="beam_semi-major_axis" ucd="instr.beam;pos.errorEllipse;phys.angSize.smajAxis" unit="SS" value="'+str(beam_semimaj)+'"/>\n')
-        VOEvent_of.write('\t\t\t<Param dataType="float" name="beam_semi-minor_axis" ucd="instr.beam;pos.errorEllipse;phys.angSize.sminAxis" unit="SS" value="'+str(beam_semimin)+'"/>\n')
-        VOEvent_of.write('\t\t\t<Param dataType="float" name="beam_rotation_angle" ucd="instr.beam;pos.errorEllipse;instr.offset" unit="Degrees" value="'+str(beam_rot_ang)+'"/>\n')
-        VOEvent_of.write('\t\t\t<Param dataType="float" name="sampling_time" ucd="time.resolution" unit="ms" value="'+str(samp_time)+'"/>\n')
-        VOEvent_of.write('\t\t\t<Param dataType="float" name="bandwidth" ucd="instr.bandwidth" unit="MHz" value="'+str(band_width)+'"/>\n')
-        VOEvent_of.write('\t\t\t<Param dataType="float" name="nchan" ucd="meta.number;em.freq;em.bin" unit="None" value="'+str(num_chan)+'"/>\n')
-        VOEvent_of.write('\t\t\t<Param dataType="float" name="centre_frequency" ucd="em.freq;instr" unit="MHz" value="'+str(center_freq)+'"/>\n')
-        VOEvent_of.write('\t\t\t<Param dataType="int" name="npol" unit="None" value="'+str(num_pol)+'"/>\n')
-        VOEvent_of.write('\t\t\t<Param dataType="int" name="bits_per_sample" unit="None" value="'+str(bits_per_sample)+'"/>\n')
-        VOEvent_of.write('\t\t\t<Param dataType="float" name="gain" unit="K/Jy" value="'+str(gain_KJy)+'"/>\n')
-        VOEvent_of.write('\t\t\t<Param dataType="float" name="tsys" ucd="phot.antennaTemp" unit="K" value="'+str(Tsys_K)+'"/>\n')
-        VOEvent_of.write('\t\t\t<Param name="backend" value="'+VLA_backend+'"/>\n')
-        VOEvent_of.write('\t\t\t<Param name="beam" value="'+str(VLA_beam)+'"/><Description>Detection beam number if backend is a multi beam receiver</Description>\n')
-        VOEvent_of.write('\t\t</Group>\n')
-        VOEvent_of.write('\t\t<Group name="event parameters">\n')
-        VOEvent_of.write('\t\t\t<Param dataType="float" name="dm" ucd="phys.dispMeasure;em.radio.'+str(int(np.floor(st.freq.min())))+'000-'+str(int(np.ceil(st.freq.max())))+'000MHz" unit="pc/cm^3" value="'+str(FRB_DM)+'"/>\n')
-        VOEvent_of.write('\t\t\t<Param dataType="float" name="dm_error" ucd="stat.error;phys.dispMeasure" unit="pc/cm^3" value="'+str(FRB_DM_err)+'"/>\n')
-        VOEvent_of.write('\t\t\t<Param dataType="float" name="width" ucd="time.duration;src.var.pulse" unit="ms" value="'+str(FRB_width)+'"/>\n')
-        VOEvent_of.write('\t\t\t<Param dataType="float" name="snr" ucd="stat.snr" value="'+str(FRB_SNR)+'"/>\n')
-        VOEvent_of.write('\t\t\t<Param dataType="float" name="flux" ucd="phot.flux" unit="Jy" value="'+str(FRB_flux)+'"/>\n')
-        VOEvent_of.write('\t\t\t<Param dataType="float" name="gl" ucd="pos.galactic.lon" unit="Degrees" value="'+str(FRB_gl)+'"/>\n')
-        VOEvent_of.write('\t\t\t<Param dataType="float" name="gb" ucd="pos.galactic.lat" unit="Degrees" value="'+str(FRB_gb)+'"/>\n')
-        VOEvent_of.write('\t\t</Group>\n')
-        VOEvent_of.write('\t\t<Group name="advanced parameters">\n')
-        #VOEvent_of.write('\t\t\t<Param dataType="float" name="MW_dm_limit" unit="pc/cm^3" value="34.9"/>\n')
-        #VOEvent_of.write('\t\t\t\t</Param>\n')
-        VOEvent_of.write('\t\t</Group>\n')
-        VOEvent_of.write('\t</What>\n')
-        #WhereWhen
-        VOEvent_of.write('\t<WhereWhen>\n')
-        VOEvent_of.write('\t\t<ObsDataLocation>\n')
-        VOEvent_of.write('\t\t\t<ObservatoryLocation id="VLA">\n')
-        VOEvent_of.write('\t\t\t<AstroCoordSystem id="UTC-GEOD-TOPO"/>\n')
-        VOEvent_of.write('\t\t\t<AstroCoords coord_system_id="UTC-GEOD-TOPO">\n')
-        VOEvent_of.write('\t\t\t<Position3D unit="deg-deg-m">\n')
-        VOEvent_of.write('\t\t\t  <Value3>\n')
-        VOEvent_of.write('\t\t\t    <C1>107.6184</C1>\n')
-        VOEvent_of.write('\t\t\t    <C2>34.0784</C2>\n')
-        VOEvent_of.write('\t\t\t    <C3>2124.456</C3>\n')
-        VOEvent_of.write('\t\t\t  </Value3>\n')
-        VOEvent_of.write('\t\t\t</Position3D>\n')
-        VOEvent_of.write('\t\t\t</AstroCoords>\n')
-        VOEvent_of.write('\t\t\t</ObservatoryLocation>\n')
-        VOEvent_of.write('\t\t\t<ObservationLocation>\n')
-        VOEvent_of.write('\t\t\t\t<AstroCoordSystem id="UTC-FK5-GEO"/><AstroCoords coord_system_id="UTC-FK5-GEO">\n')
-        VOEvent_of.write('\t\t\t\t<Time unit="s"><TimeInstant><ISOTime>'+FRB_ISOT+'</ISOTime></TimeInstant></Time>\n')
-        VOEvent_of.write('\t\t\t\t<Position2D unit="deg"><Name1>RA</Name1><Name2>Dec</Name2><Value2><C1>'+str(srcra)+'</C1><C2>'+str(srcdec)+'</C2></Value2><Error2Radius>'+str(srcloc_err)+'</Error2Radius></Position2D>\n')
-        VOEvent_of.write('\t\t\t\t</AstroCoords>\n')
-        VOEvent_of.write('\t\t\t</ObservationLocation>\n')
-        VOEvent_of.write('\t\t</ObsDataLocation>\n')
-        VOEvent_of.write('\t</WhereWhen>\n')
-        #How
-        VOEvent_of.write('\t<How>\n')
-        VOEvent_of.write('\t\t</How>\n')
-        #Why
-        VOEvent_of.write('\t<Why importance="'+str(FRB_importance)+'">\n')
-        VOEvent_of.write('\t\t\t<Concept></Concept><Description>Detection of a new FRB by RealFast</Description>\n')
-        VOEvent_of.write('\t\t<Name>'+FRB_NAME+'</Name>\n')
-        VOEvent_of.write('\t</Why>\n')
-        VOEvent_of.write('</voe:VOEvent>')
-        
-        #close file
-        VOEvent_of.close()
-        logger.info('Wrote VOEvent file to {0}'.format(outname))
-        
-    except ValueError:
-        logger.warn('Could not write VOEvent file {0}'.format(outname))
-    
-    
+            #close file
+            VOEvent_of.close()
+            logger.info('Wrote VOEvent file to {0}'.format(outname))
+            
+        except ValueError:
+            logger.warn('Could not write VOEvent file {0}'.format(outname))
