@@ -207,8 +207,21 @@ def pipeline_canddata(st, candloc, data_dmdt=None, cpuonly=False, sig_ts=None,
             spec_std = data_dmdt.real.mean(axis=3).mean(axis=1).std(axis=0)
         else:
             spec_std = data_dmdt[0].real.mean(axis=2).std(axis=0)
-        if sig_ts is None or kalman_coeffs is None:
+
+        if len(np.where(spec_std == 0.)[0]) > 0:
+            medstd = np.median(spec_std[spec_std.nonzero()])
+            logger.info("Replacing {0} noise spectrum channels with median noise"
+                        .format(len(np.where(spec_std == 0.)[0])))
+            spec_std = np.where(spec_std == 0., medstd, spec_std)
+
+        if not np.any(spec_std):
+            logger.warning("spectrum std all zeros. Not estimating coeffs.")
+            kalman_coeffs = []
+        else:
             sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
+
+        if not np.all(np.nan_to_num(sig_ts)):
+            kalman_coeffs = []
     else:
         spec_std, sig_ts, kalman_coeffs = None, None, None
 
