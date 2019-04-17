@@ -375,14 +375,14 @@ def save_noise(st, segment, data, chunk=500):
 
     try:
         noisefile = st.noisefile
-        with fileLock.FileLock(noisefile+'.lock', timeout=10):
+        with fileLock.FileLock(noisefile+'.lock', timeout=60):
             with open(noisefile, 'ab+') as pkl:
                 pickle.dump(results, pkl)
     except fileLock.FileLock.FileLockException:
         noisefile = ('{0}_seg{1}.pkl'
                      .format(st.noisefile.rstrip('.pkl'), segment))
         logger.warning('Noise file writing timeout. '
-                    'Spilling to new file {0}.'.format(noisefile))
+                       'Spilling to new file {0}.'.format(noisefile))
         with open(noisefile, 'ab+') as pkl:
             pickle.dump(results, pkl)
 

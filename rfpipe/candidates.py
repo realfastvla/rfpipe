@@ -695,7 +695,7 @@ def save_cands(st, candcollection=None, canddata=None):
             logger.info('Saving CandData to {0}.'.format(st.candsfile))
 
             try:
-                with fileLock.FileLock(st.candsfile+'.lock', timeout=10):
+                with fileLock.FileLock(st.candsfile+'.lock', timeout=60):
                     with open(st.candsfile, 'ab+') as pkl:
                         pickle.dump(canddata, pkl)
 
@@ -718,7 +718,7 @@ def save_cands(st, candcollection=None, canddata=None):
                                 's'[not len(candcollection)-1:], st.candsfile))
 
             try:
-                with fileLock.FileLock(st.candsfile+'.lock', timeout=10):
+                with fileLock.FileLock(st.candsfile+'.lock', timeout=60):
                     with open(st.candsfile, 'ab+') as pkl:
                         pickle.dump(candcollection, pkl)
 
