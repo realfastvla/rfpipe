@@ -234,7 +234,7 @@ def select(sols, time=None, freqs=None, polarization=None, mode='realtime'):
         fmin = freqs.min() - deltaf
         fmax = freqs.max() + deltaf
         freqselect = [(ff > fmin) and (ff < fmax)
-                      for ff in np.around(1e6*sols['skyfreq'], -6)]
+                      for ff in sols['skyfreq']]
     else:
         freqselect = np.ones(len(sols), dtype=bool)
 
