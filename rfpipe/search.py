@@ -6,7 +6,7 @@ from io import open
 import numpy as np
 from numba import jit, guvectorize, int64
 import pyfftw
-from kalman_detector import kalman_prepare_coeffs, kalman_filter_detector, kalman_significance
+from kalman_detector import kalman_prepare_coeffs, kalman_significance
 from concurrent import futures
 from itertools import cycle
 from threading import Lock
@@ -121,7 +121,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
             spec_std = data[0].real.mean(axis=2).std(axis=0)
 
         if len(np.where(spec_std == 0.)[0]) > 0:
-            medstd = np.median(spec_std)
+            medstd = np.median(spec_std[spec_std.nonzero()])
             logger.info("Replacing {0} noise spectrum channels with median noise"
                         .format(len(np.where(spec_std == 0.)[0])))
             spec_std = np.where(spec_std == 0., medstd, spec_std)
@@ -327,7 +327,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
             spec_std = data[0].real.mean(axis=2).std(axis=0)
 
         if len(np.where(spec_std == 0.)[0]) > 0:
-            medstd = np.median(spec_std)
+            medstd = np.median(spec_std[spec_std.nonzero()])
             logger.info("Replacing {0} noise spectrum channels with median noise"
                         .format(len(np.where(spec_std == 0.)[0])))
             spec_std = np.where(spec_std == 0., medstd, spec_std)
