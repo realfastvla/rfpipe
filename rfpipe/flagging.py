@@ -106,22 +106,22 @@ def flag_badspw(data, spwchans, sigma):
     if nspw >= 4:
         # calc badspw
         spec = np.abs(data).mean(axis=3).mean(axis=1).mean(axis=0)
-        variances = []
+        deviations = []
         for chans in spwchans:
             if len(chans) > 3:
-                variances.append(np.ma.var(spec[chans]-np.ma.median(spec[chans])))
+                deviations.append(np.ma.std(spec[chans]-np.ma.median(spec[chans])))
             else:
-                variances.append(0)
-        variances = np.ma.masked_equal(variances, 0)
-        logger.debug("Variance per spw: {0}".format(variances))
+                deviations.append(0)
+        deviations = np.ma.masked_equal(deviations, 0)
+        logger.info("badspw flagging finds deviations per spw: {0}".format(deviations))
 
-        if np.ma.median(variances):
+        if np.ma.median(deviations):
             badspw = []
-            badspwnew = np.where(variances > sigma*np.ma.median(variances))[0]
+            badspwnew = np.where(deviations > sigma*np.ma.median(deviations))[0]
             while len(badspwnew) > len(badspw):
                 badspw = badspwnew
                 goodspw = [spw for spw in range(nspw) if spw not in badspw]
-                badspwnew = np.where(variances > sigma*np.ma.median(variances.take(goodspw)))[0]
+                badspwnew = np.where(deviations > sigma*np.ma.median(deviations.take(goodspw)))[0]
 
             logger.info("flagged {0}/{1} spw ({2})"
                         .format(len(badspw), nspw, badspw))
