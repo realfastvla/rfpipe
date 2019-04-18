@@ -37,19 +37,20 @@ def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1,
         else:
             sols = getsols(st, threshold=threshold, onlycomplete=onlycomplete,
                            savesols=savesols)
-            pols = [0, 1]
             reffreq, nchan, chansize = st.metadata.spw_sorted_properties
             skyfreqs = np.around([reffreq[i] + (chansize[i]*nchan[i]//2) for i in range(len(nchan))], -6)/1e6  # GN skyfreq is band center
-            solskyfreqs = np.unique(sols['skyfreq'])
-            logger.info("Applying solutions from frequencies {0} to data frequencies {1}"
-                        .format(solskyfreqs, np.unique(skyfreqs)))
             if len(sols):
+                pols = [0, 1]
+                solskyfreqs = np.unique(sols['skyfreq'])
+                logger.info("Applying solutions from frequencies {0} to data frequencies {1}"
+                            .format(solskyfreqs, np.unique(skyfreqs)))
                 gaindelay = np.nan_to_num(calcgaindelay(sols, st.blarr,
                                                         skyfreqs, pols,
                                                         chansize[0]/1e6,
                                                         nchan[0], sign=sign),
                                           copy=False).take(st.chans, axis=1)
             else:
+                logger.info("No calibration solutions found for data freqs {0}".format(np.unique(skyfreqs)))
                 gaindelay = np.zeros_like(data)
 
         # check for repeats or bad values
@@ -57,7 +58,7 @@ def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1,
         if len(repeats):
             for item, count in repeats:
                 if item == 0j:
-                    logger.info("{0} of {1} telcal solutions zeroed (flagged)"
+                    logger.info("{0} of {1} telcal solutions zeroed or flagged"
                                 .format(count, gaindelay[:, ::nchan[0]].size))
                     blinds, chans, pols = np.where(gaindelay[:, ::nchan[0]] == 0)
                     if len(blinds):
