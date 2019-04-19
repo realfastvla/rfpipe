@@ -188,8 +188,8 @@ class CandCollection(object):
 
     def __repr__(self):
         if self.metadata is not None:
-            return ('CandCollection for {0}, scan {1} with {2} candidate{3}'
-                    .format(self.metadata.datasetId, self.metadata.scan,
+            return ('CandCollection for {0}, scan {1}, segment {2} with {3} candidate{4}'
+                    .format(self.metadata.datasetId, self.metadata.scan, self.segment,
                             len(self), 's'[not len(self)-1:]))
         else:
             return ('CandCollection with {0} rows'.format(len(self.array)))
@@ -256,16 +256,13 @@ class CandCollection(object):
 
     @property
     def segment(self):
-        if len(self.array):
+        if len(self):
             segments = np.unique(self.array['segment'])
             if len(segments) == 1:
                 return int(segments[0])
             elif len(segments) > 1:
                 logger.warning("Multiple segments in this collection")
                 return segments
-            else:
-                logger.warning("No candidates in this collection")
-                return None
         else:
             return None
 
