@@ -535,7 +535,7 @@ def reproduce_candcollection(cc, data, wisdom=None, spec_std=None, sig_ts=None,
             kwargs = {}
             if 'cluster' in cc.array.dtype.fields:
                 logger.info("Cluster {0}/{1} has {2} candidates and max detected SNR {3:.1f} at {4}"
-                            .format(clusters[i], len(calcinds)-1, cl_count[i],
+                            .format(i+1, len(calcinds), cl_count[i],
                                     snr, candloc))
                 # add supplementary plotting and cc info
                 kwargs['cluster'] = clusters[i]
