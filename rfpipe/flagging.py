@@ -99,6 +99,7 @@ def flag_badchtslide(data, spwchans, sigma, win):
 
 def flag_badspw(data, spwchans, sigma):
     """ Use data median variance between spw to flag spw
+    Best to use this after flagging bad channels.
     """
 
     nspw = len(spwchans)
@@ -112,8 +113,9 @@ def flag_badspw(data, spwchans, sigma):
                 deviations.append(np.ma.std(spec[chans]-np.ma.median(spec[chans])))
             else:
                 deviations.append(0)
-        deviations = np.ma.masked_equal(deviations, 0)
-        logger.info("badspw flagging finds deviations per spw: {0}".format(deviations))
+        deviations = np.ma.masked_equal(np.nan_to_num(deviations), 0)
+        logger.info("badspw flagging finds deviations per spw: {0}"
+                    .format(deviations))
 
         if np.ma.median(deviations):
             badspw = []
@@ -122,6 +124,8 @@ def flag_badspw(data, spwchans, sigma):
                 badspw = badspwnew
                 goodspw = [spw for spw in range(nspw) if spw not in badspw]
                 badspwnew = np.where(deviations > sigma*np.ma.median(deviations.take(goodspw)))[0]
+
+            badspw = np.concatenate(badspw, np.where(deviations.mask)[0])
 
             logger.info("flagged {0}/{1} spw ({2})"
                         .format(len(badspw), nspw, badspw))
