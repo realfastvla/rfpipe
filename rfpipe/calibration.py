@@ -191,30 +191,37 @@ def flagants(solsin, threshold, onlycomplete):
     sols = solsin.copy()
 
     # identify very low gain amps not already flagged
-    badsols = np.where((sols['amp']/np.median(sols['amp']) < threshold) &
-                       (sols['flagged'] == False))[0]
-    if len(badsols):
-        logger.info('Flagging {0} solutions at MJD {1}, ant {2}, and freqs '
-                    '{3}) for low gain amplitude.'
-                    .format(len(badsols), np.unique(sols[badsols]['mjd']),
-                            np.unique(sols[badsols]['antnum']),
-                            np.unique(sols[badsols]['ifid'])))
-        for sol in badsols:
+    if np.median(sols['amp']):
+        badsols = np.where((sols['amp']/np.median(sols['amp']) < threshold) &
+                           (sols['flagged'] == False))[0]
+        if len(badsols):
+            logger.info('Flagging {0} solutions at MJD {1}, ant {2}, and freqs '
+                        '{3}) for low gain amplitude.'
+                        .format(len(badsols), np.unique(sols[badsols]['mjd']),
+                                np.unique(sols[badsols]['antnum']),
+                                np.unique(sols[badsols]['ifid'])))
+            for sol in badsols:
+                sols['flagged'][sol] = True
+
+        if onlycomplete:
+            ifids = np.unique(sols['ifid'])
+            antnums = np.unique(sols['antnum'])
+            mjds = sols['mjd']
+
+            completecount = len(ifids) * len(antnums)
+            for mjd0 in np.unique(mjds):
+                sols0 = np.where(mjd0 == mjds)[0]
+                if len(sols0) < completecount:
+                    logger.info("Flagging solutions at MJD {0} with only {1} of {2} "
+                                "solutions."
+                                .format(mjd0, len(sols0), completecount))
+                    sols[sols0]['flagged'] = True
+
+    else:
+        logger.warn("Median solution amplitude is zero. Flagging all.")
+        for sol in range(len(sols)):
             sols['flagged'][sol] = True
 
-    if onlycomplete:
-        ifids = np.unique(sols['ifid'])
-        antnums = np.unique(sols['antnum'])
-        mjds = sols['mjd']
-
-        completecount = len(ifids) * len(antnums)
-        for mjd0 in np.unique(mjds):
-            sols0 = np.where(mjd0 == mjds)[0]
-            if len(sols0) < completecount:
-                logger.info("Solution set at MJD {0} has only {1} of {2} "
-                            "solutions. Flagging..."
-                            .format(mjd0, len(sols0), completecount))
-                sols[sols0]['flagged'] = True
 
     return sols
 
