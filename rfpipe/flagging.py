@@ -125,7 +125,7 @@ def flag_badspw(data, spwchans, sigma):
                 goodspw = [spw for spw in range(nspw) if spw not in badspw]
                 badspwnew = np.where(deviations > sigma*np.ma.median(deviations.take(goodspw)))[0]
 
-            badspw = np.concatenate(badspw, np.where(deviations.mask)[0])
+            badspw = np.concatenate((badspw, np.where(deviations.mask)[0]))
 
             logger.info("flagged {0}/{1} spw ({2})"
                         .format(len(badspw), nspw, badspw))

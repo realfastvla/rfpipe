@@ -6,7 +6,7 @@ from io import open
 import rfpipe, rfpipe.candidates
 import pytest
 from astropy import time
-from numpy import degrees
+from numpy import degrees, nan
 
 tparams = [(0, 0, 0, 5e-3, 0.3, 0.0001, 0.0),]
 # simulate no flag, transient/no flag, transient/flag
@@ -42,6 +42,7 @@ def mockstate(request):
 def mockdata(mockstate):
     segment = 0
     data = rfpipe.source.read_segment(mockstate, segment)
+    data[0, 0, 0, 0] = nan
     return rfpipe.source.data_prep(mockstate, segment, data)
 
 
