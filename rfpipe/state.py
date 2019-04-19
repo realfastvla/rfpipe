@@ -226,8 +226,6 @@ class State(object):
                     min_cluster_size, min_samples = self.prefs.clustercands
                     logger.info('\t Clustering candidates wth min_cluster_size={0} and min_samples={1}'
                                 .format(min_cluster_size, min_samples))
-                    if min_cluster_size <= len(self.dtarr):
-                        logger.warning("min_cluster_size should be > len(dtarr) for best results")
                 elif isinstance(self.prefs.clustercands, bool):
                     if self.prefs.clustercands:
                         logger.info('\t Clustering candidates wth default parameters')
