@@ -203,7 +203,7 @@ def calc_dmarr(state):
         dmgrid_final = [dmgrid[0]]
         for i in range(len(dmgrid)):
             ddm = (dmgrid[i] - dmgrid_final[-1])/2.
-            ll = loss(dmgrid[i],ddm)
+            ll = loss(dmgrid[i], ddm)
             if ll > dm_maxloss:
                 dmgrid_final.append(dmgrid[i])
         if maxdm not in dmgrid_final:
