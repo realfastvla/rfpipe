@@ -68,7 +68,7 @@ def test_phasecenter_detection():
                                        (0, 10, 0, 5e-3, 0.3, 0.001, 0.),
                                        (0, 19, 0, 5e-3, 0.3, 0.001, 0.)],
                'dmarr': [0], 'dtarr': [1], 'timesub': None, 'fftmode': 'fftw', 'searchtype': 'image',
-               'sigma_image1': 10, 'flaglist': []}
+               'sigma_image1': 10, 'flaglist': [], 'uvres': 60, 'npix_max': 128}
 
     t0 = time.Time.now().mjd
     meta = rfpipe.metadata.mock_metadata(t0, t0+0.1/(24*3600), 20, 4, 32*4, 2,
