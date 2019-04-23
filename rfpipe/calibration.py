@@ -50,7 +50,8 @@ def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1,
                                                         nchan[0], sign=sign),
                                           copy=False).take(st.chans, axis=1)
             else:
-                logger.info("No calibration solutions found for data freqs {0}".format(np.unique(skyfreqs)))
+                logger.info("No calibration solutions found for data freqs {0}"
+                            .format(np.unique(skyfreqs)))
                 gaindelay = np.zeros_like(data)
 
         # check for repeats or bad values
@@ -60,15 +61,16 @@ def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1,
                 if item == 0j:
                     logger.info("{0} of {1} telcal solutions zeroed or flagged"
                                 .format(count, gaindelay[:, ::nchan[0]].size))
-                    blinds, chans, pols = np.where(gaindelay[:, ::nchan[0]] == 0)
-                    if len(blinds):
-                        counts = list(zip(*np.histogram(st.blarr[np.unique(blinds)].flatten(),
-                                                        bins=np.arange(1,
-                                                                       1+max(st.blarr[np.unique(blinds)].flatten())))))
+                    if gaindelay.any():
+                        blinds, chans, pols = np.where(gaindelay[:, ::nchan[0]] == 0)
+                        if len(blinds):
+                            counts = list(zip(*np.histogram(st.blarr[np.unique(blinds)].flatten(),
+                                                            bins=np.arange(1,
+                                                                           1+max(st.blarr[np.unique(blinds)].flatten())))))
 
-                        logger.info('Flagged solutions for: {0}'
-                                    .format(', '.join(['Ant {1}: {0}'.format(a, b)
-                                                       for (a, b) in counts])))
+                            logger.info('Flagged solutions for: {0}'
+                                        .format(', '.join(['Ant {1}: {0}'.format(a, b)
+                                                           for (a, b) in counts])))
                 else:
                     logger.warn("Repeated telcal solutions ({0}: {1}) found. Likely a parsing error!"
                                 .format(item, count))
