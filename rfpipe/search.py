@@ -120,12 +120,6 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
         else:
             spec_std = data[0].real.mean(axis=2).std(axis=0)
 
-        if len(np.where(spec_std == 0.)[0]) > 0:
-            medstd = np.median(spec_std[spec_std.nonzero()])
-            logger.info("Replacing {0} noise spectrum channels with median noise"
-                        .format(len(np.where(spec_std == 0.)[0])))
-            spec_std = np.where(spec_std == 0., medstd, spec_std)
-
         if not np.any(spec_std):
             logger.warning("spectrum std all zeros. Not estimating coeffs.")
             kalman_coeffs = []
@@ -326,12 +320,6 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
         else:
             spec_std = data[0].real.mean(axis=2).std(axis=0)
 
-        if len(np.where(spec_std == 0.)[0]) > 0:
-            medstd = np.median(spec_std[spec_std.nonzero()])
-            logger.info("Replacing {0} noise spectrum channels with median noise"
-                        .format(len(np.where(spec_std == 0.)[0])))
-            spec_std = np.where(spec_std == 0., medstd, spec_std)
-
         if not np.any(spec_std):
             logger.warning("spectrum std all zeros. Not estimating coeffs.")
             kalman_coeffs = []
@@ -514,7 +502,7 @@ def reproduce_candcollection(cc, data, wisdom=None, spec_std=None, sig_ts=None,
         if 'cluster' in cc.array.dtype.fields:
             clusters = cc.array['cluster'].astype(int)
             cl_rank, cl_count = candidates.calc_cluster_rank(cc)
-            calcinds = np.unique(np.where(cl_rank == 1)[0])
+            calcinds = np.unique(np.where(cl_rank == 1)[0]).tolist()
             logger.debug("Reproducing cands at {0} cluster peaks"
                          .format(len(calcinds)))
 
@@ -535,14 +523,14 @@ def reproduce_candcollection(cc, data, wisdom=None, spec_std=None, sig_ts=None,
             kwargs = {}
             if 'cluster' in cc.array.dtype.fields:
                 logger.info("Cluster {0}/{1} has {2} candidates and max detected SNR {3:.1f} at {4}"
-                            .format(i+1, len(calcinds), cl_count[i],
+                            .format(calcinds.index(i), len(calcinds)-1, cl_count[i],
                                     snr, candloc))
                 # add supplementary plotting and cc info
                 kwargs['cluster'] = clusters[i]
                 kwargs['clustersize'] = cl_count[i]
             else:
                 logger.info("Candidate {0}/{1} has detected SNR {2:.1f} at {3}"
-                            .format(i, len(calcinds)-1, snr, candloc))
+                            .format(calcinds.index(i), len(calcinds)-1, snr, candloc))
 
             # reproduce candidate and get/calc features
             data_corr = rfpipe.reproduce.pipeline_datacorrect(st, candloc,
