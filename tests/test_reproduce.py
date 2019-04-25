@@ -13,7 +13,8 @@ _install_dir = os.path.abspath(os.path.dirname(__file__))
 
 
 # simulate no flag, transient/no flag, transient/flag
-inprefs = [{'flaglist': [], 'npix_max': 128, 'uvres': 500, 'timesub': None}]
+inprefs = [{'flaglist': [], 'npix_max': 128, 'uvres': 500, 'timesub': None,
+            'clustercands': (2, 1)}]
 candlocs = [np.array([0, 5, 0, 0, 0])]
 
 

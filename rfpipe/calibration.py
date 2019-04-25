@@ -208,7 +208,7 @@ def flagants(solsin, threshold, onlycomplete):
         for mjd0 in np.unique(mjds):
             sols0 = np.where(mjd0 == mjds)[0]
             if len(sols0) < completecount:
-                logger.info("Solution set at MJD {0} has only {1} of {2} "
+                logger.info("Flagging solutions at MJD {0} with only {1} of {2} "
                             "solutions. Flagging..."
                             .format(mjd0, len(sols0), completecount))
                 sols[sols0]['flagged'] = True
@@ -229,7 +229,7 @@ def select(sols, time=None, freqs=None, polarization=None, mode='realtime'):
     # select freq if solution band center is in (rounded) array of chan freqs
     if freqs is not None:
         freqselect = [ff in np.around(freqs, -6)
-                      for ff in np.around(1e6*sols['skyfreq'], -6)]
+		      for ff in np.around(1e6*sols['skyfreq'], -6]
     else:
         freqselect = np.ones(len(sols), dtype=bool)
 

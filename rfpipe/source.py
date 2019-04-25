@@ -372,7 +372,7 @@ def save_noise(st, segment, data, chunk=500):
 
     try:
         noisefile = st.noisefile
-        with fileLock.FileLock(noisefile+'.lock', timeout=10):
+        with fileLock.FileLock(noisefile+'.lock', timeout=60):
             with open(noisefile, 'ab+') as pkl:
                 pickle.dump(results, pkl)
     except fileLock.FileLock.FileLockException:
@@ -430,6 +430,8 @@ def simulate_segment(st, loc=0., scale=1., segment=None):
 
 def sdm_sources(sdmname):
     """ Use sdmpy to get all sources and ra,dec per scan as dict """
+
+    from rfpipe import util
 
     sdm = util.getsdm(sdmname)
     sourcedict = {}

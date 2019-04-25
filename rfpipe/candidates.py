@@ -188,8 +188,8 @@ class CandCollection(object):
 
     def __repr__(self):
         if self.metadata is not None:
-            return ('CandCollection for {0}, scan {1} with {2} candidate{3}'
-                    .format(self.metadata.datasetId, self.metadata.scan,
+            return ('CandCollection for {0}, scan {1}, segment {2} with {3} candidate{4}'
+                    .format(self.metadata.datasetId, self.metadata.scan, self.segment,
                             len(self), 's'[not len(self)-1:]))
         else:
             return ('CandCollection with {0} rows'.format(len(self.array)))
@@ -256,7 +256,7 @@ class CandCollection(object):
 
     @property
     def segment(self):
-        if len(self.array):
+        if len(self):
             segments = np.unique(self.array['segment'])
             if len(segments) == 1:
                 return int(segments[0])
@@ -698,7 +698,7 @@ def save_cands(st, candcollection=None, canddata=None):
             logger.info('Saving CandData to {0}.'.format(st.candsfile))
 
             try:
-                with fileLock.FileLock(st.candsfile+'.lock', timeout=10):
+                with fileLock.FileLock(st.candsfile+'.lock', timeout=60):
                     with open(st.candsfile, 'ab+') as pkl:
                         pickle.dump(canddata, pkl)
 
@@ -721,7 +721,7 @@ def save_cands(st, candcollection=None, canddata=None):
                                 's'[not len(candcollection)-1:], st.candsfile))
 
             try:
-                with fileLock.FileLock(st.candsfile+'.lock', timeout=10):
+                with fileLock.FileLock(st.candsfile+'.lock', timeout=60):
                     with open(st.candsfile, 'ab+') as pkl:
                         pickle.dump(candcollection, pkl)
 
@@ -1555,7 +1555,7 @@ def candplot(canddatalist, snrs=None, cluster=None, outname=''):
             logger.info('Wrote candidate plot to {0}'.format(outname))
         except ValueError:
             logger.warning('Could not write figure to {0}'.format(outname))
-        
+
 
 def source_location(pt_ra, pt_dec, l1, m1):
     """ Takes phase center and src l,m in radians to get ra,dec of source.

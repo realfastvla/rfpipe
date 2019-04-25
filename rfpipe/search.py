@@ -41,7 +41,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                                                         "by factors of 2")
 
     if not np.any(data):
-        logger.info("Data is all zeros. Skipping search.")
+	logger.info("Data is all zeros. Skipping search.")
         return candidates.CandCollection(prefs=st.prefs,
                                          metadata=st.metadata)
 
@@ -286,6 +286,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
     candloc, image, and phased visibility data.
     Integrations can define subset of all available in data to search.
     Default will take integrations not searched in neighboring segments.
+
     ** only supports threshold > image max (no min)
     ** dmind, dtind, beamnum assumed to represent current state of data
     """
@@ -890,7 +891,7 @@ def search_thresh_armk(st, data, uvw, integrations=None, spec_std=None,
         sig_ts = [x*np.median(spec_std) for x in [0.3, 0.1, 0.03, 0.01]]
 
     if not len(coeffs):
-        sig_ts, coeffs = kalman_prepare_coeffs(spec_std, sig_ts)
+	sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
 
     n_max_cands = 10  # TODO set with function of sigma_arms
 
