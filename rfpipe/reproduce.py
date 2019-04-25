@@ -205,7 +205,11 @@ def pipeline_canddata(st, candloc, data_dmdt=None, cpuonly=False, sig_ts=None,
             spec_std = data_dmdt.real.mean(axis=3).mean(axis=1).std(axis=0)
         else:
             spec_std = data_dmdt[0].real.mean(axis=2).std(axis=0)
-        if sig_ts is None or kalman_coeffs is None:
+
+        if not np.any(spec_std):
+            logger.warning("spectrum std all zeros. Not estimating coeffs.")
+            kalman_coeffs = []
+        else:
             sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
     else:
         spec_std, sig_ts, kalman_coeffs = None, None, None
