@@ -36,3 +36,15 @@ def test_state():
                             inprefs={'chans': range(10, 20)})
     assert st.chans == range(10, 20)
     assert len(rfpipe.util.get_uvw_segment(st, 0))
+
+
+def test_state_phasecenter():
+    t0 = time.Time.now().mjd
+    meta = rfpipe.metadata.mock_metadata(t0, t0+0.5/(24*3600), 27, 4, 32*4, 4, 5e3,
+                                         datasource='sim', antconfig='D')
+    meta['phasecenters'] = [(t0, t0+0.5/(24*3600), 0., 0.),]
+    preffile = os.path.join(_install_dir, 'data/realfast.yml')
+    st = rfpipe.state.State(preffile=preffile, inmeta=meta,
+                            inprefs={'chans': range(10, 20)})
+    assert st.otfcorrections is not None
+    
