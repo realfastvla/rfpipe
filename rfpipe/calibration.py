@@ -37,38 +37,40 @@ def apply_telcal(st, data, threshold=1/10., onlycomplete=True, sign=+1,
         else:
             sols = getsols(st, threshold=threshold, onlycomplete=onlycomplete,
                            savesols=savesols)
-
-            pols = [0, 1]
             reffreq, nchan, chansize = st.metadata.spw_sorted_properties
             skyfreqs = np.around([reffreq[i] + (chansize[i]*nchan[i]//2) for i in range(len(nchan))], -6)/1e6  # GN skyfreq is band center
-            solskyfreqs = np.unique(sols['skyfreq'])
-            logger.info("Applying solutions from frequencies {0} to data frequencies {1}"
-                        .format(solskyfreqs, np.unique(skyfreqs)))
             if len(sols):
+                pols = [0, 1]
+                solskyfreqs = np.unique(sols['skyfreq'])
+                logger.info("Applying solutions from frequencies {0} to data frequencies {1}"
+                            .format(solskyfreqs, np.unique(skyfreqs)))
                 gaindelay = np.nan_to_num(calcgaindelay(sols, st.blarr,
                                                         skyfreqs, pols,
                                                         chansize[0]/1e6,
                                                         nchan[0], sign=sign),
                                           copy=False).take(st.chans, axis=1)
             else:
+                logger.info("No calibration solutions found for data freqs {0}"
+                            .format(np.unique(skyfreqs)))
                 gaindelay = np.zeros_like(data)
 
         # check for repeats or bad values
-        repeats = [(item, count) for item, count in Counter(gaindelay[:,::nchan[0]].flatten()).items() if count > 1]
+        repeats = [(item, count) for item, count in Counter(gaindelay[:, ::nchan[0]].flatten()).items() if count > 1]
         if len(repeats):
             for item, count in repeats:
                 if item == 0j:
-                    logger.info("{0} of {1} telcal solutions zeroed (flagged)"
+                    logger.info("{0} of {1} telcal solutions zeroed or flagged"
                                 .format(count, gaindelay[:, ::nchan[0]].size))
-                    blinds, chans, pols = np.where(gaindelay[:, ::nchan[0]] == 0)
-                    if len(blinds):
-                        counts = list(zip(*np.histogram(st.blarr[np.unique(blinds)].flatten(),
-                                                        bins=np.arange(1,
-                                                                       1+max(st.blarr[np.unique(blinds)].flatten())))))
+                    if gaindelay.any():
+                        blinds, chans, pols = np.where(gaindelay[:, ::nchan[0]] == 0)
+                        if len(blinds):
+                            counts = list(zip(*np.histogram(st.blarr[np.unique(blinds)].flatten(),
+                                                            bins=np.arange(1,
+                                                                           1+max(st.blarr[np.unique(blinds)].flatten())))))
 
-                        logger.info('Flagged solutions for: {0}'
-                                    .format(', '.join(['Ant {1}: {0}'.format(a, b)
-                                                       for (a, b) in counts])))
+                            logger.info('Flagged solutions for: {0}'
+                                        .format(', '.join(['Ant {1}: {0}'.format(a, b)
+                                                           for (a, b) in counts])))
                 else:
                     logger.warn("Repeated telcal solutions ({0}: {1}) found. Likely a parsing error!"
                                 .format(item, count))
@@ -89,8 +91,11 @@ def getsols(st, threshold=1/10., onlycomplete=True, mode='realtime',
 
     sols = parseGN(st.gainfile)
 
-    # must run time select before flagants for complete solutions
-    sols = select(sols, time=st.segmenttimes.mean(), mode=mode)
+    # must run time/freq select before flagants for complete solutions
+    reffreq, nchan, chansize = st.metadata.spw_sorted_properties
+    skyfreqs = np.around([reffreq[i] + (chansize[i]*nchan[i]//2) for i in range(len(nchan))], -6)/1e6  # GN skyfreq is band center
+
+    sols = select(sols, time=st.segmenttimes.mean(), freqs=skyfreqs, mode=mode)
     if st.prefs.flagantsol:
         sols = flagants(sols, threshold=threshold,
                         onlycomplete=onlycomplete)
@@ -188,30 +193,37 @@ def flagants(solsin, threshold, onlycomplete):
     sols = solsin.copy()
 
     # identify very low gain amps not already flagged
-    badsols = np.where((sols['amp']/np.median(sols['amp']) < threshold) &
-                       (sols['flagged'] == False))[0]
-    if len(badsols):
-        logger.info('Flagging {0} solutions at MJD {1}, ant {2}, and freqs '
-                    '{3}) for low gain amplitude.'
-                    .format(len(badsols), np.unique(sols[badsols]['mjd']),
-                            np.unique(sols[badsols]['antnum']),
-                            np.unique(sols[badsols]['ifid'])))
-        for sol in badsols:
+    if np.median(sols['amp']):
+        badsols = np.where((sols['amp']/np.median(sols['amp']) < threshold) &
+                           (sols['flagged'] == False))[0]
+        if len(badsols):
+            logger.info('Flagging {0} solutions at MJD {1}, ant {2}, and freqs '
+                        '{3}) for low gain amplitude.'
+                        .format(len(badsols), np.unique(sols[badsols]['mjd']),
+                                np.unique(sols[badsols]['antnum']),
+                                np.unique(sols[badsols]['ifid'])))
+            for sol in badsols:
+                sols['flagged'][sol] = True
+
+        if onlycomplete:
+            ifids = np.unique(sols['ifid'])
+            antnums = np.unique(sols['antnum'])
+            mjds = sols['mjd']
+
+            completecount = len(ifids) * len(antnums)
+            for mjd0 in np.unique(mjds):
+                sols0 = np.where(mjd0 == mjds)[0]
+                if len(sols0) < completecount:
+                    logger.info("Flagging solutions at MJD {0} with only {1} of {2} "
+                                "solutions."
+                                .format(mjd0, len(sols0), completecount))
+                    sols[sols0]['flagged'] = True
+
+    else:
+        logger.warn("Median solution amplitude is zero. Flagging all.")
+        for sol in range(len(sols)):
             sols['flagged'][sol] = True
 
-    if onlycomplete:
-        ifids = np.unique(sols['ifid'])
-        antnums = np.unique(sols['antnum'])
-        mjds = sols['mjd']
-
-        completecount = len(ifids) * len(antnums)
-        for mjd0 in np.unique(mjds):
-            sols0 = np.where(mjd0 == mjds)[0]
-            if len(sols0) < completecount:
-                logger.info("Flagging solutions at MJD {0} with only {1} of {2} "
-                            "solutions. Flagging..."
-                            .format(mjd0, len(sols0), completecount))
-                sols[sols0]['flagged'] = True
 
     return sols
 
@@ -228,8 +240,11 @@ def select(sols, time=None, freqs=None, polarization=None, mode='realtime'):
 
     # select freq if solution band center is in (rounded) array of chan freqs
     if freqs is not None:
-        freqselect = [ff in np.around(freqs, -6)
-		      for ff in np.around(1e6*sols['skyfreq'], -6]
+        deltaf = freqs[1] - freqs[0]
+        fmin = freqs.min() - deltaf
+        fmax = freqs.max() + deltaf
+        freqselect = [(ff > fmin) and (ff < fmax)
+                      for ff in sols['skyfreq']]
     else:
         freqselect = np.ones(len(sols), dtype=bool)
 
@@ -238,7 +253,8 @@ def select(sols, time=None, freqs=None, polarization=None, mode='realtime'):
         if mode == 'best':
             mjddist = np.abs(time - sols['mjd'])
         elif mode == 'realtime':
-            mjddist = time - np.where((time-sols['mjd']) > 0, sols['mjd'], sols['mjd']-time)  # favor solutions in past
+            mjddist = time - np.where((time-sols['mjd']) > 0, sols['mjd'],
+                                      sols['mjd']-time)  # past solutions valid
 
         mjdselect = mjddist == mjddist.min()
 
@@ -572,4 +588,4 @@ class telcal_sol():
                     # apply delay correction
                     d1d2 = sign*self.calcdelay(ant1, ant2, skyfreq, pol)
                     delayrot = 2*np.pi*(d1d2[0] * 1e-9) * relfreq      # phase to rotate across band
-                    data[:,i,chans,pol-self.polind[0]] = data[:,i,chans,pol-self.polind[0]] * np.exp(-1j*delayrot[None, None, :]) # do rotation
+		    data[:,i,chans,pol-self.polind[0]] = data[:,i,chans,pol-self.polind[0]] * np.exp(-1j*delayrot[None, None, :]) # do rotation

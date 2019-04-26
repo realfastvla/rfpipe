@@ -263,9 +263,6 @@ class CandCollection(object):
             elif len(segments) > 1:
                 logger.warning("Multiple segments in this collection")
                 return segments
-            else:
-                logger.warning("No candidates in this collection")
-                return None
         else:
             return None
 
@@ -475,9 +472,9 @@ def save_and_plot(canddatalist):
                 else:
                     clustertuple = None
                 candplot(canddata, cluster=clustertuple, snrs=snrs)
-        
-        #make VOEvents from the candcollection
-        make_voevent(candcollection)
+
+	#Make VOEvents from the candcollection
+	make_voevent(candcollection)
 
     return candcollection
 
@@ -1597,7 +1594,7 @@ def deg2HMS(ra=None, dec=None, round=False):
     if ra is not None and dec is not None:
         return (RA, DEC)
     else:
-        return RA or DEC
+	return RA or DEC
 
 
 def make_voevent(candcollection):    

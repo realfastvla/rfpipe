@@ -6,7 +6,7 @@ from io import open
 import os
 import numpy as np
 from astropy import time
-from rfpipe import util, version
+from rfpipe import version
 import pwkit.environments.casa.util as casautil
 
 import logging
@@ -18,7 +18,7 @@ qa = casautil.tools.quanta()
 class State(object):
     """ Defines initial search from preferences and methods.
     State properties are used to calculate quantities for the search.
-    
+
     Approach:
     1) initial preferences can overload state properties
     2) read metadata from observation for given scan
@@ -33,11 +33,11 @@ class State(object):
         """ Initialize preference attributes with text file, preffile.
         name can select preference set from within yaml file.
         preferences are overloaded with inprefs.
-        
+
         Metadata source can be either:
         1) Config object is a scan_config object (see evla_mcast library) or
         2) sdmfile and sdmscan (optional bdfdir for reading from CBE).
-        
+
         inmeta is a dict with key-value pairs to overload metadata (e.g., to
         mock metadata from a simulation)
         validate argument will use assertions to test state.
@@ -226,8 +226,6 @@ class State(object):
                     min_cluster_size, min_samples = self.prefs.clustercands
                     logger.info('\t Clustering candidates wth min_cluster_size={0} and min_samples={1}'
                                 .format(min_cluster_size, min_samples))
-                    if min_cluster_size <= len(self.dtarr):
-                        logger.warning("min_cluster_size should be > len(dtarr) for best results")
                 elif isinstance(self.prefs.clustercands, bool):
                     if self.prefs.clustercands:
                         logger.info('\t Clustering candidates wth default parameters')
@@ -293,6 +291,7 @@ class State(object):
             return self.prefs.dmarr
         else:
             if not hasattr(self, '_dmarr'):
+                from rfpipe import util
                 self._dmarr = util.calc_dmarr(self)
             return self._dmarr
 

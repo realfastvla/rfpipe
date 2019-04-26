@@ -6,7 +6,7 @@ import os.path
 import numpy as np
 from astropy import time
 import pwkit.environments.casa.util as casautil
-from rfpipe import util, fileLock
+from rfpipe import fileLock
 import pickle
 
 import logging
@@ -27,7 +27,7 @@ def data_prep(st, segment, data, flagversion="latest", returnsoltime=False):
     calibration, downsampling, OTF rephasing...
     """
 
-    from rfpipe import calibration, flagging
+    from rfpipe import calibration, flagging, util
 
     if not np.any(data):
         return data
@@ -142,7 +142,8 @@ def read_segment(st, segment, cfile=None, timeout=10):
         return np.array([])
     else:
         logger.info('Read data with zero fraction of {0:.3f} for segment {1}'
-                    .format(1-np.count_nonzero(data_read)/data_read.size, segment))
+                    .format(1-np.count_nonzero(data_read)/data_read.size,
+                            segment))
         return data_read
 
 
@@ -151,7 +152,7 @@ def prep_standard(st, segment, data):
     online flags, resampling, and mock transients.
     """
 
-    from rfpipe import calibration, flagging
+    from rfpipe import calibration, flagging, util
 
     if not np.any(data):
         return data
@@ -325,6 +326,8 @@ def read_bdf(st, nskip=0):
     Returns data with spw in increasing frequency order.
     """
 
+    from rfpipe import util
+
     assert os.path.exists(st.metadata.filename), ('sdmfile {0} does not exist'
                                                   .format(st.metadata.filename))
     assert st.metadata.bdfstr, ('bdfstr not defined for scan {0}'
@@ -355,6 +358,7 @@ def save_noise(st, segment, data, chunk=500):
     """
 
     from rfpipe.search import grid_image
+    from rfpipe import util
 
     uvw = util.get_uvw_segment(st, segment)
     chunk = min(chunk, max(1, st.readints-1))  # ensure at least one measurement
@@ -379,7 +383,7 @@ def save_noise(st, segment, data, chunk=500):
         noisefile = ('{0}_seg{1}.pkl'
                      .format(st.noisefile.rstrip('.pkl'), segment))
         logger.warning('Noise file writing timeout. '
-                    'Spilling to new file {0}.'.format(noisefile))
+                       'Spilling to new file {0}.'.format(noisefile))
         with open(noisefile, 'ab+') as pkl:
             pickle.dump(results, pkl)
 

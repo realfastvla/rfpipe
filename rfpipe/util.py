@@ -78,6 +78,7 @@ def meantsub(data, parallel=False):
 @jit(nogil=True, nopython=True, cache=True)
 def _meantsub_jit(data):
     """ Calculate mean in time (ignoring zeros) and subtract in place
+
     Could ultimately parallelize by computing only on subset of data.
     """
 

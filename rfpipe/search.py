@@ -6,9 +6,7 @@ from io import open
 import numpy as np
 from numba import jit, guvectorize, int64
 import pyfftw
-from rfpipe import util, candidates
-import rfpipe.reproduce  # explicit to avoid circular import
-from kalman_detector import kalman_prepare_coeffs, kalman_filter_detector, kalman_significance
+from kalman_detector import kalman_prepare_coeffs, kalman_significance
 from concurrent import futures
 from itertools import cycle
 from threading import Lock
@@ -35,13 +33,16 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
     If not set, then it can be inferred with distributed.
     """
 
+    from rfpipe import candidates, util
+
     assert st.dtarr[0] == 1, "st.dtarr[0] assumed to be 1"
     assert all([st.dtarr[dtind]*2 == st.dtarr[dtind+1]
                 for dtind in range(len(st.dtarr)-1)]), ("dtarr must increase "
                                                         "by factors of 2")
-
-    if not np.any(data):
-	logger.info("Data is all zeros. Skipping search.")
+    anydata = np.any(data)
+    if not anydata or st.prefs.searchtype is None:
+        if not anydata:
+            logger.info("Data is all zeros. Skipping search.")
         return candidates.CandCollection(prefs=st.prefs,
                                          metadata=st.metadata)
 
@@ -204,6 +205,8 @@ def rfgpu_gridimage(st, segment, grid, image, vis_raw, vis_grid, img_grid,
     """ Dedisperse, grid, image, threshold with rfgpu
     """
 
+    from rfpipe import util
+
     beamnum = 0
     candlocs, l1s, m1s, snr1s, immax1s, snrks = [], [], [], [], [], []
     for dmind in dminds:
@@ -295,13 +298,16 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
     candloc, image, and phased visibility data.
     Integrations can define subset of all available in data to search.
     Default will take integrations not searched in neighboring segments.
-
     ** only supports threshold > image max (no min)
     ** dmind, dtind, beamnum assumed to represent current state of data
     """
 
-    if not np.any(data):
-        logger.info("Data is all zeros. Skipping search.")
+    from rfpipe import candidates, util
+
+    anydata = np.any(data)
+    if not anydata or st.prefs.searchtype is None:
+        if not anydata:
+            logger.info("Data is all zeros. Skipping search.")
         return candidates.CandCollection(prefs=st.prefs,
                                          metadata=st.metadata)
 
@@ -480,6 +486,9 @@ def reproduce_candcollection(cc, data, wisdom=None, spec_std=None, sig_ts=None,
     Calculates features not used directly for search (as defined in
     state.prefs.calcfeatures).
     """
+
+    from rfpipe import candidates
+    import rfpipe.reproduce  # explicit to avoid circular import
 
     # set up output cc
     st = cc.state
@@ -894,6 +903,8 @@ def search_thresh_armk(st, data, uvw, integrations=None, spec_std=None,
     """
     """
 
+    from rfpipe import util
+
     if integrations is None:
         integrations = list(range(len(data)))
     elif isinstance(integrations, int):
@@ -909,7 +920,14 @@ def search_thresh_armk(st, data, uvw, integrations=None, spec_std=None,
         sig_ts = [x*np.median(spec_std) for x in [0.3, 0.1, 0.03, 0.01]]
 
     if not len(coeffs):
-	sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
+        if not np.any(spec_std):
+            logger.warning("spectrum std all zeros. Not estimating coeffs.")
+            kalman_coeffs = []
+        else:
+            sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
+
+        if not np.all(np.nan_to_num(sig_ts)):
+            kalman_coeffs = []
 
     n_max_cands = 10  # TODO set with function of sigma_arms
 
@@ -1184,4 +1202,4 @@ def set_wisdom(npixx, npixy=None):
         fft_arr = pyfftw.interfaces.numpy_fft.ifft(arr, auto_align_input=True,
                                                    auto_contiguous=True,
                                                    planner_effort='FFTW_MEASURE')
-        return pyfftw.export_wisdom()
+    return pyfftw.export_wisdom()
