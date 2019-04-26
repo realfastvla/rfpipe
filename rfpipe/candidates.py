@@ -1591,7 +1591,7 @@ def deg2HMS(ra=None, dec=None, round=False):
     if ra is not None and dec is not None:
         return (RA, DEC)
     else:
-	return RA or DEC
+        return RA or DEC
 
 
 def make_voevent(candcollection):    
