@@ -11,7 +11,7 @@ from math import cos, radians
 from numpy.lib.recfunctions import append_fields
 from collections import OrderedDict
 import matplotlib as mpl
-from astropy import time
+from astropy import time, coordinates
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
@@ -472,9 +472,6 @@ def save_and_plot(canddatalist):
                 else:
                     clustertuple = None
                 candplot(canddata, cluster=clustertuple, snrs=snrs)
-
-	#Make VOEvents from the candcollection
-	make_voevent(candcollection)
 
     return candcollection
 
@@ -1604,12 +1601,8 @@ def make_voevent(candcollection):
     See https://github.com/ebpetroff/FRB_VOEvent
     written by Justin D. Linford with input from Casey Law, Sarah Burke-Spolaor
     and Kshitij Aggarwal
-    --please excuse my terrible, self-taught python habits--
     """
-    from astropy.coordinates import SkyCoord  #needed to get galactic coordinates of FRB
-    from astropy.time import Time #needed to get MJD to ISOTime
-    import math #need to get RA & DEC into degrees
-    
+
     #get candata separated into useful parts
     st = candcollection.state
     
@@ -1641,12 +1634,12 @@ def make_voevent(candcollection):
         
         #get FRB RA & DEC location in degrees --> NOTE: Stole this from source_location
         pt_ra, pt_dec = st.metadata.radec
-        srcra = np.degrees(pt_ra + l1/math.cos(pt_dec))
+        srcra = np.degrees(pt_ra + l1/cos(pt_dec))
         srcdec = np.degrees(pt_dec + m1)
         im_pix_scale = np.degrees((st.npixx*st.uvres)**-1.0) #degrees per pixel
         srcloc_err = im_pix_scale #set source location uncertainty to the pixel scale, for now --> assumes source only fills a single pixel
         #put location into SkyCoord
-        FRB_loc = SkyCoord(srcra,srcdec,frame='icrs',unit='deg')
+        FRB_loc = coordinates.SkyCoord(srcra,srcdec,frame='icrs',unit='deg')
         #FRB galactic coordinates
         FRB_gl = FRB_loc.galactic.l.deg
         FRB_gb = FRB_loc.galactic.b.deg
@@ -1676,7 +1669,7 @@ def make_voevent(candcollection):
         #if the 1/2 beam semi-minor axis is larger than the pixel scale, set the location uncertainty to 1/2 the semi-minor axis
         if 0.5*min(beam_size)>im_pix_scale: srcloc_err = 0.5*min(beam_size)
         
-        FRB_obstime = Time(FRB_obsmjd,format='mjd',scale='utc')
+        FRB_obstime = time.Time(FRB_obsmjd,format='mjd',scale='utc')
         #print(FRB_obstime)
         FRB_ISOT = FRB_obstime.isot #convert time to ISOT
         #print(FRB_ISOT)
