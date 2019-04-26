@@ -298,7 +298,6 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
     candloc, image, and phased visibility data.
     Integrations can define subset of all available in data to search.
     Default will take integrations not searched in neighboring segments.
-
     ** only supports threshold > image max (no min)
     ** dmind, dtind, beamnum assumed to represent current state of data
     """

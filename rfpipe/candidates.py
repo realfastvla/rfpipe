@@ -473,6 +473,9 @@ def save_and_plot(canddatalist):
                     clustertuple = None
                 candplot(canddata, cluster=clustertuple, snrs=snrs)
 
+	#Make VOEvents from the candcollection
+	make_voevent(candcollection)
+
     return candcollection
 
 
@@ -1030,7 +1033,6 @@ def plotloc(data, circleinds=[], crossinds=[], edgeinds=[],
 
 def calcsize(values, sizerange=(4, 70), inds=None, plaw=2):
     """ Use set of values to calculate symbol size.
-
     values is a list of floats for candidate significance.
     inds is an optional list of indexes to use to calculate symbol size.
     Scaling of symbol size min max set by sizerange tuple (min, max).
@@ -1100,7 +1102,6 @@ def candplot(canddatalist, snrs=None, cluster=None, outname=''):
     candidate plots.
     Expects pipeline state, candidate location, image, and
     phased, dedispersed data (cut out in time, dual-pol).
-
     snrs is array for an (optional) SNR histogram plot.
     cluster allows cluster info to be passed in as (cluster_label, size).
     Written by Bridget Andersen and modified by Casey for rfpipe.
@@ -1593,4 +1594,199 @@ def deg2HMS(ra=None, dec=None, round=False):
     if ra is not None and dec is not None:
         return (RA, DEC)
     else:
-        return RA or DEC
+	return RA or DEC
+
+
+def make_voevent(candcollection):    
+    """ Script to generate a VOEvent file from the CandCollection 
+    Takes Candcollection info and writes a .xml file with relevant inforation
+    VOEvent format based on Petroff et al. 2017 VOEvent Standard for Fast Radio Busrts
+    See https://github.com/ebpetroff/FRB_VOEvent
+    written by Justin D. Linford with input from Casey Law, Sarah Burke-Spolaor
+    and Kshitij Aggarwal
+    --please excuse my terrible, self-taught python habits--
+    """
+    from astropy.coordinates import SkyCoord  #needed to get galactic coordinates of FRB
+    from astropy.time import Time #needed to get MJD to ISOTime
+    import math #need to get RA & DEC into degrees
+    
+    #get candata separated into useful parts
+    st = candcollection.state
+    
+    #LOOP TO STEP THROUGH ENTREES IN CANDCOLLECTION
+    
+    for n1 in range(len(candcollection.locs)):
+    
+        candloc = candcollection.locs[n1]
+        #get some usefult info out of candidate location
+        segment = candcollection.segment
+        candint = candloc[1]
+        dmind = candloc[2]
+        dtind = candloc[3]
+        beamnum = candloc[4]
+        
+        #Basic data easily accessible from CandCollection
+        FRB_DM = candcollection.canddm[n1]
+        #FRB_DM_err = -999 #TODO: need to figure out how to get DM nucertainty
+        #DM uncertainty: From Cordes & McLaughlin 2003, FWHM in S/N vs delDM distribution should be 
+        #delta-DM ~ 506 * pulse width [ms] * observing freq ^3 [Ghz] / bandwidth [MHz]  (Eq. 14)
+        #by definition, FWHM = 2*sqrt(2*ln2)*sigma for a Gaussian
+        #DM_err ~ 506/(2*sqrt(2 ln2)) * Width(ms) * ObsFrequency(GHz)^3 / bandwidth(MHz)
+        FRB_obsmjd = candcollection.candmjd[n1]
+        FRB_width = candcollection.canddt[n1]*1.0e3 #approximate pulse width in ms
+        snr1 = candcollection.array['snr1'].flatten()
+        FRB_SNR = snr1[n1]
+        l1 = candcollection.candl[n1]
+        m1 = candcollection.candm[n1]
+        
+        #get FRB RA & DEC location in degrees --> NOTE: Stole this from source_location
+        pt_ra, pt_dec = st.metadata.radec
+        srcra = np.degrees(pt_ra + l1/math.cos(pt_dec))
+        srcdec = np.degrees(pt_dec + m1)
+        im_pix_scale = np.degrees((st.npixx*st.uvres)**-1.0) #degrees per pixel
+        srcloc_err = im_pix_scale #set source location uncertainty to the pixel scale, for now --> assumes source only fills a single pixel
+        #put location into SkyCoord
+        FRB_loc = SkyCoord(srcra,srcdec,frame='icrs',unit='deg')
+        #FRB galactic coordinates
+        FRB_gl = FRB_loc.galactic.l.deg
+        FRB_gb = FRB_loc.galactic.b.deg
+        
+        #WHAT fields
+        #observatory parameters
+        beam_size = st.beamsize_deg #estimate of beam size in degrees
+        #TODO: is st.beamsize)deg an estimate of the primary beam or the restoring beam?
+        beam_semimaj = max(beam_size) * 3600.0 # TODO: figure out how to get this info
+        beam_semimin = min(beam_size) * 3600.0 # TODO: figure out how to get this info
+        beam_rot_ang = -999 # TODO: figure out how to get this info
+        samp_time = np.round(st.inttime, 3)*1e3 #sampling time in ms
+        band_width = np.round((st.freq.max() - st.freq.min())*1.0e3,4)#bandwidth in MHz
+        num_chan = np.sum(st.metadata.spw_nchan)
+        center_freq = st.metadata.spw_reffreq[int(len(st.metadata.spw_reffreq)/2.0)]/1.0e6 #should be center freq in MHz
+        num_pol = int(len(st.metadata.pols_orig))
+        bits_per_sample = 2 #TODO: check that this is always accurate
+        gain_KJy = -999 #TODO: figure out how to get this info
+        Tsys_K = -999 #TODO: figure out how to get this info
+        VLA_backend = 'WIDAR' #may need to find out how to get this info from the data
+        VLA_beam = beamnum #VLA only has a single beam
+        
+        #should now have all the necessary numbers to calculate DM uncertainty
+        FRB_DM_err = (506.0/(2.0*np.sqrt(2.0*np.log(2.0)))) * FRB_width * (center_freq*1.0e-3)**3 / band_width
+        
+        #now compare beam size to pixel scale
+        #if the 1/2 beam semi-minor axis is larger than the pixel scale, set the location uncertainty to 1/2 the semi-minor axis
+        if 0.5*min(beam_size)>im_pix_scale: srcloc_err = 0.5*min(beam_size)
+        
+        FRB_obstime = Time(FRB_obsmjd,format='mjd',scale='utc')
+        #print(FRB_obstime)
+        FRB_ISOT = FRB_obstime.isot #convert time to ISOT
+        #print(FRB_ISOT)
+        #get the hour of the observation for FRB name
+        t_pos = FRB_ISOT.find('T')
+        FRB_ISOT_UTHH = 'UT'+FRB_ISOT[t_pos+1:t_pos+3]
+        
+        #Importance parameter
+        FRB_importance = 0.8 #default to relatively high importance #TODO: look into setting this based on candidate decision trees or SNR
+        if candcollection.clustersize is not None:
+            if candcollection.clustersize[n1]>10. and FRB_SNR>30.: FRB_importance=1.0
+            if candcollection.clustersize[n1]>10. and FRB_SNR<30. and FRB_SNR>20.: FRB_importance=0.9
+            if candcollection.clustersize[n1]<5.0 and FRB_SNR<20.0: FRB_importance=0.5
+        else:
+            if FRB_SNR>30.: FRB_importance=0.95
+            if FRB_SNR>20. and FRB_SNR<30.: FRB_importance=0.85
+        
+        #build FRB name
+        FRB_YY = FRB_ISOT[2:4] #last 2 digits of year
+        FRB_MM = FRB_ISOT[5:7] #2-digit month
+        FRB_DD = FRB_ISOT[8:10] #2-digit day
+    
+        FRB_RADEC_str = FRB_loc.to_string('hmsdms') #convert FRB coordinates to HH:MM:SS.SSSS (+/-)DD:MM:SS.SSSS
+        
+        #FRB_NAME = 'FRB'+FRB_YY+FRB_MM+FRB_DD + '.J' + FRB_RAhh+FRB_RAmm+FRB_RAss + FRB_DECdd+FRB_DECmm+FRB_DECss
+        FRB_NAME = 'FRB'+FRB_YY+FRB_MM+FRB_DD + FRB_ISOT_UTHH
+        
+        #set filename to FRB_NAME + '_detection.xml'
+        outname = os.path.join(st.prefs.workdir,FRB_NAME+'_detection_CC.xml')
+        
+        try:
+            #write VOEvent file
+            #create a text file with all the VLA fluxes to include in paper
+            VOEvent_of = open(outname,'w')
+            #header
+            VOEvent_of.write("<?xml version='1.0' encoding='UTF-8'?>"+'\n')
+            VOEvent_of.write('<voe:VOEvent xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:voe="http://www.ivoa.net/xml/VOEvent/v2.0" xsi:schemaLocation="http://www.ivoa.net/xml/VOEvent/v2.0 http://www.ivoa.net/xml/VOEvent/VOEvent-v2.0.xsd" version="2.0" role="test" ivorn="ivo://io.realfast/realfast#'+FRB_NAME+'/'+str(FRB_obsmjd)+'">'+'\n')
+            #WHO
+            VOEvent_of.write('\t'+'<Who>'+'\n')
+            VOEvent_of.write('\t\t'+'<AuthorIVORN>ivo://io.realfast/contact</AuthorIVORN>'+'\n')
+            VOEvent_of.write('\t\t'+'<Date>'+FRB_ISOT+'</Date>\n')
+            VOEvent_of.write('\t\t'+'<Author><contactEmail>claw@astro.berkeley.edu</contactEmail><contactName>Casey Law</contactName></Author>\n')
+            VOEvent_of.write('\t</Who>\n')
+            #What
+            VOEvent_of.write('\t<What>\n')
+            VOEvent_of.write('\t\t<Group name="observatory parameters">\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="beam_semi-major_axis" ucd="instr.beam;pos.errorEllipse;phys.angSize.smajAxis" unit="SS" value="'+str(beam_semimaj)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="beam_semi-minor_axis" ucd="instr.beam;pos.errorEllipse;phys.angSize.sminAxis" unit="SS" value="'+str(beam_semimin)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="beam_rotation_angle" ucd="instr.beam;pos.errorEllipse;instr.offset" unit="Degrees" value="'+str(beam_rot_ang)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="sampling_time" ucd="time.resolution" unit="ms" value="'+str(samp_time)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="bandwidth" ucd="instr.bandwidth" unit="MHz" value="'+str(band_width)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="nchan" ucd="meta.number;em.freq;em.bin" unit="None" value="'+str(num_chan)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="centre_frequency" ucd="em.freq;instr" unit="MHz" value="'+str(center_freq)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="int" name="npol" unit="None" value="'+str(num_pol)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="int" name="bits_per_sample" unit="None" value="'+str(bits_per_sample)+'"/>\n')
+            #VOEvent_of.write('\t\t\t<Param dataType="float" name="gain" unit="K/Jy" value="'+str(gain_KJy)+'"/>\n')  #FOR NOW: do not report gain
+            #VOEvent_of.write('\t\t\t<Param dataType="float" name="tsys" ucd="phot.antennaTemp" unit="K" value="'+str(Tsys_K)+'"/>\n')  #FOR NOW: do not report Tsys
+            VOEvent_of.write('\t\t\t<Param name="backend" value="'+VLA_backend+'"/>\n')
+            #VOEvent_of.write('\t\t\t<Param name="beam" value="'+str(VLA_beam)+'"/><Description>Detection beam number if backend is a multi beam receiver</Description>\n')
+            VOEvent_of.write('\t\t</Group>\n')
+            VOEvent_of.write('\t\t<Group name="event parameters">\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="dm" ucd="phys.dispMeasure;em.radio.'+str(int(np.floor(st.freq.min())))+'000-'+str(int(np.ceil(st.freq.max())))+'000MHz" unit="pc/cm^3" value="'+str(FRB_DM)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="dm_error" ucd="stat.error;phys.dispMeasure" unit="pc/cm^3" value="'+str(int(np.ceil(FRB_DM_err)))+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="width" ucd="time.duration;src.var.pulse" unit="ms" value="'+str(FRB_width)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="snr" ucd="stat.snr" value="'+str(FRB_SNR)+'"/>\n')
+            #VOEvent_of.write('\t\t\t<Param dataType="float" name="flux" ucd="phot.flux" unit="Jy" value="'+str(FRB_flux)+'"/>\n') #FOR NOW: do not report flux density.  We do not have good enough absolute flux density calibration
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="gl" ucd="pos.galactic.lon" unit="Degrees" value="'+str(FRB_gl)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="gb" ucd="pos.galactic.lat" unit="Degrees" value="'+str(FRB_gb)+'"/>\n')
+            VOEvent_of.write('\t\t</Group>\n')
+            VOEvent_of.write('\t\t<Group name="advanced parameters">\n')
+            #VOEvent_of.write('\t\t\t<Param dataType="float" name="MW_dm_limit" unit="pc/cm^3" value="34.9"/>\n')
+            #VOEvent_of.write('\t\t\t\t</Param>\n')
+            VOEvent_of.write('\t\t</Group>\n')
+            VOEvent_of.write('\t</What>\n')
+            #WhereWhen
+            VOEvent_of.write('\t<WhereWhen>\n')
+            VOEvent_of.write('\t\t<ObsDataLocation>\n')
+            VOEvent_of.write('\t\t\t<ObservatoryLocation id="VLA">\n')
+            VOEvent_of.write('\t\t\t<AstroCoordSystem id="UTC-GEOD-TOPO"/>\n')
+            VOEvent_of.write('\t\t\t<AstroCoords coord_system_id="UTC-GEOD-TOPO">\n')
+            VOEvent_of.write('\t\t\t<Position3D unit="deg-deg-m">\n')
+            VOEvent_of.write('\t\t\t  <Value3>\n')
+            VOEvent_of.write('\t\t\t    <C1>107.6184</C1>\n')
+            VOEvent_of.write('\t\t\t    <C2>34.0784</C2>\n')
+            VOEvent_of.write('\t\t\t    <C3>2124.456</C3>\n')
+            VOEvent_of.write('\t\t\t  </Value3>\n')
+            VOEvent_of.write('\t\t\t</Position3D>\n')
+            VOEvent_of.write('\t\t\t</AstroCoords>\n')
+            VOEvent_of.write('\t\t\t</ObservatoryLocation>\n')
+            VOEvent_of.write('\t\t\t<ObservationLocation>\n')
+            VOEvent_of.write('\t\t\t\t<AstroCoordSystem id="UTC-FK5-GEO"/><AstroCoords coord_system_id="UTC-FK5-GEO">\n')
+            VOEvent_of.write('\t\t\t\t<Time unit="s"><TimeInstant><ISOTime>'+FRB_ISOT+'</ISOTime></TimeInstant></Time>\n')
+            VOEvent_of.write('\t\t\t\t<Position2D unit="deg"><Name1>RA</Name1><Name2>Dec</Name2><Value2><C1>'+str(srcra)+'</C1><C2>'+str(srcdec)+'</C2></Value2><Error2Radius>'+str(srcloc_err)+'</Error2Radius></Position2D>\n')
+            VOEvent_of.write('\t\t\t\t</AstroCoords>\n')
+            VOEvent_of.write('\t\t\t</ObservationLocation>\n')
+            VOEvent_of.write('\t\t</ObsDataLocation>\n')
+            VOEvent_of.write('\t</WhereWhen>\n')
+            #How
+            VOEvent_of.write('\t<How>\n')
+            VOEvent_of.write('\t\t</How>\n')
+            #Why
+            VOEvent_of.write('\t<Why importance="'+str(FRB_importance)+'">\n')
+            VOEvent_of.write('\t\t\t<Concept></Concept><Description>Detection of a new FRB by RealFast</Description>\n')
+            VOEvent_of.write('\t\t<Name>'+FRB_NAME+'</Name>\n')
+            VOEvent_of.write('\t</Why>\n')
+            VOEvent_of.write('</voe:VOEvent>')
+            
+            #close file
+            VOEvent_of.close()
+            logger.info('Wrote VOEvent file to {0}'.format(outname))
+            
+        except ValueError:
+            logger.warn('Could not write VOEvent file {0}'.format(outname))
