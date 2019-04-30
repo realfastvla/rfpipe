@@ -357,22 +357,9 @@ def save_noise(st, segment, data, chunk=500):
     chunk defines window for measurement. at least one measurement always made.
     """
 
-    from rfpipe.search import grid_image
     from rfpipe import util
 
-    uvw = util.get_uvw_segment(st, segment)
-    chunk = min(chunk, max(1, st.readints-1))  # ensure at least one measurement
-    ranges = list(zip(list(range(0, st.readints-chunk, chunk)),
-                      list(range(chunk, st.readints, chunk))))
-
-    results = []
-    for (r0, r1) in ranges:
-        imid = (r0+r1)//2
-        noiseperbl = estimate_noiseperbl(data[r0:r1])
-        imstd = grid_image(data, uvw, st.npixx, st.npixy, st.uvres,
-                           'fftw', 1, integrations=imid).std()
-        zerofrac = float(len(np.where(data[r0:r1] == 0j)[0]))/data[r0:r1].size
-        results.append((segment, imid, noiseperbl, zerofrac, imstd))
+    results = util.calc_noise(st, segment, data, chunk=chunk)
 
     try:
         noisefile = st.noisefile
@@ -390,19 +377,6 @@ def save_noise(st, segment, data, chunk=500):
     if len(results):
         logger.info('Wrote {0} noise measurement{1} from segment {2} to {3}'
                     .format(len(results), 's'[:len(results)-1], segment, noisefile))
-
-
-def estimate_noiseperbl(data):
-    """ Takes large data array and sigma clips it to find noise per bl for
-    input to detect_bispectra.
-    Takes mean across pols and channels for now, as in detect_bispectra.
-    """
-
-    # define noise per baseline for data seen by detect_bispectra or image
-    datamean = data.mean(axis=2).imag  # use imaginary part to estimate noise without calibrated, on-axis signal
-    noiseperbl = datamean.std()  # measure single noise for input to detect_bispectra
-    logger.debug('Measured noise per baseline of {0:.3f}'.format(noiseperbl))
-    return noiseperbl
 
 
 def simulate_segment(st, loc=0., scale=1., segment=None):

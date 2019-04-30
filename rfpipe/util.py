@@ -274,6 +274,42 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
     return u, v, w
 
 
+def calc_noise(st, segment, data, chunk=500):
+    """ Calculate the noise properties of the data.
+    """
+
+    from rfpipe.search import grid_image
+
+    uvw = get_uvw_segment(st, segment)
+    chunk = min(chunk, max(1, st.readints-1))  # ensure at least one measurement
+    ranges = list(zip(list(range(0, st.readints-chunk, chunk)),
+                      list(range(chunk, st.readints, chunk))))
+
+    results = []
+    for (r0, r1) in ranges:
+        imid = (r0+r1)//2
+        noiseperbl = estimate_noiseperbl(data[r0:r1])
+        imstd = grid_image(data, uvw, st.npixx, st.npixy, st.uvres,
+                           'fftw', 1, integrations=imid).std()
+        zerofrac = float(len(np.where(data[r0:r1] == 0j)[0]))/data[r0:r1].size
+        results.append((segment, imid, noiseperbl, zerofrac, imstd))
+
+    return results
+
+
+def estimate_noiseperbl(data):
+    """ Takes large data array and sigma clips it to find noise per bl for
+    input to detect_bispectra.
+    Takes mean across pols and channels for now, as in detect_bispectra.
+    """
+
+    # define noise per baseline for data seen by detect_bispectra or image
+    datamean = data.mean(axis=2).imag  # use imaginary part to estimate noise without calibrated, on-axis signal
+    noiseperbl = datamean.std()  # measure single noise for input to detect_bispectra
+    logger.debug('Measured noise per baseline of {0:.3f}'.format(noiseperbl))
+    return noiseperbl
+
+
 def calc_segment_times(state, scale_nsegment=1.):
     """ Helper function for set_pipeline to define segmenttimes list.
     Forces segment time windows to be fixed relative to integration boundaries.

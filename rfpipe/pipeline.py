@@ -30,7 +30,7 @@ def pipeline_scan(st, segments=None, cfile=None,
     return candcollection
 
 
-def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default, devicenum=None):
+def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default, devicenum=None, indexresults=False):
     """ Submit pipeline processing of a single segment on a single node.
     state/preference has fftmode that will determine functions used here.
     """
@@ -38,18 +38,20 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default, devic
     from rfpipe import source
 
     data = source.read_segment(st, segment, timeout=vys_timeout, cfile=cfile)
-    candcollection = prep_and_search(st, segment, data, devicenum=devicenum)
+    candcollection = prep_and_search(st, segment, data, devicenum=devicenum, indexresults=indexresults)
 
     return candcollection
 
 
-def prep_and_search(st, segment, data, devicenum=None, returnsoltime=False):
+def prep_and_search(st, segment, data, devicenum=None, returnsoltime=False,
+                    indexresults=False):
     """ Bundles prep and search functions to improve performance in distributed.
     devicenum refers to GPU device for search.
     returnsoltime is option for data_prep to return solution time too.
+    indexresults will use distributed to submit job to index noises.
     """
 
-    from rfpipe import source, search
+    from rfpipe import source, search, util
 
     ret = source.data_prep(st, segment, data, returnsoltime=returnsoltime)
     if returnsoltime:
@@ -57,6 +59,15 @@ def prep_and_search(st, segment, data, devicenum=None, returnsoltime=False):
     else:
         data = ret
         soltime = None
+
+    if indexresults:
+        try:
+            from distributed import fire_and_forget, get_client
+            client = get_client()
+            noises = util.calc_noise(st, segment, data)
+            fire_and_forget(client.submit(util.indexnoises, noises=noises))
+        except ImportError:
+            logger.warning("distributed code not available")
 
     if st.prefs.fftmode == "cuda":
         candcollection = search.dedisperse_search_cuda(st, segment, data,
