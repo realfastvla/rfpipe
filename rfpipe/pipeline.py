@@ -60,7 +60,7 @@ def prep_and_search(st, segment, data, devicenum=None, returnsoltime=False,
         data = ret
         soltime = None
 
-    if indexresults:
+    if indexresults and data.any():
         try:
             from distributed import fire_and_forget, get_client
             client = get_client()

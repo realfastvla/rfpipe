@@ -280,19 +280,20 @@ def calc_noise(st, segment, data, chunk=500):
 
     from rfpipe.search import grid_image
 
-    uvw = get_uvw_segment(st, segment)
-    chunk = min(chunk, max(1, st.readints-1))  # ensure at least one measurement
-    ranges = list(zip(list(range(0, st.readints-chunk, chunk)),
-                      list(range(chunk, st.readints, chunk))))
-
     results = []
-    for (r0, r1) in ranges:
-        imid = (r0+r1)//2
-        noiseperbl = estimate_noiseperbl(data[r0:r1])
-        imstd = grid_image(data, uvw, st.npixx, st.npixy, st.uvres,
-                           'fftw', 1, integrations=imid).std()
-        zerofrac = float(len(np.where(data[r0:r1] == 0j)[0]))/data[r0:r1].size
-        results.append((segment, imid, noiseperbl, zerofrac, imstd))
+    if data.any():
+        uvw = get_uvw_segment(st, segment)
+        chunk = min(chunk, max(1, st.readints-1))  # ensure at least one measurement
+        ranges = list(zip(list(range(0, st.readints-chunk, chunk)),
+                          list(range(chunk, st.readints, chunk))))
+
+        for (r0, r1) in ranges:
+            imid = (r0+r1)//2
+            noiseperbl = estimate_noiseperbl(data[r0:r1])
+            imstd = grid_image(data, uvw, st.npixx, st.npixy, st.uvres,
+                               'fftw', 1, integrations=imid).std()
+            zerofrac = float(len(np.where(data[r0:r1] == 0j)[0]))/data[r0:r1].size
+            results.append((segment, imid, noiseperbl, zerofrac, imstd))
 
     return results
 
