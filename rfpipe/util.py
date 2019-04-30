@@ -67,9 +67,7 @@ def meantsub(data, parallel=False):
     # TODO: make outlier resistant to avoid oversubtraction
 
     if parallel:
-#        _ = _meantsub_gu(np.require(np.swapaxes(data, 0, 3), requirements='W'))
-        _meantsub_jit(np.require(data, requirements='W'))
-        logger.warning("Parallel implementation of meantsub not working with flags. Using single threaded version.")
+        _ = _meantsub_gu(np.require(np.swapaxes(data, 0, 3), requirements='W'))
     else:
         _meantsub_jit(np.require(data, requirements='W'))
     return data
@@ -107,10 +105,8 @@ def _meantsub_jit(data):
 @guvectorize([str("void(complex64[:])")], str("(m)"),
              target='parallel', nopython=True)
 def _meantsub_gu(data):
-    b""" Subtract time mean while ignoring zeros.
-    Vectorizes over time axis.
-    Assumes time axis is last so use np.swapaxis(0,3) when passing visibility array in
-    **CURRENTLY NOT WORKING WITH FLAGS**
+    b""" Subtract time mean (ignoring zeros) by vectorizing over time axis.
+    Assumes time axis is last so reshape data array with use np.swapaxis(0,3).
     """
 
     ss = complex64(0)
@@ -121,7 +117,8 @@ def _meantsub_gu(data):
             weight += 1
     mean = ss/weight
     for i in range(data.shape[0]):
-        data[i] -= mean
+        if data[i] != complex64(0):
+            data[i] -= mean
 
 
 @cuda.jit

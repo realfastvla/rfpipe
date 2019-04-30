@@ -184,6 +184,7 @@ class CandCollection(object):
         self.metadata = metadata
         self.rfpipe_version = version.__version__
         self._state = None
+        self.soltime = None
         # TODO: pass in segmenttimes here to avoid recalculating during search?
 
     def __repr__(self):

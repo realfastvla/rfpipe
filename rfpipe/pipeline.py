@@ -43,14 +43,20 @@ def pipeline_seg(st, segment, cfile=None, vys_timeout=vys_timeout_default, devic
     return candcollection
 
 
-def prep_and_search(st, segment, data, devicenum=None):
+def prep_and_search(st, segment, data, devicenum=None, returnsoltime=False):
     """ Bundles prep and search functions to improve performance in distributed.
+    devicenum refers to GPU device for search.
+    returnsoltime is option for data_prep to return solution time too.
     """
 
     from rfpipe import source, search
 
-    data = source.data_prep(st, segment, data)
-    # TODO: implement   returnsoltime=True
+    ret = source.data_prep(st, segment, data, returnsoltime=returnsoltime)
+    if returnsoltime:
+        data, soltime = ret
+    else:
+        data = ret
+        soltime = None
 
     if st.prefs.fftmode == "cuda":
         candcollection = search.dedisperse_search_cuda(st, segment, data,
@@ -61,7 +67,7 @@ def prep_and_search(st, segment, data, devicenum=None):
         logger.warning("fftmode {0} not recognized (cuda, fftw allowed)"
                        .format(st.prefs.fftmode))
 
-    # TODO: attach telcal solution time as mjd to candcollection
+    candcollection.soltime = soltime
     return candcollection
 
 
