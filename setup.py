@@ -19,9 +19,8 @@ AUTHOR = 'Casey Law'
 
 # What packages are required for this module to be executed?
 REQUIRED = ['numpy', 'scipy', 'pwkit', 'sdmpy', 'pyfftw', 'bokeh', 'cython', 'scikit-learn',
-            'attrs', 'future', 'astropy', 'pyyaml', 'numba', 'fuzzywuzzy', 'hdbscan',
+            'attrs', 'future', 'astropy', 'pyyaml', 'numba', 'fuzzywuzzy', 'hdbscan<0.8.19',
             'matplotlib', 'kalman_detector']
-# 'hdbscan<0.8.19', ?
             # optional 'rfgpu', 'distributed'
 
 # The rest you shouldn't have to touch too much :)
