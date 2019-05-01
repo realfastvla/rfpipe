@@ -49,7 +49,7 @@ def prep_and_search(st, segment, data, devicenum=None, returnsoltime=False):
     returnsoltime is option for data_prep to return solution time too.
     """
 
-    from rfpipe import source, search, util
+    from rfpipe import source, search
 
     ret = source.data_prep(st, segment, data, returnsoltime=returnsoltime)
     if returnsoltime:
