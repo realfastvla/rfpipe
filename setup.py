@@ -18,7 +18,7 @@ EMAIL = 'claw@astro.berkeley.edu'
 AUTHOR = 'Casey Law'
 
 # What packages are required for this module to be executed?
-REQUIRED = ['numpy', 'scipy', 'pwkit', 'sdmpy', 'pyfftw', 'bokeh', 'cython', 'scikit-learn',
+REQUIRED = ['numpy', 'scipy', 'pwkit', 'sdmpy', 'pyfftw', 'bokeh', 'cython', 'scikit-learn<0.21',
             'attrs', 'future', 'astropy', 'pyyaml', 'numba', 'fuzzywuzzy', 'hdbscan<0.8.19',
             'matplotlib', 'kalman_detector']
             # optional 'rfgpu', 'distributed'
