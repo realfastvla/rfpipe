@@ -8,6 +8,7 @@ import numpy as np
 from astropy import time
 from rfpipe import version
 import pwkit.environments.casa.util as casautil
+import math
 
 import logging
 logger = logging.getLogger(__name__)
@@ -745,6 +746,7 @@ class State(object):
         """
 
         return int(round(self.t_segment/self.inttime))
+#        return int(math.ceil(self.t_segment/self.inttime))
 
     @property
     def searchints(self):
@@ -754,6 +756,7 @@ class State(object):
         return self.readints + \
                (self.readints - int(round(self.t_overlap/self.inttime))) * \
                max(0, (self.nsegment-1))
+#               (self.readints - int(math.ceil(self.t_overlap/self.inttime))) * \
 
     @property
     def ntrials(self):
@@ -885,6 +888,7 @@ class State(object):
 
         toGB = 8/1000**3   # number of complex64s to GB
         return toGB * ((self.datasize_orig//self.readints *
+#                       int(math.ceil(self.t_overlap/self.inttime))))
                        int(round(self.t_overlap/self.inttime))))
 
     @property
@@ -903,6 +907,7 @@ class State(object):
 
         toGB = 8/1000**3   # number of complex64s to GB
         return (min(self.chunksize, int(round(self.t_overlap/self.inttime))) * self.npixx * self.npixy) * toGB
+#        return (min(self.chunksize, int(math.ceil(self.t_overlap/self.inttime))) * self.npixx * self.npixy) * toGB
 
     @property
     def memory_total(self):

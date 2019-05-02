@@ -317,11 +317,13 @@ def calc_segment_times(state, scale_nsegment=1.):
     Can optionally push nsegment scaling up.
     """
 
-#    stopdts = np.linspace(int(round(state.t_overlap/state.inttime)), state.nints,
-#                          nsegment+1)[1:]  # nseg+1 keeps at least one seg
+#    stopdts = np.arange(int(math.ceil(state.t_overlap/state.inttime)), state.nints+1,
+#                        min(max(1,
+#                            int(math.ceil(state.fringetime/state.inttime/scale_nsegment))),
+#                        state.nints-int(math.ceil(state.t_overlap/state.inttime))),
+#                        dtype=int)[1:]
 #    startdts = np.concatenate(([0],
-#                              stopdts[:-1]-int(round(state.t_overlap/state.inttime))))
-    # or force on integer boundaries?
+#                              stopdts[:-1]-int(math.ceil(state.t_overlap/state.inttime))))
 
     stopdts = np.arange(int(round(state.t_overlap/state.inttime)), state.nints+1,
                         min(max(1,

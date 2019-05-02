@@ -153,6 +153,7 @@ class Metadata(object):
         elif self.endtime_mjd_:
             assert self.endtime_mjd > self.starttime_mjd, "endtime_mjd must be larger than starttime_mjd"
             return np.round((self.endtime_mjd_ - self.starttime_mjd)*(24*3600)/self.inttime).astype(int)
+#            return np.ceil((self.endtime_mjd_ - self.starttime_mjd)*(24*3600)/self.inttime).astype(int)
         else:
             raise AttributeError("Either endtime_mjd_ or nints_ need to be "
                                  "defined.")
