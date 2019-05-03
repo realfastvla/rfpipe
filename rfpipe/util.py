@@ -11,11 +11,12 @@ from numba import jit, complex64, int64
 import pwkit.environments.casa.util as casautil
 import sdmpy
 from rfpipe import calibration
+from astropy import time
 
 import logging
 logger = logging.getLogger(__name__)
 
-qa = casautil.tools.quanta()
+#qa = casautil.tools.quanta()
 me = casautil.tools.measures()
 
 
@@ -344,11 +345,19 @@ def calc_segment_times(state, scale_nsegment=1.):
 
     segmenttimes = []
     for (startdt, stopdt) in zip(state.inttime*startdts, state.inttime*stopdts):
-        starttime = qa.getvalue(qa.convert(qa.time(qa.quantity(state.metadata.starttime_mjd+startdt/(24*3600), 'd'),
-                                                   form=['ymd'], prec=9)[0], 's'))[0]/(24*3600)
-        stoptime = qa.getvalue(qa.convert(qa.time(qa.quantity(state.metadata.starttime_mjd+stopdt/(24*3600), 'd'),
-                                                  form=['ymd'], prec=9)[0], 's'))[0]/(24*3600)
-        segmenttimes.append((starttime, stoptime))
+#        starttime = qa.getvalue(qa.convert(qa.time(qa.quantity(state.metadata.starttime_mjd+startdt/(24*3600), 'd'),
+#                                                   form=['ymd'], prec=9)[0], 's'))[0]/(24*3600)
+#        stoptime = qa.getvalue(qa.convert(qa.time(qa.quantity(state.metadata.starttime_mjd+stopdt/(24*3600), 'd'),
+#                                                  form=['ymd'], prec=9)[0], 's'))[0]/(24*3600)
+        starttime = time.Time(state.metadata.starttime_mjd, format='mjd').unix + startdt
+        stoptime = time.Time(state.metadata.starttime_mjd, format='mjd').unix + stopdt
+
+        # round to nearest ms for vys reading
+        dt_1ms = np.round((stoptime-starttime), 3) - (stoptime-starttime)
+        if dt_1ms > 1e-1:
+            logger.warn("segmenttime calculation getting large deviation from inttime boundaries")
+        segmenttimes.append((time.Time(starttime, format='unix').mjd,
+                             time.Time(stoptime+dt_1ms, format='unix').mjd))
 
     return np.array(segmenttimes)
 
