@@ -325,7 +325,7 @@ class State(object):
 #            list(range(sum(self.metadata.spw_nchan)))
             chanlist = []
             nch = np.unique(self.metadata.spw_nchan)[0]  # assume 1 nchan/spw
-            if self.prefs.ignore_spwedge:
+            if hasattr(self.prefs, 'ignore_spwedge'):
                 edge = int(self.prefs.ignore_spwedge*nch)
             else:
                 edge = 0
