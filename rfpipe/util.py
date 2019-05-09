@@ -394,7 +394,7 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
                           i=None, amp=None, lm=None, snr=None, data=None):
     """ Given a state, create ntr randomized detectable transients.
     Returns list of ntr tuples of parameters.
-    If data provided, it is used to inject transient at fixed SNR.
+    If data provided, it is used to inject transient at fixed apparent SNR.
     selects random value from dmarr and dtarr.
     Mock transient will have either l or m equal to 0.
     Option exists to overload random selection with fixed segment, dmind, etc.
@@ -431,7 +431,7 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
             dt = st.inttime*min(st.dtarr[dtind], 2)  # dt>2 not yet supported
         else:
             #dtind = random.choice(range(len(st.dtarr)))
-            dt = st.inttime*np.random.uniform(min(st.dtarr), max(st.dtarr)) # s  #like an alias for "dt"
+            dt = st.inttime*np.random.uniform(0, max(st.dtarr)) # s  #like an alias for "dt"
             if dt < st.inttime:
                 dtind = 0
             else:    
@@ -455,12 +455,11 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
             else:
                 if snr is None:
                     snr = random.uniform(10, 50)
-                    logger.info("Setting mock snr to {0}".format(snr))
                     # TODO: support flagged data in size calc and injection
                 datap = calibration.apply_telcal(st, data)
-                sig = madtostd(datap[i].real)/np.sqrt(datap[i].size*st.dtarr[dtind])
-                amp = snr*sig
-                logger.info("Setting mock amp as {0}*{1}={2}".format(snr, sig, amp))
+                noise = madtostd(datap[i].real)/np.sqrt(datap[i].size*st.dtarr[dtind])
+                amp = snr*noise*(st.inttime/dt)
+                logger.info("Setting mock amp as {0}*{1}={2}".format(snr, noise, amp))
                 
 
         if lm is None:
@@ -486,7 +485,7 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
 
 def make_transient_data(st, amp, i0, dm, dt, ampslope=0.):
     """ Create a dynamic spectrum for given parameters
-    amp is in system units (post calibration)
+    amp is apparent (after time gridding) in system units (post calibration)
     i0 is a float for integration relative to start of segment.
     dm/dt are in units of pc/cm3 and seconds, respectively
     ampslope adds to a linear slope up to amp+ampslope at last channel.
