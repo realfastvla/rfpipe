@@ -456,9 +456,12 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
                 if snr is None:
                     snr = random.uniform(10, 50)
                     # TODO: support flagged data in size calc and injection
-                datap = calibration.apply_telcal(st, data)
-                noise = madtostd(datap[i].real)/np.sqrt(datap[i].size*st.dtarr[dtind])
-                amp = snr*noise*(st.inttime/dt)
+                if data.shape != st.datashape:
+                    logger.info("Looks like raw data passed in. Selecting and calibrating.")
+                    takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
+                    data = calibration.apply_telcal(st, data.take(takepol, axis=3).take(st.chans, axis=2))
+                noise = madtostd(data[i].real)/np.sqrt(data[i].size*st.dtarr[dtind])
+                amp = snr*noise  #*(st.inttime/dt)
                 logger.info("Setting mock amp as {0}*{1}={2}".format(snr, noise, amp))
                 
 
