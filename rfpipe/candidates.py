@@ -172,6 +172,12 @@ class CandData(object):
         return (self.state.segmenttimes[self.loc[0]][0] +
                 (self.loc[1]*self.state.inttime)/(24*3600))
 
+    @property
+    def candid(self):
+        scanId = self.state.metadata.scanId
+        segment, integration, dmind, dtind, beamnum = self.loc
+        return '{0}_seg{1}-i{2}-dm{3}-dt{4}'.format(scanId, segment, integration, dmind, dtind)
+
 
 class CandCollection(object):
     """ Wrap candidate array with metadata and
@@ -1540,9 +1546,8 @@ def candplot(canddatalist, snrs=None, cluster=None, outname=''):
 
         if not outname:
             outname = os.path.join(st.prefs.workdir,
-                                   'cands_{0}_seg{1}-i{2}-dm{3}-dt{4}.png'
-                                   .format(st.fileroot, segment, candint,
-                                           dmind, dtind))
+                                   'cands_{0}.png'
+                                   .format(canddata.candid))
 
         try:
             canvas = FigureCanvasAgg(fig)
