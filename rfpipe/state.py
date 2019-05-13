@@ -244,7 +244,7 @@ class State(object):
     def clearcache(self):
         cached = ['_dmarr', '_dmshifts', '_npol', '_blarr',
                   '_segmenttimes', '_npixx_full', '_npixy_full',
-                  '_corrections']
+                  '_corrections', '_t_overlap']
         for obj in cached:
             try:
                 delattr(self, obj)
@@ -371,8 +371,9 @@ class State(object):
 
         if not hasattr(self, '_dmshifts'):
             from rfpipe import util
-            self._dmshifts = [util.calc_delay(self.freq, self.freq.max(), dm,
-                              self.inttime).max()
+            self._dmshifts = [util.calc_delay(self.freq.take([0]),
+                                              self.freq.max(),
+                                              dm, self.inttime)[0]
                               for dm in self.dmarr]
         return self._dmshifts
 
@@ -381,7 +382,15 @@ class State(object):
         """ Max DM delay in seconds that is fixed to int mult of integration time.
         Gets cached. """
 
-        return max(self.dmshifts)*self.inttime
+        if not hasattr(self, '_t_overlap'):
+            from rfpipe import util
+            self._t_overlap = util.calc_delay(self.freq.take([0]),
+                                              self.freq.max(),
+                                              max(self.dmarr),
+                                              self.inttime)[0]*self.inttime
+
+        return self._t_overlap
+#        return max(self.dmshifts)*self.inttime
 
     @property
     def spw_chan_select(self):

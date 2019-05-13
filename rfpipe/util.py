@@ -110,7 +110,6 @@ def calc_delay(freq, freqref, dm, inttime, scale=None):
     delay = np.zeros(len(freq), dtype=np.int32)
 
     for i in range(len(freq)):
-#        delay[i] = np.round(scale * dm * (1./freq[i]**2 - 1./freqref**2)/inttime, 0)
         delay[i] = int(scale * dm * (1./freq[i]**2 - 1./freqref**2)/inttime)
 
     return delay
@@ -147,9 +146,9 @@ def calc_dmarr(state):
 #    print(dm_maxloss, dm_pulsewidth, tsamp, freq, bw, ch)
 
     # width functions and loss factor
-    dt0 = lambda dm: np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2)
-    dt1 = lambda dm, ddm: np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2 + ((k*ddm*bw)/(freq**3.))**2)
-    loss = lambda dm, ddm: 1 - np.sqrt(dt0(dm)/dt1(dm, ddm))
+#    dt0 = lambda dm: np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2)
+#    dt1 = lambda dm, ddm: np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2 + ((k*ddm*bw)/(freq**3.))**2)
+#    loss = lambda dm, ddm: 1 - np.sqrt(dt0(dm)/dt1(dm, ddm))
 #    loss_cordes = lambda ddm, dfreq, dm_pulsewidth, freq: 1 - (np.sqrt(np.pi) / (2 * 6.91e-3 * ddm * dfreq / (dm_pulsewidth*freq**3))) * erf(6.91e-3 * ddm * dfreq / (dm_pulsewidth*freq**3))  # not quite right for underresolved pulses
 
     if maxdm == 0:
@@ -160,13 +159,25 @@ def calc_dmarr(state):
         dmgrid_final = [dmgrid[0]]
         for i in range(len(dmgrid)):
             ddm = (dmgrid[i] - dmgrid_final[-1])/2.
-            ll = loss(dmgrid[i], ddm)
+            ll = loss(dm_pulsewidth, tsamp, k, ch, freq, bw, dmgrid[i], ddm)
             if ll > dm_maxloss:
                 dmgrid_final.append(dmgrid[i])
         if maxdm not in dmgrid_final:
             dmgrid_final.append(maxdm)
 
     return dmgrid_final
+
+@jit(nopython=True)
+def loss(dm_pulsewidth, tsamp, k, ch, freq, bw, dm, ddm):
+    return 1 - np.sqrt(dt0(dm_pulsewidth, tsamp, k, ch, freq, dm)/dt1(dm_pulsewidth, tsamp, k, ch, freq, bw, dm, ddm))
+
+@jit(nopython=True)
+def dt0(dm_pulsewidth, tsamp, k, ch, freq, dm):
+    return np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2)
+
+@jit(nopython=True)
+def dt1(dm_pulsewidth, tsamp, k, ch, freq, bw, dm, ddm):
+    return np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2 + ((k*ddm*bw)/(freq**3.))**2)
 
 
 def get_uvw_segment(st, segment):
