@@ -60,17 +60,13 @@ def _phaseshift_jit(data, uvw, dl, dm, ints):
                         data[i, j, k, l] = data[i, j, k, l] * frot
 
 
-def meantsub(data, parallel=False):
+def meantsub(data):
     """ Subtract mean visibility in time.
-    Parallel controls use of multithreaded algorithm.
     """
 
     # TODO: make outlier resistant to avoid oversubtraction
 
-    if parallel:
-        _ = _meantsub_gu(np.require(np.swapaxes(data, 0, 3), requirements='W'))
-    else:
-        _meantsub_jit(np.require(data, requirements='W'))
+    _meantsub_jit(np.require(data, requirements='W'))
     return data
 
 
@@ -101,43 +97,6 @@ def _meantsub_jit(data):
                     for l in range(nint):
                         if data[l, i, j, k] != 0j:
                             data[l, i, j, k] -= mean
-
-
-@guvectorize([str("void(complex64[:])")], str("(m)"),
-             target='parallel', nopython=True)
-def _meantsub_gu(data):
-    b""" Subtract time mean (ignoring zeros) by vectorizing over time axis.
-    Assumes time axis is last so reshape data array with use np.swapaxis(0,3).
-    """
-
-    ss = complex64(0)
-    weight = int64(0)
-    for i in range(data.shape[0]):
-        ss += data[i]
-        if data[i] != complex64(0):
-            weight += 1
-    mean = ss/weight
-    for i in range(data.shape[0]):
-        if data[i] != complex64(0):
-            data[i] -= mean
-
-
-@cuda.jit
-def meantsub_cuda(data, cache=True):
-    """ Calculate mean in time (ignoring zeros) and subtract in place """
-
-    x, y, z = cuda.grid(3)
-    nint, nbl, nchan, npol = data.shape
-    if x < nbl and y < nchan and z < npol:
-        sum = complex64(0)
-        weight = 0
-        for i in range(nint):
-            sum = sum + data[i, x, y, z]
-            if data[i, x, y, z] == 0j:
-                weight = weight + 1
-        mean = sum/weight
-        for i in range(nint):
-            data[i, x, y, z] = data[i, x, y, z] - mean
 
 
 def calc_delay(freq, freqref, dm, inttime, scale=None):

@@ -73,7 +73,7 @@ def data_prep(st, segment, data, flagversion="latest", returnsoltime=False):
 
     if st.prefs.timesub == 'mean':
         logger.info('Subtracting mean visibility in time.')
-        datap = util.meantsub(datap, parallel=st.prefs.nthread > 1)
+        datap = util.meantsub(datap)
     else:
         logger.info('No visibility subtraction done.')
 
