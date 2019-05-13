@@ -7,13 +7,9 @@ import os
 import numpy as np
 from astropy import time
 from rfpipe import version
-import pwkit.environments.casa.util as casautil
-import math
 
 import logging
 logger = logging.getLogger(__name__)
-
-qa = casautil.tools.quanta()
 
 
 class State(object):
@@ -727,10 +723,6 @@ class State(object):
         peakx = np.round(npixx/2. - candl*(npixx*uvres)).astype(int)
         peaky = np.round(npixy/2. - candm*(npixy*uvres)).astype(int)
         return peakx, peaky
-
-    def get_segmenttime_string(self, segment):
-        mid_mjd = self.segmenttimes[segment].mean()
-        return qa.time(qa.quantity(mid_mjd, 'd'), form='ymd', prec=8)[0]
 
     @property
     def nints(self):

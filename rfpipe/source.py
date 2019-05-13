@@ -5,7 +5,6 @@ from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 import os.path
 import numpy as np
 from astropy import time
-import pwkit.environments.casa.util as casautil
 from rfpipe import fileLock
 import pickle
 
@@ -16,8 +15,6 @@ try:
     import vysmaw_reader
 except ImportError:
     pass
-
-qa = casautil.tools.quanta()
 
 
 def data_prep(st, segment, data, flagversion="latest", returnsoltime=False):
@@ -311,10 +308,8 @@ def read_bdf_segment(st, segment):
                       - st.metadata.starttime_mjd)/st.metadata.inttime).astype(int)
     logger.info('Reading scan {0}, segment {1}/{2}, times {3} to {4}'
                 .format(st.metadata.scan, segment, len(st.segmenttimes)-1,
-                        qa.time(qa.quantity(st.segmenttimes[segment, 0], 'd'),
-                                form=['hms'], prec=9)[0],
-                        qa.time(qa.quantity(st.segmenttimes[segment, 1], 'd'),
-                                form=['hms'], prec=9)[0]))
+                        time.Time(st.segmenttimes[seg][0], format='mjd', precision=9).unix,
+                        time.Time(st.segmenttimes[seg][1], format='mjd', precision=9).unix))
     data = read_bdf(st, nskip=nskip).astype('complex64')
 
     return data

@@ -16,7 +16,6 @@ from astropy import time
 import logging
 logger = logging.getLogger(__name__)
 
-#qa = casautil.tools.quanta()
 me = casautil.tools.measures()
 
 
@@ -187,10 +186,12 @@ def get_uvw_segment(st, segment):
     """
 
     logger.debug("Getting uvw for segment {0}".format(segment))
-    mjdstr = st.get_segmenttime_string(segment)
+    mid_mjd = st.segmenttimes[segment].mean()
+    mjdstr = time.Time(mid_mjd, format='mjd').iso.replace('-', '/').replace(' ', '/')
 
     if st.lock is not None:
         st.lock.acquire()
+
     (ur, vr, wr) = calc_uvw(datetime=mjdstr, radec=st.metadata.radec,
                             antpos=st.metadata.antpos,
                             telescope=st.metadata.telescope)
@@ -315,10 +316,6 @@ def calc_segment_times(state, scale_nsegment=1.):
 
     segmenttimes = []
     for (startdt, stopdt) in zip(state.inttime*startdts, state.inttime*stopdts):
-#        starttime = qa.getvalue(qa.convert(qa.time(qa.quantity(state.metadata.starttime_mjd+startdt/(24*3600), 'd'),
-#                                                   form=['ymd'], prec=9)[0], 's'))[0]/(24*3600)
-#        stoptime = qa.getvalue(qa.convert(qa.time(qa.quantity(state.metadata.starttime_mjd+stopdt/(24*3600), 'd'),
-#                                                  form=['ymd'], prec=9)[0], 's'))[0]/(24*3600)
         starttime = time.Time(state.metadata.starttime_mjd, format='mjd').unix + startdt
         stoptime = time.Time(state.metadata.starttime_mjd, format='mjd').unix + stopdt
 
