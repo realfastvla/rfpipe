@@ -308,8 +308,8 @@ def read_bdf_segment(st, segment):
                       - st.metadata.starttime_mjd)/st.metadata.inttime).astype(int)
     logger.info('Reading scan {0}, segment {1}/{2}, times {3} to {4}'
                 .format(st.metadata.scan, segment, len(st.segmenttimes)-1,
-                        time.Time(st.segmenttimes[seg][0], format='mjd', precision=9).unix,
-                        time.Time(st.segmenttimes[seg][1], format='mjd', precision=9).unix))
+                        time.Time(st.segmenttimes[segment][0], format='mjd', precision=9).unix,
+                        time.Time(st.segmenttimes[segment][1], format='mjd', precision=9).unix))
     data = read_bdf(st, nskip=nskip).astype('complex64')
 
     return data
