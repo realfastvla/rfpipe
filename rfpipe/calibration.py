@@ -131,27 +131,29 @@ def parseGN(telcalfile):
     source = []
 
     i = 0
-    with open(telcalfile, 'r') as fp:
-        for line in fp:
+    if telcalfile is not None:
+        with open(telcalfile, 'r') as fp:
+            for line in fp:
 
-            fields = line.split()
-            if i < skip:
-                i += 1
-                continue
-
-            try:
-                mjd.append(float(fields[MJD]))
-                ifid.append(str(fields[IFID]))
-                skyfreq.append(float(fields[SKYFREQ]))
-                antnum.append(int(fields[ANT].lstrip('ea')))
-                amp.append(float(fields[AMP]))
-                phase.append(float(fields[PHASE]))
-                delay.append(float(fields[DELAY]))
-                flagged.append('true' == (fields[FLAGGED]))
-                source.append(str(fields[SOURCE]))
-            except ValueError:
-                logger.warning('Trouble parsing line of telcal file. Skipping.')
-                continue
+                fields = line.split()
+                if i < skip:
+                    i += 1
+                    continue
+                try:
+                    mjd.append(float(fields[MJD]))
+                    ifid.append(str(fields[IFID]))
+                    skyfreq.append(float(fields[SKYFREQ]))
+                    antnum.append(int(fields[ANT].lstrip('ea')))
+                    amp.append(float(fields[AMP]))
+                    phase.append(float(fields[PHASE]))
+                    delay.append(float(fields[DELAY]))
+                    flagged.append('true' == (fields[FLAGGED]))
+                    source.append(str(fields[SOURCE]))
+                except ValueError:
+                    logger.warning('Trouble parsing line of telcal file. Skipping.')
+                    continue
+    else:
+        logger.debug("telcalfile set to None")
 
     # TODO: assumes dual pol. update to full pol
     polarization = [('C' in i0 or 'D' in i0) for i0 in ifid]
