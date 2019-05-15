@@ -40,7 +40,7 @@ class CandData(object):
         self.state = state
         self.loc = tuple(loc)
         self.image = image
-        self.data = data
+        self.data = np.ma.masked_equal(data, 0j)
         if 'snrk' in kwargs:  # hack to allow detection level calculation in
             self.snrk = kwargs['snrk']
         else:
