@@ -23,7 +23,6 @@ from bokeh.models import HoverTool
 from bokeh.models import Row
 from collections import OrderedDict
 import hdbscan
-from skimage.transform import resize
 
 import logging
 logger = logging.getLogger(__name__)
@@ -745,7 +744,7 @@ def pkl_to_h5(pklfile, save_png=True, outdir=None, show=False):
     """
 
     cds = list(iter_cands(pklfile, select='canddata'))
-    cds_to_h5(cds, save_png, outdir, show)
+    cds_to_h5(cds, save_png=save_png, outdir=outdir, show=show)
 
 
 def cds_to_h5(cds, save_png=True, outdir=None, show=False):
@@ -755,18 +754,20 @@ def cds_to_h5(cds, save_png=True, outdir=None, show=False):
     for cd in cds:
         logging.info('Processing candidate at candloc {0}'.format(cd.loc))
         if cd.data.any():
-            cd_to_h5(cd, save_png, outdir, show)
+            cd_to_fetch(cd, save_h5=True, save_png=save_png, outdir=outdir,
+                        show=show)
         else:
             logging.warning('Canddata is empty. Skipping Candidate')
 
 
-def cd_to_h5(cd, save_png=True, outdir=None, show=False):
-    """ Convert a canddaate object to an h5 file.
-    Assumes h5 is for use in fetch.
+def cd_to_fetch(cd, classify=True, save_h5=False, save_png=False, outdir=None, show=False):
+    """ Read canddata object for classification in fetch.
+    Optionally save png or h5.
     """
 
     import h5py
     from rfpipe.search import make_dmt
+    from skimage.transform import resize
 
     dtarr_ind = cd.loc[3]
     width_m = cd.state.dtarr[dtarr_ind]
@@ -799,6 +800,7 @@ def cd_to_h5(cd, save_png=True, outdir=None, show=False):
 
     logging.info('Generating DM-time for DM range {0:.2f}--{1:.2f} pc/cm3'
                  .format(dm_start, dm_end))
+    # note that dmt range assuming data already dispersed to dm
     dmt = make_dmt(ft_dedisp, dm_start-dm, dm_end-dm, 256, chan_freqs, tsamp)
 
     reshaped_ft = resize(ft_dedisp, (256, 256), anti_aliasing=True)
@@ -810,16 +812,17 @@ def cd_to_h5(cd, save_png=True, outdir=None, show=False):
     else:
         fnout = 'cands_{0}_seg{1}-i{2}-dm{3}-dt{4}'.format(cd.state.fileroot, segment, candint, dmind, dtind)
 
-    with h5py.File(fnout+'.h5', 'w') as f:
-        freq_time_dset = f.create_dataset('data_freq_time', data=reshaped_ft)
-        freq_time_dset.dims[0].label = b"time"
-        freq_time_dset.dims[1].label = b"frequency"
+    if save_h5:
+        with h5py.File(fnout+'.h5', 'w') as f:
+            freq_time_dset = f.create_dataset('data_freq_time', data=reshaped_ft)
+            freq_time_dset.dims[0].label = b"time"
+            freq_time_dset.dims[1].label = b"frequency"
 
-        dm_time_dset = f.create_dataset('data_dm_time', data=reshaped_dmt)
-        dm_time_dset.dims[0].label = b"dm"
-        dm_time_dset.dims[1].label = b"time"
+            dm_time_dset = f.create_dataset('data_dm_time', data=reshaped_dmt)
+            dm_time_dset.dims[0].label = b"dm"
+            dm_time_dset.dims[1].label = b"time"
 
-    logging.info('Saved h5 as {0}.h5'.format(fnout))
+        logging.info('Saved h5 as {0}.h5'.format(fnout))
 
     if save_png:
         ts = np.arange(timewindow)*tsamp
@@ -841,6 +844,42 @@ def cd_to_h5(cd, save_png=True, outdir=None, show=False):
             plt.show()
         else:
             plt.close()
+
+    if classify:
+        from fetch.utils import get_model
+        import tensorflow as tf
+
+        model = get_model('a')
+        graph = tf.get_default_graph()
+        cand = prepare_to_classify(reshaped_ft, reshaped_dmt)
+        with graph.as_default():
+            preds = model.predict(cand).tolist()
+            logger.info("FRB probability {0}".format(preds[0][1]))
+
+
+def prepare_to_classify(ft, dmt):
+    """ Data prep and packaging for input to fetch.
+    """
+
+    data_ft = signal.detrend(np.nan_to_num(ft))
+    data_ft /= np.std(data_ft)
+    data_ft -= np.median(data_ft)
+    data_dt = np.nan_to_num(dmt)
+    data_dt /= np.std(data_dt)
+    data_dt -= np.median(data_dt)
+    X = np.reshape(data_ft, (256, 256, 1))
+    Y = np.reshape(data_dt, (256, 256, 1))
+
+    X[X != X] = 0.0
+    Y[Y != Y] = 0.0
+    X = X.reshape(-1, 256, 256, 1)
+    Y = Y.reshape(-1, 256, 256, 1)
+
+    X = X.copy(order='C')
+    Y = Y.copy(order='C')
+
+    payload = {"data_freq_time": X.tolist(), "data_dm_time": Y.tolist()}
+    return payload
 
 
 def iter_cands(candsfile, select='candcollection'):
