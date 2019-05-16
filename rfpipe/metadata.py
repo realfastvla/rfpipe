@@ -8,12 +8,10 @@ import attr
 
 import numpy as np
 import pwkit.environments.casa.util as casautil
+from astropy import time
 
 import logging
 logger = logging.getLogger(__name__)
-
-qa = casautil.tools.quanta()
-me = casautil.tools.measures()
 
 
 @attr.s
@@ -117,13 +115,18 @@ class Metadata(object):
         x = self.xyz[:, 0].tolist()
         y = self.xyz[:, 1].tolist()
         z = self.xyz[:, 2].tolist()
+
+        me = casautil.tools.measures()
+        qa = casautil.tools.quanta()
+
         return me.position('itrf', qa.quantity(x, 'm'),
                            qa.quantity(y, 'm'), qa.quantity(z, 'm'))
 
     @property
     def starttime_string(self):
-        return qa.time(qa.quantity(self.starttime_mjd, 'd'),
-                       form='ymd', prec=8)[0]
+        return time.Time(self.starttime_mjd, format='mjd').iso.replace('-', '/').replace(' ', '/')
+#        return qa.time(qa.quantity(self.starttime_mjd, 'd'),
+#                       form='ymd', prec=8)[0]
 
     @property
     def endtime_mjd(self):

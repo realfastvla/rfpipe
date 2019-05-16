@@ -16,8 +16,6 @@ from astropy import time
 import logging
 logger = logging.getLogger(__name__)
 
-me = casautil.tools.measures()
-
 
 def getsdm(*args, **kwargs):
     """ Wrap sdmpy.SDM to get around schema change error """
@@ -214,6 +212,8 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
 
     assert '/' in datetime, 'datetime must be in yyyy/mm/dd/hh:mm:ss.sss format'
     assert len(radec) == 2, 'radec must be (ra,dec) tuple in units of degrees'
+
+    me = casautil.tools.measures()
 
     direction = me.direction('J2000', str(np.degrees(radec[0]))+'deg',
                              str(np.degrees(radec[1]))+'deg')
