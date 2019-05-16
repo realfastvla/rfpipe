@@ -753,6 +753,35 @@ def _dedisperse_gu(data, delay):
                     data[i, j, k] = data[iprime, j, k]
 
 
+def dedisperse_roll(data, delay):
+    """ Using numpy roll to dedisperse.
+    This avoids trimming data to area with valid delays,
+    which is appropriate for dm-time data generation.
+    TODO: check that -delay is correct way
+    """
+
+    nf, nt = data.shape
+    assert nf == len(delay), "Delay must be same length as data freq axis"
+
+    dataout = np.vstack([np.roll(arr, -delay[i]) for i, arr in enumerate(data)])
+    return dataout
+
+
+def make_dmt(data, dmi, dmf, dmsteps, freqs, inttime):
+    """ Disperse data to a range of dms.
+    Good transients have characteristic shape in dm-time space.
+    """
+
+    from rfpipe import util
+
+    dm_list = np.linspace(dmi, dmf, dmsteps)
+    dmt = np.zeros((dmsteps, data.shape[1]), dtype=np.float32)
+    for ii, dm in enumerate(dm_list):
+        delay = util.calc_delay(freqs, freqs.max(), dm, inttime)
+        dmt[ii, :] = dedisperse_roll(data, delay).sum(axis=0)
+    return dmt
+
+
 def resample(data, dt, parallel=False):
     """ Resample (integrate) by factor dt and return new data structure
     wraps _resample to add logging.

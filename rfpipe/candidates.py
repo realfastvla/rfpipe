@@ -17,11 +17,13 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from rfpipe import version, fileLock
 from bokeh.plotting import ColumnDataSource, Figure, save, output_file
-import scipy.stats.mstats as mstats
+from scipy.stats import mstats
+from scipy import signal
 from bokeh.models import HoverTool
 from bokeh.models import Row
 from collections import OrderedDict
 import hdbscan
+from skimage.transform import resize
 
 import logging
 logger = logging.getLogger(__name__)
@@ -736,6 +738,109 @@ def save_cands(st, candcollection=None, canddata=None):
                     pickle.dump(candcollection, pkl)
         else:
             logger.info('Not saving candidates.')
+
+
+def pkl_to_h5(pklfile, save_png=True, outdir=None, show=False):
+    """ Read candidate pkl file and save h5 file
+    """
+
+    cds = list(iter_cands(pklfile, select='canddata'))
+    cds_to_h5(cds, save_png, outdir, show)
+
+
+def cds_to_h5(cds, save_png=True, outdir=None, show=False):
+    """ Convert list of canddata objects to h5 file
+    """
+
+    for cd in cds:
+        logging.info('Processing candidate at candloc {0}'.format(cd.loc))
+        if cd.data.any():
+            cd_to_h5(cd, save_png, outdir, show)
+        else:
+            logging.warning('Canddata is empty. Skipping Candidate')
+
+
+def cd_to_h5(cd, save_png=True, outdir=None, show=False):
+    """ Convert a canddaate object to an h5 file.
+    Assumes h5 is for use in fetch.
+    """
+
+    import h5py
+    from rfpipe.search import make_dmt
+
+    dtarr_ind = cd.loc[3]
+    width_m = cd.state.dtarr[dtarr_ind]
+    timewindow = cd.state.prefs.timewindow
+    tsamp = cd.state.inttime*width_m
+    dm = cd.state.dmarr[cd.loc[2]]
+    ft_dedisp = np.flip(np.abs(cd.data[:, :, 0].T) + np.abs(cd.data[:, :, 1].T), axis=0)
+    chan_freqs = np.flip(cd.state.freq*1000)  # from high to low, MHz
+    nf, nt = np.shape(ft_dedisp)
+
+    logging.info('Size of the FT array is ({0}, {1})'.format(nf, nt))
+
+    # If timewindow is not set, then set it to the number of time bins
+    if nt != timewindow:
+        logging.info('Setting timewindow equal to nt = {0}'.format(nt))
+        timewindow = nt
+
+    try:
+        assert nf == len(chan_freqs)
+    except AssertionError as err:
+        logging.exception("Number of frequency channel in data should match the frequency list")
+        raise err
+
+    if dm is not 0:
+        dm_start = 0
+        dm_end = 2*dm
+    else:
+        dm_start = -10
+        dm_end = 10
+
+    logging.info('Generating DM-time for DM range {0:.2f}--{1:.2f} pc/cm3'
+                 .format(dm_start, dm_end))
+    dmt = make_dmt(ft_dedisp, dm_start-dm, dm_end-dm, 256, chan_freqs, tsamp)
+
+    reshaped_ft = resize(ft_dedisp, (256, 256), anti_aliasing=True)
+    reshaped_dmt = resize(dmt, (256, 256), anti_aliasing=True)
+
+    segment, candint, dmind, dtind, beamnum = cd.loc
+    if outdir is not None:
+        fnout = outdir+'cands_{0}_seg{1}-i{2}-dm{3}-dt{4}'.format(cd.state.fileroot, segment, candint, dmind, dtind)
+    else:
+        fnout = 'cands_{0}_seg{1}-i{2}-dm{3}-dt{4}'.format(cd.state.fileroot, segment, candint, dmind, dtind)
+
+    with h5py.File(fnout+'.h5', 'w') as f:
+        freq_time_dset = f.create_dataset('data_freq_time', data=reshaped_ft)
+        freq_time_dset.dims[0].label = b"time"
+        freq_time_dset.dims[1].label = b"frequency"
+
+        dm_time_dset = f.create_dataset('data_dm_time', data=reshaped_dmt)
+        dm_time_dset.dims[0].label = b"dm"
+        dm_time_dset.dims[1].label = b"time"
+
+    logging.info('Saved h5 as {0}.h5'.format(fnout))
+
+    if save_png:
+        ts = np.arange(timewindow)*tsamp
+        fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(8, 10), sharex=True)
+        ax[0].imshow(reshaped_ft, aspect='auto',
+                     extent=[ts[0], ts[-1], np.min(chan_freqs),
+                             np.max(chan_freqs)])
+        ax[0].set_ylabel('Freq')
+        ax[0].title.set_text('Dedispersed FT')
+        ax[1].imshow(reshaped_dmt, aspect='auto', extent=[ts[0], ts[-1],
+                                                          dm+1*dm, dm-dm])
+        ax[1].set_ylabel('DM')
+        ax[1].title.set_text('DM-Time')
+        ax[1].set_xlabel('Time (s)')
+        plt.tight_layout()
+        plt.savefig(fnout+'.png')
+        logging.info('Saved png as {0}.png'.format(fnout))
+        if show:
+            plt.show()
+        else:
+            plt.close()
 
 
 def iter_cands(candsfile, select='candcollection'):
