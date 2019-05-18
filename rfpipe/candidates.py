@@ -774,8 +774,8 @@ def cd_to_fetch(cd, classify=True, save_h5=False, save_png=False, outdir=None, s
     timewindow = cd.state.prefs.timewindow
     tsamp = cd.state.inttime*width_m
     dm = cd.state.dmarr[cd.loc[2]]
-    ft_dedisp = np.flip(np.abs(cd.data[:, :, 0].T) + np.abs(cd.data[:, :, 1].T), axis=0)
-    chan_freqs = np.flip(cd.state.freq*1000)  # from high to low, MHz
+    ft_dedisp = np.flip(np.abs(cd.data.sum(axis=2).T), axis=0)
+    chan_freqs = np.flip(cd.state.freq*1000, axis=0)  # from high to low, MHz
     nf, nt = np.shape(ft_dedisp)
 
     logging.info('Size of the FT array is ({0}, {1})'.format(nf, nt))
