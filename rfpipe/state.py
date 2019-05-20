@@ -936,7 +936,7 @@ class State(object):
     def chunksize(self):
         toGB = 8/1000**3   # number of complex64s to GB
 
-        if self.prefs.maximmem is not None:
+        if self.prefs.maximmem is not None and self.prefs.fftmode == 'fftw':
             return min(max(1,
                            int(self.prefs.maximmem/(self.npixx*self.npixy*toGB))),
                        self.readints)
