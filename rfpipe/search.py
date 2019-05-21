@@ -186,6 +186,18 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
     logger.info("First pass found {0} candidates in seg {1}."
                 .format(len(cc), segment))
 
+    # check whether too many candidates
+    if st.prefs.max_candfrac:
+        total_integrations = 0
+        for dtind in range(len(st.dtarr)):
+            for dmind in range(len(st.dmarr)):
+                total_integrations += st.get_search_ints(segment, dmind, dtind)
+        if len(cc)/total_integrations > st.prefs.max_candfrac:
+            logger.warn("Too many candidates ({0} in {1} images). Zeroing."
+                        .format(len(cc), total_integrations))
+            cc = candidates.CandCollection(prefs=st.prefs,
+                                           metadata=st.metadata)
+
     if st.prefs.clustercands:
         cc = candidates.cluster_candidates(cc)
 
@@ -459,6 +471,18 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
     cc = candidates.make_candcollection(st, **canddict)
     logger.info("First pass found {0} candidates in seg {1}."
                 .format(len(cc), segment))
+
+    # check whether too many candidates
+    if st.prefs.max_candfrac:
+        total_integrations = 0
+        for dtind in range(len(st.dtarr)):
+            for dmind in range(len(st.dmarr)):
+                total_integrations += st.get_search_ints(segment, dmind, dtind)
+        if len(cc)/total_integrations > st.prefs.max_candfrac:
+            logger.warn("Too many candidates ({0} in {1} trials). Zeroing."
+                        .format(len(cc), total_integrations))
+            cc = candidates.CandCollection(prefs=st.prefs,
+                                           metadata=st.metadata)
 
     # cluster candidates
     if st.prefs.clustercands:
