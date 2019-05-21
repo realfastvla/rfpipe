@@ -248,6 +248,9 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
 
 def calc_noise(st, segment, data, chunk=500):
     """ Calculate the noise properties of the data.
+    Noise measurement defined as a tuple:
+    (startmjd, delta_mjd, segment, imid, noiseperbl,
+    zerofrac, imstd).
     """
 
     from rfpipe.search import grid_image
@@ -265,7 +268,8 @@ def calc_noise(st, segment, data, chunk=500):
             imstd = grid_image(data, uvw, st.npixx, st.npixy, st.uvres,
                                'fftw', 1, integrations=imid).std()
             zerofrac = float(len(np.where(data[r0:r1] == 0j)[0]))/data[r0:r1].size
-            results.append((segment, imid, noiseperbl, zerofrac, imstd))
+            startmjd, endmjd = st.segmenttimes[segment]
+            results.append((startmjd, stopmjd-startmjd, segment, imid, noiseperbl, zerofrac, imstd))
 
     return results
 
