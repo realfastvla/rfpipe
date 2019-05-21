@@ -205,7 +205,7 @@ class CandCollection(object):
         """ Removes locs with integration < 0, which is a flag
         """
 
-        goodlocs = [loc for loc in self.locs if loc[1] > 0]
+        goodlocs = [loc for loc in self.locs if loc[1] >= 0]
         return len(goodlocs)
 
     def __add__(self, cc):
@@ -214,7 +214,8 @@ class CandCollection(object):
         Adding empty cc ok, too.
         """
 
-        later = self
+        later = CandCollection(prefs=self.prefs, metadata=self.metadata,
+                               array=self.array.copy())
         # TODO: update to allow different simulated_transient fields that get added into single list
         assert self.prefs.name == cc.prefs.name, "Cannot add collections with different preference name/hash"
         assert self.state.dmarr == cc.state.dmarr,  "Cannot add collections with different dmarr"
@@ -228,11 +229,12 @@ class CandCollection(object):
             if self.state.nsegment > cc.state.nsegment:
                 assert self.metadata.starttime_mjd == cc.metadata.starttime_mjd, "OTF segments should have same start time"
                 assert (self.state.segmenttimes[:cc.state.nsegment] == cc.state.segmenttimes).all(),  "OTF segments should have shared segmenttimes"
-                later = self
+
             elif self.state.nsegment < cc.state.nsegment:
                 assert self.metadata.starttime_mjd == cc.metadata.starttime_mjd, "OTF segments should have same start time"
                 assert (self.state.segmenttimes == cc.state.segmenttimes[:self.state.nsegment]).all(),  "OTF segments should have shared segmenttimes"
-                later = cc
+                later = CandCollection(prefs=cc.prefs, metadata=cc.metadata,
+                                       array=cc.array.copy())
 
         # combine candidate arrays
         if len(later.array) and len(cc.array):

@@ -198,7 +198,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                            .format(len(cc), total_integrations))
             cc = candidates.make_candcollection(st,
                                                 candloc=[(0, -1, 0, 0, 0)],
-                                                ncands=len(cc))
+                                                ncands=[len(cc)])
 
     if st.prefs.clustercands:
         cc = candidates.cluster_candidates(cc)
@@ -486,7 +486,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
                            .format(len(cc), total_integrations))
             cc = candidates.make_candcollection(st,
                                                 candloc=[(0, -1, 0, 0, 0)],
-                                                ncands=len(cc))
+                                                ncands=[len(cc)])
 
     # cluster candidates
     if st.prefs.clustercands:

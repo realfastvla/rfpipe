@@ -27,13 +27,27 @@ def data(st):
 
 def test_prepsearch(st, data):
     segment = 0
-    data[:,:,10:12] = 0j  # test zeroed channels
+    data[:, :, 10:12] = 0j  # test zeroed channels
     cc = rfpipe.pipeline.prep_and_search(st, segment, data)
+    assert len(cc) == 0
+
+
+def test_excess(st, data):
+    segment = 0
+    st.prefs.max_candfrac = 0.01
+    data += 1.
+    cc = rfpipe.pipeline.prep_and_search(st, segment, data)
+    st.prefs.max_candfrac = 0.2
+    assert len(cc) == 0
+
 
 def test_nosearch(st, data):
     segment = 0
     st.prefs.searchtype = None
     cc = rfpipe.pipeline.prep_and_search(st, segment, data)
+    st.prefs.searchtype = 'imagek'
+    assert len(cc) == 0
+
 
 def test_dm_singlemulti(st, data):
     dm = 100
