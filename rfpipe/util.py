@@ -269,7 +269,7 @@ def calc_noise(st, segment, data, chunk=500):
                                'fftw', 1, integrations=imid).std()
             zerofrac = float(len(np.where(data[r0:r1] == 0j)[0]))/data[r0:r1].size
             startmjd, endmjd = st.segmenttimes[segment]
-            results.append((startmjd, stopmjd-startmjd, segment, imid, noiseperbl, zerofrac, imstd))
+            results.append((startmjd, endmjd-startmjd, segment, imid, noiseperbl, zerofrac, imstd))
 
     return results
 

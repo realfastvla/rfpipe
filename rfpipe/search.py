@@ -191,9 +191,9 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
         total_integrations = 0
         for dtind in range(len(st.dtarr)):
             for dmind in range(len(st.dmarr)):
-                total_integrations += st.get_search_ints(segment, dmind, dtind)
+                total_integrations += len(st.get_search_ints(segment, dmind, dtind))
         if len(cc)/total_integrations > st.prefs.max_candfrac:
-            logger.warn("Too many candidates ({0} in {1} images). Zeroing."
+            logger.warning("Too many candidates ({0} in {1} images). Zeroing."
                         .format(len(cc), total_integrations))
             cc = candidates.CandCollection(prefs=st.prefs,
                                            metadata=st.metadata)
@@ -477,9 +477,9 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
         total_integrations = 0
         for dtind in range(len(st.dtarr)):
             for dmind in range(len(st.dmarr)):
-                total_integrations += st.get_search_ints(segment, dmind, dtind)
+                total_integrations += len(st.get_search_ints(segment, dmind, dtind))
         if len(cc)/total_integrations > st.prefs.max_candfrac:
-            logger.warn("Too many candidates ({0} in {1} trials). Zeroing."
+            logger.warning("Too many candidates ({0} in {1} trials). Zeroing."
                         .format(len(cc), total_integrations))
             cc = candidates.CandCollection(prefs=st.prefs,
                                            metadata=st.metadata)
