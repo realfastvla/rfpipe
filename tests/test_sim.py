@@ -13,7 +13,7 @@ tparams = [(0, 0, 0, 5e-3, 0.3, 0.0001, 0.0),]
 inprefs = [({'flaglist': [], 'chans': list(range(32)),
              'spw': [0], 'savecandcollection': True, 'savenoise': True,
              'fftmode': 'fftw', 'searchtype': 'imagek'}, 1),
-           ({'simulated_transient': tparams, 'dmarr': [0,1,2], 'dtarr': [1,2],
+           ({'simulated_transient': tparams, 'dmarr': [0, 1, 2], 'dtarr': [1, 2],
              'savecanddata': True, 'savenoise': True, 'saveplots': True,
              'timesub': None, 'fftmode': 'fftw', 'searchtype': 'imagek',
              'sigma_image1': 10, 'sigma_kalman': 1,

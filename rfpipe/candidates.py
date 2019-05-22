@@ -202,7 +202,11 @@ class CandCollection(object):
             return ('CandCollection with {0} rows'.format(len(self.array)))
 
     def __len__(self):
-        return len(self.array)
+        """ Removes locs with integration < 0, which is a flag
+        """
+
+        goodlocs = [loc for loc in self.locs if loc[1] >= 0]
+        return len(goodlocs)
 
     def __add__(self, cc):
         """ Allow candcollections to be added within a given scan.
@@ -210,7 +214,8 @@ class CandCollection(object):
         Adding empty cc ok, too.
         """
 
-        later = self
+        later = CandCollection(prefs=self.prefs, metadata=self.metadata,
+                               array=self.array.copy())
         # TODO: update to allow different simulated_transient fields that get added into single list
         assert self.prefs.name == cc.prefs.name, "Cannot add collections with different preference name/hash"
         assert self.state.dmarr == cc.state.dmarr,  "Cannot add collections with different dmarr"
@@ -224,17 +229,18 @@ class CandCollection(object):
             if self.state.nsegment > cc.state.nsegment:
                 assert self.metadata.starttime_mjd == cc.metadata.starttime_mjd, "OTF segments should have same start time"
                 assert (self.state.segmenttimes[:cc.state.nsegment] == cc.state.segmenttimes).all(),  "OTF segments should have shared segmenttimes"
-                later = self
+
             elif self.state.nsegment < cc.state.nsegment:
                 assert self.metadata.starttime_mjd == cc.metadata.starttime_mjd, "OTF segments should have same start time"
                 assert (self.state.segmenttimes == cc.state.segmenttimes[:self.state.nsegment]).all(),  "OTF segments should have shared segmenttimes"
-                later = cc
+                later = CandCollection(prefs=cc.prefs, metadata=cc.metadata,
+                                       array=cc.array.copy())
 
         # combine candidate arrays
-        if len(later) and len(cc):
-            later.array = np.concatenate((later.array, cc.array))
-        elif not len(later) and len(cc):
-            later.array = cc.array
+        if len(later.array) and len(cc.array):
+            later.array = np.concatenate((later.array.copy(), cc.array.copy()))
+        elif not len(later.array) and len(cc.array):
+            later.array = cc.array.copy()
 
         # combine prefs simulated_transient
         later.prefs.simulated_transient = later.prefs.simulated_transient or cc.prefs.simulated_transient
@@ -599,7 +605,7 @@ def cluster_candidates(cc, downsample_xy=1, returnclusterer=False, label_unclust
                 return cc1
         else:
             logger.warning("No clustering. prefs.clustercands value not valid: {0}."
-                        .format(cc1.prefs.clustercands))
+                           .format(cc1.prefs.clustercands))
             return cc1
 
         logger.info("Clustering parameters set to ({0},{1}) and downsampling in xy by {2}."
