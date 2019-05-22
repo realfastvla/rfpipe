@@ -759,8 +759,12 @@ def cds_to_h5(cds, save_png=True, outdir=None, show=False):
         else:
             logger.warning('Canddata is empty. Skipping Candidate')
 
+fetchmodel = None
+tfgraph = None
 
-def cd_to_fetch(cd, classify=True, save_h5=False, save_png=False, outdir=None, show=False, f_size = 256, t_size=256, dm_size=256):
+
+def cd_to_fetch(cd, classify=True, save_h5=False, save_png=False, outdir=None,
+                show=False, f_size = 256, t_size=256, dm_size=256):
     """ Read canddata object for classification in fetch.
     Optionally save png or h5.
     """
@@ -799,7 +803,7 @@ def cd_to_fetch(cd, classify=True, save_h5=False, save_png=False, outdir=None, s
         dm_end = 10
 
     logger.info('Generating DM-time for DM range {0:.2f}--{1:.2f} pc/cm3'
-                 .format(dm_start, dm_end))
+                .format(dm_start, dm_end))
     # note that dmt range assuming data already dispersed to dm
     dmt = make_dmt(ft_dedisp, dm_start-dm, dm_end-dm, 256, chan_freqs, tsamp)
 
@@ -859,19 +863,26 @@ def cd_to_fetch(cd, classify=True, save_h5=False, save_png=False, outdir=None, s
         else:
             plt.close()
 
+    cand = prepare_to_classify(reshaped_ft, reshaped_dmt)
+
     if classify:
         from fetch.utils import get_model
         import tensorflow as tf
+        global fetchmodel
+        global tfgraph
 
-        model = get_model('a')
-        graph = tf.get_default_graph()
-        cand = prepare_to_classify(reshaped_ft, reshaped_dmt)
-        with graph.as_default():
-            preds = model.predict(cand).tolist()
+        if fetchmodel is None and tfgraph is None:
+            fetchmodel = get_model('a')
+            tfgraph = tf.get_default_graph()
+
+        with tfgraph.as_default():
+            preds = fetchmodel.predict(cand).tolist()
             logger.info("FRB probability {0}".format(preds[0][1]))
 
+    return cand, preds[0][1]
 
-def pad_along_axis(array: np.ndarray, target_length, loc='end', axis=0, **kwargs):
+
+def pad_along_axis(array, target_length, loc='end', axis=0, **kwargs):
     """
     :param array: Input array to pad
     :param target_length: Required length of the axis
@@ -879,6 +890,7 @@ def pad_along_axis(array: np.ndarray, target_length, loc='end', axis=0, **kwargs
     :param axis: Axis to pad along
     :return:
     """
+
     pad_size = target_length - array.shape[axis]
     axis_nb = len(array.shape)
 
@@ -892,12 +904,13 @@ def pad_along_axis(array: np.ndarray, target_length, loc='end', axis=0, **kwargs
     elif loc == 'end':
         npad[axis] = (0, pad_size)
     else:
-        if pad_size%2 == 0:
+        if pad_size % 2 == 0:
             npad[axis] = (pad_size // 2, pad_size // 2)
         else:
             npad[axis] = (pad_size // 2, pad_size // 2 + 1)
 
     return np.pad(array, pad_width=npad, **kwargs)
+
 
 def crop(data, start_sample, length, axis):
     """
@@ -907,6 +920,7 @@ def crop(data, start_sample, length, axis):
     :param axis: Axis to crop
     :return:
     """
+
     if data.shape[axis] > start_sample + length:
         if axis:
             return data[:, start_sample:start_sample + length]
@@ -916,6 +930,7 @@ def crop(data, start_sample, length, axis):
         return data
     else:
         raise OverflowError('Specified length exceeds the size of data')
+
 
 def prepare_to_classify(ft, dmt):
     """ Data prep and packaging for input to fetch.
