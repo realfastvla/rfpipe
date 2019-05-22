@@ -752,15 +752,15 @@ def cds_to_h5(cds, save_png=True, outdir=None, show=False):
     """
 
     for cd in cds:
-        logging.info('Processing candidate at candloc {0}'.format(cd.loc))
+        logger.info('Processing candidate at candloc {0}'.format(cd.loc))
         if cd.data.any():
             cd_to_fetch(cd, save_h5=True, save_png=save_png, outdir=outdir,
                         show=show)
         else:
-            logging.warning('Canddata is empty. Skipping Candidate')
+            logger.warning('Canddata is empty. Skipping Candidate')
 
 
-def cd_to_fetch(cd, classify=True, save_h5=False, save_png=False, outdir=None, show=False):
+def cd_to_fetch(cd, classify=True, save_h5=False, save_png=False, outdir=None, show=False, f_size = 256, t_size=256, dm_size=256):
     """ Read canddata object for classification in fetch.
     Optionally save png or h5.
     """
@@ -778,17 +778,17 @@ def cd_to_fetch(cd, classify=True, save_h5=False, save_png=False, outdir=None, s
     chan_freqs = np.flip(cd.state.freq*1000, axis=0)  # from high to low, MHz
     nf, nt = np.shape(ft_dedisp)
 
-    logging.info('Size of the FT array is ({0}, {1})'.format(nf, nt))
+    logger.info('Size of the FT array is ({0}, {1})'.format(nf, nt))
 
     # If timewindow is not set, then set it to the number of time bins
     if nt != timewindow:
-        logging.info('Setting timewindow equal to nt = {0}'.format(nt))
+        logger.info('Setting timewindow equal to nt = {0}'.format(nt))
         timewindow = nt
 
     try:
         assert nf == len(chan_freqs)
     except AssertionError as err:
-        logging.exception("Number of frequency channel in data should match the frequency list")
+        logger.exception("Number of frequency channel in data should match the frequency list")
         raise err
 
     if dm is not 0:
@@ -798,13 +798,24 @@ def cd_to_fetch(cd, classify=True, save_h5=False, save_png=False, outdir=None, s
         dm_start = -10
         dm_end = 10
 
-    logging.info('Generating DM-time for DM range {0:.2f}--{1:.2f} pc/cm3'
+    logger.info('Generating DM-time for DM range {0:.2f}--{1:.2f} pc/cm3'
                  .format(dm_start, dm_end))
     # note that dmt range assuming data already dispersed to dm
     dmt = make_dmt(ft_dedisp, dm_start-dm, dm_end-dm, 256, chan_freqs, tsamp)
 
-    reshaped_ft = resize(ft_dedisp, (256, 256), anti_aliasing=True)
-    reshaped_dmt = resize(dmt, (256, 256), anti_aliasing=True)
+    reshaped_ft = resize(ft_dedisp, (f_size, nt), anti_aliasing=True)
+
+    if nt == t_size:
+        reshaped_dmt = dmt
+    elif nt > t_size:
+        reshaped_dmt = resize(dmt, (dm_size, t_size), anti_aliasing=True)
+        reshaped_ft = resize(reshaped_ft, (f_size, t_size), anti_aliasing=True)
+    else:
+        reshaped_ft = pad_along_axis(reshaped_ft, target_length=t_size, loc='both', axis=1, mode='median')
+        reshaped_dmt = pad_along_axis(dmt, target_length=t_size, loc='both', axis=1, mode='median')
+
+    logger.info('FT reshaped to {0}'.format(reshaped_ft.shape))
+    logger.info('DMT reshaped to {0}'.format(reshaped_dmt.shape))
 
     segment, candint, dmind, dtind, beamnum = cd.loc
     if outdir is not None:
@@ -822,10 +833,13 @@ def cd_to_fetch(cd, classify=True, save_h5=False, save_png=False, outdir=None, s
             dm_time_dset.dims[0].label = b"dm"
             dm_time_dset.dims[1].label = b"time"
 
-        logging.info('Saved h5 as {0}.h5'.format(fnout))
+        logger.info('Saved h5 as {0}.h5'.format(fnout))
 
     if save_png:
-        ts = np.arange(timewindow)*tsamp
+        if nt > t_size:
+            ts = np.arange(timewindow)*tsamp
+        else:
+            ts = np.arange(t_size)*tsamp
         fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(8, 10), sharex=True)
         ax[0].imshow(reshaped_ft, aspect='auto',
                      extent=[ts[0], ts[-1], np.min(chan_freqs),
@@ -839,7 +853,7 @@ def cd_to_fetch(cd, classify=True, save_h5=False, save_png=False, outdir=None, s
         ax[1].set_xlabel('Time (s)')
         plt.tight_layout()
         plt.savefig(fnout+'.png')
-        logging.info('Saved png as {0}.png'.format(fnout))
+        logger.info('Saved png as {0}.png'.format(fnout))
         if show:
             plt.show()
         else:
@@ -856,6 +870,52 @@ def cd_to_fetch(cd, classify=True, save_h5=False, save_png=False, outdir=None, s
             preds = model.predict(cand).tolist()
             logger.info("FRB probability {0}".format(preds[0][1]))
 
+
+def pad_along_axis(array: np.ndarray, target_length, loc='end', axis=0, **kwargs):
+    """
+    :param array: Input array to pad
+    :param target_length: Required length of the axis
+    :param loc: Location to pad: start: pad in beginning, end: pad in end, else: pad equally on both sides
+    :param axis: Axis to pad along
+    :return:
+    """
+    pad_size = target_length - array.shape[axis]
+    axis_nb = len(array.shape)
+
+    if pad_size < 0:
+        return array
+
+    npad = [(0, 0) for x in range(axis_nb)]
+
+    if loc == 'start':
+        npad[axis] = (pad_size, 0)
+    elif loc == 'end':
+        npad[axis] = (0, pad_size)
+    else:
+        if pad_size%2 == 0:
+            npad[axis] = (pad_size // 2, pad_size // 2)
+        else:
+            npad[axis] = (pad_size // 2, pad_size // 2 + 1)
+
+    return np.pad(array, pad_width=npad, **kwargs)
+
+def crop(data, start_sample, length, axis):
+    """
+    :param data: Data array to crop
+    :param start_sample: Sample to start the output cropped array
+    :param length: Final Length along the axis of the output
+    :param axis: Axis to crop
+    :return:
+    """
+    if data.shape[axis] > start_sample + length:
+        if axis:
+            return data[:, start_sample:start_sample + length]
+        else:
+            return data[start_sample:start_sample + length, :]
+    elif data.shape[axis] == length:
+        return data
+    else:
+        raise OverflowError('Specified length exceeds the size of data')
 
 def prepare_to_classify(ft, dmt):
     """ Data prep and packaging for input to fetch.
@@ -878,7 +938,7 @@ def prepare_to_classify(ft, dmt):
     X = X.copy(order='C')
     Y = Y.copy(order='C')
 
-    payload = {"data_freq_time": X.tolist(), "data_dm_time": Y.tolist()}
+    payload = {"data_freq_time": X, "data_dm_time": Y}
     return payload
 
 
