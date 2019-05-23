@@ -805,7 +805,7 @@ def cd_to_fetch(cd, classify=True, save_h5=False, save_png=False, outdir=None,
     logger.info('Generating DM-time for DM range {0:.2f}--{1:.2f} pc/cm3'
                 .format(dm_start, dm_end))
     # note that dmt range assuming data already dispersed to dm
-    dmt = make_dmt(ft_dedisp, dm_start-dm, dm_end-dm, 256, chan_freqs, tsamp)
+    dmt = make_dmt(ft_dedisp, dm_start-dm, dm_end-dm, 256, chan_freqs/1000, tsamp)
 
     reshaped_ft = resize(ft_dedisp, (f_size, nt), anti_aliasing=True)
 
