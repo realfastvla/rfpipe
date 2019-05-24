@@ -1710,7 +1710,7 @@ def make_voevent(candcollection):
         FRB_NAME = 'FRB'+FRB_YY+FRB_MM+FRB_DD + FRB_ISOT_UTHH
         
         #set filename to FRB_NAME + '_detection.xml'
-        outname = os.path.join(st.prefs.workdir,FRB_NAME+'_detection_CC.xml')
+        outname = os.path.join(st.prefs.workdir,FRB_NAME+'_detection.xml')
         
         try:
             #write VOEvent file
@@ -1718,22 +1718,24 @@ def make_voevent(candcollection):
             VOEvent_of = open(outname,'w')
             #header
             VOEvent_of.write("<?xml version='1.0' encoding='UTF-8'?>"+'\n')
-            VOEvent_of.write('<voe:VOEvent xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:voe="http://www.ivoa.net/xml/VOEvent/v2.0" xsi:schemaLocation="http://www.ivoa.net/xml/VOEvent/v2.0 http://www.ivoa.net/xml/VOEvent/VOEvent-v2.0.xsd" version="2.0" role="test" ivorn="ivo://io.realfast/realfast#'+FRB_NAME+'/'+str(FRB_obsmjd)+'">'+'\n')
+            VOEvent_of.write('<voe:VOEvent xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:voe="http://www.ivoa.net/xml/VOEvent/v2.0" xsi:schemaLocation="http://www.ivoa.net/xml/VOEvent/v2.0 http://www.ivoa.net/xml/VOEvent/VOEvent-v2.0.xsd" version="2.0" role="test" ivorn="ivo://realfast.io/realfast#'+FRB_NAME+'/'+str(FRB_obsmjd)+'">'+'\n')
             #WHO
             VOEvent_of.write('\t'+'<Who>'+'\n')
-            VOEvent_of.write('\t\t'+'<AuthorIVORN>ivo://io.realfast/contact</AuthorIVORN>'+'\n')
+            VOEvent_of.write('\t\t'+'<AuthorIVORN>ivo://realfast.io/contact</AuthorIVORN>'+'\n')
             VOEvent_of.write('\t\t'+'<Date>'+FRB_ISOT+'</Date>\n')
             VOEvent_of.write('\t\t'+'<Author><contactEmail>claw@astro.berkeley.edu</contactEmail><contactName>Casey Law</contactName></Author>\n')
             VOEvent_of.write('\t</Who>\n')
             #What
             VOEvent_of.write('\t<What>\n')
+            VOEvent_of.write('\t\tParam name="AlertType" dataType="string" value="Preliminary">\n')
+            VOEvent_of.write('\t\t</Param>\n')
             VOEvent_of.write('\t\t<Group name="observatory parameters">\n')
             VOEvent_of.write('\t\t\t<Param dataType="float" name="beam_semi-major_axis" ucd="instr.beam;pos.errorEllipse;phys.angSize.smajAxis" unit="SS" value="'+str(beam_semimaj)+'"/>\n')
             VOEvent_of.write('\t\t\t<Param dataType="float" name="beam_semi-minor_axis" ucd="instr.beam;pos.errorEllipse;phys.angSize.sminAxis" unit="SS" value="'+str(beam_semimin)+'"/>\n')
             VOEvent_of.write('\t\t\t<Param dataType="float" name="beam_rotation_angle" ucd="instr.beam;pos.errorEllipse;instr.offset" unit="Degrees" value="'+str(beam_rot_ang)+'"/>\n')
             VOEvent_of.write('\t\t\t<Param dataType="float" name="sampling_time" ucd="time.resolution" unit="ms" value="'+str(samp_time)+'"/>\n')
             VOEvent_of.write('\t\t\t<Param dataType="float" name="bandwidth" ucd="instr.bandwidth" unit="MHz" value="'+str(band_width)+'"/>\n')
-            VOEvent_of.write('\t\t\t<Param dataType="float" name="nchan" ucd="meta.number;em.freq;em.bin" unit="None" value="'+str(num_chan)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="int" name="nchan" ucd="meta.number;em.freq;em.bin" unit="None" value="'+str(num_chan)+'"/>\n')
             VOEvent_of.write('\t\t\t<Param dataType="float" name="centre_frequency" ucd="em.freq;instr" unit="MHz" value="'+str(center_freq)+'"/>\n')
             VOEvent_of.write('\t\t\t<Param dataType="int" name="npol" unit="None" value="'+str(num_pol)+'"/>\n')
             VOEvent_of.write('\t\t\t<Param dataType="int" name="bits_per_sample" unit="None" value="'+str(bits_per_sample)+'"/>\n')
@@ -1746,7 +1748,7 @@ def make_voevent(candcollection):
             VOEvent_of.write('\t\t\t<Param dataType="float" name="dm" ucd="phys.dispMeasure;em.radio.'+str(int(np.floor(st.freq.min())))+'000-'+str(int(np.ceil(st.freq.max())))+'000MHz" unit="pc/cm^3" value="'+str(FRB_DM)+'"/>\n')
             VOEvent_of.write('\t\t\t<Param dataType="float" name="dm_error" ucd="stat.error;phys.dispMeasure" unit="pc/cm^3" value="'+str(int(np.ceil(FRB_DM_err)))+'"/>\n')
             VOEvent_of.write('\t\t\t<Param dataType="float" name="width" ucd="time.duration;src.var.pulse" unit="ms" value="'+str(FRB_width)+'"/>\n')
-            VOEvent_of.write('\t\t\t<Param dataType="float" name="snr" ucd="stat.snr" value="'+str(FRB_SNR)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="snr" ucd="stat.snr" unit="None" value="'+str(FRB_SNR)+'"/>\n')
             #VOEvent_of.write('\t\t\t<Param dataType="float" name="flux" ucd="phot.flux" unit="Jy" value="'+str(FRB_flux)+'"/>\n') #FOR NOW: do not report flux density.  We do not have good enough absolute flux density calibration
             VOEvent_of.write('\t\t\t<Param dataType="float" name="gl" ucd="pos.galactic.lon" unit="Degrees" value="'+str(FRB_gl)+'"/>\n')
             VOEvent_of.write('\t\t\t<Param dataType="float" name="gb" ucd="pos.galactic.lat" unit="Degrees" value="'+str(FRB_gb)+'"/>\n')
@@ -1781,6 +1783,8 @@ def make_voevent(candcollection):
             VOEvent_of.write('\t</WhereWhen>\n')
             #How
             VOEvent_of.write('\t<How>\n')
+            VOEvent_of.write('\t\t<Description>Discovered by realfast</Description>')
+            VOEvent_of.write('\t\t<Reference uri="http://realfast.io"/>')
             VOEvent_of.write('\t\t</How>\n')
             #Why
             VOEvent_of.write('\t<Why importance="'+str(FRB_importance)+'">\n')
