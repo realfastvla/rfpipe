@@ -71,12 +71,12 @@ def prep_and_search(st, segment, data, devicenum=None, returnsoltime=False):
     if st.prefs.savecanddata or st.prefs.savecandcollection or st.prefs.saveplots:
         spec_std, sig_ts, kalman_coeffs = util.kalman_prep(data)
 
-        cc = search.reproduce_candcollection(candcollection, data,
-                                             spec_std=spec_std,
-                                             sig_ts=sig_ts,
-                                             kalman_coeffs=kalman_coeffs)
+        candcollection = search.reproduce_candcollection(candcollection, data,
+                                                         spec_std=spec_std,
+                                                         sig_ts=sig_ts,
+                                                         kalman_coeffs=kalman_coeffs)
 
-    candidates.save_cands(st, candcollection=cc)
+    candidates.save_cands(st, candcollection=candcollection)
 
     candcollection.soltime = soltime
     return candcollection
