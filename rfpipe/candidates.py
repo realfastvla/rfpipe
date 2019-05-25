@@ -484,6 +484,17 @@ def save_and_plot(canddatalist):
     return candcollection
 
 
+def classify_cd(cd):
+    """ Run fetch on canddata using realfast
+    """
+
+    try:
+        from realfast.util import classify_cd
+        classify_cd(cd)
+    except (ImportError, Exception):
+        logger.warning("No mcaf antenna flag server flags available")
+
+
 def canddata_feature(canddata, feature):
     """ Calculate a feature (or candloc) from a canddata instance.
     feature must be name from st.features or 'candloc'.
@@ -754,8 +765,8 @@ def cds_to_h5(cds, save_png=True, outdir=None, show=False):
     for cd in cds:
         logger.info('Processing candidate at candloc {0}'.format(cd.loc))
         if cd.data.any():
-            cd_to_fetch(cd, save_h5=True, save_png=save_png, outdir=outdir,
-                        show=show)
+            cand = cd_to_fetch(cd, classify=False, save_h5=True, save_png=save_png,
+                               outdir=outdir, show=show)
         else:
             logger.warning('Canddata is empty. Skipping Candidate')
 
@@ -879,7 +890,9 @@ def cd_to_fetch(cd, classify=True, save_h5=False, save_png=False, outdir=None,
             preds = fetchmodel.predict(cand).tolist()
             logger.info("FRB probability {0}".format(preds[0][1]))
 
-    return cand, preds[0][1]
+        return preds[0][1]
+    else:
+        return cand
 
 
 def pad_along_axis(array, target_length, loc='end', axis=0, **kwargs):
