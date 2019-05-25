@@ -484,17 +484,6 @@ def save_and_plot(canddatalist):
     return candcollection
 
 
-def classify_cd(cd):
-    """ Run fetch on canddata using realfast
-    """
-
-    try:
-        from realfast.util import classify_cd
-        classify_cd(cd)
-    except (ImportError, Exception):
-        logger.warning("No mcaf antenna flag server flags available")
-
-
 def canddata_feature(canddata, feature):
     """ Calculate a feature (or candloc) from a canddata instance.
     feature must be name from st.features or 'candloc'.

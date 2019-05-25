@@ -246,6 +246,30 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
     return u, v, w
 
 
+def kalman_prep(data):
+    """ Use prepared data to calculate noise
+    and kalman coeffs as input to kalman_significance function.
+    """
+
+    from kalman_detector import kalman_prepare_coeffs
+
+    if data.shape[0] > 1:
+        spec_std = data.real.mean(axis=3).mean(axis=1).std(axis=0)
+    else:
+        spec_std = data[0].real.mean(axis=2).std(axis=0)
+
+    if not np.any(spec_std):
+        logger.warning("spectrum std all zeros. Not estimating coeffs.")
+        kalman_coeffs = []
+    else:
+        sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
+
+    if not np.all(np.nan_to_num(sig_ts)):
+        kalman_coeffs = []
+
+    return spec_std, sig_ts, kalman_coeffs
+
+
 def calc_noise(st, segment, data, chunk=500):
     """ Calculate the noise properties of the data.
     """
