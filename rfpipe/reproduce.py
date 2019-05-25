@@ -91,6 +91,7 @@ def reproduce_candcollection(cc, data, wisdom=None, spec_std=None, sig_ts=None,
             if st.prefs.saveplots:
                 candidates.candplot(cd, snrs=snrs)  # snrs before clustering
 
+            # regenerate cc with extra features in cd
             cc1 += candidates.cd_to_cc(cd)
 
     return cc1
@@ -212,6 +213,7 @@ def pipeline_canddata(st, candloc, data_dmdt=None, cpuonly=False, sig_ts=None,
 def pipeline_candidate(st, candloc, canddata=None):
     """ End-to-end pipeline to reproduce candidate plot and calculate features.
     Can optionally pass in canddata, if available.
+    *TODO: confirm that cc returned by this has clustering and other enhanced features*
     """
 
     from rfpipe import candidates
@@ -221,7 +223,7 @@ def pipeline_candidate(st, candloc, canddata=None):
     if canddata is None:
         canddata = pipeline_canddata(st, candloc)
 
-    candcollection = candidates.save_and_plot(canddata)
+    candcollection = candidates.cd_to_cc(canddata)
 
     return candcollection
 

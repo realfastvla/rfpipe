@@ -419,8 +419,8 @@ class CandCollection(object):
 
 
 def cd_to_cc(canddata):
-    """ Converts canddata into plot and a candcollection.
-    Calculates candidate features from CandData instance(s).
+    """ Converts canddata into plot and a candcollection
+    with added features from CandData instance.
     Returns structured numpy array of candidate features labels defined in
     st.search_dimensions.
     Generates png plot for peak cands, if so defined in preferences.
@@ -435,17 +435,17 @@ def cd_to_cc(canddata):
     # TODO: should this be all features, calcfeatures, searchfeatures?
     featurelists = []
     for feature in st.searchfeatures:
-        featurelists.append(canddata_feature(canddata, feature))
+        featurelists.append([canddata_feature(canddata, feature)])
     kwargs = dict(zip(st.searchfeatures, featurelists))
 
     candlocs = canddata_feature(canddata, 'candloc')
-    kwargs['candloc'] = candlocs
+    kwargs['candloc'] = [candlocs]
 
     if canddata.cluster is not None:
         clusters = canddata_feature(canddata, 'cluster')
-        kwargs['cluster'] = clusters
+        kwargs['cluster'] = [clusters]
         clustersizes = canddata_feature(canddata, 'clustersize')
-        kwargs['clustersize'] = clustersizes
+        kwargs['clustersize'] = [clustersizes]
 
     candcollection = make_candcollection(st, **kwargs)
 
@@ -1406,7 +1406,7 @@ def candplot(canddatalist, snrs=None, outname=''):
                 fontsize='small')
 
         if canddata.cluster is not None:
-            label, size = canddata.cluster
+            label, size = canddata.cluster, canddata.clustersize
             ax.text(left, start-11*space, 'Cluster label: {0}'.format(str(label)),
                     fontname='sans-serif',
                     transform=ax.transAxes, fontsize='small')
