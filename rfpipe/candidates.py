@@ -418,68 +418,36 @@ class CandCollection(object):
         return 'realfast_{0}_{1}'.format(self.state.metadata.datasetId, bdftime)
 
 
-def save_and_plot(canddatalist):
-    """ Converts a canddata list into a plots and a candcollection.
+def cd_to_cc(canddata):
+    """ Converts canddata into plot and a candcollection.
     Calculates candidate features from CandData instance(s).
     Returns structured numpy array of candidate features labels defined in
     st.search_dimensions.
     Generates png plot for peak cands, if so defined in preferences.
     """
 
-    if isinstance(canddatalist, CandData):
-        canddatalist = [canddatalist]
-    elif isinstance(canddatalist, list):
-        if not len(canddatalist):
-            return CandCollection()
-    else:
-        logger.warning("argument must be list of CandData object")
+    assert isinstance(canddata, CandData)
 
-    logger.info('Calculating features for {0} candidate{1}.'
-                .format(len(canddatalist), 's'[not len(canddatalist)-1:]))
+    logger.info('Calculating features for candidate.')
 
-    st = canddatalist[0].state
+    st = canddata.state
 
     # TODO: should this be all features, calcfeatures, searchfeatures?
     featurelists = []
     for feature in st.searchfeatures:
-        ff = []
-        for i, canddata in enumerate(canddatalist):
-            ff.append(canddata_feature(canddata, feature))
-        featurelists.append(ff)
+        featurelists.append(canddata_feature(canddata, feature))
     kwargs = dict(zip(st.searchfeatures, featurelists))
 
-    candlocs = []
-    for i, canddata in enumerate(canddatalist):
-        candlocs.append(canddata_feature(canddata, 'candloc'))
-        kwargs['candloc'] = candlocs
+    candlocs = canddata_feature(canddata, 'candloc')
+    kwargs['candloc'] = candlocs
 
     if canddata.cluster is not None:
-        clusters = []
-        clustersizes = []
-        for i, canddata in enumerate(canddatalist):
-            clusters.append(canddata_feature(canddata, 'cluster'))
-            clustersizes.append(canddata_feature(canddata, 'clustersize'))
+        clusters = canddata_feature(canddata, 'cluster')
         kwargs['cluster'] = clusters
+        clustersizes = canddata_feature(canddata, 'clustersize')
         kwargs['clustersize'] = clustersizes
 
     candcollection = make_candcollection(st, **kwargs)
-
-    if (st.prefs.savecanddata or st.prefs.savecandcollection or st.prefs.saveplots) and len(candcollection):
-        if len(candcollection) > 1:
-            snrs = candcollection.array['snr1'].flatten()
-        elif len(candcollection) == 1:
-            snrs = None
-
-        # save cc and save/plot each canddata
-        for i, canddata in enumerate(canddatalist):
-            if st.prefs.savecanddata:
-                save_cands(st, canddata=canddata)
-            if st.prefs.saveplots:
-                if canddata.cluster is not None:
-                    clustertuple = (clusters[i], clustersizes[i])
-                else:
-                    clustertuple = None
-                candplot(canddata, cluster=clustertuple, snrs=snrs)
 
     return candcollection
 
@@ -1322,13 +1290,12 @@ def calcinds(data, threshold, ignoret=None):
     return inds
 
 
-def candplot(canddatalist, snrs=None, cluster=None, outname=''):
+def candplot(canddatalist, snrs=None, outname=''):
     """ Takes output of search_thresh (CandData objects) to make
     candidate plots.
     Expects pipeline state, candidate location, image, and
     phased, dedispersed data (cut out in time, dual-pol).
     snrs is array for an (optional) SNR histogram plot.
-    cluster allows cluster info to be passed in as (cluster_label, size).
     Written by Bridget Andersen and modified by Casey for rfpipe.
     """
 
@@ -1438,8 +1405,8 @@ def candplot(canddatalist, snrs=None, cluster=None, outname=''):
                 fontname='sans-serif', transform=ax.transAxes,
                 fontsize='small')
 
-        if cluster is not None:
-            label, size = cluster
+        if canddata.cluster is not None:
+            label, size = canddata.cluster
             ax.text(left, start-11*space, 'Cluster label: {0}'.format(str(label)),
                     fontname='sans-serif',
                     transform=ax.transAxes, fontsize='small')

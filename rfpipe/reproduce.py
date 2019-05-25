@@ -86,7 +86,12 @@ def reproduce_candcollection(cc, data, wisdom=None, spec_std=None, sig_ts=None,
 
             cd = pipeline_canddata(st, candloc, data_corr, sig_ts=sig_ts,
                                    kalman_coeffs=kalman_coeffs, **kwargs)
-            cc1 += candidates.save_and_plot(cd)
+            if st.prefs.savecanddata:
+                candidates.save_cands(st, canddata=cd)
+            if st.prefs.saveplots:
+                candidates.candplot(cd, snrs=snrs)  # snrs before clustering
+
+            cc1 += candidates.cd_to_cc(cd)
 
     return cc1
 

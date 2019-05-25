@@ -49,7 +49,7 @@ def prep_and_search(st, segment, data, devicenum=None, returnsoltime=False):
     returnsoltime is option for data_prep to return solution time too.
     """
 
-    from rfpipe import source, search, candidates, util
+    from rfpipe import source, search, util, reproduce, candidates
 
     ret = source.data_prep(st, segment, data, returnsoltime=returnsoltime)
     if returnsoltime:
@@ -69,12 +69,12 @@ def prep_and_search(st, segment, data, devicenum=None, returnsoltime=False):
 
     # calc other features for cc, plot, save
     if st.prefs.savecanddata or st.prefs.savecandcollection or st.prefs.saveplots:
-        spec_std, sig_ts, kalman_coeffs = util.kalman_prep(data)
+        spec_std, sig_ts, kalman_coeffs = util.kalman_prep(data)  # TODO: this is done in search too
 
-        candcollection = search.reproduce_candcollection(candcollection, data,
-                                                         spec_std=spec_std,
-                                                         sig_ts=sig_ts,
-                                                         kalman_coeffs=kalman_coeffs)
+        candcollection = reproduce.reproduce_candcollection(candcollection, data,
+                                                            spec_std=spec_std,
+                                                            sig_ts=sig_ts,
+                                                            kalman_coeffs=kalman_coeffs)
 
     candidates.save_cands(st, candcollection=candcollection)
 
