@@ -68,7 +68,7 @@ def prep_and_search(st, segment, data, devicenum=None, returnsoltime=False):
                        .format(st.prefs.fftmode))
 
     # calc other features for cc, plot, save
-    if st.prefs.savecanddata or st.prefs.savecandcollection or st.prefs.saveplots:
+    if st.prefs.savecanddata or st.prefs.saveplots:
         spec_std, sig_ts, kalman_coeffs = util.kalman_prep(data)  # TODO: this is done in search too
 
         candcollection = reproduce.reproduce_candcollection(candcollection, data,
