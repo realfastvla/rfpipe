@@ -21,7 +21,7 @@ def reproduce_candcollection(cc, data, wisdom=None, spec_std=None, sig_ts=None,
     state.prefs.calcfeatures).
     """
 
-    from rfpipe import candidates
+    from rfpipe import candidates, util
 
     # set up output cc
     st = cc.state
@@ -46,6 +46,12 @@ def reproduce_candcollection(cc, data, wisdom=None, spec_std=None, sig_ts=None,
             calcinds = list(range(len(cc)))
 
         logger.info("Generating canddata for {0} candidates".format(len(calcinds)))
+
+        if ('snrk' in st.features and
+            'snrk' not in cc.array.dtype.fields and
+            (spec_std is None or sig_ts is None or kalman_coeffs is None)):
+            # TODO: use same kalman calc for search as reproduce?
+            spec_std, sig_ts, kalman_coeffs = util.kalman_prep(data)
 
         # reproduce canddata for each
         for i in calcinds:
