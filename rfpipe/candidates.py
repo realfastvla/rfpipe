@@ -192,6 +192,7 @@ class CandCollection(object):
         self.rfpipe_version = version.__version__
         self._state = None
         self.soltime = None
+        self.canddata = []
         # TODO: pass in segmenttimes here to avoid recalculating during search?
 
     def __repr__(self):
@@ -234,8 +235,10 @@ class CandCollection(object):
         # combine candidate arrays
         if len(later) and len(cc):
             later.array = np.concatenate((later.array, cc.array))
+            later.canddata += cc.canddata
         elif not len(later) and len(cc):
             later.array = cc.array
+            later.canddata = cc.canddata
 
         # combine prefs simulated_transient
         later.prefs.simulated_transient = later.prefs.simulated_transient or cc.prefs.simulated_transient
@@ -448,6 +451,9 @@ def cd_to_cc(canddata):
         kwargs['clustersize'] = [clustersizes]
 
     candcollection = make_candcollection(st, **kwargs)
+
+    if st.prefs.returncanddata:
+        candcollection.canddata = [canddata]
 
     return candcollection
 

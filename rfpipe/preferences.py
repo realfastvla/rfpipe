@@ -94,6 +94,7 @@ class Preferences(object):
     savenoise = attr.ib(default=False)
     savecandcollection = attr.ib(default=False)
     savecanddata = attr.ib(default=False)
+    returncanddata = attr.ib(default=False)
     saveplots = attr.ib(default=False)
     savesols = attr.ib(default=False)
     candsfile = attr.ib(default=None)

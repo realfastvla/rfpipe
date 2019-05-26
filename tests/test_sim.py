@@ -15,6 +15,7 @@ inprefs = [({'flaglist': [], 'chans': list(range(32)),
              'fftmode': 'fftw', 'searchtype': 'imagek'}, 1),
            ({'simulated_transient': tparams, 'dmarr': [0,1,2], 'dtarr': [1,2],
              'savecanddata': True, 'savenoise': True, 'saveplots': True,
+             'returncanddata': True,
              'timesub': None, 'fftmode': 'fftw', 'searchtype': 'imagek',
              'sigma_image1': 10, 'sigma_kalman': 1,
              'clustercands': True, 'flaglist': []}, 2),]
@@ -60,6 +61,9 @@ def test_pipelinescan(mockstate):
     if mockstate.prefs.simulated_transient is not None:
         rfpipe.candidates.makesummaryplot(mockstate.candsfile)
     assert cc is not None
+    if mockstate.prefs.returncanddata:
+        assert isinstance(cc.canddata, list)
+        assert len(cc.canddata) == len(cc)
 
 
 def test_phasecenter_detection():
