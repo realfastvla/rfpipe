@@ -68,18 +68,19 @@ def prep_and_search(st, segment, data, devicenum=None, returnsoltime=False):
                        .format(st.prefs.fftmode))
 
     # calc other features for cc, plot, save
-    if st.prefs.savecanddata or st.prefs.saveplots:
-        if st.prefs.searchtype in ['imagek', 'armkimage', 'armk']:
-            spec_std, sig_ts, kalman_coeffs = util.kalman_prep(data)  # TODO: should this be redundant with search too?
-        else:
-            spec_std, sig_ts, kalman_coeffs = None, None, None
+    if ((st.prefs.savecanddata or st.prefs.saveplots or st.prefs.returncanddata) and
+       ('snrk' in st.features) and
+       ('snrk' not in candcollection.array.dtype.fields)):
+        # TODO: use same kalman calc for search as reproduce?
+        spec_std, sig_ts, kalman_coeffs = util.kalman_prep(data)
+    else:
+        spec_std, sig_ts, kalman_coeffs = None, None, None
 
-        candcollection = reproduce.reproduce_candcollection(candcollection, data,
-                                                            spec_std=spec_std,
-                                                            sig_ts=sig_ts,
-                                                            kalman_coeffs=kalman_coeffs)
+    candcollection = reproduce.reproduce_candcollection(candcollection, data,
+                                                        spec_std=spec_std,
+                                                        sig_ts=sig_ts,
+                                                        kalman_coeffs=kalman_coeffs)
 
-    candidates.save_cands(st, candcollection=candcollection)
     candcollection.soltime = soltime
     return candcollection
 

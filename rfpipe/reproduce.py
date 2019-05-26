@@ -45,6 +45,8 @@ def reproduce_candcollection(cc, data, wisdom=None, spec_std=None, sig_ts=None,
             logger.debug("No cluster field found. Reproducing all.")
             calcinds = list(range(len(cc)))
 
+        logger.info("Generating canddata for {0} candidates".format(len(calcinds)))
+
         # reproduce canddata for each
         for i in calcinds:
             # TODO: check on best way to find max SNR with kalman, etc
@@ -62,7 +64,8 @@ def reproduce_candcollection(cc, data, wisdom=None, spec_std=None, sig_ts=None,
                 kwargs['clustersize'] = cl_count[i]
             else:
                 logger.info("Candidate {0}/{1} has detected SNR {2:.1f} at {3}"
-                            .format(calcinds.index(i), len(calcinds)-1, snr, candloc))
+                            .format(calcinds.index(i), len(calcinds)-1, snr,
+                                    candloc))
 
             # reproduce candidate and get/calc features
             data_corr = pipeline_datacorrect(st, candloc, data_prep=data)
@@ -78,7 +81,8 @@ def reproduce_candcollection(cc, data, wisdom=None, spec_std=None, sig_ts=None,
                                                                    sig_ts=sig_ts,
                                                                    coeffs=kalman_coeffs)
                         snrk = (2*significance_kalman)**0.5
-                        logger.info("Calculated snrk of {0} after detection. Adding it to CandData.".format(snrk))
+                        logger.info("Calculated snrk of {0} after detection. "
+                                    "Adding it to CandData.".format(snrk))
                         kwargs[feature] = snrk
                     else:
                         logger.warning("Feature calculation {0} not yet supported"

@@ -452,6 +452,8 @@ def cd_to_cc(canddata):
 
     candcollection = make_candcollection(st, **kwargs)
 
+    save_cands(st, candcollection=candcollection)
+
     if st.prefs.returncanddata:
         candcollection.canddata = [canddata]
 
@@ -686,12 +688,15 @@ def save_cands(st, candcollection=None, canddata=None):
                                'Spilling to new file {0}.'.format(newcandsfile))
                 with open(newcandsfile, 'ab+') as pkl:
                     pickle.dump(canddata, pkl)
-
         else:
             logger.info('Not saving CandData.')
 
     if candcollection is not None:
         if st.prefs.savecandcollection:
+            # canddata saved in reproduce_candcollection
+            if hasattr(candcollection, 'canddata'):
+                delattr(candcollection, 'canddata')
+
             logger.info('Saving {0} candidate{1} to {2}.'
                         .format(len(candcollection),
                                 's'[not len(candcollection)-1:], st.candsfile))
@@ -710,7 +715,7 @@ def save_cands(st, candcollection=None, canddata=None):
                 with open(newcandsfile, 'ab+') as pkl:
                     pickle.dump(candcollection, pkl)
         else:
-            logger.info('Not saving candidates.')
+            logger.info('Not saving candcollection.')
 
 
 def pkl_to_h5(pklfile, save_png=True, outdir=None, show=False):
