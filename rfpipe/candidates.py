@@ -235,10 +235,12 @@ class CandCollection(object):
         # combine candidate arrays
         if len(later) and len(cc):
             later.array = np.concatenate((later.array, cc.array))
-            later.canddata += cc.canddata
+            if hasattr(later, 'canddata'):
+                later.canddata += cc.canddata
         elif not len(later) and len(cc):
             later.array = cc.array
-            later.canddata = cc.canddata
+            if hasattr(later, 'canddata'):
+                later.canddata = cc.canddata
 
         # combine prefs simulated_transient
         later.prefs.simulated_transient = later.prefs.simulated_transient or cc.prefs.simulated_transient
@@ -451,8 +453,6 @@ def cd_to_cc(canddata):
         kwargs['clustersize'] = [clustersizes]
 
     candcollection = make_candcollection(st, **kwargs)
-
-    save_cands(st, candcollection=candcollection)
 
     if st.prefs.returncanddata:
         candcollection.canddata = [canddata]

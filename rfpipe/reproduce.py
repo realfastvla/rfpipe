@@ -96,7 +96,7 @@ def reproduce_candcollection(cc, data, wisdom=None, spec_std=None, sig_ts=None,
 
             cd = pipeline_canddata(st, candloc, data_corr, sig_ts=sig_ts,
                                    kalman_coeffs=kalman_coeffs, **kwargs)
-            candidates.save_cands(st, canddata=cd)
+
             if st.prefs.saveplots:
                 candidates.candplot(cd, snrs=snrs)  # snrs before clustering
 

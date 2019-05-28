@@ -426,7 +426,7 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
             dt = st.inttime*np.random.uniform(0, 1) # s  #like an alias for "dt"
             if dt < st.inttime:
                 dtind = 0
-            else:    
+            else:
                 dtind = int(np.log2(dt/st.inttime))
                 if dtind >= len(st.dtarr):
                     dtind = len(st.dtarr) - 1
