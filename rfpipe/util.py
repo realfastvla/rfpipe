@@ -289,7 +289,8 @@ def calc_noise(st, segment, data, chunk=500):
             imstd = grid_image(data, uvw, st.npixx, st.npixy, st.uvres,
                                'fftw', 1, integrations=imid).std()
             zerofrac = float(len(np.where(data[r0:r1] == 0j)[0]))/data[r0:r1].size
-            results.append((segment, imid, noiseperbl, zerofrac, imstd))
+            startmjd, endmjd = st.segmenttimes[segment]
+            results.append((startmjd, endmjd-startmjd, segment, imid, noiseperbl, zerofrac, imstd))
 
     return results
 
@@ -422,7 +423,7 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
             dt = st.inttime*min(st.dtarr[dtind], 2)  # dt>2 not yet supported
         else:
             #dtind = random.choice(range(len(st.dtarr)))
-            dt = st.inttime*np.random.uniform(0, max(st.dtarr)) # s  #like an alias for "dt"
+            dt = st.inttime*np.random.uniform(0, 1) # s  #like an alias for "dt"
             if dt < st.inttime:
                 dtind = 0
             else:    
@@ -472,7 +473,7 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
 
         mocks.append((segment, i, dm, dt, amp, l, m))
         (segment, dmind, dtind, i, amp, lm, snr) = (segment0, dmind0, dtind0, i0,
-                                               amp0, lm0, snr0)
+                                                    amp0, lm0, snr0)
 
     return mocks
 
@@ -520,6 +521,7 @@ def make_transient_data(st, amp, i0, dm, dt, ampslope=0.):
         model[chans[ir3], i_f[ir3]+1] += f1[ir3]*ampspec[chans[ir3]]
         model[chans[ir3], i_f[ir3]+2] += f2[ir3]*ampspec[chans[ir3]]
     if np.any(i_r >= 4):
-        logger.warning("Some channels broadened more than 3 integrations, which is not yet supported.")
+        logger.warning("{0} channels broadened more than 3 integrations and are not injected"
+                       .format(len(i_r)))
 
     return model
