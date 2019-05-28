@@ -738,12 +738,13 @@ def cds_to_h5(cds, save_png=True, outdir=None, show=False):
         else:
             logger.warning('Canddata is empty. Skipping Candidate')
 
+
 fetchmodel = None
 tfgraph = None
 
 
 def cd_to_fetch(cd, classify=True, save_h5=False, save_png=False, outdir=None,
-                show=False, f_size = 256, t_size=256, dm_size=256):
+                show=False, f_size=256, t_size=256, dm_size=256):
     """ Read canddata object for classification in fetch.
     Optionally save png or h5.
     """
@@ -856,9 +857,9 @@ def cd_to_fetch(cd, classify=True, save_h5=False, save_png=False, outdir=None,
 
         with tfgraph.as_default():
             preds = fetchmodel.predict(cand).tolist()
-            logger.info("FRB probability {0}".format(preds[0][1]))
-
-        return preds[0][1]
+            logger.info("Fetch probabilities {0}".format(preds))
+            frbprob = preds[0][1]
+        return frbprob
     else:
         return cand
 
