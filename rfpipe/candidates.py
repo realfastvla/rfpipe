@@ -768,7 +768,7 @@ def cd_to_fetch(cd, classify=True, save_h5=False, save_png=False, outdir=None,
     chan_freqs = np.flip(cd.state.freq*1000, axis=0)  # from high to low, MHz
     nf, nt = np.shape(ft_dedisp)
 
-    logger.info('Size of the FT array is ({0}, {1})'.format(nf, nt))
+    logger.debug('Size of the FT array is ({0}, {1})'.format(nf, nt))
 
     # If timewindow is not set, then set it to the number of time bins
     if nt != timewindow:
@@ -788,10 +788,11 @@ def cd_to_fetch(cd, classify=True, save_h5=False, save_png=False, outdir=None,
         dm_start = -10
         dm_end = 10
 
-    logger.info('Generating DM-time for DM range {0:.2f}--{1:.2f} pc/cm3'
-                .format(dm_start, dm_end))
+    logger.info('Generating DM-time for candid {0} in DM range {1:.2f}--{2:.2f} pc/cm3'
+                .format(cd.candid, dm_start, dm_end))
     # note that dmt range assuming data already dispersed to dm
-    dmt = make_dmt(ft_dedisp, dm_start-dm, dm_end-dm, 256, chan_freqs/1000, tsamp)
+    dmt = make_dmt(ft_dedisp, dm_start-dm, dm_end-dm, 256, chan_freqs/1000,
+                   tsamp)
 
     reshaped_ft = resize(ft_dedisp, (f_size, nt), anti_aliasing=True)
 
@@ -801,10 +802,12 @@ def cd_to_fetch(cd, classify=True, save_h5=False, save_png=False, outdir=None,
         reshaped_dmt = resize(dmt, (dm_size, t_size), anti_aliasing=True)
         reshaped_ft = resize(reshaped_ft, (f_size, t_size), anti_aliasing=True)
     else:
-        reshaped_ft = pad_along_axis(reshaped_ft, target_length=t_size, loc='both', axis=1, mode='median')
-        reshaped_dmt = pad_along_axis(dmt, target_length=t_size, loc='both', axis=1, mode='median')
+        reshaped_ft = pad_along_axis(reshaped_ft, target_length=t_size,
+                                     loc='both', axis=1, mode='median')
+        reshaped_dmt = pad_along_axis(dmt, target_length=t_size, loc='both',
+                                      axis=1, mode='median')
 
-    logger.info('FT reshaped to {0}'.format(reshaped_ft.shape))
+    logger.info('FT reshaped from ({0}, {1}) to {2}'.format(nf, nt, reshaped_ft.shape))
     logger.info('DMT reshaped to {0}'.format(reshaped_dmt.shape))
 
     segment, candint, dmind, dtind, beamnum = cd.loc
@@ -815,11 +818,13 @@ def cd_to_fetch(cd, classify=True, save_h5=False, save_png=False, outdir=None,
 
     if save_h5:
         with h5py.File(fnout+'.h5', 'w') as f:
-            freq_time_dset = f.create_dataset('data_freq_time', data=reshaped_ft)
+            freq_time_dset = f.create_dataset('data_freq_time',
+                                              data=reshaped_ft)
             freq_time_dset.dims[0].label = b"time"
             freq_time_dset.dims[1].label = b"frequency"
 
-            dm_time_dset = f.create_dataset('data_dm_time', data=reshaped_dmt)
+            dm_time_dset = f.create_dataset('data_dm_time',
+                                            data=reshaped_dmt)
             dm_time_dset.dims[0].label = b"dm"
             dm_time_dset.dims[1].label = b"time"
 
