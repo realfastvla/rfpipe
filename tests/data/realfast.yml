@@ -13,64 +13,106 @@ rfpipe:
     uvoversample: 1.5
     savenoise: True
     savecandcollection: True
-    savecanddata: True
+    returncanddata: True
     saveplots: True
-    savesols: True
+    savesols: False
     selectpol: 'auto'
-    fftmode: 'fftw'
+    fftmode: 'cuda'
     clustercands: !!python/tuple [3, 5]
     memory_limit: 1 # in GB
+  NRAOdefaultX:   # X-band 8-10 GHz, 16 spw, 2 MHz channels, 10 ms, 4 pols
+    nthread: 2
+    dtarr: [1,2,4,8]   # integer to integrate in time for independent searches
+    maxdm: 2000
+    flagantsol: True
+    timesub: 'mean'
+    searchtype: 'image'
+    sigma_image1: 7.5
+    sigma_kalman: 2.8  # snr1=7.5 and snrk=2.8 gives snrtot=8
+    npix_max: 4096
+    badspwpol: 2.
+    uvoversample: 1.5
+    savenoise: False
+    savecandcollection: True
+    returncanddata: False
+    saveplots: True
+    savesols: False
+    selectpol: 'auto'
+    fftmode: 'cuda'
+    clustercands: !!python/tuple [3, 5]
+    memory_limit: 4.0 # in GB
+  NRAOdefaultC:   # C-band 4-8 GHz, 16 spw, 2 MHz channels, 10 ms, 4 pols
+    nthread: 2
+    dtarr: [1,2,4,8]   # integer to integrate in time for independent searches
+    maxdm: 2000
+    flagantsol: True
+    timesub: 'mean'
+    searchtype: 'image'
+    sigma_image1: 7.5
+    sigma_kalman: 2.8  # snr1=7.5 and snrk=2.8 gives snrtot=8
+    npix_max: 4096
+    badspwpol: 2.
+    uvoversample: 1.5
+    savenoise: False
+    savecandcollection: True
+    returncanddata: False
+    saveplots: True
+    savesols: False
+    selectpol: 'auto'
+    fftmode: 'cuda'
+    clustercands: !!python/tuple [3, 5]
+    memory_limit: 4.0 # in GB
   NRAOdefaultS:   # S-band 2-4 GHz, 16 spw, 2 MHz channels, 10 ms, 4 pols
     nthread: 2
     dtarr: [1,2,4,8]   # integer to integrate in time for independent searches
-    maxdm: 50
+    maxdm: 2000
     flagantsol: True
     timesub: 'mean'
     searchtype: 'image'
-    sigma_image1: 8
+    sigma_image1: 7.5
     sigma_kalman: 2.8  # snr1=7.5 and snrk=2.8 gives snrtot=8
     npix_max: 4096
     badspwpol: 2.
     uvoversample: 1.5
-    savenoise: True
+    savenoise: False
     savecandcollection: True
-    savecanddata: False
+    returncanddata: False
     saveplots: True
-    savesols: True
+    savesols: False
     selectpol: 'auto'
     fftmode: 'cuda'
     clustercands: !!python/tuple [3, 5]
-    memory_limit: 5.0 # in GB
+    memory_limit: 4.0 # in GB
   NRAOdefaultL:   # L-band 1-2 GHz, 16 spw, 1 MHz channels, 10 ms, 4 pols
     nthread: 2
     dtarr: [1,2,4,8]   # integer to integrate in time for independent searches
-    maxdm: 50
-#    spw: [8,9,10,11,12,13,14,15]
-#    spw: [2,3,4,5,6,7]
-    chans: [ 38,  39,  40,  41,  44,  46,  49,  51,  52,  63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90,  91,  92,  93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 160, 164, 171, 173, 174, 175, 177, 178, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 198, 201, 202, 204, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 238, 239, 241, 242, 243, 244, 245, 246, 247, 248, 249, 252, 253, 254, 255]
+    maxdm: 2000
     flagantsol: True
     timesub: 'mean'
     searchtype: 'image'
-    sigma_image1: 8
+    sigma_image1: 7.5
     sigma_kalman: 2.8  # snr1=7.5 and snrk=2.8 gives snrtot=8
     npix_max: 4096
+    spw: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]  # only required for older rfpipe. remove after update to master!
     badspwpol: 2.
     uvoversample: 1.5
-    savenoise: True
+    savenoise: False
     savecandcollection: True
-    savecanddata: False
+    returncanddata: False
     saveplots: True
+    savesols: False
     selectpol: 'auto'
     fftmode: 'cuda'
     clustercands: !!python/tuple [3, 5]
-    memory_limit: 4 # in GB
+    memory_limit: 5 # in GB
 
 realfast:
 #  vys_timeout: 3 # fixed timeout factor relative to realtime reading
   vys_sec_per_spec: !!float 3.0e-5  # timeout factor from time per spectrum
-  searchintents: ['OBSERVE_TARGET', 'CALIBRATE_PHASE', 'CALIBRATE_AMPLI', 'CALIBRATE_DELAY']
+  searchintents: ['OBSERVE_TARGET']
+  ignoreintents: ['CALIBRATE_FLUX', 'CALIBRATE_PHASE', 'CALIBRATE_AMPLI']
   read_overhead: 3  # scale reader memory higher than nominal vismem requirement
-  read_totfrac: 0.3  # require total of readers memories usage
+  read_totfrac: 0.5  # require total of readers memories usage
   spill_limit: 10  # limit spilled memory in GB
   throttle: 0.7  # scale submission relative to realtime and conditional on cluster status
   requirecalibration: True  # must have calibration to submit
