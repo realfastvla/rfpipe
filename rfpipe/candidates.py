@@ -699,10 +699,6 @@ def save_cands(st, candcollection=None, canddata=None):
 
     if candcollection is not None:
         if st.prefs.savecandcollection:
-            # canddata saved in reproduce_candcollection
-            if hasattr(candcollection, 'canddata'):
-                delattr(candcollection, 'canddata')
-
             logger.info('Saving {0} candidate{1} to {2}.'
                         .format(len(candcollection),
                                 's'[not len(candcollection)-1:], st.candsfile))
@@ -965,8 +961,10 @@ def iter_cands(candsfile, select='candcollection'):
             while True:  # step through all possible segments
                 try:
                     candobj = pickle.load(pkl)
-                    if select.lower() in str(type(candobj)).lower():
+                    if select.lower() == 'candcollection':
                         yield candobj
+                    elif select.lower() == 'canddata':
+                        yield candobj.canddata
                 except EOFError:
                     logger.debug('Reached end of pickle.')
                     break
@@ -975,8 +973,10 @@ def iter_cands(candsfile, select='candcollection'):
             while True:  # step through all possible segments
                 try:
                     candobj = pickle.load(pkl, encoding='latin-1')
-                    if select.lower() in str(type(candobj)).lower():
+                    if select.lower() == 'candcollection':
                         yield candobj
+                    elif select.lower() == 'canddata':
+                        yield candobj.canddata
                 except EOFError:
                     logger.debug('Reached end of pickle.')
                     break
