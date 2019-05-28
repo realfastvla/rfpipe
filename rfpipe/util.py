@@ -16,8 +16,6 @@ from astropy import time
 import logging
 logger = logging.getLogger(__name__)
 
-me = casautil.tools.measures()
-
 
 def getsdm(*args, **kwargs):
     """ Wrap sdmpy.SDM to get around schema change error """
@@ -215,6 +213,8 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
     assert '/' in datetime, 'datetime must be in yyyy/mm/dd/hh:mm:ss.sss format'
     assert len(radec) == 2, 'radec must be (ra,dec) tuple in units of degrees'
 
+    me = casautil.tools.measures()
+
     direction = me.direction('J2000', str(np.degrees(radec[0]))+'deg',
                              str(np.degrees(radec[1]))+'deg')
 
@@ -244,6 +244,30 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
         w[i] = uvwlist[3*key[i]+2]
 
     return u, v, w
+
+
+def kalman_prep(data):
+    """ Use prepared data to calculate noise
+    and kalman coeffs as input to kalman_significance function.
+    """
+
+    from kalman_detector import kalman_prepare_coeffs
+
+    if data.shape[0] > 1:
+        spec_std = data.real.mean(axis=3).mean(axis=1).std(axis=0)
+    else:
+        spec_std = data[0].real.mean(axis=2).std(axis=0)
+
+    if not np.any(spec_std):
+        logger.warning("spectrum std all zeros. Not estimating coeffs.")
+        kalman_coeffs = []
+    else:
+        sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
+
+    if not np.all(np.nan_to_num(sig_ts)):
+        kalman_coeffs = []
+
+    return spec_std, sig_ts, kalman_coeffs
 
 
 def calc_noise(st, segment, data, chunk=500):
@@ -402,10 +426,10 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
             dt = st.inttime*min(st.dtarr[dtind], 2)  # dt>2 not yet supported
         else:
             #dtind = random.choice(range(len(st.dtarr)))
-            dt = st.inttime*np.random.uniform(0, max(st.dtarr)) # s  #like an alias for "dt"
+            dt = st.inttime*np.random.uniform(0, 1) # s  #like an alias for "dt"
             if dt < st.inttime:
                 dtind = 0
-            else:    
+            else:
                 dtind = int(np.log2(dt/st.inttime))
                 if dtind >= len(st.dtarr):
                     dtind = len(st.dtarr) - 1
@@ -452,7 +476,7 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
 
         mocks.append((segment, i, dm, dt, amp, l, m))
         (segment, dmind, dtind, i, amp, lm, snr) = (segment0, dmind0, dtind0, i0,
-                                               amp0, lm0, snr0)
+                                                    amp0, lm0, snr0)
 
     return mocks
 
@@ -500,6 +524,7 @@ def make_transient_data(st, amp, i0, dm, dt, ampslope=0.):
         model[chans[ir3], i_f[ir3]+1] += f1[ir3]*ampspec[chans[ir3]]
         model[chans[ir3], i_f[ir3]+2] += f2[ir3]*ampspec[chans[ir3]]
     if np.any(i_r >= 4):
-        logger.warning("Some channels broadened more than 3 integrations, which is not yet supported.")
+        logger.warning("{0} channels broadened more than 3 integrations and are not injected"
+                       .format(len(i_r)))
 
     return model

@@ -226,7 +226,6 @@ def flagants(solsin, threshold, onlycomplete):
         for sol in range(len(sols)):
             sols['flagged'][sol] = True
 
-
     return sols
 
 

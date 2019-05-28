@@ -17,7 +17,8 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from rfpipe import version, fileLock
 from bokeh.plotting import ColumnDataSource, Figure, save, output_file
-import scipy.stats.mstats as mstats
+from scipy.stats import mstats
+from scipy import signal
 from bokeh.models import HoverTool
 from bokeh.models import Row
 from collections import OrderedDict
@@ -191,6 +192,7 @@ class CandCollection(object):
         self.rfpipe_version = version.__version__
         self._state = None
         self.soltime = None
+        self.canddata = []
         # TODO: pass in segmenttimes here to avoid recalculating during search?
 
     def __repr__(self):
@@ -237,10 +239,14 @@ class CandCollection(object):
                                        array=cc.array.copy())
 
         # combine candidate arrays
-        if len(later.array) and len(cc.array):
-            later.array = np.concatenate((later.array.copy(), cc.array.copy()))
-        elif not len(later.array) and len(cc.array):
-            later.array = cc.array.copy()
+        if len(later) and len(cc):
+            later.array = np.concatenate((later.array, cc.array))
+            if hasattr(later, 'canddata'):
+                later.canddata += cc.canddata
+        elif not len(later) and len(cc):
+            later.array = cc.array
+            if hasattr(later, 'canddata'):
+                later.canddata = cc.canddata
 
         # combine prefs simulated_transient
         later.prefs.simulated_transient = later.prefs.simulated_transient or cc.prefs.simulated_transient
@@ -423,68 +429,39 @@ class CandCollection(object):
         return 'realfast_{0}_{1}'.format(self.state.metadata.datasetId, bdftime)
 
 
-def save_and_plot(canddatalist):
-    """ Converts a canddata list into a plots and a candcollection.
-    Calculates candidate features from CandData instance(s).
+def cd_to_cc(canddata):
+    """ Converts canddata into plot and a candcollection
+    with added features from CandData instance.
     Returns structured numpy array of candidate features labels defined in
     st.search_dimensions.
     Generates png plot for peak cands, if so defined in preferences.
     """
 
-    if isinstance(canddatalist, CandData):
-        canddatalist = [canddatalist]
-    elif isinstance(canddatalist, list):
-        if not len(canddatalist):
-            return CandCollection()
-    else:
-        logger.warning("argument must be list of CandData object")
+    assert isinstance(canddata, CandData)
 
-    logger.info('Calculating features for {0} candidate{1}.'
-                .format(len(canddatalist), 's'[not len(canddatalist)-1:]))
+    logger.info('Calculating features for candidate.')
 
-    st = canddatalist[0].state
+    st = canddata.state
 
     # TODO: should this be all features, calcfeatures, searchfeatures?
     featurelists = []
     for feature in st.searchfeatures:
-        ff = []
-        for i, canddata in enumerate(canddatalist):
-            ff.append(canddata_feature(canddata, feature))
-        featurelists.append(ff)
+        featurelists.append([canddata_feature(canddata, feature)])
     kwargs = dict(zip(st.searchfeatures, featurelists))
 
-    candlocs = []
-    for i, canddata in enumerate(canddatalist):
-        candlocs.append(canddata_feature(canddata, 'candloc'))
-        kwargs['candloc'] = candlocs
+    candlocs = canddata_feature(canddata, 'candloc')
+    kwargs['candloc'] = [candlocs]
 
     if canddata.cluster is not None:
-        clusters = []
-        clustersizes = []
-        for i, canddata in enumerate(canddatalist):
-            clusters.append(canddata_feature(canddata, 'cluster'))
-            clustersizes.append(canddata_feature(canddata, 'clustersize'))
-        kwargs['cluster'] = clusters
-        kwargs['clustersize'] = clustersizes
+        clusters = canddata_feature(canddata, 'cluster')
+        kwargs['cluster'] = [clusters]
+        clustersizes = canddata_feature(canddata, 'clustersize')
+        kwargs['clustersize'] = [clustersizes]
 
     candcollection = make_candcollection(st, **kwargs)
 
-    if (st.prefs.savecanddata or st.prefs.savecandcollection or st.prefs.saveplots) and len(candcollection):
-        if len(candcollection) > 1:
-            snrs = candcollection.array['snr1'].flatten()
-        elif len(candcollection) == 1:
-            snrs = None
-
-        # save cc and save/plot each canddata
-        for i, canddata in enumerate(canddatalist):
-            if st.prefs.savecanddata:
-                save_cands(st, canddata=canddata)
-            if st.prefs.saveplots:
-                if canddata.cluster is not None:
-                    clustertuple = (clusters[i], clustersizes[i])
-                else:
-                    clustertuple = None
-                candplot(canddata, cluster=clustertuple, snrs=snrs)
+    if st.prefs.returncanddata:
+        candcollection.canddata = [canddata]
 
     return candcollection
 
@@ -717,12 +694,15 @@ def save_cands(st, candcollection=None, canddata=None):
                                'Spilling to new file {0}.'.format(newcandsfile))
                 with open(newcandsfile, 'ab+') as pkl:
                     pickle.dump(canddata, pkl)
-
         else:
             logger.info('Not saving CandData.')
 
     if candcollection is not None:
         if st.prefs.savecandcollection:
+            # canddata saved in reproduce_candcollection
+            if hasattr(candcollection, 'canddata'):
+                delattr(candcollection, 'canddata')
+
             logger.info('Saving {0} candidate{1} to {2}.'
                         .format(len(candcollection),
                                 's'[not len(candcollection)-1:], st.candsfile))
@@ -741,7 +721,228 @@ def save_cands(st, candcollection=None, canddata=None):
                 with open(newcandsfile, 'ab+') as pkl:
                     pickle.dump(candcollection, pkl)
         else:
-            logger.info('Not saving candidates.')
+            logger.info('Not saving candcollection.')
+
+
+def pkl_to_h5(pklfile, save_png=True, outdir=None, show=False):
+    """ Read candidate pkl file and save h5 file
+    """
+
+    cds = list(iter_cands(pklfile, select='canddata'))
+    cds_to_h5(cds, save_png=save_png, outdir=outdir, show=show)
+
+
+def cds_to_h5(cds, save_png=True, outdir=None, show=False):
+    """ Convert list of canddata objects to h5 file
+    """
+
+    for cd in cds:
+        logger.info('Processing candidate at candloc {0}'.format(cd.loc))
+        if cd.data.any():
+            cand = cd_to_fetch(cd, classify=False, save_h5=True, save_png=save_png,
+                               outdir=outdir, show=show)
+        else:
+            logger.warning('Canddata is empty. Skipping Candidate')
+
+
+fetchmodel = None
+tfgraph = None
+
+
+def cd_to_fetch(cd, classify=True, save_h5=False, save_png=False, outdir=None,
+                show=False, f_size=256, t_size=256, dm_size=256):
+    """ Read canddata object for classification in fetch.
+    Optionally save png or h5.
+    """
+
+    import h5py
+    from rfpipe.search import make_dmt
+    from skimage.transform import resize
+
+    dtarr_ind = cd.loc[3]
+    width_m = cd.state.dtarr[dtarr_ind]
+    timewindow = cd.state.prefs.timewindow
+    tsamp = cd.state.inttime*width_m
+    dm = cd.state.dmarr[cd.loc[2]]
+    ft_dedisp = np.flip(np.abs(cd.data.sum(axis=2).T), axis=0)
+    chan_freqs = np.flip(cd.state.freq*1000, axis=0)  # from high to low, MHz
+    nf, nt = np.shape(ft_dedisp)
+
+    logger.info('Size of the FT array is ({0}, {1})'.format(nf, nt))
+
+    # If timewindow is not set, then set it to the number of time bins
+    if nt != timewindow:
+        logger.info('Setting timewindow equal to nt = {0}'.format(nt))
+        timewindow = nt
+
+    try:
+        assert nf == len(chan_freqs)
+    except AssertionError as err:
+        logger.exception("Number of frequency channel in data should match the frequency list")
+        raise err
+
+    if dm is not 0:
+        dm_start = 0
+        dm_end = 2*dm
+    else:
+        dm_start = -10
+        dm_end = 10
+
+    logger.info('Generating DM-time for DM range {0:.2f}--{1:.2f} pc/cm3'
+                .format(dm_start, dm_end))
+    # note that dmt range assuming data already dispersed to dm
+    dmt = make_dmt(ft_dedisp, dm_start-dm, dm_end-dm, 256, chan_freqs/1000, tsamp)
+
+    reshaped_ft = resize(ft_dedisp, (f_size, nt), anti_aliasing=True)
+
+    if nt == t_size:
+        reshaped_dmt = dmt
+    elif nt > t_size:
+        reshaped_dmt = resize(dmt, (dm_size, t_size), anti_aliasing=True)
+        reshaped_ft = resize(reshaped_ft, (f_size, t_size), anti_aliasing=True)
+    else:
+        reshaped_ft = pad_along_axis(reshaped_ft, target_length=t_size, loc='both', axis=1, mode='median')
+        reshaped_dmt = pad_along_axis(dmt, target_length=t_size, loc='both', axis=1, mode='median')
+
+    logger.info('FT reshaped to {0}'.format(reshaped_ft.shape))
+    logger.info('DMT reshaped to {0}'.format(reshaped_dmt.shape))
+
+    segment, candint, dmind, dtind, beamnum = cd.loc
+    if outdir is not None:
+        fnout = outdir+'cands_{0}_seg{1}-i{2}-dm{3}-dt{4}'.format(cd.state.fileroot, segment, candint, dmind, dtind)
+    else:
+        fnout = 'cands_{0}_seg{1}-i{2}-dm{3}-dt{4}'.format(cd.state.fileroot, segment, candint, dmind, dtind)
+
+    if save_h5:
+        with h5py.File(fnout+'.h5', 'w') as f:
+            freq_time_dset = f.create_dataset('data_freq_time', data=reshaped_ft)
+            freq_time_dset.dims[0].label = b"time"
+            freq_time_dset.dims[1].label = b"frequency"
+
+            dm_time_dset = f.create_dataset('data_dm_time', data=reshaped_dmt)
+            dm_time_dset.dims[0].label = b"dm"
+            dm_time_dset.dims[1].label = b"time"
+
+        logger.info('Saved h5 as {0}.h5'.format(fnout))
+
+    if save_png:
+        if nt > t_size:
+            ts = np.arange(timewindow)*tsamp
+        else:
+            ts = np.arange(t_size)*tsamp
+        fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(8, 10), sharex=True)
+        ax[0].imshow(reshaped_ft, aspect='auto',
+                     extent=[ts[0], ts[-1], np.min(chan_freqs),
+                             np.max(chan_freqs)])
+        ax[0].set_ylabel('Freq')
+        ax[0].title.set_text('Dedispersed FT')
+        ax[1].imshow(reshaped_dmt, aspect='auto', extent=[ts[0], ts[-1],
+                                                          dm+1*dm, dm-dm])
+        ax[1].set_ylabel('DM')
+        ax[1].title.set_text('DM-Time')
+        ax[1].set_xlabel('Time (s)')
+        plt.tight_layout()
+        plt.savefig(fnout+'.png')
+        logger.info('Saved png as {0}.png'.format(fnout))
+        if show:
+            plt.show()
+        else:
+            plt.close()
+
+    cand = prepare_to_classify(reshaped_ft, reshaped_dmt)
+
+    if classify:
+        from fetch.utils import get_model
+        import tensorflow as tf
+        global fetchmodel
+        global tfgraph
+
+        if fetchmodel is None and tfgraph is None:
+            fetchmodel = get_model('a')
+            tfgraph = tf.get_default_graph()
+
+        with tfgraph.as_default():
+            preds = fetchmodel.predict(cand).tolist()
+            logger.info("Fetch probabilities {0}".format(preds))
+            frbprob = preds[0][1]
+        return frbprob
+    else:
+        return cand
+
+
+def pad_along_axis(array, target_length, loc='end', axis=0, **kwargs):
+    """
+    :param array: Input array to pad
+    :param target_length: Required length of the axis
+    :param loc: Location to pad: start: pad in beginning, end: pad in end, else: pad equally on both sides
+    :param axis: Axis to pad along
+    :return:
+    """
+
+    pad_size = target_length - array.shape[axis]
+    axis_nb = len(array.shape)
+
+    if pad_size < 0:
+        return array
+
+    npad = [(0, 0) for x in range(axis_nb)]
+
+    if loc == 'start':
+        npad[axis] = (pad_size, 0)
+    elif loc == 'end':
+        npad[axis] = (0, pad_size)
+    else:
+        if pad_size % 2 == 0:
+            npad[axis] = (pad_size // 2, pad_size // 2)
+        else:
+            npad[axis] = (pad_size // 2, pad_size // 2 + 1)
+
+    return np.pad(array, pad_width=npad, **kwargs)
+
+
+def crop(data, start_sample, length, axis):
+    """
+    :param data: Data array to crop
+    :param start_sample: Sample to start the output cropped array
+    :param length: Final Length along the axis of the output
+    :param axis: Axis to crop
+    :return:
+    """
+
+    if data.shape[axis] > start_sample + length:
+        if axis:
+            return data[:, start_sample:start_sample + length]
+        else:
+            return data[start_sample:start_sample + length, :]
+    elif data.shape[axis] == length:
+        return data
+    else:
+        raise OverflowError('Specified length exceeds the size of data')
+
+
+def prepare_to_classify(ft, dmt):
+    """ Data prep and packaging for input to fetch.
+    """
+
+    data_ft = signal.detrend(np.nan_to_num(ft))
+    data_ft /= np.std(data_ft)
+    data_ft -= np.median(data_ft)
+    data_dt = np.nan_to_num(dmt)
+    data_dt /= np.std(data_dt)
+    data_dt -= np.median(data_dt)
+    X = np.reshape(data_ft, (256, 256, 1))
+    Y = np.reshape(data_dt, (256, 256, 1))
+
+    X[X != X] = 0.0
+    Y[Y != Y] = 0.0
+    X = X.reshape(-1, 256, 256, 1)
+    Y = Y.reshape(-1, 256, 256, 1)
+
+    X = X.copy(order='C')
+    Y = Y.copy(order='C')
+
+    payload = {"data_freq_time": X, "data_dm_time": Y}
+    return payload
 
 
 def iter_cands(candsfile, select='candcollection'):
@@ -1107,13 +1308,12 @@ def calcinds(data, threshold, ignoret=None):
     return inds
 
 
-def candplot(canddatalist, snrs=None, cluster=None, outname=''):
+def candplot(canddatalist, snrs=None, outname=''):
     """ Takes output of search_thresh (CandData objects) to make
     candidate plots.
     Expects pipeline state, candidate location, image, and
     phased, dedispersed data (cut out in time, dual-pol).
     snrs is array for an (optional) SNR histogram plot.
-    cluster allows cluster info to be passed in as (cluster_label, size).
     Written by Bridget Andersen and modified by Casey for rfpipe.
     """
 
@@ -1223,8 +1423,8 @@ def candplot(canddatalist, snrs=None, cluster=None, outname=''):
                 fontname='sans-serif', transform=ax.transAxes,
                 fontsize='small')
 
-        if cluster is not None:
-            label, size = cluster
+        if canddata.cluster is not None:
+            label, size = canddata.cluster, canddata.clustersize
             ax.text(left, start-11*space, 'Cluster label: {0}'.format(str(label)),
                     fontname='sans-serif',
                     transform=ax.transAxes, fontsize='small')

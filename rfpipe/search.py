@@ -26,8 +26,8 @@ except ImportError:
 
 def dedisperse_search_cuda(st, segment, data, devicenum=None):
     """ Run dedispersion, resample for all dm and dt.
-    Grid and image on GPU.
-    rfgpu is built from separate repo.
+    Returns candcollection with optional clustering.
+    Grid and image on GPU (uses rfgpu from separate repo).
     Uses state to define integrations to image based on segment, dm, and dt.
     devicenum is int or tuple of ints that set gpu(s) to use.
     If not set, then it can be inferred with distributed.
@@ -64,15 +64,15 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
         except IndexError:
             devicenums = (devicenum,)
             logger.warning("Could not parse worker name {0}. Using default GPU devicenum {1}"
-                        .format(name, devicenum))
+                           .format(name, devicenum))
         except ValueError:
             devicenums = (devicenum,)
             logger.warning("No worker found. Using default GPU devicenum {0}"
-                        .format(devicenum))
+                           .format(devicenum))
         except ImportError:
             devicenums = (devicenum,)
             logger.warning("distributed not available. Using default GPU devicenum {0}"
-                        .format(devicenum))
+                           .format(devicenum))
 
     assert isinstance(devicenums, tuple)
     logger.info("Using gpu devicenum(s): {0}".format(devicenums))
@@ -113,21 +113,9 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
         grid.conjugate(vis_raw)
 
     # some prep if kalman significance is needed
-    if 'snrk' in st.features:
+    if st.prefs.searchtype in ['imagek', 'armkimage', 'armk']:
         # TODO: check that this is ok if pointing at bright source
-        if data.shape[0] > 1:
-            spec_std = data.real.mean(axis=3).mean(axis=1).std(axis=0)
-        else:
-            spec_std = data[0].real.mean(axis=2).std(axis=0)
-
-        if not np.any(spec_std):
-            logger.warning("spectrum std all zeros. Not estimating coeffs.")
-            kalman_coeffs = []
-        else:
-            sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
-
-        if not np.all(np.nan_to_num(sig_ts)):
-            kalman_coeffs = []
+        spec_std, sig_ts, kalman_coeffs = util.kalman_prep(data)
 
         if not np.all(sig_ts):
             logger.info("sig_ts all zeros. Skipping search.")
@@ -202,13 +190,6 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
 
     if st.prefs.clustercands:
         cc = candidates.cluster_candidates(cc)
-
-    # triggers optional plotting and saving
-    if st.prefs.savecanddata or st.prefs.savecandcollection or st.prefs.saveplots:
-        cc = reproduce_candcollection(cc, data, spec_std=spec_std,
-                                      sig_ts=sig_ts, kalman_coeffs=kalman_coeffs)
-
-    candidates.save_cands(st, candcollection=cc)
 
     return cc
 
@@ -307,9 +288,8 @@ def rfgpu_gridimage(st, segment, grid, image, vis_raw, vis_grid, img_grid,
 
 
 def dedisperse_search_fftw(st, segment, data, wisdom=None):
-    """ Fuse the dediserpse, resample, search, threshold functions.
-    Returns list of CandData objects that define candidates with
-    candloc, image, and phased visibility data.
+    """     Run dedispersion, resample for all dm and dt.
+    Returns candcollection with optional clustering.
     Integrations can define subset of all available in data to search.
     Default will take integrations not searched in neighboring segments.
     ** only supports threshold > image max (no min)
@@ -326,22 +306,14 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
                                          metadata=st.metadata)
 
     # some prep if kalman significance is needed
-    if 'snrk' in st.features:
+    if st.prefs.searchtype in ['imagek', 'armkimage', 'armk']:
         # TODO: check that this is ok if pointing at bright source
-        if data.shape[0] > 1:
-            spec_std = data.real.mean(axis=3).mean(axis=1).std(axis=0)
-        else:
-            spec_std = data[0].real.mean(axis=2).std(axis=0)
+        spec_std, sig_ts, kalman_coeffs = util.kalman_prep(data)
 
-        if not np.any(spec_std):
-            logger.warning("spectrum std all zeros. Not estimating coeffs.")
-            kalman_coeffs = []
-        else:
-            sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
-
-        if not np.all(np.nan_to_num(sig_ts)):
-            kalman_coeffs = []
-
+        if not np.all(sig_ts):
+            logger.info("sig_ts all zeros. Skipping search.")
+            return candidates.CandCollection(prefs=st.prefs,
+                                             metadata=st.metadata)
     else:
         spec_std, sig_ts, kalman_coeffs = None, None, None
 
@@ -494,101 +466,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
 
         # TODO: find a way to return values as systematic data quality test
 
-    # calc other features for cc, plot, save
-    if st.prefs.savecanddata or st.prefs.savecandcollection or st.prefs.saveplots:
-        cc = reproduce_candcollection(cc, data, spec_std=spec_std,
-                                      sig_ts=sig_ts,
-                                      kalman_coeffs=kalman_coeffs)
-
-    candidates.save_cands(st, candcollection=cc)
-
     return cc
-
-
-def reproduce_candcollection(cc, data, wisdom=None, spec_std=None, sig_ts=None,
-                             kalman_coeffs=None):
-    """ Calculates canddata for each cand in candcollection.
-    Will look for cluster label and filter only for peak snr, if available.
-    Location (e.g., integration, dm, dt) of each is used to create
-    canddata for each candidate.
-    Calculates features not used directly for search (as defined in
-    state.prefs.calcfeatures).
-    """
-
-    from rfpipe import candidates
-    import rfpipe.reproduce  # explicit to avoid circular import
-
-    # set up output cc
-    st = cc.state
-    cc1 = candidates.CandCollection(prefs=st.prefs, metadata=st.metadata)
-
-    if len(cc):
-        candlocs = cc.locs
-        snrs = cc.snrtot
-
-        if 'cluster' in cc.array.dtype.fields:
-            clusters = cc.array['cluster'].astype(int)
-            cl_rank, cl_count = candidates.calc_cluster_rank(cc)
-            calcinds = np.unique(np.where(cl_rank == 1)[0]).tolist()
-            logger.debug("Reproducing cands at {0} cluster peaks"
-                         .format(len(calcinds)))
-
-            # TODO: use number of clusters as test of an RFI-affected segment?
-            # If threshold exceeded, could reproduce subset of all candidates.
-
-        else:
-            logger.debug("No cluster field found. Reproducing all.")
-            calcinds = list(range(len(cc)))
-
-        # reproduce canddata for each
-        for i in calcinds:
-            # TODO: check on best way to find max SNR with kalman, etc
-            snr = snrs[i]
-            candloc = candlocs[i]
-
-            # kwargs passed to canddata object for plotting/saving
-            kwargs = {}
-            if 'cluster' in cc.array.dtype.fields:
-                logger.info("Cluster {0}/{1} has {2} candidates and max detected SNR {3:.1f} at {4}"
-                            .format(calcinds.index(i), len(calcinds)-1, cl_count[i],
-                                    snr, candloc))
-                # add supplementary plotting and cc info
-                kwargs['cluster'] = clusters[i]
-                kwargs['clustersize'] = cl_count[i]
-            else:
-                logger.info("Candidate {0}/{1} has detected SNR {2:.1f} at {3}"
-                            .format(calcinds.index(i), len(calcinds)-1, snr, candloc))
-
-            # reproduce candidate and get/calc features
-            data_corr = rfpipe.reproduce.pipeline_datacorrect(st, candloc,
-                                                              data_prep=data)
-
-            for feature in st.searchfeatures:
-                if feature in cc.array.dtype.fields:  # if already calculated
-                    kwargs[feature] = cc.array[feature][i]
-                else:  # if desired, but not yet calculated
-                    if feature == 'snrk':
-                        spec = data_corr.real.mean(axis=3).mean(axis=1)[candloc[1]]
-                        significance_kalman = -kalman_significance(spec,
-                                                                   spec_std,
-                                                                   sig_ts=sig_ts,
-                                                                   coeffs=kalman_coeffs)
-                        snrk = (2*significance_kalman)**0.5
-                        logger.info("Calculated snrk of {0} after detection. Adding it to CandData.".format(snrk))
-                        kwargs[feature] = snrk
-                    else:
-                        logger.warning("Feature calculation {0} not yet supported"
-                                       .format(feature))
-
-            cd = rfpipe.reproduce.pipeline_canddata(st, candloc, data_corr,
-                                                    sig_ts=sig_ts,
-                                                    kalman_coeffs=kalman_coeffs,
-                                                    **kwargs)
-            cc1 += candidates.save_and_plot(cd)
-
-            # TODO: validate that reproduced features match input features?
-
-    return cc1
 
 
 def grid_image(data, uvw, npixx, npixy, uvres, fftmode, nthread, wisdom=None,
@@ -779,6 +657,35 @@ def _dedisperse_gu(data, delay):
                 iprime = i + delay[j]
                 for k in range(data.shape[2]):
                     data[i, j, k] = data[iprime, j, k]
+
+
+def dedisperse_roll(data, delay):
+    """ Using numpy roll to dedisperse.
+    This avoids trimming data to area with valid delays,
+    which is appropriate for dm-time data generation.
+    TODO: check that -delay is correct way
+    """
+
+    nf, nt = data.shape
+    assert nf == len(delay), "Delay must be same length as data freq axis"
+
+    dataout = np.vstack([np.roll(arr, -delay[i]) for i, arr in enumerate(data)])
+    return dataout
+
+
+def make_dmt(data, dmi, dmf, dmsteps, freqs, inttime):
+    """ Disperse data to a range of dms.
+    Good transients have characteristic shape in dm-time space.
+    """
+
+    from rfpipe import util
+
+    dm_list = np.linspace(dmi, dmf, dmsteps)
+    dmt = np.zeros((dmsteps, data.shape[1]), dtype=np.float32)
+    for ii, dm in enumerate(dm_list):
+        delay = util.calc_delay(freqs, freqs.max(), dm, inttime)
+        dmt[ii, :] = dedisperse_roll(data, delay).sum(axis=0)
+    return dmt
 
 
 def resample(data, dt, parallel=False):
