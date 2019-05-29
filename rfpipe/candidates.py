@@ -185,14 +185,14 @@ class CandCollection(object):
     prefs to be attached and pickled.
     """
 
-    def __init__(self, array=np.array([]), prefs=None, metadata=None):
+    def __init__(self, array=np.array([]), prefs=None, metadata=None, canddata=[]):
         self.array = array
         self.prefs = prefs
         self.metadata = metadata
         self.rfpipe_version = version.__version__
         self._state = None
         self.soltime = None
-        self.canddata = []
+        self.canddata = canddata
         # TODO: pass in segmenttimes here to avoid recalculating during search?
 
     def __repr__(self):
@@ -217,7 +217,8 @@ class CandCollection(object):
         """
 
         later = CandCollection(prefs=self.prefs, metadata=self.metadata,
-                               array=self.array.copy())
+                               array=self.array.copy(),
+                               canddata=self.canddata.copy())
         # TODO: update to allow different simulated_transient fields that get added into single list
         assert self.prefs.name == cc.prefs.name, "Cannot add collections with different preference name/hash"
         assert self.state.dmarr == cc.state.dmarr,  "Cannot add collections with different dmarr"
