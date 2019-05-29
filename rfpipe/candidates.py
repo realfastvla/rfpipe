@@ -1093,22 +1093,24 @@ def makesummaryplot(cc=None, candsfile=None):
     """
 
     if cc is None and candsfile is not None:
-        time = []
-        segment = []
-        integration = []
-        dmind = []
-        dtind = []
-        snr = []
-        dm = []
-        dt = []
-        l1 = []
-        m1 = []
         ccs = list(iter_cands(candsfile))
         cc = sum(ccs)
+    if cc is not None and candsfile is None:
+        candsfile = cc.state.candsfile
 
     if not len(cc):
         return 0
 
+    time = []
+    segment = []
+    integration = []
+    dmind = []
+    dtind = []
+    snr = []
+    dm = []
+    dt = []
+    l1 = []
+    m1 = []
     time.append(cc.candmjd*(24*3600))
     segment.append(cc.array['segment'])
     integration.append(cc.array['integration'])
