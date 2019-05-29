@@ -1086,28 +1086,27 @@ def visualize_clustering(cc, clusterer):
     (show(column(row(p, p2), row(p3, p4))))
 
 
-def makesummaryplot(candsfile):
-    """ Given a scan's candsfile, read all candcollections and create
+def makesummaryplot(cc=None, candsfile=None):
+    """ Given a candcollection of candsfile, create
     bokeh summary plot
     TODO: modify to take candcollection
     """
 
-    time = []
-    segment = []
-    integration = []
-    dmind = []
-    dtind = []
-    snr = []
-    dm = []
-    dt = []
-    l1 = []
-    m1 = []
-    ccs = list(iter_cands(candsfile))
-    if len(ccs):
+    if cc is None and candsfile is not None:
+        time = []
+        segment = []
+        integration = []
+        dmind = []
+        dtind = []
+        snr = []
+        dm = []
+        dt = []
+        l1 = []
+        m1 = []
+        ccs = list(iter_cands(candsfile))
         cc = sum(ccs)
-        if not len(cc):
-            return 0
-    else:
+
+    if not len(cc):
         return 0
 
     time.append(cc.candmjd*(24*3600))

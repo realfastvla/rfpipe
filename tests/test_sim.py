@@ -59,7 +59,7 @@ def test_noise(mockstate, mockdata):
 def test_pipelinescan(mockstate):
     cc = rfpipe.pipeline.pipeline_scan(mockstate)
     if mockstate.prefs.simulated_transient is not None:
-        rfpipe.candidates.makesummaryplot(mockstate.candsfile)
+        rfpipe.candidates.makesummaryplot(cc)
     assert cc is not None
     if mockstate.prefs.returncanddata:
         assert isinstance(cc.canddata, list)
