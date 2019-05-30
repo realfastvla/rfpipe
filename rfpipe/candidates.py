@@ -682,8 +682,10 @@ def save_cands(st, candcollection):
         # if not saving canddata, copy cc and save version without canddata
         if not st.prefs.savecanddata:
             cc = CandCollection(prefs=candcollection.prefs,
-                                            metadata=candcollection.metadata,
-                                            array=candcollection.array.copy())
+                                metadata=candcollection.metadata,
+                                array=candcollection.array.copy())
+        else:
+            cc = candcollection
 
         wwo = 'with' if st.prefs.savecanddata else 'without'
         logger.info('Saving {0} candidate{1} {2} canddata to {3}.'
