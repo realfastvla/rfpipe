@@ -665,60 +665,46 @@ def calc_cluster_rank(cc):
     for cluster in np.unique(clusters):
         clusterinds = np.where(cluster == clusters)[0]
         snrs = cc.array['snr1'][clusterinds]
-        cl_rank[clusterinds] = np.argsort(np.argsort(snrs)[::-1])+1 
+        cl_rank[clusterinds] = np.argsort(np.argsort(snrs)[::-1])+1
         cl_count[clusterinds] = len(clusterinds)
 
     return cl_rank, cl_count
 
 
-def save_cands(st, candcollection=None, canddata=None):
-    """ Save candidate collection or cand data to pickle file.
+def save_cands(st, candcollection):
+    """ Save candidate collection to pickle file.
     Collection saved as array with metadata and preferences attached.
     Writes to location defined by state using a file lock to allow multiple
     writers.
     """
 
-    if canddata is not None:
-        if st.prefs.savecanddata:
-            logger.info('Saving CandData to {0}.'.format(st.candsfile))
+    if st.prefs.savecandcollection:
+        # if not saving canddata, copy cc and save version without canddata
+        if not st.prefs.savecanddata:
+            cc = CandCollection(prefs=candcollection.prefs,
+                                            metadata=candcollection.metadata,
+                                            array=candcollection.array.copy())
 
-            try:
-                with fileLock.FileLock(st.candsfile+'.lock', timeout=60):
-                    with open(st.candsfile, 'ab+') as pkl:
-                        pickle.dump(canddata, pkl)
+        wwo = 'with' if st.prefs.savecanddata else 'without'
+        logger.info('Saving {0} candidate{1} {2} canddata to {3}.'
+                    .format(len(candcollection),
+                            's'[not len(candcollection)-1:], wwo, st.candsfile))
 
-            except fileLock.FileLock.FileLockException:
-                segment = canddata.loc[0]
-                newcandsfile = ('{0}_seg{1}.pkl'
-                                .format(st.candsfile.rstrip('.pkl'), segment))
-                logger.warning('Candidate file writing timeout. '
-                               'Spilling to new file {0}.'.format(newcandsfile))
-                with open(newcandsfile, 'ab+') as pkl:
-                    pickle.dump(canddata, pkl)
-        else:
-            logger.info('Not saving CandData.')
+        try:
+            with fileLock.FileLock(st.candsfile+'.lock', timeout=60):
+                with open(st.candsfile, 'ab+') as pkl:
+                    pickle.dump(cc, pkl)
 
-    if candcollection is not None:
-        if st.prefs.savecandcollection:
-            logger.info('Saving {0} candidate{1} to {2}.'
-                        .format(len(candcollection),
-                                's'[not len(candcollection)-1:], st.candsfile))
-
-            try:
-                with fileLock.FileLock(st.candsfile+'.lock', timeout=60):
-                    with open(st.candsfile, 'ab+') as pkl:
-                        pickle.dump(candcollection, pkl)
-
-            except fileLock.FileLock.FileLockException:
-                segment = candcollection.segment
-                newcandsfile = ('{0}_seg{1}.pkl'
-                                .format(st.candsfile.rstrip('.pkl'), segment))
-                logger.warning('Candidate file writing timeout. '
-                               'Spilling to new file {0}.'.format(newcandsfile))
-                with open(newcandsfile, 'ab+') as pkl:
-                    pickle.dump(candcollection, pkl)
-        else:
-            logger.info('Not saving candcollection.')
+        except fileLock.FileLock.FileLockException:
+            segment = cc.segment
+            newcandsfile = ('{0}_seg{1}.pkl'
+                            .format(st.candsfile.rstrip('.pkl'), segment))
+            logger.warning('Candidate file writing timeout. '
+                           'Spilling to new file {0}.'.format(newcandsfile))
+            with open(newcandsfile, 'ab+') as pkl:
+                pickle.dump(cc, pkl)
+    else:
+        logger.info('Not saving candcollection.')
 
 
 def pkl_to_h5(pklfile, save_png=True, outdir=None, show=False):
