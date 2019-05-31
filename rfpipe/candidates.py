@@ -734,7 +734,7 @@ fetchmodel = None
 tfgraph = None
 
 
-def cd_to_fetch(cd, classify=True, save_h5=False, save_png=False, outdir=None,
+def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False, save_png=False, outdir=None,
                 show=False, f_size=256, t_size=256, dm_size=256):
     """ Read canddata object for classification in fetch.
     Optionally save png or h5.
@@ -846,6 +846,26 @@ def cd_to_fetch(cd, classify=True, save_h5=False, save_png=False, outdir=None,
         import tensorflow as tf
         global fetchmodel
         global tfgraph
+
+        if devicenum is None:
+            # assume first gpu, but try to infer from worker name
+            devicenum = '0'
+            try:
+                from distributed import get_worker
+                name = get_worker().name
+                devicenum = name.split('fetch')[1]
+            except IndexError:
+                logger.warning("Could not parse worker name {0}. Using default GPU devicenum {1}"
+                               .format(name, devicenum))
+            except ValueError:
+                logger.warning("No worker found. Using default GPU devicenum {0}"
+                               .format(devicenum))
+            except ImportError:
+                logger.warning("distributed not available. Using default GPU devicenum {0}"
+                               .format(devicenum))
+        assert isinstance(devicenum, str)
+        logger.info("Using gpu devicenum: {0}".format(devicenum))
+        os.environ['CUDA_VISIBLE_DEVICES'] = devicenum
 
         if fetchmodel is None and tfgraph is None:
             fetchmodel = get_model('a')
