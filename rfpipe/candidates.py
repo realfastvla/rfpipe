@@ -863,7 +863,10 @@ def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False, save_png=False
             except ImportError:
                 logger.warning("distributed not available. Using default GPU devicenum {0}"
                                .format(devicenum))
-        assert isinstance(devicenum, str)
+        elif isinstance(devicenum, int):
+            devicenum = str(devicenum)
+
+        assert isinstance(devicenum, str)  # need str type for env variable
         logger.info("Using gpu devicenum: {0}".format(devicenum))
         os.environ['CUDA_VISIBLE_DEVICES'] = devicenum
 
