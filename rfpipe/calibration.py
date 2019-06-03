@@ -131,27 +131,29 @@ def parseGN(telcalfile):
     source = []
 
     i = 0
-    with open(telcalfile, 'r') as fp:
-        for line in fp:
+    if telcalfile is not None:
+        with open(telcalfile, 'r') as fp:
+            for line in fp:
 
-            fields = line.split()
-            if i < skip:
-                i += 1
-                continue
-
-            try:
-                mjd.append(float(fields[MJD]))
-                ifid.append(str(fields[IFID]))
-                skyfreq.append(float(fields[SKYFREQ]))
-                antnum.append(int(fields[ANT].lstrip('ea')))
-                amp.append(float(fields[AMP]))
-                phase.append(float(fields[PHASE]))
-                delay.append(float(fields[DELAY]))
-                flagged.append('true' == (fields[FLAGGED]))
-                source.append(str(fields[SOURCE]))
-            except ValueError:
-                logger.warning('Trouble parsing line of telcal file. Skipping.')
-                continue
+                fields = line.split()
+                if i < skip:
+                    i += 1
+                    continue
+                try:
+                    mjd.append(float(fields[MJD]))
+                    ifid.append(str(fields[IFID]))
+                    skyfreq.append(float(fields[SKYFREQ]))
+                    antnum.append(int(fields[ANT].lstrip('ea')))
+                    amp.append(float(fields[AMP]))
+                    phase.append(float(fields[PHASE]))
+                    delay.append(float(fields[DELAY]))
+                    flagged.append('true' == (fields[FLAGGED]))
+                    source.append(str(fields[SOURCE]))
+                except ValueError:
+                    logger.warning('Trouble parsing line of telcal file. Skipping.')
+                    continue
+    else:
+        logger.debug("telcalfile set to None")
 
     # TODO: assumes dual pol. update to full pol
     polarization = [('C' in i0 or 'D' in i0) for i0 in ifid]
@@ -176,7 +178,7 @@ def parseGN(telcalfile):
                             len(np.unique(sols['ifid'])),
                             len(np.unique(sols['antnum']))))
     else:
-        logger.warning('Bad telcalfile {0}. Not parsed properly'.format(telcalfile))
+        logger.debug('Bad telcalfile {0}. Not parsed properly'.format(telcalfile))
         sols = np.array([])
 
     return sols
@@ -223,7 +225,6 @@ def flagants(solsin, threshold, onlycomplete):
         logger.warn("Median solution amplitude is zero. Flagging all.")
         for sol in range(len(sols)):
             sols['flagged'][sol] = True
-
 
     return sols
 
@@ -275,7 +276,7 @@ def select(sols, time=None, freqs=None, polarization=None, mode='realtime'):
                     .format(len(selection[0]), sources[0],
                             mjddist[np.where(mjdselect)][0]*24*60, mode))
     else:
-        logger.info('Existing calibration selection includes multiple solutions.')
+        logger.debug('Calibration selection includes multiple solutions.')
 
     logger.debug('Mid frequency (MHz): {0}'
                  .format(np.unique(sols['skyfreq'][selection])))

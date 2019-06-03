@@ -5,7 +5,6 @@ from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 import os.path
 import numpy as np
 from astropy import time
-import pwkit.environments.casa.util as casautil
 from rfpipe import fileLock
 import pickle
 
@@ -16,8 +15,6 @@ try:
     import vysmaw_reader
 except ImportError:
     pass
-
-qa = casautil.tools.quanta()
 
 
 def data_prep(st, segment, data, flagversion="latest", returnsoltime=False):
@@ -67,13 +64,14 @@ def data_prep(st, segment, data, flagversion="latest", returnsoltime=False):
         datap = flagging.flag_data_rtpipe(st, datap)
 
     zerofrac = 1-np.count_nonzero(datap)/datap.size
-    if zerofrac > 0.8:
-        logger.warning('Flagged {0:.1f}% of data. Zeroing all if greater than 80%.'.format(zerofrac*100))
+    if zerofrac > st.prefs.max_zerofrac:
+        logger.warning('Flagged {0:.1f}% of data. Zeroing all if greater than {1:.1f}%.'
+                       .format(zerofrac*100, st.prefs.max_zerofrac*100))
         return np.array([])
 
     if st.prefs.timesub == 'mean':
         logger.info('Subtracting mean visibility in time.')
-        datap = util.meantsub(datap, parallel=st.prefs.nthread > 1)
+        datap = util.meantsub(datap)
     else:
         logger.info('No visibility subtraction done.')
 
@@ -311,10 +309,8 @@ def read_bdf_segment(st, segment):
                       - st.metadata.starttime_mjd)/st.metadata.inttime).astype(int)
     logger.info('Reading scan {0}, segment {1}/{2}, times {3} to {4}'
                 .format(st.metadata.scan, segment, len(st.segmenttimes)-1,
-                        qa.time(qa.quantity(st.segmenttimes[segment, 0], 'd'),
-                                form=['hms'], prec=9)[0],
-                        qa.time(qa.quantity(st.segmenttimes[segment, 1], 'd'),
-                                form=['hms'], prec=9)[0]))
+                        time.Time(st.segmenttimes[segment][0], format='mjd', precision=9).unix,
+                        time.Time(st.segmenttimes[segment][1], format='mjd', precision=9).unix))
     data = read_bdf(st, nskip=nskip).astype('complex64')
 
     return data

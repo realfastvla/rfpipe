@@ -16,9 +16,6 @@ from astropy import time
 import logging
 logger = logging.getLogger(__name__)
 
-#qa = casautil.tools.quanta()
-me = casautil.tools.measures()
-
 
 def getsdm(*args, **kwargs):
     """ Wrap sdmpy.SDM to get around schema change error """
@@ -60,17 +57,13 @@ def _phaseshift_jit(data, uvw, dl, dm, ints):
                         data[i, j, k, l] = data[i, j, k, l] * frot
 
 
-def meantsub(data, parallel=False):
+def meantsub(data):
     """ Subtract mean visibility in time.
-    Parallel controls use of multithreaded algorithm.
     """
 
     # TODO: make outlier resistant to avoid oversubtraction
 
-    if parallel:
-        _ = _meantsub_gu(np.require(np.swapaxes(data, 0, 3), requirements='W'))
-    else:
-        _meantsub_jit(np.require(data, requirements='W'))
+    _meantsub_jit(np.require(data, requirements='W'))
     return data
 
 
@@ -103,43 +96,6 @@ def _meantsub_jit(data):
                             data[l, i, j, k] -= mean
 
 
-@guvectorize([str("void(complex64[:])")], str("(m)"),
-             target='parallel', nopython=True)
-def _meantsub_gu(data):
-    b""" Subtract time mean (ignoring zeros) by vectorizing over time axis.
-    Assumes time axis is last so reshape data array with use np.swapaxis(0,3).
-    """
-
-    ss = complex64(0)
-    weight = int64(0)
-    for i in range(data.shape[0]):
-        ss += data[i]
-        if data[i] != complex64(0):
-            weight += 1
-    mean = ss/weight
-    for i in range(data.shape[0]):
-        if data[i] != complex64(0):
-            data[i] -= mean
-
-
-@cuda.jit
-def meantsub_cuda(data, cache=True):
-    """ Calculate mean in time (ignoring zeros) and subtract in place """
-
-    x, y, z = cuda.grid(3)
-    nint, nbl, nchan, npol = data.shape
-    if x < nbl and y < nchan and z < npol:
-        sum = complex64(0)
-        weight = 0
-        for i in range(nint):
-            sum = sum + data[i, x, y, z]
-            if data[i, x, y, z] == 0j:
-                weight = weight + 1
-        mean = sum/weight
-        for i in range(nint):
-            data[i, x, y, z] = data[i, x, y, z] - mean
-
-
 def calc_delay(freq, freqref, dm, inttime, scale=None):
     """ Calculates the delay in integration time bins due to dispersion delay.
     freq is array of frequencies. delay is relative to freqref.
@@ -151,7 +107,6 @@ def calc_delay(freq, freqref, dm, inttime, scale=None):
     delay = np.zeros(len(freq), dtype=np.int32)
 
     for i in range(len(freq)):
-#        delay[i] = np.round(scale * dm * (1./freq[i]**2 - 1./freqref**2)/inttime, 0)
         delay[i] = int(scale * dm * (1./freq[i]**2 - 1./freqref**2)/inttime)
 
     return delay
@@ -188,9 +143,9 @@ def calc_dmarr(state):
 #    print(dm_maxloss, dm_pulsewidth, tsamp, freq, bw, ch)
 
     # width functions and loss factor
-    dt0 = lambda dm: np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2)
-    dt1 = lambda dm, ddm: np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2 + ((k*ddm*bw)/(freq**3.))**2)
-    loss = lambda dm, ddm: 1 - np.sqrt(dt0(dm)/dt1(dm, ddm))
+#    dt0 = lambda dm: np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2)
+#    dt1 = lambda dm, ddm: np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2 + ((k*ddm*bw)/(freq**3.))**2)
+#    loss = lambda dm, ddm: 1 - np.sqrt(dt0(dm)/dt1(dm, ddm))
 #    loss_cordes = lambda ddm, dfreq, dm_pulsewidth, freq: 1 - (np.sqrt(np.pi) / (2 * 6.91e-3 * ddm * dfreq / (dm_pulsewidth*freq**3))) * erf(6.91e-3 * ddm * dfreq / (dm_pulsewidth*freq**3))  # not quite right for underresolved pulses
 
     if maxdm == 0:
@@ -201,13 +156,25 @@ def calc_dmarr(state):
         dmgrid_final = [dmgrid[0]]
         for i in range(len(dmgrid)):
             ddm = (dmgrid[i] - dmgrid_final[-1])/2.
-            ll = loss(dmgrid[i], ddm)
+            ll = loss(dm_pulsewidth, tsamp, k, ch, freq, bw, dmgrid[i], ddm)
             if ll > dm_maxloss:
                 dmgrid_final.append(dmgrid[i])
         if maxdm not in dmgrid_final:
             dmgrid_final.append(maxdm)
 
     return dmgrid_final
+
+@jit(nopython=True)
+def loss(dm_pulsewidth, tsamp, k, ch, freq, bw, dm, ddm):
+    return 1 - np.sqrt(dt0(dm_pulsewidth, tsamp, k, ch, freq, dm)/dt1(dm_pulsewidth, tsamp, k, ch, freq, bw, dm, ddm))
+
+@jit(nopython=True)
+def dt0(dm_pulsewidth, tsamp, k, ch, freq, dm):
+    return np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2)
+
+@jit(nopython=True)
+def dt1(dm_pulsewidth, tsamp, k, ch, freq, bw, dm, ddm):
+    return np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2 + ((k*ddm*bw)/(freq**3.))**2)
 
 
 def get_uvw_segment(st, segment):
@@ -217,10 +184,12 @@ def get_uvw_segment(st, segment):
     """
 
     logger.debug("Getting uvw for segment {0}".format(segment))
-    mjdstr = st.get_segmenttime_string(segment)
+    mid_mjd = st.segmenttimes[segment].mean()
+    mjdstr = time.Time(mid_mjd, format='mjd').iso.replace('-', '/').replace(' ', '/')
 
     if st.lock is not None:
         st.lock.acquire()
+
     (ur, vr, wr) = calc_uvw(datetime=mjdstr, radec=st.metadata.radec,
                             antpos=st.metadata.antpos,
                             telescope=st.metadata.telescope)
@@ -243,6 +212,8 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
 
     assert '/' in datetime, 'datetime must be in yyyy/mm/dd/hh:mm:ss.sss format'
     assert len(radec) == 2, 'radec must be (ra,dec) tuple in units of degrees'
+
+    me = casautil.tools.measures()
 
     direction = me.direction('J2000', str(np.degrees(radec[0]))+'deg',
                              str(np.degrees(radec[1]))+'deg')
@@ -275,8 +246,35 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
     return u, v, w
 
 
+def kalman_prep(data):
+    """ Use prepared data to calculate noise
+    and kalman coeffs as input to kalman_significance function.
+    """
+
+    from kalman_detector import kalman_prepare_coeffs
+
+    if data.shape[0] > 1:
+        spec_std = data.real.mean(axis=3).mean(axis=1).std(axis=0)
+    else:
+        spec_std = data[0].real.mean(axis=2).std(axis=0)
+
+    if not np.any(spec_std):
+        logger.warning("spectrum std all zeros. Not estimating coeffs.")
+        kalman_coeffs = []
+    else:
+        sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
+
+    if not np.all(np.nan_to_num(sig_ts)):
+        kalman_coeffs = []
+
+    return spec_std, sig_ts, kalman_coeffs
+
+
 def calc_noise(st, segment, data, chunk=500):
     """ Calculate the noise properties of the data.
+    Noise measurement defined as a tuple:
+    (startmjd, delta_mjd, segment, imid, noiseperbl,
+    zerofrac, imstd).
     """
 
     from rfpipe.search import grid_image
@@ -294,7 +292,8 @@ def calc_noise(st, segment, data, chunk=500):
             imstd = grid_image(data, uvw, st.npixx, st.npixy, st.uvres,
                                'fftw', 1, integrations=imid).std()
             zerofrac = float(len(np.where(data[r0:r1] == 0j)[0]))/data[r0:r1].size
-            results.append((segment, imid, noiseperbl, zerofrac, imstd))
+            startmjd, endmjd = st.segmenttimes[segment]
+            results.append((startmjd, endmjd-startmjd, segment, imid, noiseperbl, zerofrac, imstd))
 
     return results
 
@@ -345,10 +344,6 @@ def calc_segment_times(state, scale_nsegment=1.):
 
     segmenttimes = []
     for (startdt, stopdt) in zip(state.inttime*startdts, state.inttime*stopdts):
-#        starttime = qa.getvalue(qa.convert(qa.time(qa.quantity(state.metadata.starttime_mjd+startdt/(24*3600), 'd'),
-#                                                   form=['ymd'], prec=9)[0], 's'))[0]/(24*3600)
-#        stoptime = qa.getvalue(qa.convert(qa.time(qa.quantity(state.metadata.starttime_mjd+stopdt/(24*3600), 'd'),
-#                                                  form=['ymd'], prec=9)[0], 's'))[0]/(24*3600)
         starttime = time.Time(state.metadata.starttime_mjd, format='mjd').unix + startdt
         stoptime = time.Time(state.metadata.starttime_mjd, format='mjd').unix + stopdt
 
@@ -431,10 +426,10 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
             dt = st.inttime*min(st.dtarr[dtind], 2)  # dt>2 not yet supported
         else:
             #dtind = random.choice(range(len(st.dtarr)))
-            dt = st.inttime*np.random.uniform(0, max(st.dtarr)) # s  #like an alias for "dt"
+            dt = st.inttime*np.random.uniform(0, 1) # s  #like an alias for "dt"
             if dt < st.inttime:
                 dtind = 0
-            else:    
+            else:
                 dtind = int(np.log2(dt/st.inttime))
                 if dtind >= len(st.dtarr):
                     dtind = len(st.dtarr) - 1
@@ -481,7 +476,7 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
 
         mocks.append((segment, i, dm, dt, amp, l, m))
         (segment, dmind, dtind, i, amp, lm, snr) = (segment0, dmind0, dtind0, i0,
-                                               amp0, lm0, snr0)
+                                                    amp0, lm0, snr0)
 
     return mocks
 
@@ -529,6 +524,7 @@ def make_transient_data(st, amp, i0, dm, dt, ampslope=0.):
         model[chans[ir3], i_f[ir3]+1] += f1[ir3]*ampspec[chans[ir3]]
         model[chans[ir3], i_f[ir3]+2] += f2[ir3]*ampspec[chans[ir3]]
     if np.any(i_r >= 4):
-        logger.warning("Some channels broadened more than 3 integrations, which is not yet supported.")
+        logger.warning("{0} channels broadened more than 3 integrations and are not injected"
+                       .format(len(i_r)))
 
     return model

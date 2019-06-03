@@ -7,13 +7,9 @@ import os
 import numpy as np
 from astropy import time
 from rfpipe import version
-import pwkit.environments.casa.util as casautil
-import math
 
 import logging
 logger = logging.getLogger(__name__)
-
-qa = casautil.tools.quanta()
 
 
 class State(object):
@@ -67,7 +63,11 @@ class State(object):
                 from fuzzywuzzy import fuzz
                 badarg = exc.args[0].split('\'')[1]
                 closeprefs = [pref for pref in list(preferences.Preferences().__dict__) if fuzz.ratio(badarg, pref) > 50]
-                raise TypeError("Preference {0} not recognized. Did you mean {1}?".format(badarg, ', '.join(closeprefs)))
+                logger.warn("Preference {0} not recognized. Did you mean {1}?"
+                            .format(badarg, ', '.join(closeprefs)))
+                logger.warn("Trying to ignore bad preference...")
+                prefs.pop(badarg)
+                self.prefs = preferences.Preferences(**prefs)
 
         # TODO: not working
         logger.parent.setLevel(getattr(logging, self.prefs.loglevel))
@@ -244,7 +244,7 @@ class State(object):
     def clearcache(self):
         cached = ['_dmarr', '_dmshifts', '_npol', '_blarr',
                   '_segmenttimes', '_npixx_full', '_npixy_full',
-                  '_corrections']
+                  '_corrections', '_t_overlap']
         for obj in cached:
             try:
                 delattr(self, obj)
@@ -371,8 +371,9 @@ class State(object):
 
         if not hasattr(self, '_dmshifts'):
             from rfpipe import util
-            self._dmshifts = [util.calc_delay(self.freq, self.freq.max(), dm,
-                              self.inttime).max()
+            self._dmshifts = [util.calc_delay(self.freq.take([0]),
+                                              self.freq.max(),
+                                              dm, self.inttime)[0]
                               for dm in self.dmarr]
         return self._dmshifts
 
@@ -381,7 +382,15 @@ class State(object):
         """ Max DM delay in seconds that is fixed to int mult of integration time.
         Gets cached. """
 
-        return max(self.dmshifts)*self.inttime
+        if not hasattr(self, '_t_overlap'):
+            from rfpipe import util
+            self._t_overlap = util.calc_delay(self.freq.take([0]),
+                                              self.freq.max(),
+                                              max(self.dmarr),
+                                              self.inttime)[0]*self.inttime
+
+        return self._t_overlap
+#        return max(self.dmshifts)*self.inttime
 
     @property
     def spw_chan_select(self):
@@ -719,10 +728,6 @@ class State(object):
         peaky = np.round(npixy/2. - candm*(npixy*uvres)).astype(int)
         return peakx, peaky
 
-    def get_segmenttime_string(self, segment):
-        mid_mjd = self.segmenttimes[segment].mean()
-        return qa.time(qa.quantity(mid_mjd, 'd'), form='ymd', prec=8)[0]
-
     @property
     def nints(self):
         assert self.metadata.nints > 0, "metadata.nints must be greater than zero"
@@ -935,7 +940,7 @@ class State(object):
     def chunksize(self):
         toGB = 8/1000**3   # number of complex64s to GB
 
-        if self.prefs.maximmem is not None:
+        if self.prefs.maximmem is not None and self.prefs.fftmode == 'fftw':
             return min(max(1,
                            int(self.prefs.maximmem/(self.npixx*self.npixy*toGB))),
                        self.readints)

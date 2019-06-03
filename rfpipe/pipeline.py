@@ -49,7 +49,7 @@ def prep_and_search(st, segment, data, devicenum=None, returnsoltime=False):
     returnsoltime is option for data_prep to return solution time too.
     """
 
-    from rfpipe import source, search
+    from rfpipe import source, search, reproduce, candidates
 
     ret = source.data_prep(st, segment, data, returnsoltime=returnsoltime)
     if returnsoltime:
@@ -67,7 +67,13 @@ def prep_and_search(st, segment, data, devicenum=None, returnsoltime=False):
         logger.warning("fftmode {0} not recognized (cuda, fftw allowed)"
                        .format(st.prefs.fftmode))
 
+    # calc other features for cc, plot, save
+    candcollection = reproduce.reproduce_candcollection(candcollection, data)
+
     candcollection.soltime = soltime
+
+    candidates.save_cands(st, candcollection)
+
     return candcollection
 
 

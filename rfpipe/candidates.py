@@ -17,7 +17,8 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from rfpipe import version, fileLock
 from bokeh.plotting import ColumnDataSource, Figure, save, output_file
-import scipy.stats.mstats as mstats
+from scipy.stats import mstats
+from scipy import signal
 from bokeh.models import HoverTool
 from bokeh.models import Row
 from collections import OrderedDict
@@ -40,7 +41,7 @@ class CandData(object):
         self.state = state
         self.loc = tuple(loc)
         self.image = image
-        self.data = data
+        self.data = np.ma.masked_equal(data, 0j)
         if 'snrk' in kwargs:  # hack to allow detection level calculation in
             self.snrk = kwargs['snrk']
         else:
@@ -184,13 +185,14 @@ class CandCollection(object):
     prefs to be attached and pickled.
     """
 
-    def __init__(self, array=np.array([]), prefs=None, metadata=None):
+    def __init__(self, array=np.array([]), prefs=None, metadata=None, canddata=[]):
         self.array = array
         self.prefs = prefs
         self.metadata = metadata
         self.rfpipe_version = version.__version__
         self._state = None
         self.soltime = None
+        self.canddata = canddata
         # TODO: pass in segmenttimes here to avoid recalculating during search?
 
     def __repr__(self):
@@ -202,7 +204,11 @@ class CandCollection(object):
             return ('CandCollection with {0} rows'.format(len(self.array)))
 
     def __len__(self):
-        return len(self.array)
+        """ Removes locs with integration < 0, which is a flag
+        """
+
+        goodlocs = [loc for loc in self.locs if loc[1] >= 0]
+        return len(goodlocs)
 
     def __add__(self, cc):
         """ Allow candcollections to be added within a given scan.
@@ -210,7 +216,9 @@ class CandCollection(object):
         Adding empty cc ok, too.
         """
 
-        later = self
+        later = CandCollection(prefs=self.prefs, metadata=self.metadata,
+                               array=self.array.copy(),
+                               canddata=self.canddata.copy())
         # TODO: update to allow different simulated_transient fields that get added into single list
         assert self.prefs.name == cc.prefs.name, "Cannot add collections with different preference name/hash"
         assert self.state.dmarr == cc.state.dmarr,  "Cannot add collections with different dmarr"
@@ -224,17 +232,22 @@ class CandCollection(object):
             if self.state.nsegment > cc.state.nsegment:
                 assert self.metadata.starttime_mjd == cc.metadata.starttime_mjd, "OTF segments should have same start time"
                 assert (self.state.segmenttimes[:cc.state.nsegment] == cc.state.segmenttimes).all(),  "OTF segments should have shared segmenttimes"
-                later = self
+
             elif self.state.nsegment < cc.state.nsegment:
                 assert self.metadata.starttime_mjd == cc.metadata.starttime_mjd, "OTF segments should have same start time"
                 assert (self.state.segmenttimes == cc.state.segmenttimes[:self.state.nsegment]).all(),  "OTF segments should have shared segmenttimes"
-                later = cc
+                later = CandCollection(prefs=cc.prefs, metadata=cc.metadata,
+                                       array=cc.array.copy())
 
         # combine candidate arrays
         if len(later) and len(cc):
             later.array = np.concatenate((later.array, cc.array))
+            if hasattr(later, 'canddata'):
+                later.canddata += cc.canddata
         elif not len(later) and len(cc):
             later.array = cc.array
+            if hasattr(later, 'canddata'):
+                later.canddata = cc.canddata
 
         # combine prefs simulated_transient
         later.prefs.simulated_transient = later.prefs.simulated_transient or cc.prefs.simulated_transient
@@ -417,68 +430,39 @@ class CandCollection(object):
         return 'realfast_{0}_{1}'.format(self.state.metadata.datasetId, bdftime)
 
 
-def save_and_plot(canddatalist):
-    """ Converts a canddata list into a plots and a candcollection.
-    Calculates candidate features from CandData instance(s).
+def cd_to_cc(canddata):
+    """ Converts canddata into plot and a candcollection
+    with added features from CandData instance.
     Returns structured numpy array of candidate features labels defined in
     st.search_dimensions.
     Generates png plot for peak cands, if so defined in preferences.
     """
 
-    if isinstance(canddatalist, CandData):
-        canddatalist = [canddatalist]
-    elif isinstance(canddatalist, list):
-        if not len(canddatalist):
-            return CandCollection()
-    else:
-        logger.warning("argument must be list of CandData object")
+    assert isinstance(canddata, CandData)
 
-    logger.info('Calculating features for {0} candidate{1}.'
-                .format(len(canddatalist), 's'[not len(canddatalist)-1:]))
+    logger.info('Calculating features for candidate.')
 
-    st = canddatalist[0].state
+    st = canddata.state
 
     # TODO: should this be all features, calcfeatures, searchfeatures?
     featurelists = []
     for feature in st.searchfeatures:
-        ff = []
-        for i, canddata in enumerate(canddatalist):
-            ff.append(canddata_feature(canddata, feature))
-        featurelists.append(ff)
+        featurelists.append([canddata_feature(canddata, feature)])
     kwargs = dict(zip(st.searchfeatures, featurelists))
 
-    candlocs = []
-    for i, canddata in enumerate(canddatalist):
-        candlocs.append(canddata_feature(canddata, 'candloc'))
-        kwargs['candloc'] = candlocs
+    candlocs = canddata_feature(canddata, 'candloc')
+    kwargs['candloc'] = [candlocs]
 
     if canddata.cluster is not None:
-        clusters = []
-        clustersizes = []
-        for i, canddata in enumerate(canddatalist):
-            clusters.append(canddata_feature(canddata, 'cluster'))
-            clustersizes.append(canddata_feature(canddata, 'clustersize'))
-        kwargs['cluster'] = clusters
-        kwargs['clustersize'] = clustersizes
+        clusters = canddata_feature(canddata, 'cluster')
+        kwargs['cluster'] = [clusters]
+        clustersizes = canddata_feature(canddata, 'clustersize')
+        kwargs['clustersize'] = [clustersizes]
 
     candcollection = make_candcollection(st, **kwargs)
 
-    if (st.prefs.savecanddata or st.prefs.savecandcollection or st.prefs.saveplots) and len(candcollection):
-        if len(candcollection) > 1:
-            snrs = candcollection.array['snr1'].flatten()
-        elif len(candcollection) == 1:
-            snrs = None
-
-        # save cc and save/plot each canddata
-        for i, canddata in enumerate(canddatalist):
-            if st.prefs.savecanddata:
-                save_cands(st, canddata=canddata)
-            if st.prefs.saveplots:
-                if canddata.cluster is not None:
-                    clustertuple = (clusters[i], clustersizes[i])
-                else:
-                    clustertuple = None
-                candplot(canddata, cluster=clustertuple, snrs=snrs)
+    if st.prefs.returncanddata:
+        candcollection.canddata = [canddata]
 
     return candcollection
 
@@ -599,7 +583,7 @@ def cluster_candidates(cc, downsample_xy=1, returnclusterer=False, label_unclust
                 return cc1
         else:
             logger.warning("No clustering. prefs.clustercands value not valid: {0}."
-                        .format(cc1.prefs.clustercands))
+                           .format(cc1.prefs.clustercands))
             return cc1
 
         logger.info("Clustering parameters set to ({0},{1}) and downsampling in xy by {2}."
@@ -681,61 +665,294 @@ def calc_cluster_rank(cc):
     for cluster in np.unique(clusters):
         clusterinds = np.where(cluster == clusters)[0]
         snrs = cc.array['snr1'][clusterinds]
-        cl_rank[clusterinds] = np.argsort(np.argsort(snrs)[::-1])+1 
+        cl_rank[clusterinds] = np.argsort(np.argsort(snrs)[::-1])+1
         cl_count[clusterinds] = len(clusterinds)
 
     return cl_rank, cl_count
 
 
-def save_cands(st, candcollection=None, canddata=None):
-    """ Save candidate collection or cand data to pickle file.
+def save_cands(st, candcollection):
+    """ Save candidate collection to pickle file.
     Collection saved as array with metadata and preferences attached.
     Writes to location defined by state using a file lock to allow multiple
     writers.
     """
 
-    if canddata is not None:
-        if st.prefs.savecanddata:
-            logger.info('Saving CandData to {0}.'.format(st.candsfile))
-
-            try:
-                with fileLock.FileLock(st.candsfile+'.lock', timeout=60):
-                    with open(st.candsfile, 'ab+') as pkl:
-                        pickle.dump(canddata, pkl)
-
-            except fileLock.FileLock.FileLockException:
-                segment = canddata.loc[0]
-                newcandsfile = ('{0}_seg{1}.pkl'
-                                .format(st.candsfile.rstrip('.pkl'), segment))
-                logger.warning('Candidate file writing timeout. '
-                               'Spilling to new file {0}.'.format(newcandsfile))
-                with open(newcandsfile, 'ab+') as pkl:
-                    pickle.dump(canddata, pkl)
-
+    if st.prefs.savecandcollection:
+        # if not saving canddata, copy cc and save version without canddata
+        if not st.prefs.savecanddata:
+            cc = CandCollection(prefs=candcollection.prefs,
+                                metadata=candcollection.metadata,
+                                array=candcollection.array.copy())
         else:
-            logger.info('Not saving CandData.')
+            cc = candcollection
 
-    if candcollection is not None:
-        if st.prefs.savecandcollection:
-            logger.info('Saving {0} candidate{1} to {2}.'
-                        .format(len(candcollection),
-                                's'[not len(candcollection)-1:], st.candsfile))
+        wwo = 'with' if st.prefs.savecanddata else 'without'
+        logger.info('Saving {0} candidate{1} {2} canddata to {3}.'
+                    .format(len(candcollection),
+                            's'[not len(candcollection)-1:], wwo, st.candsfile))
 
-            try:
-                with fileLock.FileLock(st.candsfile+'.lock', timeout=60):
-                    with open(st.candsfile, 'ab+') as pkl:
-                        pickle.dump(candcollection, pkl)
+        try:
+            with fileLock.FileLock(st.candsfile+'.lock', timeout=60):
+                with open(st.candsfile, 'ab+') as pkl:
+                    pickle.dump(cc, pkl)
 
-            except fileLock.FileLock.FileLockException:
-                segment = candcollection.segment
-                newcandsfile = ('{0}_seg{1}.pkl'
-                                .format(st.candsfile.rstrip('.pkl'), segment))
-                logger.warning('Candidate file writing timeout. '
-                               'Spilling to new file {0}.'.format(newcandsfile))
-                with open(newcandsfile, 'ab+') as pkl:
-                    pickle.dump(candcollection, pkl)
+        except fileLock.FileLock.FileLockException:
+            segment = cc.segment
+            newcandsfile = ('{0}_seg{1}.pkl'
+                            .format(st.candsfile.rstrip('.pkl'), segment))
+            logger.warning('Candidate file writing timeout. '
+                           'Spilling to new file {0}.'.format(newcandsfile))
+            with open(newcandsfile, 'ab+') as pkl:
+                pickle.dump(cc, pkl)
+    else:
+        logger.info('Not saving candcollection.')
+
+
+def pkl_to_h5(pklfile, save_png=True, outdir=None, show=False):
+    """ Read candidate pkl file and save h5 file
+    """
+
+    cds = list(iter_cands(pklfile, select='canddata'))
+    cds_to_h5(cds, save_png=save_png, outdir=outdir, show=show)
+
+
+def cds_to_h5(cds, save_png=True, outdir=None, show=False):
+    """ Convert list of canddata objects to h5 file
+    """
+
+    for cd in cds:
+        logger.info('Processing candidate at candloc {0}'.format(cd.loc))
+        if cd.data.any():
+            cand = cd_to_fetch(cd, classify=False, save_h5=True, save_png=save_png,
+                               outdir=outdir, show=show)
         else:
-            logger.info('Not saving candidates.')
+            logger.warning('Canddata is empty. Skipping Candidate')
+
+
+fetchmodel = None
+tfgraph = None
+
+
+def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False, save_png=False, outdir=None,
+                show=False, f_size=256, t_size=256, dm_size=256):
+    """ Read canddata object for classification in fetch.
+    Optionally save png or h5.
+    """
+
+    import h5py
+    from rfpipe.search import make_dmt
+    from skimage.transform import resize
+
+    dtarr_ind = cd.loc[3]
+    width_m = cd.state.dtarr[dtarr_ind]
+    timewindow = cd.state.prefs.timewindow
+    tsamp = cd.state.inttime*width_m
+    dm = cd.state.dmarr[cd.loc[2]]
+    ft_dedisp = np.flip(np.abs(cd.data.sum(axis=2).T), axis=0)
+    chan_freqs = np.flip(cd.state.freq*1000, axis=0)  # from high to low, MHz
+    nf, nt = np.shape(ft_dedisp)
+
+    logger.debug('Size of the FT array is ({0}, {1})'.format(nf, nt))
+
+    # If timewindow is not set, then set it to the number of time bins
+    if nt != timewindow:
+        logger.info('Setting timewindow equal to nt = {0}'.format(nt))
+        timewindow = nt
+
+    try:
+        assert nf == len(chan_freqs)
+    except AssertionError as err:
+        logger.exception("Number of frequency channel in data should match the frequency list")
+        raise err
+
+    if dm is not 0:
+        dm_start = 0
+        dm_end = 2*dm
+    else:
+        dm_start = -10
+        dm_end = 10
+
+    logger.info('Generating DM-time for candid {0} in DM range {1:.2f}--{2:.2f} pc/cm3'
+                .format(cd.candid, dm_start, dm_end))
+    # note that dmt range assuming data already dispersed to dm
+    dmt = make_dmt(ft_dedisp, dm_start-dm, dm_end-dm, 256, chan_freqs/1000,
+                   tsamp)
+
+    reshaped_ft = resize(ft_dedisp, (f_size, nt), anti_aliasing=True)
+
+    if nt == t_size:
+        reshaped_dmt = dmt
+    elif nt > t_size:
+        reshaped_dmt = resize(dmt, (dm_size, t_size), anti_aliasing=True)
+        reshaped_ft = resize(reshaped_ft, (f_size, t_size), anti_aliasing=True)
+    else:
+        reshaped_ft = pad_along_axis(reshaped_ft, target_length=t_size,
+                                     loc='both', axis=1, mode='median')
+        reshaped_dmt = pad_along_axis(dmt, target_length=t_size, loc='both',
+                                      axis=1, mode='median')
+
+    logger.info('FT reshaped from ({0}, {1}) to {2}'.format(nf, nt, reshaped_ft.shape))
+    logger.info('DMT reshaped to {0}'.format(reshaped_dmt.shape))
+
+    segment, candint, dmind, dtind, beamnum = cd.loc
+    if outdir is not None:
+        fnout = outdir+'cands_{0}_seg{1}-i{2}-dm{3}-dt{4}'.format(cd.state.fileroot, segment, candint, dmind, dtind)
+    else:
+        fnout = 'cands_{0}_seg{1}-i{2}-dm{3}-dt{4}'.format(cd.state.fileroot, segment, candint, dmind, dtind)
+
+    if save_h5:
+        with h5py.File(fnout+'.h5', 'w') as f:
+            freq_time_dset = f.create_dataset('data_freq_time',
+                                              data=reshaped_ft)
+            freq_time_dset.dims[0].label = b"time"
+            freq_time_dset.dims[1].label = b"frequency"
+
+            dm_time_dset = f.create_dataset('data_dm_time',
+                                            data=reshaped_dmt)
+            dm_time_dset.dims[0].label = b"dm"
+            dm_time_dset.dims[1].label = b"time"
+
+        logger.info('Saved h5 as {0}.h5'.format(fnout))
+
+    if save_png:
+        if nt > t_size:
+            ts = np.arange(timewindow)*tsamp
+        else:
+            ts = np.arange(t_size)*tsamp
+        fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(8, 10), sharex=True)
+        ax[0].imshow(reshaped_ft, aspect='auto',
+                     extent=[ts[0], ts[-1], np.min(chan_freqs),
+                             np.max(chan_freqs)])
+        ax[0].set_ylabel('Freq')
+        ax[0].title.set_text('Dedispersed FT')
+        ax[1].imshow(reshaped_dmt, aspect='auto', extent=[ts[0], ts[-1],
+                                                          dm+1*dm, dm-dm])
+        ax[1].set_ylabel('DM')
+        ax[1].title.set_text('DM-Time')
+        ax[1].set_xlabel('Time (s)')
+        plt.tight_layout()
+        plt.savefig(fnout+'.png')
+        logger.info('Saved png as {0}.png'.format(fnout))
+        if show:
+            plt.show()
+        else:
+            plt.close()
+
+    cand = prepare_to_classify(reshaped_ft, reshaped_dmt)
+
+    if classify:
+        from fetch.utils import get_model
+        import tensorflow as tf
+        global fetchmodel
+        global tfgraph
+
+        if devicenum is None:
+            # assume first gpu, but try to infer from worker name
+            devicenum = '0'
+            try:
+                from distributed import get_worker
+                name = get_worker().name
+                devicenum = name.split('fetch')[1]
+            except IndexError:
+                logger.warning("Could not parse worker name {0}. Using default GPU devicenum {1}"
+                               .format(name, devicenum))
+            except ValueError:
+                logger.warning("No worker found. Using default GPU devicenum {0}"
+                               .format(devicenum))
+            except ImportError:
+                logger.warning("distributed not available. Using default GPU devicenum {0}"
+                               .format(devicenum))
+        assert isinstance(devicenum, str)
+        logger.info("Using gpu devicenum: {0}".format(devicenum))
+        os.environ['CUDA_VISIBLE_DEVICES'] = devicenum
+
+        if fetchmodel is None and tfgraph is None:
+            fetchmodel = get_model('a')
+            tfgraph = tf.get_default_graph()
+
+        with tfgraph.as_default():
+            preds = fetchmodel.predict(cand).tolist()
+            logger.info("Fetch probabilities {0}".format(preds))
+            frbprob = preds[0][1]
+        return frbprob
+    else:
+        return cand
+
+
+def pad_along_axis(array, target_length, loc='end', axis=0, **kwargs):
+    """
+    :param array: Input array to pad
+    :param target_length: Required length of the axis
+    :param loc: Location to pad: start: pad in beginning, end: pad in end, else: pad equally on both sides
+    :param axis: Axis to pad along
+    :return:
+    """
+
+    pad_size = target_length - array.shape[axis]
+    axis_nb = len(array.shape)
+
+    if pad_size < 0:
+        return array
+
+    npad = [(0, 0) for x in range(axis_nb)]
+
+    if loc == 'start':
+        npad[axis] = (pad_size, 0)
+    elif loc == 'end':
+        npad[axis] = (0, pad_size)
+    else:
+        if pad_size % 2 == 0:
+            npad[axis] = (pad_size // 2, pad_size // 2)
+        else:
+            npad[axis] = (pad_size // 2, pad_size // 2 + 1)
+
+    return np.pad(array, pad_width=npad, **kwargs)
+
+
+def crop(data, start_sample, length, axis):
+    """
+    :param data: Data array to crop
+    :param start_sample: Sample to start the output cropped array
+    :param length: Final Length along the axis of the output
+    :param axis: Axis to crop
+    :return:
+    """
+
+    if data.shape[axis] > start_sample + length:
+        if axis:
+            return data[:, start_sample:start_sample + length]
+        else:
+            return data[start_sample:start_sample + length, :]
+    elif data.shape[axis] == length:
+        return data
+    else:
+        raise OverflowError('Specified length exceeds the size of data')
+
+
+def prepare_to_classify(ft, dmt):
+    """ Data prep and packaging for input to fetch.
+    """
+
+    data_ft = signal.detrend(np.nan_to_num(ft))
+    data_ft /= np.std(data_ft)
+    data_ft -= np.median(data_ft)
+    data_dt = np.nan_to_num(dmt)
+    data_dt /= np.std(data_dt)
+    data_dt -= np.median(data_dt)
+    X = np.reshape(data_ft, (256, 256, 1))
+    Y = np.reshape(data_dt, (256, 256, 1))
+
+    X[X != X] = 0.0
+    Y[Y != Y] = 0.0
+    X = X.reshape(-1, 256, 256, 1)
+    Y = Y.reshape(-1, 256, 256, 1)
+
+    X = X.copy(order='C')
+    Y = Y.copy(order='C')
+
+    payload = {"data_freq_time": X, "data_dm_time": Y}
+    return payload
 
 
 def iter_cands(candsfile, select='candcollection'):
@@ -753,8 +970,10 @@ def iter_cands(candsfile, select='candcollection'):
             while True:  # step through all possible segments
                 try:
                     candobj = pickle.load(pkl)
-                    if select.lower() in str(type(candobj)).lower():
+                    if select.lower() == 'candcollection':
                         yield candobj
+                    elif select.lower() == 'canddata':
+                        yield candobj.canddata
                 except EOFError:
                     logger.debug('Reached end of pickle.')
                     break
@@ -763,8 +982,10 @@ def iter_cands(candsfile, select='candcollection'):
             while True:  # step through all possible segments
                 try:
                     candobj = pickle.load(pkl, encoding='latin-1')
-                    if select.lower() in str(type(candobj)).lower():
+                    if select.lower() == 'candcollection':
                         yield candobj
+                    elif select.lower() == 'canddata':
+                        yield candobj.canddata
                 except EOFError:
                     logger.debug('Reached end of pickle.')
                     break
@@ -874,11 +1095,20 @@ def visualize_clustering(cc, clusterer):
     (show(column(row(p, p2), row(p3, p4))))
 
 
-def makesummaryplot(candsfile):
-    """ Given a scan's candsfile, read all candcollections and create
+def makesummaryplot(cc=None, candsfile=None):
+    """ Given a candcollection of candsfile, create
     bokeh summary plot
     TODO: modify to take candcollection
     """
+
+    if cc is None and candsfile is not None:
+        ccs = list(iter_cands(candsfile))
+        cc = sum(ccs)
+    if cc is not None and candsfile is None:
+        candsfile = cc.state.candsfile
+
+    if not len(cc):
+        return 0
 
     time = []
     segment = []
@@ -890,14 +1120,6 @@ def makesummaryplot(candsfile):
     dt = []
     l1 = []
     m1 = []
-    ccs = list(iter_cands(candsfile))
-    if len(ccs):
-        cc = sum(ccs)
-        if not len(cc):
-            return 0
-    else:
-        return 0
-
     time.append(cc.candmjd*(24*3600))
     segment.append(cc.array['segment'])
     integration.append(cc.array['integration'])
@@ -1101,13 +1323,12 @@ def calcinds(data, threshold, ignoret=None):
     return inds
 
 
-def candplot(canddatalist, snrs=None, cluster=None, outname=''):
+def candplot(canddatalist, snrs=None, outname=''):
     """ Takes output of search_thresh (CandData objects) to make
     candidate plots.
     Expects pipeline state, candidate location, image, and
     phased, dedispersed data (cut out in time, dual-pol).
     snrs is array for an (optional) SNR histogram plot.
-    cluster allows cluster info to be passed in as (cluster_label, size).
     Written by Bridget Andersen and modified by Casey for rfpipe.
     """
 
@@ -1217,8 +1438,8 @@ def candplot(canddatalist, snrs=None, cluster=None, outname=''):
                 fontname='sans-serif', transform=ax.transAxes,
                 fontsize='small')
 
-        if cluster is not None:
-            label, size = cluster
+        if canddata.cluster is not None:
+            label, size = canddata.cluster, canddata.clustersize
             ax.text(left, start-11*space, 'Cluster label: {0}'.format(str(label)),
                     fontname='sans-serif',
                     transform=ax.transAxes, fontsize='small')
@@ -1704,7 +1925,7 @@ def make_voevent(candcollection):
         FRB_NAME = 'FRB'+FRB_YY+FRB_MM+FRB_DD + FRB_ISOT_UTHH
         
         #set filename to FRB_NAME + '_detection.xml'
-        outname = os.path.join(st.prefs.workdir,FRB_NAME+'_detection_CC.xml')
+        outname = os.path.join(st.prefs.workdir,FRB_NAME+'_detection.xml')
         
         try:
             #write VOEvent file
@@ -1712,22 +1933,24 @@ def make_voevent(candcollection):
             VOEvent_of = open(outname,'w')
             #header
             VOEvent_of.write("<?xml version='1.0' encoding='UTF-8'?>"+'\n')
-            VOEvent_of.write('<voe:VOEvent xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:voe="http://www.ivoa.net/xml/VOEvent/v2.0" xsi:schemaLocation="http://www.ivoa.net/xml/VOEvent/v2.0 http://www.ivoa.net/xml/VOEvent/VOEvent-v2.0.xsd" version="2.0" role="test" ivorn="ivo://io.realfast/realfast#'+FRB_NAME+'/'+str(FRB_obsmjd)+'">'+'\n')
+            VOEvent_of.write('<voe:VOEvent xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:voe="http://www.ivoa.net/xml/VOEvent/v2.0" xsi:schemaLocation="http://www.ivoa.net/xml/VOEvent/v2.0 http://www.ivoa.net/xml/VOEvent/VOEvent-v2.0.xsd" version="2.0" role="test" ivorn="ivo://realfast.io/realfast#'+FRB_NAME+'/'+str(FRB_obsmjd)+'">'+'\n')
             #WHO
             VOEvent_of.write('\t'+'<Who>'+'\n')
-            VOEvent_of.write('\t\t'+'<AuthorIVORN>ivo://io.realfast/contact</AuthorIVORN>'+'\n')
+            VOEvent_of.write('\t\t'+'<AuthorIVORN>ivo://realfast.io/contact</AuthorIVORN>'+'\n')
             VOEvent_of.write('\t\t'+'<Date>'+FRB_ISOT+'</Date>\n')
             VOEvent_of.write('\t\t'+'<Author><contactEmail>claw@astro.berkeley.edu</contactEmail><contactName>Casey Law</contactName></Author>\n')
             VOEvent_of.write('\t</Who>\n')
             #What
             VOEvent_of.write('\t<What>\n')
+            VOEvent_of.write('\t\tParam name="AlertType" dataType="string" value="Preliminary">\n')
+            VOEvent_of.write('\t\t</Param>\n')
             VOEvent_of.write('\t\t<Group name="observatory parameters">\n')
             VOEvent_of.write('\t\t\t<Param dataType="float" name="beam_semi-major_axis" ucd="instr.beam;pos.errorEllipse;phys.angSize.smajAxis" unit="SS" value="'+str(beam_semimaj)+'"/>\n')
             VOEvent_of.write('\t\t\t<Param dataType="float" name="beam_semi-minor_axis" ucd="instr.beam;pos.errorEllipse;phys.angSize.sminAxis" unit="SS" value="'+str(beam_semimin)+'"/>\n')
             VOEvent_of.write('\t\t\t<Param dataType="float" name="beam_rotation_angle" ucd="instr.beam;pos.errorEllipse;instr.offset" unit="Degrees" value="'+str(beam_rot_ang)+'"/>\n')
             VOEvent_of.write('\t\t\t<Param dataType="float" name="sampling_time" ucd="time.resolution" unit="ms" value="'+str(samp_time)+'"/>\n')
             VOEvent_of.write('\t\t\t<Param dataType="float" name="bandwidth" ucd="instr.bandwidth" unit="MHz" value="'+str(band_width)+'"/>\n')
-            VOEvent_of.write('\t\t\t<Param dataType="float" name="nchan" ucd="meta.number;em.freq;em.bin" unit="None" value="'+str(num_chan)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="int" name="nchan" ucd="meta.number;em.freq;em.bin" unit="None" value="'+str(num_chan)+'"/>\n')
             VOEvent_of.write('\t\t\t<Param dataType="float" name="centre_frequency" ucd="em.freq;instr" unit="MHz" value="'+str(center_freq)+'"/>\n')
             VOEvent_of.write('\t\t\t<Param dataType="int" name="npol" unit="None" value="'+str(num_pol)+'"/>\n')
             VOEvent_of.write('\t\t\t<Param dataType="int" name="bits_per_sample" unit="None" value="'+str(bits_per_sample)+'"/>\n')
@@ -1740,7 +1963,7 @@ def make_voevent(candcollection):
             VOEvent_of.write('\t\t\t<Param dataType="float" name="dm" ucd="phys.dispMeasure;em.radio.'+str(int(np.floor(st.freq.min())))+'000-'+str(int(np.ceil(st.freq.max())))+'000MHz" unit="pc/cm^3" value="'+str(FRB_DM)+'"/>\n')
             VOEvent_of.write('\t\t\t<Param dataType="float" name="dm_error" ucd="stat.error;phys.dispMeasure" unit="pc/cm^3" value="'+str(int(np.ceil(FRB_DM_err)))+'"/>\n')
             VOEvent_of.write('\t\t\t<Param dataType="float" name="width" ucd="time.duration;src.var.pulse" unit="ms" value="'+str(FRB_width)+'"/>\n')
-            VOEvent_of.write('\t\t\t<Param dataType="float" name="snr" ucd="stat.snr" value="'+str(FRB_SNR)+'"/>\n')
+            VOEvent_of.write('\t\t\t<Param dataType="float" name="snr" ucd="stat.snr" unit="None" value="'+str(FRB_SNR)+'"/>\n')
             #VOEvent_of.write('\t\t\t<Param dataType="float" name="flux" ucd="phot.flux" unit="Jy" value="'+str(FRB_flux)+'"/>\n') #FOR NOW: do not report flux density.  We do not have good enough absolute flux density calibration
             VOEvent_of.write('\t\t\t<Param dataType="float" name="gl" ucd="pos.galactic.lon" unit="Degrees" value="'+str(FRB_gl)+'"/>\n')
             VOEvent_of.write('\t\t\t<Param dataType="float" name="gb" ucd="pos.galactic.lat" unit="Degrees" value="'+str(FRB_gb)+'"/>\n')
@@ -1775,6 +1998,8 @@ def make_voevent(candcollection):
             VOEvent_of.write('\t</WhereWhen>\n')
             #How
             VOEvent_of.write('\t<How>\n')
+            VOEvent_of.write('\t\t<Description>Discovered by realfast</Description>')
+            VOEvent_of.write('\t\t<Reference uri="http://realfast.io"/>')
             VOEvent_of.write('\t\t</How>\n')
             #Why
             VOEvent_of.write('\t<Why importance="'+str(FRB_importance)+'">\n')

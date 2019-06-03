@@ -59,6 +59,13 @@ snrs = {'16A-459_TEST_1hr.57623.72670021991.cut': 37.,
         'realfast_19A-331_sb35982945_1_1.58541.41868983796_1551262870989': 0,
         'realfast_19A-331_sb35982945_1_1.58541.41868983796_1551267058385': 0}
 
+
+def pytest_configure(config):
+    config.addinivalue_line("datacuda", "requires cuda and data")
+    config.addinivalue_line("datafftw", "requires cpu and data")
+    config.addinivalue_line("simfftw", "simulats data and uses fftw")
+    config.addinivalue_line("simcuda", "simulats data and uses fftw")
+
 needsdata = pytest.mark.skipif('olympics' not in os.getcwd(),
                                reason='Must be in repeater data directory')
 
