@@ -101,7 +101,7 @@ class Preferences(object):
     savesols = attr.ib(default=False)
     candsfile = attr.ib(default=None)
     workdir = attr.ib(default=getcwd())  # set upon import
-    timewindow = attr.ib(default=30)
+    timewindow = attr.ib(default=60)
 #    logfile = attr.ib(default=True)
     loglevel = attr.ib(default='INFO')
 
