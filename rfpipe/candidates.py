@@ -733,18 +733,19 @@ def cds_to_h5(cds, save_png=True, outdir=None, show=False):
 fetchmodel = None
 tfgraph = None
 
-
 def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False, save_png=False, outdir=None,
-                show=False, f_size=256, t_size=256, dm_size=256):
+                show=False, f_size=256, t_size=256, dm_size=256, mode='CPU'):
     """ Read canddata object for classification in fetch.
     Optionally save png or h5.
     """
-
     import h5py
     from rfpipe.search import make_dmt
     from skimage.transform import resize
-
-    dtarr_ind = cd.loc[3]
+    
+    try:
+        dtarr_ind = cd.loc[3]
+    except:
+        return -1 
     width_m = cd.state.dtarr[dtarr_ind]
     timewindow = cd.state.prefs.timewindow
     tsamp = cd.state.inttime*width_m
@@ -754,30 +755,48 @@ def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False, save_png=False
     nf, nt = np.shape(ft_dedisp)
 
     logger.debug('Size of the FT array is ({0}, {1})'.format(nf, nt))
+    
+    try:
+        assert nt > 0
+    except AssertionError as err:
+        logger.exception("Number of time bins is equal to 0")
+        raise err    
+        
+    try:
+        assert nf > 0
+    except AssertionError as err:
+        logger.exception("Number of frequency bins is equal to 0")
+        raise err    
 
-    # If timewindow is not set, then set it to the number of time bins
+    
+    roll_to_center = nt//2 - cd.integration_rel
+    ft_dedisp = np.roll(ft_dedisp, shift=roll_to_center, axis=1)
+
+    # If timewindow is not set during search, set it equal to the number of time bins of candidate
     if nt != timewindow:
         logger.info('Setting timewindow equal to nt = {0}'.format(nt))
         timewindow = nt
-
+    else:
+        logger.info('Timewindow length is {0}'.format(timewindow))
+        
     try:
         assert nf == len(chan_freqs)
     except AssertionError as err:
         logger.exception("Number of frequency channel in data should match the frequency list")
         raise err
-
+    
     if dm is not 0:
         dm_start = 0
         dm_end = 2*dm
     else:
-        dm_start = -10
+        dm_start = -1
         dm_end = 10
 
     logger.info('Generating DM-time for candid {0} in DM range {1:.2f}--{2:.2f} pc/cm3'
                 .format(cd.candid, dm_start, dm_end))
+
     # note that dmt range assuming data already dispersed to dm
-    dmt = make_dmt(ft_dedisp, dm_start-dm, dm_end-dm, 256, chan_freqs/1000,
-                   tsamp)
+    dmt = make_dmt(ft_dedisp, dm_start-dm, dm_end-dm, 256, chan_freqs/1000, tsamp, mode=mode)
 
     reshaped_ft = resize(ft_dedisp, (f_size, nt), anti_aliasing=True)
 
@@ -787,14 +806,14 @@ def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False, save_png=False
         reshaped_dmt = resize(dmt, (dm_size, t_size), anti_aliasing=True)
         reshaped_ft = resize(reshaped_ft, (f_size, t_size), anti_aliasing=True)
     else:
-        reshaped_ft = pad_along_axis(reshaped_ft, target_length=t_size,
+        reshaped_ft = pad_along_axis(reshaped_ft, target_length=t_size, 
                                      loc='both', axis=1, mode='median')
-        reshaped_dmt = pad_along_axis(dmt, target_length=t_size, loc='both',
-                                      axis=1, mode='median')
+        reshaped_dmt = pad_along_axis(dmt, target_length=t_size, 
+                                      loc='both', axis=1, mode='median')
 
     logger.info('FT reshaped from ({0}, {1}) to {2}'.format(nf, nt, reshaped_ft.shape))
-    logger.info('DMT reshaped to {0}'.format(reshaped_dmt.shape))
-
+    logger.info('DMT reshaped to {0}'.format(reshaped_dmt.shape))    
+    
     segment, candint, dmind, dtind, beamnum = cd.loc
     if outdir is not None:
         fnout = outdir+'cands_{0}_seg{1}-i{2}-dm{3}-dt{4}'.format(cd.state.fileroot, segment, candint, dmind, dtind)
@@ -827,7 +846,7 @@ def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False, save_png=False
         ax[0].set_ylabel('Freq')
         ax[0].title.set_text('Dedispersed FT')
         ax[1].imshow(reshaped_dmt, aspect='auto', extent=[ts[0], ts[-1],
-                                                          dm+1*dm, dm-dm])
+                                                          dm_end, dm_start])
         ax[1].set_ylabel('DM')
         ax[1].title.set_text('DM-Time')
         ax[1].set_xlabel('Time (s)')
@@ -863,10 +882,7 @@ def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False, save_png=False
             except ImportError:
                 logger.warning("distributed not available. Using default GPU devicenum {0}"
                                .format(devicenum))
-        elif isinstance(devicenum, int):
-            devicenum = str(devicenum)
-
-        assert isinstance(devicenum, str)  # need str type for env variable
+        assert isinstance(devicenum, str)
         logger.info("Using gpu devicenum: {0}".format(devicenum))
         os.environ['CUDA_VISIBLE_DEVICES'] = devicenum
 
@@ -881,6 +897,7 @@ def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False, save_png=False
         return frbprob
     else:
         return cand
+
 
 
 def pad_along_axis(array, target_length, loc='end', axis=0, **kwargs):
