@@ -672,17 +672,25 @@ def dedisperse_roll(data, delay):
     dataout = np.vstack([np.roll(arr, -delay[i]) for i, arr in enumerate(data)])
     return dataout
 
-def make_dmt(data, dmi, dmf, dmsteps, freqs, inttime, mode='GPU', device=0):
+
+def make_dmt(data, dmi, dmf, dmsteps, freqs, inttime, mode='GPU', devicenum=0):
     """ Disperse data to a range of dms.
     Good transients have characteristic shape in dm-time space.
     """
+
     if mode == 'GPU':
-        dmt = gpu_dmtime(data, dmi, dmf, dmsteps, freqs, inttime, device=device)
+        dmt = gpu_dmtime(data, dmi, dmf, dmsteps, freqs, inttime,
+                         devicenum=devicenum)
     else:
         dmt = cpu_dmtime(data, dmi, dmf, dmsteps, freqs, inttime)
+
     return dmt
 
+
 def cpu_dmtime(data, dmi, dmf, dmsteps, freqs, inttime):
+    """ Make dm-time plot. Called by make_dmt
+    """
+
     from rfpipe import util
     dmt = np.zeros((dmsteps, data.shape[1]), dtype=np.float32)
     dm_list = np.linspace(dmi, dmf, dmsteps)
@@ -691,24 +699,29 @@ def cpu_dmtime(data, dmi, dmf, dmsteps, freqs, inttime):
         dmt[ii, :] = dedisperse_roll(data, delay).sum(axis=0)
     return dmt
 
-def gpu_dmtime(ft, dm_i, dm_f, dmsteps, freqs, inttime, device=0):
+
+def gpu_dmtime(ft, dm_i, dm_f, dmsteps, freqs, inttime, devicenum=0):
+    """ Make dm-time plot. Called by make_dmt
+    """
+
     from numba import cuda
     import math
     from rfpipe import util
+
     dm_list = np.linspace(dm_i, dm_f, dmsteps)
     delays = np.zeros((dmsteps, ft.shape[0]), dtype=np.int32)
     for ii, dm in enumerate(dm_list):
-        delays[ii,:] = util.calc_delay(freqs, freqs.max(), dm, inttime).astype('int32')
-      
-    cuda.select_device(device)
+        delays[ii, :] = util.calc_delay(freqs, freqs.max(), dm, inttime).astype('int32')
+
+    cuda.select_device(devicenum)
     dm_time = np.zeros((delays.shape[0], int(ft.shape[1])), dtype=np.float32)
-    
+
     @cuda.jit(fastmath=True)
     def gpu_dmt(cand_data_in, all_delays, cand_data_out):
         ii, jj, kk = cuda.grid(3)
         if ii < cand_data_in.shape[0] and jj < cand_data_out.shape[1] and kk < all_delays.shape[1]:
-            cuda.atomic.add(cand_data_out, (kk, jj), cand_data_in[ii, 
-                                                                  (jj + all_delays[ii,kk])%cand_data_in.shape[1]]) 
+            cuda.atomic.add(cand_data_out, (kk, jj), cand_data_in[ii,
+                                                                  (jj + all_delays[ii,kk])%cand_data_in.shape[1]])
 
     all_delays = cuda.to_device(delays.T)
     dmt_return = cuda.device_array(dm_time.shape, dtype=np.float32)
@@ -720,7 +733,8 @@ def gpu_dmtime(ft, dm_i, dm_f, dmsteps, freqs, inttime, device=0):
     blockspergrid_z = math.ceil(dm_time.shape[0] / threadsperblock[2])
     blockspergrid = (blockspergrid_x, blockspergrid_y, blockspergrid_z)
 
-    gpu_dmt[blockspergrid, threadsperblock](cand_data_in, all_delays,  dmt_return)
+    gpu_dmt[blockspergrid, threadsperblock](cand_data_in, all_delays,
+                                            dmt_return)
     dm_time = dmt_return.copy_to_host()
     cuda.close()
     return dm_time

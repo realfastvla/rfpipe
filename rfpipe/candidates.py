@@ -724,51 +724,52 @@ def cds_to_h5(cds, save_png=True, outdir=None, show=False):
     for cd in cds:
         logger.info('Processing candidate at candloc {0}'.format(cd.loc))
         if cd.data.any():
-            cand = cd_to_fetch(cd, classify=False, save_h5=True, save_png=save_png,
-                               outdir=outdir, show=show)
+            cand = cd_to_fetch(cd, classify=False, save_h5=True,
+                               save_png=save_png, outdir=outdir, show=show)
         else:
             logger.warning('Canddata is empty. Skipping Candidate')
 
 
+# globals
 fetchmodel = None
 tfgraph = None
 
-def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False, save_png=False, outdir=None,
-                show=False, f_size=256, t_size=256, dm_size=256, mode='CPU'):
+
+def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False,
+                save_png=False, outdir=None, show=False, f_size=256,
+                t_size=256, dm_size=256, mode='CPU'):
     """ Read canddata object for classification in fetch.
     Optionally save png or h5.
     """
+
     import h5py
     from rfpipe.search import make_dmt
     from skimage.transform import resize
-    
-    try:
-        dtarr_ind = cd.loc[3]
-    except:
-        return -1 
-    width_m = cd.state.dtarr[dtarr_ind]
-    timewindow = cd.state.prefs.timewindow
-    tsamp = cd.state.inttime*width_m
-    dm = cd.state.dmarr[cd.loc[2]]
+
+    segment, candint, dmind, dtind, beamnum = cd.loc
+    st = cd.state
+    width_m = st.dtarr[dtind]
+    timewindow = st.prefs.timewindow
+    tsamp = st.inttime*width_m
+    dm = st.dmarr[dmind]
     ft_dedisp = np.flip(np.abs(cd.data.sum(axis=2).T), axis=0)
-    chan_freqs = np.flip(cd.state.freq*1000, axis=0)  # from high to low, MHz
+    chan_freqs = np.flip(st.freq*1000, axis=0)  # from high to low, MHz
     nf, nt = np.shape(ft_dedisp)
 
     logger.debug('Size of the FT array is ({0}, {1})'.format(nf, nt))
-    
+
     try:
         assert nt > 0
     except AssertionError as err:
         logger.exception("Number of time bins is equal to 0")
-        raise err    
-        
+        raise err
+
     try:
         assert nf > 0
     except AssertionError as err:
         logger.exception("Number of frequency bins is equal to 0")
-        raise err    
+        raise err
 
-    
     roll_to_center = nt//2 - cd.integration_rel
     ft_dedisp = np.roll(ft_dedisp, shift=roll_to_center, axis=1)
 
@@ -778,13 +779,13 @@ def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False, save_png=False
         timewindow = nt
     else:
         logger.info('Timewindow length is {0}'.format(timewindow))
-        
+
     try:
         assert nf == len(chan_freqs)
     except AssertionError as err:
         logger.exception("Number of frequency channel in data should match the frequency list")
         raise err
-    
+
     if dm is not 0:
         dm_start = 0
         dm_end = 2*dm
@@ -795,8 +796,29 @@ def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False, save_png=False
     logger.info('Generating DM-time for candid {0} in DM range {1:.2f}--{2:.2f} pc/cm3'
                 .format(cd.candid, dm_start, dm_end))
 
+    if devicenum is None:
+        # assume first gpu, but try to infer from worker name
+        devicenum = '0'
+        try:
+            from distributed import get_worker
+            name = get_worker().name
+            devicenum = name.split('fetch')[1]
+        except IndexError:
+            logger.warning("Could not parse worker name {0}. Using default GPU devicenum {1}"
+                           .format(name, devicenum))
+        except ValueError:
+            logger.warning("No worker found. Using default GPU devicenum {0}"
+                           .format(devicenum))
+        except ImportError:
+            logger.warning("distributed not available. Using default GPU devicenum {0}"
+                           .format(devicenum))
+    assert isinstance(devicenum, str)
+    logger.info("Using gpu devicenum: {0}".format(devicenum))
+    os.environ['CUDA_VISIBLE_DEVICES'] = devicenum
+
     # note that dmt range assuming data already dispersed to dm
-    dmt = make_dmt(ft_dedisp, dm_start-dm, dm_end-dm, 256, chan_freqs/1000, tsamp, mode=mode)
+    dmt = make_dmt(ft_dedisp, dm_start-dm, dm_end-dm, 256, chan_freqs/1000,
+                   tsamp, mode=mode, devicenum=int(devicenum))
 
     reshaped_ft = resize(ft_dedisp, (f_size, nt), anti_aliasing=True)
 
@@ -806,19 +828,27 @@ def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False, save_png=False
         reshaped_dmt = resize(dmt, (dm_size, t_size), anti_aliasing=True)
         reshaped_ft = resize(reshaped_ft, (f_size, t_size), anti_aliasing=True)
     else:
-        reshaped_ft = pad_along_axis(reshaped_ft, target_length=t_size, 
+        reshaped_ft = pad_along_axis(reshaped_ft, target_length=t_size,
                                      loc='both', axis=1, mode='median')
-        reshaped_dmt = pad_along_axis(dmt, target_length=t_size, 
+        reshaped_dmt = pad_along_axis(dmt, target_length=t_size,
                                       loc='both', axis=1, mode='median')
 
-    logger.info('FT reshaped from ({0}, {1}) to {2}'.format(nf, nt, reshaped_ft.shape))
-    logger.info('DMT reshaped to {0}'.format(reshaped_dmt.shape))    
-    
-    segment, candint, dmind, dtind, beamnum = cd.loc
+    logger.info('FT reshaped from ({0}, {1}) to {2}'
+                .format(nf, nt, reshaped_ft.shape))
+    logger.info('DMT reshaped to {0}'.format(reshaped_dmt.shape))
+
     if outdir is not None:
-        fnout = outdir+'cands_{0}_seg{1}-i{2}-dm{3}-dt{4}'.format(cd.state.fileroot, segment, candint, dmind, dtind)
+        fnout = outdir+'cands_{0}_seg{1}-i{2}-dm{3}-dt{4}'.format(st.fileroot,
+                                                                  segment,
+                                                                  candint,
+                                                                  dmind,
+                                                                  dtind)
     else:
-        fnout = 'cands_{0}_seg{1}-i{2}-dm{3}-dt{4}'.format(cd.state.fileroot, segment, candint, dmind, dtind)
+        fnout = 'cands_{0}_seg{1}-i{2}-dm{3}-dt{4}'.format(st.fileroot,
+                                                           segment,
+                                                           candint,
+                                                           dmind,
+                                                           dtind)
 
     if save_h5:
         with h5py.File(fnout+'.h5', 'w') as f:
@@ -865,26 +895,6 @@ def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False, save_png=False
         import tensorflow as tf
         global fetchmodel
         global tfgraph
-
-        if devicenum is None:
-            # assume first gpu, but try to infer from worker name
-            devicenum = '0'
-            try:
-                from distributed import get_worker
-                name = get_worker().name
-                devicenum = name.split('fetch')[1]
-            except IndexError:
-                logger.warning("Could not parse worker name {0}. Using default GPU devicenum {1}"
-                               .format(name, devicenum))
-            except ValueError:
-                logger.warning("No worker found. Using default GPU devicenum {0}"
-                               .format(devicenum))
-            except ImportError:
-                logger.warning("distributed not available. Using default GPU devicenum {0}"
-                               .format(devicenum))
-        assert isinstance(devicenum, str)
-        logger.info("Using gpu devicenum: {0}".format(devicenum))
-        os.environ['CUDA_VISIBLE_DEVICES'] = devicenum
 
         if fetchmodel is None and tfgraph is None:
             fetchmodel = get_model('a')
