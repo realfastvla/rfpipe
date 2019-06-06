@@ -767,7 +767,6 @@ def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False, save_png=False
     except AssertionError as err:
         logger.exception("Number of frequency bins is equal to 0")
         raise err    
-
     
     roll_to_center = nt//2 - cd.integration_rel
     ft_dedisp = np.roll(ft_dedisp, shift=roll_to_center, axis=1)
@@ -887,6 +886,12 @@ def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False, save_png=False
         os.environ['CUDA_VISIBLE_DEVICES'] = devicenum
 
         if fetchmodel is None and tfgraph is None:
+            from keras.backend.tensorflow_backend import set_session
+            config = tf.ConfigProto()
+            config.gpu_options.per_process_gpu_memory_fraction = 0.5
+            sess = tf.Session(config=config)
+            set_session(sess)  # set this TensorFlow session as the default session for Keras            
+
             fetchmodel = get_model('a')
             tfgraph = tf.get_default_graph()
 
