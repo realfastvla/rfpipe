@@ -563,9 +563,12 @@ def make_candcollection(st, **kwargs):
     return candcollection
 
 
-def cluster_candidates(cc, downsample_xy=1, returnclusterer=False, label_unclustered=True):
+def cluster_candidates(cc, downsample=None, returnclusterer=False,
+                       label_unclustered=True):
     """ Perform density based clustering on candidates using HDBSCAN
     parameters used for clustering: dm, time, l,m.
+    downsample will group spatial axes prior to running clustering.
+    Taken from cc.prefs.cluster_downsampling by default.
     label_unclustered adds new cluster label for each unclustered candidate.
     Returns label for each row in candcollection.
     """
@@ -574,25 +577,22 @@ def cluster_candidates(cc, downsample_xy=1, returnclusterer=False, label_unclust
     if len(cc1) > 1:
         if isinstance(cc1.prefs.clustercands, tuple):
             min_cluster_size, min_samples = cc1.prefs.clustercands
-        elif isinstance(cc1.prefs.clustercands, bool):
-            if cc1.prefs.clustercands:
-                min_cluster_size = 5
-                min_samples = 3
-            else:
-                logger.info("Not performing clustering")
-                return cc1
         else:
-            logger.warning("No clustering. prefs.clustercands value not valid: {0}."
-                           .format(cc1.prefs.clustercands))
-            return cc1
+            logger.info("Using default clustercands parameters")
+            min_cluster_size = 5
+            min_samples = 3
 
-        logger.info("Clustering parameters set to ({0},{1}) and downsampling in xy by {2}."
-                    .format(min_cluster_size, min_samples, downsample_xy))
+        if downsample is None:
+            downsample = cc1.prefs.cluster_downsampling
+
+        logger.info("Clustering parameters set to ({0},{1}) and downsampling xy by {2}."
+                    .format(min_cluster_size, min_samples, downsample))
 
         if min_cluster_size > len(cc1):
             logger.info("Setting min_cluster_size to number of cands {0}"
                         .format(len(cc1)))
             min_cluster_size = len(cc1)
+
         candl = cc1.candl
         candm = cc1.candm
         npixx = cc1.state.npixx
@@ -607,8 +607,11 @@ def cluster_candidates(cc, downsample_xy=1, returnclusterer=False, label_unclust
         time_ind = np.multiply(timearr_ind, np.array(dtarr).take(dtind))
         peakx_ind, peaky_ind = cc1.state.calcpix(candl, candm, npixx, npixy,
                                                  uvres)
-        data = np.transpose([peakx_ind//downsample_xy, peaky_ind//downsample_xy,
-                             dmind, time_ind])
+
+        # stacking indices and taking at most one per bin
+        data = np.unique(np.transpose([peakx_ind//downsample,
+                                       peaky_ind//downsample,
+                                       dmind, time_ind]), axis=0)
 
         clusterer = hdbscan.HDBSCAN(metric='hamming',
                                     min_cluster_size=min_cluster_size,
