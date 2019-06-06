@@ -832,7 +832,6 @@ class State(object):
     def searchfeatures(self):
         """ Given searchtype, return features to be extracted during search.
         """
-        # TODO: overload with preference for features as a list of names
 
         if self.prefs.searchfeatures is not None:
             return self.prefs.searchfeatures

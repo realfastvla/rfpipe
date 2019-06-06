@@ -11,13 +11,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def reproduce_candcollection(cc, data, wisdom=None, spec_std=None, sig_ts=None,
-                             kalman_coeffs=None):
-    """ Uses prepared data to make canddata for each cand in candcollection.
+def reproduce_candcollection(cc, data=None, wisdom=None, spec_std=None,
+                             sig_ts=None, kalman_coeffs=None):
+    """ Uses candcollection to make new candcollection with required info.
     Will look for cluster label and filter only for peak snr, if available.
     Location (e.g., integration, dm, dt) of each is used to create
-    canddata for each candidate.
-    Calculates features not used directly for search (as defined in
+    canddata for each candidate, if required.
+    Can calculates features not used directly for search (as defined in
     state.prefs.calcfeatures).
     """
 
@@ -28,80 +28,85 @@ def reproduce_candcollection(cc, data, wisdom=None, spec_std=None, sig_ts=None,
     cc1 = candidates.CandCollection(prefs=st.prefs, metadata=st.metadata)
 
     if len(cc):
-        candlocs = cc.locs
-        snrs = cc.snrtot
-
         if 'cluster' in cc.array.dtype.fields:
             clusters = cc.array['cluster'].astype(int)
             cl_rank, cl_count = candidates.calc_cluster_rank(cc)
             calcinds = np.unique(np.where(cl_rank == 1)[0]).tolist()
             logger.debug("Reproducing cands at {0} cluster peaks"
                          .format(len(calcinds)))
-
-            # TODO: use number of clusters as test of an RFI-affected segment?
-            # If threshold exceeded, could reproduce subset of all candidates.
-
         else:
             logger.debug("No cluster field found. Reproducing all.")
             calcinds = list(range(len(cc)))
 
-        logger.info("Generating canddata for {0} candidates".format(len(calcinds)))
+        # if candidates that need new feature calculations
+        if not all([f in cc.array.dtype.fields for f in st.features]):
+            logger.info("Generating canddata for {0} candidates"
+                        .format(len(calcinds)))
 
-        if ('snrk' in st.features and
-            'snrk' not in cc.array.dtype.fields and
-            (spec_std is None or sig_ts is None or kalman_coeffs is None)):
-            # TODO: use same kalman calc for search as reproduce?
-            spec_std, sig_ts, kalman_coeffs = util.kalman_prep(data)
+            candlocs = cc.locs
+            snrs = cc.snrtot
 
-        # reproduce canddata for each
-        for i in calcinds:
-            # TODO: check on best way to find max SNR with kalman, etc
-            snr = snrs[i]
-            candloc = candlocs[i]
+            if ('snrk' in st.features and
+                'snrk' not in cc.array.dtype.fields and
+                (spec_std is None or sig_ts is None or kalman_coeffs is None)):
+                # TODO: use same kalman calc for search as reproduce?
+                spec_std, sig_ts, kalman_coeffs = util.kalman_prep(data)
 
-            # kwargs passed to canddata object for plotting/saving
-            kwargs = {}
-            if 'cluster' in cc.array.dtype.fields:
-                logger.info("Cluster {0}/{1} has {2} candidates and max detected SNR {3:.1f} at {4}"
-                            .format(calcinds.index(i), len(calcinds)-1, cl_count[i],
-                                    snr, candloc))
-                # add supplementary plotting and cc info
-                kwargs['cluster'] = clusters[i]
-                kwargs['clustersize'] = cl_count[i]
-            else:
-                logger.info("Candidate {0}/{1} has detected SNR {2:.1f} at {3}"
-                            .format(calcinds.index(i), len(calcinds)-1, snr,
-                                    candloc))
+            # reproduce canddata for each
+            for i in calcinds:
+                # TODO: check on best way to find max SNR with kalman, etc
+                snr = snrs[i]
+                candloc = candlocs[i]
 
-            # reproduce candidate and get/calc features
-            data_corr = pipeline_datacorrect(st, candloc, data_prep=data)
+                # kwargs passed to canddata object for plotting/saving
+                kwargs = {}
+                if 'cluster' in cc.array.dtype.fields:
+                    logger.info("Cluster {0}/{1} has {2} candidates and max detected SNR {3:.1f} at {4}"
+                                .format(calcinds.index(i), len(calcinds)-1, cl_count[i],
+                                        snr, candloc))
+                    # add supplementary plotting and cc info
+                    kwargs['cluster'] = clusters[i]
+                    kwargs['clustersize'] = cl_count[i]
+                else:
+                    logger.info("Candidate {0}/{1} has detected SNR {2:.1f} at {3}"
+                                .format(calcinds.index(i), len(calcinds)-1, snr,
+                                        candloc))
 
-            for feature in st.searchfeatures:
-                if feature in cc.array.dtype.fields:  # if already calculated
-                    kwargs[feature] = cc.array[feature][i]
-                else:  # if desired, but not yet calculated
-                    if feature == 'snrk':
-                        spec = data_corr.real.mean(axis=3).mean(axis=1)[candloc[1]]
-                        significance_kalman = -kalman_significance(spec,
-                                                                   spec_std,
-                                                                   sig_ts=sig_ts,
-                                                                   coeffs=kalman_coeffs)
-                        snrk = (2*significance_kalman)**0.5
-                        logger.info("Calculated snrk of {0} after detection. "
-                                    "Adding it to CandData.".format(snrk))
-                        kwargs[feature] = snrk
-                    else:
-                        logger.warning("Feature calculation {0} not yet supported"
-                                       .format(feature))
+                # reproduce candidate and get/calc features
+                data_corr = pipeline_datacorrect(st, candloc, data_prep=data)
 
-            cd = pipeline_canddata(st, candloc, data_corr, sig_ts=sig_ts,
-                                   kalman_coeffs=kalman_coeffs, **kwargs)
+                for feature in st.searchfeatures:
+                    if feature in cc.array.dtype.fields:  # if already calculated
+                        kwargs[feature] = cc.array[feature][i]
+                    else:  # if desired, but not yet calculated
+                        if feature == 'snrk':
+                            spec = data_corr.real.mean(axis=3).mean(axis=1)[candloc[1]]
+                            significance_kalman = -kalman_significance(spec,
+                                                                       spec_std,
+                                                                       sig_ts=sig_ts,
+                                                                       coeffs=kalman_coeffs)
+                            snrk = (2*significance_kalman)**0.5
+                            logger.info("Calculated snrk of {0} after detection. "
+                                        "Adding it to CandData.".format(snrk))
+                            kwargs[feature] = snrk
+                        else:
+                            logger.warning("Feature calculation {0} not yet supported"
+                                           .format(feature))
 
-            if st.prefs.saveplots:
-                candidates.candplot(cd, snrs=snrs)  # snrs before clustering
+                cd = pipeline_canddata(st, candloc, data_corr, sig_ts=sig_ts,
+                                       kalman_coeffs=kalman_coeffs, **kwargs)
 
-            # regenerate cc with extra features in cd
-            cc1 += candidates.cd_to_cc(cd)
+                if st.prefs.saveplots:
+                    candidates.candplot(cd, snrs=snrs)  # snrs before clustering
+
+                # regenerate cc with extra features in cd
+                cc1 += candidates.cd_to_cc(cd)
+
+        # if candidates that do not need new featuers, just select peaks
+        else:
+            logger.info("Using clustering info to select {0} candidates"
+                        .format(len(calcinds)))
+            cc1.array = cc.array.take(calcinds)
 
     return cc1
 
