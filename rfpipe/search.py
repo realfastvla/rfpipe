@@ -708,13 +708,17 @@ def gpu_dmtime(ft, dm_i, dm_f, dmsteps, freqs, inttime, devicenum=0):
     from numba import cuda
     import math
     from rfpipe import util
+    import os
 
+    os.environ['NUMBA_CUDA_MAX_PENDING_DEALLOCS_COUNT'] = '1'
     dm_list = np.linspace(dm_i, dm_f, dmsteps)
     delays = np.zeros((dmsteps, ft.shape[0]), dtype=np.int32)
     for ii, dm in enumerate(dm_list):
-        delays[ii, :] = util.calc_delay(freqs, freqs.max(), dm, inttime).astype('int32')
+        delays[ii,:] = util.calc_delay(freqs, freqs.max(), dm, inttime).astype('int32')
+      
+    cuda.select_device(device)
+    stream = cuda.stream()
 
-    cuda.select_device(devicenum)
     dm_time = np.zeros((delays.shape[0], int(ft.shape[1])), dtype=np.float32)
 
     @cuda.jit(fastmath=True)
@@ -724,9 +728,9 @@ def gpu_dmtime(ft, dm_i, dm_f, dmsteps, freqs, inttime, devicenum=0):
             cuda.atomic.add(cand_data_out, (kk, jj), cand_data_in[ii,
                                                                   (jj + all_delays[ii,kk])%cand_data_in.shape[1]])
 
-    all_delays = cuda.to_device(delays.T)
-    dmt_return = cuda.device_array(dm_time.shape, dtype=np.float32)
-    cand_data_in = cuda.to_device(np.array(ft, dtype=np.float32))
+    all_delays = cuda.to_device(delays.T, stream=stream)
+    dmt_return = cuda.device_array(dm_time.shape, dtype=np.float32, stream=stream)
+    cand_data_in = cuda.to_device(np.array(ft, dtype=np.float32), stream=stream)
 
     threadsperblock = (16, 4, 16)
     blockspergrid_x = math.ceil(cand_data_in.shape[0] / threadsperblock[0])
@@ -734,10 +738,10 @@ def gpu_dmtime(ft, dm_i, dm_f, dmsteps, freqs, inttime, devicenum=0):
     blockspergrid_z = math.ceil(dm_time.shape[0] / threadsperblock[2])
     blockspergrid = (blockspergrid_x, blockspergrid_y, blockspergrid_z)
 
-    gpu_dmt[blockspergrid, threadsperblock](cand_data_in, all_delays,
-                                            dmt_return)
-    dm_time = dmt_return.copy_to_host()
-    cuda.close()
+    gpu_dmt[blockspergrid, threadsperblock, stream](cand_data_in, all_delays,  dmt_return)
+    dm_time = dmt_return.copy_to_host(stream=stream)
+    # cuda.close()
+
     return dm_time
 
 
