@@ -909,7 +909,6 @@ def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False,
         return cand
 
 
-
 def pad_along_axis(array, target_length, loc='end', axis=0, **kwargs):
     """
     :param array: Input array to pad
