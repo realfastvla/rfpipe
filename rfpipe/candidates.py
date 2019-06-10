@@ -609,7 +609,7 @@ def cluster_candidates(cc, downsample=None, returnclusterer=False,
                     .format(min_cluster_size, min_samples, downsample))
 
         if min_cluster_size > len(data):
-            logger.info("Setting min_cluster_size to number of cands {0}"
+            logger.info("Setting min_cluster_size to number of unique cands {0}"
                         .format(len(data)))
             min_cluster_size = len(data)
 
@@ -626,6 +626,10 @@ def cluster_candidates(cc, downsample=None, returnclusterer=False,
                     .format(nclustered, nunclustered, min_cluster_size))
 
         labels = clusterer.labels_.astype(np.int32)
+
+        if len(np.where(clusterer.labels_ < -1)[0]):
+            logger.warning("Unexpected cluster labels: {0}"
+                           .format(clusterer.labels_))
     else:
         clusterer = None
         labels = -1*np.ones(len(cc1), dtype=np.int32)
