@@ -112,8 +112,8 @@ def read_segment(st, segment, cfile=None, timeout=10):
     """
 
     # assumed read shape (st.readints, st.nbl, st.metadata.nchan_orig, st.npol)
-    logger.info("Reading segment {0} of datasetId {1}"
-                .format(segment, st.metadata.datasetId))
+    logger.info("Reading segment {0} of scanId {1}"
+                .format(segment, st.metadata.scanId))
     if st.metadata.datasource == 'sdm':
         data_read = read_bdf_segment(st, segment)
     elif st.metadata.datasource == 'vys':
@@ -259,8 +259,8 @@ def read_vys_segment(st, seg, cfile=None, timeout=10, offset=4, returnsim=False)
     t0 = time.Time(st.segmenttimes[seg][0], format='mjd', precision=9).unix
     t1 = time.Time(st.segmenttimes[seg][1], format='mjd', precision=9).unix
 
-    logger.info('Reading segment {0}: {1} s ints with shape {2} from {3} - {4} unix seconds'
-                .format(seg, st.metadata.inttime, st.datashape_orig, t0, t1))
+    logger.info('Reading scanId {0}: {1} s ints with shape {2} from {3} - {4} unix seconds'
+                .format(st.metadata.scanId, st.metadata.inttime, st.datashape_orig, t0, t1))
 
     # TODO: vysmaw currently pulls all data, but allocates buffer based on these.
     # buffer will be too small if taking subset of all data.
