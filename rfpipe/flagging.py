@@ -43,7 +43,7 @@ def flag_blstd(data, sigma, convergence):
 
     sh = data.shape
 
-    blstd = util.blstd(data)
+    blstd = util.blstd(data.data, data.mask)  # uses mask
     blstd = np.ma.masked_equal(blstd, 0)
 #    blstd = np.ma.std(data, axis=1)
 

@@ -97,8 +97,9 @@ def _meantsub_jit(data):
 
 
 @jit(nogil=True, nopython=True, cache=True)
-def blstd(data):
+def blstd(data, mask):
     """ Calculate std over baselines (ignoring zeros).
+    Expects masked array as input
     """
 
     nint, nbl, nchan, npol = data.shape
@@ -112,13 +113,13 @@ def blstd(data):
                 weight = int64(0)
                 for l in range(nbl):
                     ss += data[i, l, j, k]
-                    if data[i, l, j, k] != 0j:
+                    if mask[i, l, j, k] is False:
                         weight += 1
                 if weight > 0:
                     mean = ss/weight
                     ss = complex64(0)
                     for l in range(nbl):
-                        if data[i, l, j, k] != 0j:
+                        if mask[i, l, j, k] is False:
                             ss += np.abs((data[i, l, j, k]-mean)**2)
                     blstd[i, j, k] = np.sqrt(ss/weight)
                 else:
