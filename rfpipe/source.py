@@ -34,7 +34,8 @@ def data_prep(st, segment, data, flagversion="latest", returnsoltime=False):
     logger.debug('Selecting pols {0} and chans {1}'.format(st.pols, st.chans))
 
     # TODO: check on reusing 'data' to save memory
-    datap = np.nan_to_num(np.require(data, requirements='W').take(takepol, axis=3).take(st.chans, axis=2))
+#    datap = np.nan_to_num(np.require(data, requirements='W').take(takepol, axis=3).take(st.chans, axis=2))
+    datap = np.require(data, requirements='W').take(takepol, axis=3).take(st.chans, axis=2)
     datap = prep_standard(st, segment, datap)
 
     if not np.any(datap):

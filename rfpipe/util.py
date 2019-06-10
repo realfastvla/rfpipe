@@ -7,7 +7,7 @@ import numpy as np
 import math
 import random
 from numba import cuda, guvectorize
-from numba import jit, complex64, int64
+from numba import jit, complex64, int64, float32
 import pwkit.environments.casa.util as casautil
 import sdmpy
 from rfpipe import calibration
@@ -94,6 +94,37 @@ def _meantsub_jit(data):
                     for l in range(nint):
                         if data[l, i, j, k] != 0j:
                             data[l, i, j, k] -= mean
+
+
+@jit(nogil=True, nopython=True, cache=True)
+def blstd(data):
+    """ Calculate std over baselines (ignoring zeros).
+    """
+
+    nint, nbl, nchan, npol = data.shape
+    # getting "data type not understood" if this typed as float32
+    blstd = np.zeros((nint, nchan, npol), dtype=complex64)
+
+    for i in range(nint):
+        for j in range(nchan):
+            for k in range(npol):
+                ss = complex64(0)
+                weight = int64(0)
+                for l in range(nbl):
+                    ss += data[i, l, j, k]
+                    if data[i, l, j, k] != 0j:
+                        weight += 1
+                if weight > 0:
+                    mean = ss/weight
+                    ss = complex64(0)
+                    for l in range(nbl):
+                        if data[i, l, j, k] != 0j:
+                            ss += np.abs((data[i, l, j, k]-mean)**2)
+                    blstd[i, j, k] = np.sqrt(ss/weight)
+                else:
+                    blstd[i, j, k] = complex64(0)
+
+    return blstd.real
 
 
 def calc_delay(freq, freqref, dm, inttime, scale=None):

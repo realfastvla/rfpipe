@@ -42,9 +42,10 @@ def flag_blstd(data, sigma, convergence):
     """
 
     sh = data.shape
-#    flags = np.zeros((sh[0], sh[2], sh[3]), dtype=bool)
 
-    blstd = np.ma.std(data, axis=1)
+    blstd = util.blstd(data)
+    blstd = np.ma.masked_equal(blstd, 0)
+#    blstd = np.ma.std(data, axis=1)
 
     # iterate to good median and std values
     blstdmednew = np.ma.median(blstd)
