@@ -585,14 +585,6 @@ def cluster_candidates(cc, downsample=None, returnclusterer=False,
         if downsample is None:
             downsample = cc1.prefs.cluster_downsampling
 
-        logger.info("Clustering parameters set to ({0},{1}) and downsampling xy by {2}."
-                    .format(min_cluster_size, min_samples, downsample))
-
-        if min_cluster_size > len(cc1):
-            logger.info("Setting min_cluster_size to number of cands {0}"
-                        .format(len(cc1)))
-            min_cluster_size = len(cc1)
-
         candl = cc1.candl
         candm = cc1.candm
         npixx = cc1.state.npixx
@@ -612,6 +604,14 @@ def cluster_candidates(cc, downsample=None, returnclusterer=False,
         data = np.unique(np.transpose([peakx_ind//downsample,
                                        peaky_ind//downsample,
                                        dmind, time_ind]), axis=0)
+
+        logger.info("Clustering parameters set to ({0},{1}) and downsampling xy by {2}."
+                    .format(min_cluster_size, min_samples, downsample))
+
+        if min_cluster_size > len(data):
+            logger.info("Setting min_cluster_size to number of cands {0}"
+                        .format(len(data)))
+            min_cluster_size = len(data)
 
         clusterer = hdbscan.HDBSCAN(metric='hamming',
                                     min_cluster_size=min_cluster_size,
