@@ -12,6 +12,7 @@ tparams = [(0, 0, 0, 5e-3, 0.3, 0.0001, 0.0),]
 # simulate no flag, transient/no flag, transient/flag
 inprefs = [({'flaglist': [], 'chans': list(range(32)),
              'spw': [0], 'savecandcollection': True, 'savenoise': True,
+             'savecanddata': True, 'returncanddata': True,
              'fftmode': 'fftw', 'searchtype': 'imagek'}, 1),
            ({'simulated_transient': tparams, 'dmarr': [0, 1, 2], 'dtarr': [1, 2],
              'savecanddata': True, 'savenoise': True, 'saveplots': True,
@@ -47,6 +48,12 @@ def mockdata(mockstate):
     return rfpipe.source.data_prep(mockstate, segment, data)
 
 
+@pytest.fixture(scope="module")
+def mockcc(mockstate):
+    cc = rfpipe.pipeline.pipeline_scan(mockstate)
+    return cc
+
+
 def test_dataprep(mockstate, mockdata):
     assert mockdata.shape == mockstate.datashape
 
@@ -56,14 +63,25 @@ def test_noise(mockstate, mockdata):
         assert len(noises)
 
 
-def test_pipelinescan(mockstate):
-    cc = rfpipe.pipeline.pipeline_scan(mockstate)
-    if mockstate.prefs.simulated_transient is not None:
-        rfpipe.candidates.makesummaryplot(cc)
-    assert cc is not None
-    if mockstate.prefs.returncanddata:
-        assert isinstance(cc.canddata, list)
-        assert len(cc.canddata) == len(cc)
+def test_pipelinescan(mockcc):
+    if mockcc.prefs.simulated_transient is not None:
+        rfpipe.candidates.makesummaryplot(mockcc)
+    assert mockcc is not None
+
+
+def test_cc(mockcc):
+    if mockcc.prefs.returncanddata:
+        assert isinstance(mockcc.canddata, list)
+        assert len(mockcc.canddata) == len(mockcc)
+
+    if mockcc.prefs.savecandcollection:
+        ccs = rfpipe.candidates.iter_cands(mockcc.state.candsfile)
+        cc = sum(ccs)
+        assert len(cc) == len(mockcc)
+        if cc.prefs.returncanddata:
+            assert isinstance(cc.canddata, list)
+            assert len(cc.canddata) == len(cc)
+            assert len(cc.canddata) == len(mockcc.canddata)
 
 
 def test_phasecenter_detection():
