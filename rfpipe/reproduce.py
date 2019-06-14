@@ -93,8 +93,8 @@ def reproduce_candcollection(cc, data=None, wisdom=None, spec_std=None,
                             logger.warning("Feature calculation {0} not yet supported"
                                            .format(feature))
 
-                cd = pipeline_canddata(st, candloc, data_corr, sig_ts=sig_ts,
-                                       kalman_coeffs=kalman_coeffs, **kwargs)
+                cd = pipeline_canddata(st, candloc, data_corr, spec_std=spec_std,
+                                       sig_ts=sig_ts, kalman_coeffs=kalman_coeffs, **kwargs)
 
                 if st.prefs.saveplots:
                     candidates.candplot(cd, snrs=snrs)  # snrs before clustering
@@ -158,8 +158,8 @@ def pipeline_datacorrect(st, candloc, data_prep=None):
     return data_dmdt
 
 
-def pipeline_canddata(st, candloc, data_dmdt=None, cpuonly=False, sig_ts=None,
-                      kalman_coeffs=None, **kwargs):
+def pipeline_canddata(st, candloc, data_dmdt=None, spec_std=None, cpuonly=False,
+                      sig_ts=None, kalman_coeffs=None, **kwargs):
     """ Generate image and phased visibility data for candloc.
     Phases to peak pixel in image of candidate.
     Can optionally pass in corrected data, if available.
@@ -179,22 +179,11 @@ def pipeline_canddata(st, candloc, data_dmdt=None, cpuonly=False, sig_ts=None,
     if data_dmdt is None:
         data_dmdt = pipeline_datacorrect(st, candloc)
 
-    if 'snrk' in st.features:
-        if data_dmdt.shape[0] > 1:
-            spec_std = data_dmdt.real.mean(axis=3).mean(axis=1).std(axis=0)
-        else:
-            spec_std = data_dmdt[0].real.mean(axis=2).std(axis=0)
 
-        if not np.any(spec_std):
-            logger.warning("spectrum std all zeros. Not estimating coeffs.")
-            kalman_coeffs = []
-        else:
-            sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
-
-        if not np.all(np.nan_to_num(sig_ts)):
-            kalman_coeffs = []
-    else:
-        spec_std, sig_ts, kalman_coeffs = None, None, None
+    if ('snrk' in st.features and
+        'snrk' not in kwargs and
+        (spec_std is None or sig_ts is None or kalman_coeffs is None)):
+        spec_std, sig_ts, kalman_coeffs = util.kalman_prep(data_dmdt)
 
 #    fftmode = 'fftw' if cpuonly else st.fftmode  # can't remember why i did this!
     image = rfpipe.search.grid_image(data_dmdt, uvw, st.npixx, st.npixy, st.uvres,
