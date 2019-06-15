@@ -207,6 +207,7 @@ def pipeline_canddata(st, candloc, data_dmdt=None, cpuonly=False, sig_ts=None,
     dataph = data_dmdt[max(0, candint-st.prefs.timewindow//2):candint+st.prefs.timewindow//2].mean(axis=1)
     util.phase_shift(data_dmdt, uvw, -dl, -dm)
 
+    # TODO: This probably needs to be masked to avoid averaging zeros in
     spec = data_dmdt.real.mean(axis=3).mean(axis=1)[candloc[1]]
 
     if 'snrk' in st.features:
