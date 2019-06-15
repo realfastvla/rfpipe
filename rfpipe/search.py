@@ -221,6 +221,7 @@ def rfgpu_gridimage(st, segment, grid, image, vis_raw, vis_grid, img_grid,
 
             grid.set_shift(delay >> dtind)  # dispersion shift per chan in samples
 
+            zeros = []
             for i in integrations:
                 grid.operate(vis_raw, vis_grid, i)
                 image.operate(vis_grid, img_grid)
@@ -231,8 +232,7 @@ def rfgpu_gridimage(st, segment, grid, image, vis_raw, vis_grid, img_grid,
                     snr1 = stats['max']/stats['rms']
                 else:
                     snr1 = 0.
-                    logger.warning("rfgpu rms is 0 in int {0}. Skipping."
-                                   .format(i))
+                    zeros.append(i)
 
                 # threshold image
                 if snr1 > st.prefs.sigma_image1:
@@ -285,6 +285,10 @@ def rfgpu_gridimage(st, segment, grid, image, vis_raw, vis_grid, img_grid,
                     elif st.prefs.searchtype is not None:
                         logger.warning("searchtype {0} not recognized"
                                        .format(st.prefs.searchtype))
+            if zeros:
+                logger.warning("rfgpu rms is 0 in ints {0}."
+                               .format(zeros))
+
     return candlocs, l1s, m1s, snr1s, immax1s, snrks
 
 
