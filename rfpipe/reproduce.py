@@ -199,7 +199,7 @@ def pipeline_canddata(st, candloc, data_dmdt=None, spec_std=None, cpuonly=False,
     # TODO: This probably needs to be masked to avoid averaging zeros in
     spec = data_dmdt.real.mean(axis=3).mean(axis=1)[candloc[1]]
 
-    if 'snrk' in st.features:
+    if 'snrk' in st.features and 'snrk' not in kwargs:
         significance_kalman = -kalman_significance(spec, spec_std,
                                                    sig_ts=sig_ts,
                                                    coeffs=kalman_coeffs)
