@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def reproduce_candcollection(cc, data=None, wisdom=None, spec_std=None,
-                             sig_ts=None, kalman_coeffs=None):
+                             sig_ts=[], kalman_coeffs=[]):
     """ Uses candcollection to make new candcollection with required info.
     Will look for cluster label and filter only for peak snr, if available.
     Location (e.g., integration, dm, dt) of each is used to create
@@ -48,7 +48,7 @@ def reproduce_candcollection(cc, data=None, wisdom=None, spec_std=None,
 
             if ('snrk' in st.features and
                 'snrk' not in cc.array.dtype.fields and
-                (spec_std is None or sig_ts is None or kalman_coeffs is None)):
+                (spec_std is None or not len(sig_ts) or not len(kalman_coeffs))):
                 # TODO: use same kalman calc for search as reproduce?
                 spec_std, sig_ts, kalman_coeffs = util.kalman_prep(data)
 
@@ -80,15 +80,16 @@ def reproduce_candcollection(cc, data=None, wisdom=None, spec_std=None,
                         kwargs[feature] = cc.array[feature][i]
                     else:  # if desired, but not yet calculated
                         if feature == 'snrk':
-                            spec = data_corr.real.mean(axis=3).mean(axis=1)[candloc[1]]
-                            significance_kalman = -kalman_significance(spec,
-                                                                       spec_std,
-                                                                       sig_ts=sig_ts,
-                                                                       coeffs=kalman_coeffs)
-                            snrk = (2*significance_kalman)**0.5
-                            logger.info("Calculated snrk of {0} after detection. "
-                                        "Adding it to CandData.".format(snrk))
-                            kwargs[feature] = snrk
+                            if 'snrk' not in cc.array.dtype.fields:
+                                spec = data_corr.real.mean(axis=3).mean(axis=1)[candloc[1]]
+                                significance_kalman = -kalman_significance(spec,
+                                                                           spec_std,
+                                                                           sig_ts=sig_ts,
+                                                                           coeffs=kalman_coeffs)
+                                snrk = (2*significance_kalman)**0.5
+                                logger.info("Calculated snrk of {0} after detection. "
+                                            "Adding it to CandData.".format(snrk))
+                                kwargs[feature] = snrk
                         else:
                             logger.warning("Feature calculation {0} not yet supported"
                                            .format(feature))
@@ -159,7 +160,7 @@ def pipeline_datacorrect(st, candloc, data_prep=None):
 
 
 def pipeline_canddata(st, candloc, data_dmdt=None, spec_std=None, cpuonly=False,
-                      sig_ts=None, kalman_coeffs=None, **kwargs):
+                      sig_ts=[], kalman_coeffs=[], **kwargs):
     """ Generate image and phased visibility data for candloc.
     Phases to peak pixel in image of candidate.
     Can optionally pass in corrected data, if available.
@@ -179,10 +180,9 @@ def pipeline_canddata(st, candloc, data_dmdt=None, spec_std=None, cpuonly=False,
     if data_dmdt is None:
         data_dmdt = pipeline_datacorrect(st, candloc)
 
-
     if ('snrk' in st.features and
         'snrk' not in kwargs and
-        (spec_std is None or sig_ts is None or kalman_coeffs is None)):
+        (spec_std is None or not len(sig_ts) or not len(kalman_coeffs))):
         spec_std, sig_ts, kalman_coeffs = util.kalman_prep(data_dmdt)
 
 #    fftmode = 'fftw' if cpuonly else st.fftmode  # can't remember why i did this!

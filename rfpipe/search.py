@@ -122,7 +122,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
             return candidates.CandCollection(prefs=st.prefs,
                                              metadata=st.metadata)
     else:
-        spec_std, sig_ts, kalman_coeffs = None, None, None
+        spec_std, sig_ts, kalman_coeffs = None, [], []
 
     # place to hold intermediate result lists
     canddict = {}
@@ -197,7 +197,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
 
 def rfgpu_gridimage(st, segment, grid, image, vis_raw, vis_grid, img_grid,
                     dminds, dtind, devicenum, data=None, uvw=None, spec_std=None,
-                    sig_ts=None, kalman_coeffs=None):
+                    sig_ts=[], kalman_coeffs=[]):
     """ Dedisperse, grid, image, threshold with rfgpu
     """
 
@@ -320,7 +320,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
             return candidates.CandCollection(prefs=st.prefs,
                                              metadata=st.metadata)
     else:
-        spec_std, sig_ts, kalman_coeffs = None, None, None
+        spec_std, sig_ts, kalman_coeffs = None, [], []
 
     beamnum = 0
     uvw = util.get_uvw_segment(st, segment)
