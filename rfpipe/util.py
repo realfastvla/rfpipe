@@ -312,7 +312,7 @@ def calc_noise(st, segment, data, chunk=500):
     from rfpipe.search import grid_image
 
     startmjd, endmjd = st.segmenttimes[segment]
-    deltamjd = st.inttime*len(st.get_search_ints(segment, 0, 0))
+    deltamjd = st.inttime*len(st.get_search_ints(segment, 0, 0))/(24*3600)
     results = []
     if data.any():
         uvw = get_uvw_segment(st, segment)
