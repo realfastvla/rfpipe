@@ -75,10 +75,10 @@ def reproduce_candcollection(cc, data=None, wisdom=None, spec_std=None,
                 # reproduce candidate and get/calc features
                 data_corr = pipeline_datacorrect(st, candloc, data_prep=data)
 
-                for feature in st.searchfeatures:
+                for feature in st.features:
                     if feature in cc.array.dtype.fields:  # if already calculated
                         kwargs[feature] = cc.array[feature][i]
-                    else:  # if desired, but not yet calculated
+                    else:  # if desired, but not calculated here or from canddata
                         if feature == 'snrk':
                             if 'snrk' not in cc.array.dtype.fields:
                                 spec = data_corr.real.mean(axis=3).mean(axis=1)[candloc[1]]
@@ -90,9 +90,6 @@ def reproduce_candcollection(cc, data=None, wisdom=None, spec_std=None,
                                 logger.info("Calculated snrk of {0} after detection. "
                                             "Adding it to CandData.".format(snrk))
                                 kwargs[feature] = snrk
-                        else:
-                            logger.warning("Feature calculation {0} not yet supported"
-                                           .format(feature))
 
                 cd = pipeline_canddata(st, candloc, data_corr, spec_std=spec_std,
                                        sig_ts=sig_ts, kalman_coeffs=kalman_coeffs, **kwargs)

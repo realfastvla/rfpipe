@@ -185,7 +185,8 @@ class CandCollection(object):
     prefs to be attached and pickled.
     """
 
-    def __init__(self, array=np.array([]), prefs=None, metadata=None, canddata=[]):
+    def __init__(self, array=np.array([]), prefs=None, metadata=None,
+                 canddata=[]):
         self.array = array
         self.prefs = prefs
         self.metadata = metadata
@@ -193,7 +194,6 @@ class CandCollection(object):
         self._state = None
         self.soltime = None
         self.canddata = canddata
-        # TODO: pass in segmenttimes here to avoid recalculating during search?
 
     def __repr__(self):
         if self.metadata is not None:
@@ -216,9 +216,14 @@ class CandCollection(object):
         Adding empty cc ok, too.
         """
 
+        if hasattr(self, 'canddata'):
+            canddata = self.canddata.copy()
+        else:
+            canddata = []
+
         later = CandCollection(prefs=self.prefs, metadata=self.metadata,
                                array=self.array.copy(),
-                               canddata=self.canddata.copy())
+                               canddata=canddata)
         # TODO: update to allow different simulated_transient fields that get added into single list
         assert self.prefs.name == cc.prefs.name, "Cannot add collections with different preference name/hash"
         assert self.state.dmarr == cc.state.dmarr,  "Cannot add collections with different dmarr"
@@ -390,7 +395,7 @@ class CandCollection(object):
         """ Look for mock in candcollection
         TODO: return values that help user know mocks found and missed.
         """
-        
+
         if self.prefs.simulated_transient is not None:
             clusters = self.array['cluster'].astype(int)
             cl_rank, cl_count = calc_cluster_rank(self)
@@ -444,11 +449,10 @@ def cd_to_cc(canddata):
 
     st = canddata.state
 
-    # TODO: should this be all features, calcfeatures, searchfeatures?
     featurelists = []
-    for feature in st.searchfeatures:
+    for feature in st.features:
         featurelists.append([canddata_feature(canddata, feature)])
-    kwargs = dict(zip(st.searchfeatures, featurelists))
+    kwargs = dict(zip(st.features, featurelists))
 
     candlocs = canddata_feature(canddata, 'candloc')
     kwargs['candloc'] = [candlocs]
