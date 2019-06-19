@@ -24,7 +24,8 @@ def test_sdm():
     inprefs = {'gainfile': os.path.join(_install_dir,
                                         'data/16A-459_TEST_1hr_000.57633.66130137732.GN')}
     state = rfpipe.state.State(sdmfile=sdmfile, sdmscan=7, inprefs=inprefs)
-    res = rfpipe.pipeline.pipeline_seg(state, 0)
+    data = rfpipe.source.read_segment(state, 0)
+    assert len(data)
 
 
 def test_state():
