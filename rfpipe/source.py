@@ -103,7 +103,7 @@ def data_prep(st, segment, data, flagversion="latest", returnsoltime=False):
         return datap
 
 
-def read_segment(st, segment, cfile=None, timeout=10):
+def read_segment(st, segment, cfile=None, timeout=2):
     """ Read a segment of data.
     cfile and timeout are specific to vys data.
     cfile used as proxy for real-time environment when simulating data.
@@ -245,7 +245,7 @@ def prep_standard(st, segment, data):
     return data
 
 
-def read_vys_segment(st, seg, cfile=None, timeout=10, offset=4, returnsim=False):
+def read_vys_segment(st, seg, cfile=None, timeout=2, offset=2, returnsim=False):
     """ Read segment seg defined by state st from vys stream.
     Uses vysmaw application timefilter to receive multicast messages and pull
     spectra on the CBE.
