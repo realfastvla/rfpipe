@@ -245,7 +245,7 @@ def prep_standard(st, segment, data):
     return data
 
 
-def read_vys_segment(st, seg, cfile=None, timeout=2, offset=2, returnsim=False):
+def read_vys_segment(st, seg, cfile=None, timeout=2, offset=4, returnsim=False):
     """ Read segment seg defined by state st from vys stream.
     Uses vysmaw application timefilter to receive multicast messages and pull
     spectra on the CBE.
