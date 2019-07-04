@@ -88,8 +88,8 @@ class CandData(object):
 
     @property
     def snr1(self):
-# TODO: find good estimate for both CPU and GPU
-#       imstd = util.madtostd(image)  # outlier resistant
+        # TODO: find good estimate that can be implemented in both CPU and GPU
+        # imstd = util.madtostd(image)  # outlier resistant
         return self.image.max()/self.image.std()
 
     @property
@@ -680,6 +680,39 @@ def calc_cluster_rank(cc):
         cl_count[clusterinds] = len(clusterinds)
 
     return cl_rank, cl_count
+
+
+def normprob(snrs, ntrials): 
+    """ Uses SNR rank order to estimate significance based on normal probability distribution.
+    snrs can be single SNR or list or array.
+    ntrials should be an int of number of trials to generate snrs.
+    Returns expected snr (Z-score) for each input snr, given each input value's frequency of occurrence.
+    Plotting snr versus Z-score will show anomalies.
+    """
+ 
+    # define norm quantile functions 
+    Z = lambda quan: np.sqrt(2)*erfinv( 2*quan - 1)  
+    quantile = lambda ntrials, i: (ntrials + 1/2. - i)/ntrials 
+
+    if isinstance(snrs, list):
+        snrs = np.array(list)
+    elif isinstance(snrs, int) or isinstance(snrs, float):
+        snrs = np.array([snrs])
+
+    # calc number of trials 
+    logger.info('Calculating normal probability distribution for {0} event in {1} trials'.format(len(snrs), ntrials)) 
+ 
+    # calc normal quantile 
+    # purely sort and numpy-based 
+    sortinds = np.argsort(snrs) 
+    lenpos = len(np.where(snrs >= 0)[0]) 
+    lenneg = len(np.where(snrs < 0)[0]) 
+    unsortinds = np.zeros(len(sortinds), dtype=int) 
+    unsortinds[sortinds] = np.arange(len(sortinds)) 
+    rank = np.concatenate( (np.arange(1, lenneg+1), np.arange(1, lenpos+1)[::-1]) ) 
+    zscores = Z(quantile(ntrials, rank[unsortinds])) 
+
+    return zscores     
 
 
 def save_cands(st, candcollection):
