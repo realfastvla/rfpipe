@@ -1237,7 +1237,7 @@ def makesummaryplot(cc=None, candsfile=None):
     htmlfile = candsfile.replace('.pkl', '.html')
     output_file(htmlfile)
     save(combined)
-    logger.info("Saved summary plot {0} with {1} candidate{2}"
+    logger.info("Saved summary plot {0} with {1} candidate{2} in scan"
                 .format(htmlfile, len(segment), 's'[not len(segment)-1:]))
 
     return len(cc)
