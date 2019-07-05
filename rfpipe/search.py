@@ -112,6 +112,10 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
         grid.compute()
         grid.conjugate(vis_raw)
 
+    # calc fraction of data gridded (any grid will do)
+    gridfrac = grid.get_nnz()/(st.nbl*st.nchan)
+    logger.info("Gridded {0}% of all baselines and channels".format(100*gridfrac))
+
     # some prep if kalman significance is needed
     if st.prefs.searchtype in ['imagek', 'armkimage', 'armk']:
         # TODO: check that this is ok if pointing at bright source

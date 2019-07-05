@@ -348,6 +348,34 @@ def read_bdf(st, nskip=0):
 
     return data
 
+def calc_gridfrac(st, segment):
+    """ Calculate the fraction of baseline*chan values that are gridded.
+    **TODO: figure out if this can collide with rfgpu calls in the search module**
+    """
+
+    try:
+        import rfgpu
+    except ImportError:
+        logger.warn("Cannot import rfgpu, so cannot calculate gridfrac")
+        return 1
+
+    uvw = util.get_uvw_segment(st, segment)
+    u, v, w = uvw
+    u_us = 1e6*u[:, 0]/(1e9*st.freq[0])
+    v_us = 1e6*v[:, 0]/(1e9*st.freq[0])
+
+    grid = rfgpu.Grid(st.nbl, st.nchan, st.readints, upix, vpix, 0)  # choose device 0
+    grid.set_uv(u_us, v_us)  # u, v in us
+    grid.set_freq(st.freq*1e3)  # freq in MHz
+    grid.set_cell(st.uvres)  # uv cell size in wavelengths (== 1/FoV(radians))
+    grid.compute()
+    grid.conjugate(vis_raw)
+
+    # calc fraction of data gridded (any grid will do)
+    gridfrac = grid.get_nnz()/(st.nbl*st.nchan)
+
+    return gridfrac
+
 
 def save_noise(st, segment, data, chunk=500):
     """ Calculates noise properties and save values to pickle.
