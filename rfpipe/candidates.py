@@ -19,6 +19,7 @@ from rfpipe import version, fileLock
 from bokeh.plotting import ColumnDataSource, Figure, save, output_file
 from scipy.stats import mstats
 from scipy import signal
+from scipy.special import erfinv
 from bokeh.models import HoverTool
 from bokeh.models import Row
 from collections import OrderedDict
