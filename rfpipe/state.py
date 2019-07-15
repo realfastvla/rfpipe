@@ -679,7 +679,7 @@ class State(object):
                     (startmjd, stopmjd, ra_deg, dec_deg) = self.metadata.phasecenters[j]
                     if len(pcts[j]):
                         ints0 = pcts[j]
-                        logger.info("Segment {0}, ints {1} will have phase center at {2},{3}"
+                        logger.debug("Segment {0}, ints {1} will have phase center at {2},{3}"
                                     .format(segment, ints0, ra_deg, dec_deg))
                         corrs.append((ints0, ra_deg, dec_deg),)
                     else:

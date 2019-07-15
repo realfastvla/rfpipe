@@ -223,8 +223,7 @@ class CandCollection(object):
             canddata = []
 
         later = CandCollection(prefs=self.prefs, metadata=self.metadata,
-                               array=self.array.copy(),
-                               canddata=canddata)
+                               array=self.array.copy())
         # TODO: update to allow different simulated_transient fields that get added into single list
         assert self.prefs.name == cc.prefs.name, "Cannot add collections with different preference name/hash"
         assert self.state.dmarr == cc.state.dmarr,  "Cannot add collections with different dmarr"
@@ -237,23 +236,27 @@ class CandCollection(object):
         else:
             if self.state.nsegment > cc.state.nsegment:
                 assert self.metadata.starttime_mjd == cc.metadata.starttime_mjd, "OTF segments should have same start time"
-                assert (self.state.segmenttimes[:cc.state.nsegment] == cc.state.segmenttimes).all(),  "OTF segments should have shared segmenttimes"
+                assert (self.state.segmenttimes[:cc.state.nsegment, 0] == cc.state.segmenttimes[:,0]).all(),  "OTF segments should have shared segmenttimes"
 
             elif self.state.nsegment < cc.state.nsegment:
                 assert self.metadata.starttime_mjd == cc.metadata.starttime_mjd, "OTF segments should have same start time"
-                assert (self.state.segmenttimes == cc.state.segmenttimes[:self.state.nsegment]).all(),  "OTF segments should have shared segmenttimes"
+                assert (self.state.segmenttimes[:,0] == cc.state.segmenttimes[:self.state.nsegment,0]).all(),  "OTF segments should have shared segmenttimes"
                 later = CandCollection(prefs=cc.prefs, metadata=cc.metadata,
                                        array=cc.array.copy())
 
         # combine candidate arrays
-        if len(later) and len(cc):
-            later.array = np.concatenate((later.array, cc.array))
+        if len(self) and len(cc):
+            later.array = np.concatenate((self.array.copy(), cc.array.copy()))
             if hasattr(later, 'canddata'):
-                later.canddata += cc.canddata
-        elif not len(later) and len(cc):
-            later.array = cc.array
-            if hasattr(later, 'canddata'):
+                later.canddata = self.canddata + cc.canddata
+        elif (not len(self)) and (len(cc) > 0):
+            later.array = cc.array.copy()
+            if hasattr(cc, 'canddata'):
                 later.canddata = cc.canddata
+        elif (not len(cc)) and (len(self) > 0):
+            later.array = self.array.copy()
+            if hasattr(self, 'canddata'):
+                later.canddata = self.canddata
 
         # combine prefs simulated_transient
         later.prefs.simulated_transient = later.prefs.simulated_transient or cc.prefs.simulated_transient
