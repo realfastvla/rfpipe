@@ -46,7 +46,7 @@ def reproduce_candcollection(cc, data=None, wisdom=None, spec_std=None,
             candlocs = cc.locs
             snrs = cc.snrtot
             normprob = candidates.normprob(snrs, st.ntrials)
-            logger.info('Zscore/SNR for candidates(s): {0}'.format(zip(normprob, snrs)))
+            logger.info('Zscore/SNR for candidates(s): {0}'.format(list(zip(normprob, snrs))))
 
             if ('snrk' in st.features and
                 'snrk' not in cc.array.dtype.fields and

@@ -163,7 +163,7 @@ def parseGN(telcalfile):
 #              str('delay'), str('flagged')]
     types = ['<f8', 'U4', '<f8', 'i8', 'i8', 'U20', '<f8', '<f8', '<f8', '?']
     dtype = np.dtype({'names': fields, 'formats': types})
-    if (len(mjd) == len(phase)) and (len(phase) > 0):
+    if (len(amp) == len(phase)) and (len(phase) > 0):
         sols = np.zeros(len(mjd), dtype=dtype)
 
         for i in range(len(mjd)):

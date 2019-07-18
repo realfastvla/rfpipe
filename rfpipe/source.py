@@ -238,7 +238,7 @@ def prep_standard(st, segment, data):
             logger.info("Correcting {0} phasecenters to first at RA,Dec = {1},{2}"
                         .format(len(st.otfcorrections[segment])-1, ra0, dec0))
             for ints, ra_deg, dec_deg in st.otfcorrections[segment][1:]:
-                l0 = np.radians(ra_deg-ra0)
+                l0 = np.radians((ra_deg-ra0)*np.cos(np.radians(dec0)))
                 m0 = np.radians(dec_deg-dec0)
                 util.phase_shift(data, uvw, l0, m0, ints=ints)
 
