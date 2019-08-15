@@ -8,7 +8,7 @@ import math
 import random
 from numba import cuda, guvectorize
 from numba import jit, complex64, int64, float32
-import pwkit.environments.casa.util as casautil
+import casatools
 import sdmpy
 from rfpipe import calibration
 from astropy import time
@@ -245,7 +245,7 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
     assert '/' in datetime, 'datetime must be in yyyy/mm/dd/hh:mm:ss.sss format'
     assert len(radec) == 2, 'radec must be (ra,dec) tuple in units of degrees'
 
-    me = casautil.tools.measures()
+    me = casatools.measures()
 
     direction = me.direction('J2000', str(np.degrees(radec[0]))+'deg',
                              str(np.degrees(radec[1]))+'deg')
