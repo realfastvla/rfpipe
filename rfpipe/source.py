@@ -29,7 +29,7 @@ def data_prep(st, segment, data, flagversion="latest", returnsoltime=False):
     if not np.any(data):
         return data
 
-    # take pols of interest
+    # select pols
     takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
     logger.debug('Selecting pols {0} and chans {1}'.format(st.pols, st.chans))
 

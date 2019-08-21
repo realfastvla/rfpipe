@@ -68,8 +68,9 @@ def prep_and_search(st, segment, data, devicenum=None, returnsoltime=False):
                        .format(st.prefs.fftmode))
 
     # calc other features for cc, plot, save
-    candcollection = reproduce.reproduce_candcollection(candcollection,
-                                                        data=data)
+    if st.prefs.savecandcollection or st.prefs.saveplots:
+        candcollection = reproduce.reproduce_candcollection(candcollection,
+                                                            data=data)
 
     candcollection.soltime = soltime
 
