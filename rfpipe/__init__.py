@@ -7,5 +7,6 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+import scipy.sparse  # hack so casa6 uses proper libraries
 from rfpipe import *
 from rfpipe.version import __version__
