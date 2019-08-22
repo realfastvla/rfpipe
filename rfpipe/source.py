@@ -29,7 +29,7 @@ def data_prep(st, segment, data, flagversion="latest", returnsoltime=False):
     if not np.any(data):
         return data
 
-    # take pols of interest
+    # select pols
     takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
     logger.debug('Selecting pols {0} and chans {1}'.format(st.pols, st.chans))
 
@@ -238,8 +238,8 @@ def prep_standard(st, segment, data):
             logger.info("Correcting {0} phasecenters to first at RA,Dec = {1},{2}"
                         .format(len(st.otfcorrections[segment])-1, ra0, dec0))
             for ints, ra_deg, dec_deg in st.otfcorrections[segment][1:]:
-                l0 = np.radians((ra0-ra_deg)*np.cos(np.radians(dec0)))
-                m0 = np.radians(dec0-dec_deg)
+                l0 = np.radians((ra_deg-ra0)*np.cos(np.radians(dec0)))
+                m0 = np.radians(dec_deg-dec0)
                 util.phase_shift(data, uvw, l0, m0, ints=ints)
 
     return data
