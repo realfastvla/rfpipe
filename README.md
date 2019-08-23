@@ -2,14 +2,11 @@
 
 A fast radio interferometric transient search library. Extends on [rtpipe](http://github.com/caseyjlaw/rtpipe).
 
-This library primarily supports offline analysis of VLA data on a single workstation. Integration with the real-time VLA and cluster processing is provided by [realfast](http://github.com/realfastvla/realfast).
+This library supports real-time analysis for the realfast project and offline analysis of VLA data on a single workstation. Integration with the real-time VLA and cluster processing is provided by [realfast](http://github.com/realfastvla/realfast).
 
 Planned future development include:
 - Supporting other search algorithms.
-- Extending support for GPUs.
 - Supporting other interferometers by adding data and metadata reading functions.
-- Remove dependence on rtpipe.
-- Python 3 support.
 
 [![Docs](https://img.shields.io/badge/Made%20with-Sphinx-1f425f.svg)](https://realfastvla.github.io/rfpipe)
 [![Build Status](https://travis-ci.org/realfastvla/rfpipe.svg?branch=master)](https://travis-ci.org/realfastvla/rfpipe)
@@ -24,7 +21,7 @@ Planned future development include:
 ```
 conda config --add channels conda-forge
 pip install --extra-index-url https://casa-pip.nrao.edu:443/repository/pypi-group/simple casatools
-conda create -n realfast numpy scipy cython matplotlib casa-tools casa-python casa-data numba pyfftw bokeh
+conda create -n realfast numpy scipy cython matplotlib numba pyfftw bokeh
 source activate realfast
 pip install -e git+git://github.com/realfastvla/rfpipe#egg=rfpipe
 ```
@@ -35,7 +32,7 @@ pip install -e git+git://github.com/realfastvla/rfpipe#egg=rfpipe
 - casa6 python libraries (for quanta and measures; available on Python 3.6 via pip)
 - numba (for multi-core and gpu acceleration)
 - rtpipe (for flagging; will be removed soon)
-- astropy (<3.0; for Python2 and 3 compatibility)
+- astropy
 - sdmpy
 - pyfftw
 - pyyaml
