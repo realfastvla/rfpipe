@@ -29,6 +29,7 @@ install:
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
   - conda config --add channels conda-forge 
+  - conda config --set channel_priority strict
 
   # install with conda and pip
   - conda create -n conda pip

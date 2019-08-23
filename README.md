@@ -16,7 +16,7 @@ Planned future development include:
 
 ## Installation
 
-`rfpipe` requires the [anaconda](http://anaconda.com) installer on Linux and OSX. The most reliable install process adds two custom channels and a new build environment.
+`rfpipe` requires the [anaconda](http://anaconda.com) installer on Linux and OSX. The most reliable installation is for Python3.6 and adding conda-forge:
 
 ```
 conda config --add channels conda-forge
