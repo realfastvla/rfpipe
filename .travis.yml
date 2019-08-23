@@ -18,7 +18,8 @@ branches:
 
 install:
   - sudo apt-get update -y
-  - sudo apt-get install -y libfftw3-dev
+  - sudo apt-get install -y libfftw3-dev gcc
+  - sudo apt-get -f install libgfortran3
 
   # set up conda
   - wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh
@@ -34,7 +35,7 @@ install:
   # install with conda and pip
   - conda create -n conda pip
   - source activate conda
-  - conda install -q python=$TRAVIS_PYTHON_VERSION numpy scipy cython bokeh matplotlib numba astropy pytest setuptools coverage pyfftw libgfortran
+  - conda install -q python=$TRAVIS_PYTHON_VERSION numpy scipy cython bokeh matplotlib numba astropy pytest setuptools coverage pyfftw
   # - numpy scipy jupyter bokeh cython matplotlib numba astropy pytest setuptools coverage pyfftw
   - pip install --extra-index-url https://casa-pip.nrao.edu:443/repository/pypi-group/simple casatools
   - pip install codecov
