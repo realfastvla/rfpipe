@@ -22,9 +22,9 @@ Planned future development include:
 `rfpipe` requires the [anaconda](http://anaconda.com) installer on Linux and OSX. The most reliable install process adds two custom channels and a new build environment.
 
 ```
-conda config --add channels pkgw-forge
 conda config --add channels conda-forge
-conda create -n realfast numpy scipy cython matplotlib pwkit casa-tools casa-python casa-data numba pyfftw
+pip install --extra-index-url https://casa-pip.nrao.edu:443/repository/pypi-group/simple casatools
+conda create -n realfast numpy scipy cython matplotlib casa-tools casa-python casa-data numba pyfftw bokeh
 source activate realfast
 pip install -e git+git://github.com/realfastvla/rfpipe#egg=rfpipe
 ```
@@ -32,7 +32,7 @@ pip install -e git+git://github.com/realfastvla/rfpipe#egg=rfpipe
 ## Dependencies
 
 - numpy/scipy/matplotlib
-- pwkit casa environment (for quanta and measures)
+- casa6 python libraries (for quanta and measures; available on Python 3.6 via pip)
 - numba (for multi-core and gpu acceleration)
 - rtpipe (for flagging; will be removed soon)
 - astropy (<3.0; for Python2 and 3 compatibility)
