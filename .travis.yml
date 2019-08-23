@@ -4,7 +4,7 @@ python:
    - 3.6
 #   - 3.7
 
-dist: bionic
+dist: xenial
 
 branches:
   only:
@@ -18,8 +18,7 @@ branches:
 
 install:
   - sudo apt-get update -y
-  - sudo apt-get install -y libfftw3-dev gcc
-  - sudo apt-get -f install libgfortran3
+  - sudo apt-get install -y libfftw3-dev
 
   # set up conda
   - wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh
@@ -30,7 +29,6 @@ install:
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
   - conda config --add channels conda-forge 
-  - conda config --append channels pkgw-forge 
 
   # install with conda and pip
   - conda create -n conda pip
