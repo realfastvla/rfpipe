@@ -20,9 +20,9 @@ Planned future development include:
 
 ```
 conda config --add channels conda-forge
-pip install --extra-index-url https://casa-pip.nrao.edu:443/repository/pypi-group/simple casatools
-conda create -n realfast numpy scipy cython matplotlib numba pyfftw bokeh
+conda create -n realfast python=3.6 numpy scipy cython matplotlib numba pyfftw bokeh
 source activate realfast
+pip install --extra-index-url https://casa-pip.nrao.edu:443/repository/pypi-group/simple casatools
 pip install -e git+git://github.com/realfastvla/rfpipe#egg=rfpipe
 ```
 
