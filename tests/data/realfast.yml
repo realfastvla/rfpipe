@@ -8,17 +8,19 @@ rfpipe:
     searchtype: 'image'
     sigma_image1: 6.4
     sigma_kalman: 0.
-    npix_max: 4096
+    npix_max: 2048
     badspwpol: 2.
     uvoversample: 1.5
     savenoise: True
     savecandcollection: True
+    savecanddata: True
     returncanddata: True
     saveplots: True
     savesols: False
     selectpol: 'auto'
     fftmode: 'cuda'
     clustercands: !!python/tuple [3, 5]
+    cluster_downsampling: 2
     memory_limit: 1 # in GB
   NRAOdefaultX:   # X-band 8-10 GHz, 16 spw, 2 MHz channels, 10 ms, 4 pols
     nthread: 2
@@ -29,18 +31,20 @@ rfpipe:
     searchtype: 'image'
     sigma_image1: 7.5
     sigma_kalman: 2.8  # snr1=7.5 and snrk=2.8 gives snrtot=8
-    npix_max: 4096
+    npix_max: 2048
     badspwpol: 2.
     uvoversample: 1.5
     savenoise: False
     savecandcollection: True
-    returncanddata: False
+    savecanddata: False
+    returncanddata: True
     saveplots: True
     savesols: False
     selectpol: 'auto'
     fftmode: 'cuda'
     clustercands: !!python/tuple [3, 5]
-    memory_limit: 4.0 # in GB
+    cluster_downsampling: 2
+    memory_limit: 3.0 # in GB
   NRAOdefaultC:   # C-band 4-8 GHz, 16 spw, 2 MHz channels, 10 ms, 4 pols
     nthread: 2
     dtarr: [1,2,4,8]   # integer to integrate in time for independent searches
@@ -50,18 +54,20 @@ rfpipe:
     searchtype: 'image'
     sigma_image1: 7.5
     sigma_kalman: 2.8  # snr1=7.5 and snrk=2.8 gives snrtot=8
-    npix_max: 4096
+    npix_max: 2048
     badspwpol: 2.
     uvoversample: 1.5
     savenoise: False
     savecandcollection: True
-    returncanddata: False
+    savecanddata: False
+    returncanddata: True
     saveplots: True
     savesols: False
     selectpol: 'auto'
     fftmode: 'cuda'
     clustercands: !!python/tuple [3, 5]
-    memory_limit: 4.0 # in GB
+    cluster_downsampling: 2
+    memory_limit: 3.0 # in GB
   NRAOdefaultS:   # S-band 2-4 GHz, 16 spw, 2 MHz channels, 10 ms, 4 pols
     nthread: 2
     dtarr: [1,2,4,8]   # integer to integrate in time for independent searches
@@ -71,53 +77,56 @@ rfpipe:
     searchtype: 'image'
     sigma_image1: 7.5
     sigma_kalman: 2.8  # snr1=7.5 and snrk=2.8 gives snrtot=8
-    npix_max: 4096
+    npix_max: 2048
     badspwpol: 2.
     uvoversample: 1.5
     savenoise: False
     savecandcollection: True
-    returncanddata: False
+    savecanddata: False
+    returncanddata: True
     saveplots: True
     savesols: False
     selectpol: 'auto'
     fftmode: 'cuda'
     clustercands: !!python/tuple [3, 5]
-    memory_limit: 4.0 # in GB
+    cluster_downsampling: 2
+    memory_limit: 3.0 # in GB
   NRAOdefaultL:   # L-band 1-2 GHz, 16 spw, 1 MHz channels, 10 ms, 4 pols
     nthread: 2
     dtarr: [1,2,4,8]   # integer to integrate in time for independent searches
-    maxdm: 2000
+    maxdm: 1500
     flagantsol: True
     timesub: 'mean'
     searchtype: 'image'
     sigma_image1: 7.5
     sigma_kalman: 2.8  # snr1=7.5 and snrk=2.8 gives snrtot=8
-    npix_max: 4096
+    npix_max: 2048
     spw: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]  # only required for older rfpipe. remove after update to master!
     badspwpol: 2.
     uvoversample: 1.5
     savenoise: False
     savecandcollection: True
-    returncanddata: False
+    savecanddata: False
+    returncanddata: True
     saveplots: True
     savesols: False
     selectpol: 'auto'
     fftmode: 'cuda'
     clustercands: !!python/tuple [3, 5]
-    memory_limit: 5 # in GB
+    cluster_downsampling: 2
+    memory_limit: 3 # in GB
 
 realfast:
-#  vys_timeout: 3 # fixed timeout factor relative to realtime reading
-  vys_sec_per_spec: !!float 3.0e-5  # timeout factor from time per spectrum
+  vys_timeout: 2 # fixed timeout factor relative to realtime reading
+#  vys_sec_per_spec: !!float 3.0e-5  # timeout factor from time per spectrum
   searchintents: ['OBSERVE_TARGET']
   ignoreintents: ['CALIBRATE_FLUX', 'CALIBRATE_PHASE', 'CALIBRATE_AMPLI']
   read_overhead: 3  # scale reader memory higher than nominal vismem requirement
   read_totfrac: 0.5  # require total of readers memories usage
-  spill_limit: 10  # limit spilled memory in GB
   throttle: 0.7  # scale submission relative to realtime and conditional on cluster status
   requirecalibration: True  # must have calibration to submit
-  mockprob: 1.0  # chance of injecting mock transient per scan
+  mockprob: 0.0  # chance of injecting mock transient per scan
   indexprefix: 'new'  # save to production indices
   indexresults: True  # push info to elasticsearch indices
-  saveproducts: True  # save minisdm
-  archiveproducts: False  # push minisdm to archive
+  createproducts: True  # save minisdm
+  classify: True  # use fetch to classify and index results
