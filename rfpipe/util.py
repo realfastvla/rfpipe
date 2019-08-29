@@ -14,6 +14,7 @@ from rfpipe import calibration
 from astropy import time
 
 import logging
+logging.root.setLevel(40)
 logger = logging.getLogger(__name__)
 
 
