@@ -10,6 +10,7 @@ from rfpipe import version
 
 import logging
 logger = logging.getLogger(__name__)
+logger.setLevel(20)
 
 
 class State(object):

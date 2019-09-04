@@ -6,6 +6,7 @@ __all__ = ['state', 'preferences', 'metadata', 'source', 'pipeline', 'reproduce'
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+logger.setLevel(20)
 
 import scipy.stats
 from rfpipe import *

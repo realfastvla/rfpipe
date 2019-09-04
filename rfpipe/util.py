@@ -15,6 +15,7 @@ from astropy import time
 
 import logging
 logger = logging.getLogger(__name__)
+logger.setLevel(20)
 
 
 def getsdm(*args, **kwargs):

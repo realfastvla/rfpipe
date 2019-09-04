@@ -13,6 +13,7 @@ from rfpipe.version import __version__
 
 import logging
 logger = logging.getLogger(__name__)
+logger.setLevel(20)
 
 # to parse tuples in yaml
 class PrettySafeLoader(yaml.SafeLoader):
