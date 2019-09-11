@@ -70,7 +70,7 @@ def prep_and_search(st, segment, data, devicenum=None, returnsoltime=False):
                        .format(st.prefs.fftmode))
 
     # calc other features for cc, plot, save
-    if st.prefs.savecandcollection or st.prefs.saveplots:
+    if st.prefs.savecandcollection or st.prefs.saveplots or st.prefs.returncanddata or not all([f in cc.array.dtype.fields for f in st.features]):
         candcollection = reproduce.reproduce_candcollection(candcollection,
                                                             data=data)
 

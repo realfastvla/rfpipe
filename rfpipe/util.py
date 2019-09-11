@@ -280,8 +280,9 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
 
 
 def kalman_prep(data):
-    """ Use prepared data to calculate noise
-    and kalman coeffs as input to kalman_significance function.
+    """ Use prepared data to calculate noise and kalman inputs.
+    Returns tuple (spec_std, sig_ts, kalman_coeffs) that are directly
+    input to kalman_significance function.
     """
 
     from kalman_detector import kalman_prepare_coeffs
