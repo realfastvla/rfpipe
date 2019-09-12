@@ -8,8 +8,9 @@ import math
 import random
 from numba import cuda, guvectorize
 from numba import jit, complex64, int64, float32
-import casatools
-import casatasks
+#import casatools as tools
+#import casatasks
+from pwkit.environments.casa.util import tools
 import sdmpy
 from rfpipe import calibration
 from astropy import time
@@ -17,7 +18,7 @@ from astropy import time
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(20)
-casatasks.casalog.filter('WARN')
+#casatasks.casalog.filter('WARN')
 
 def getsdm(*args, **kwargs):
     """ Wrap sdmpy.SDM to get around schema change error """
@@ -247,7 +248,7 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
     assert '/' in datetime, 'datetime must be in yyyy/mm/dd/hh:mm:ss.sss format'
     assert len(radec) == 2, 'radec must be (ra,dec) tuple in units of degrees'
 
-    me = casatools.measures()
+    me = tools.measures()
 
     direction = me.direction('J2000', str(np.degrees(radec[0]))+'deg',
                              str(np.degrees(radec[1]))+'deg')

@@ -7,7 +7,8 @@ import os.path
 import attr
 
 import numpy as np
-import casatools
+#import casatools as tools
+from pwkit.environments.casa.util import tools
 from astropy import time
 
 import logging
@@ -117,8 +118,8 @@ class Metadata(object):
         y = self.xyz[:, 1].tolist()
         z = self.xyz[:, 2].tolist()
 
-        me = casatools.measures()
-        qa = casatools.quanta()
+        me = tools.measures()
+        qa = tools.quanta()
 
         return me.position('itrf', qa.quantity(x, 'm'),
                            qa.quantity(y, 'm'), qa.quantity(z, 'm'))
