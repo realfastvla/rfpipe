@@ -9,6 +9,7 @@ import random
 from numba import cuda, guvectorize
 from numba import jit, complex64, int64, float32
 import casatools
+import casatasks
 import sdmpy
 from rfpipe import calibration
 from astropy import time
@@ -16,7 +17,7 @@ from astropy import time
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(20)
-
+casatasks.casalog.filter('WARN')
 
 def getsdm(*args, **kwargs):
     """ Wrap sdmpy.SDM to get around schema change error """
