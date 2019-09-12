@@ -68,9 +68,12 @@ def prep_and_search(st, segment, data, devicenum=None, returnsoltime=False):
     else:
         logger.warning("fftmode {0} not recognized (cuda, fftw allowed)"
                        .format(st.prefs.fftmode))
+        return
 
     # calc other features for cc, plot, save
-    if st.prefs.savecandcollection or st.prefs.saveplots or st.prefs.returncanddata or not all([f in cc.array.dtype.fields for f in st.features]):
+#    if len(st.features):
+    if st.prefs.savecandcollection or st.prefs.saveplots or st.prefs.returncanddata:
+# or not all([f in candcollection.array.dtype.fields for f in st.features]):
         candcollection = reproduce.reproduce_candcollection(candcollection,
                                                             data=data)
 
