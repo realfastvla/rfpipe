@@ -8,6 +8,5 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 logger.setLevel(20)
 
-import scipy.stats
 from rfpipe import *
 from rfpipe.version import __version__
