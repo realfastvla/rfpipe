@@ -41,14 +41,14 @@ def phase_shift(data, uvw, dl, dm, ints=None):
     data = np.require(data, requirements='W')
     if ints is None:
         ints = list(range(len(data)))
-    _phaseshift_jit(data, uvw, dl, dm, ints=ints)
+    u, v, w = uvw
+    _phaseshift_jit(data, u, v, w, dl, dm, ints=ints)
 
 
 @jit(nogil=True, nopython=True, cache=True)
-def _phaseshift_jit(data, uvw, dl, dm, ints):
+def _phaseshift_jit(data, u, v, w, dl, dm, ints):
 
     sh = data.shape
-    u, v, w = uvw
 
     if (dl != 0.) or (dm != 0.):
         for j in range(sh[1]):
