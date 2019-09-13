@@ -33,9 +33,11 @@ install:
   # install with conda and pip
   - conda create -n conda pip
   - source activate conda
-  - conda install -q python=$TRAVIS_PYTHON_VERSION numpy scipy cython bokeh matplotlib numba astropy pytest setuptools coverage pyfftw
-  # - numpy scipy jupyter bokeh cython matplotlib numba astropy pytest setuptools coverage pyfftw
-  - pip install --extra-index-url https://casa-pip.nrao.edu:443/repository/pypi-group/simple casatools
+#  - conda install -q python=$TRAVIS_PYTHON_VERSION numpy scipy cython bokeh matplotlib numba astropy pytest setuptools coverage pyfftw
+#  - numpy scipy jupyter bokeh cython matplotlib numba astropy pytest setuptools coverage pyfftw
+  - conda install -q python=$TRAVIS_PYTHON_VERSION numpy scipy jupyter bokeh cython matplotlib numba astropy pytest setuptools coverage pyfftw
+  - conda install -q python=$TRAVIS_PYTHON_VERSION pwkit casa-tools casa-python casa-data
+#  - pip install --extra-index-url https://casa-pip.nrao.edu:443/repository/pypi-group/simple casatools
   - pip install codecov
   - python setup.py install
 
