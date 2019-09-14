@@ -19,7 +19,8 @@ AUTHOR = 'Casey Law'
 
 # What packages are required for this module to be executed?
 REQUIRED = ['numpy', 'scipy', 'sdmpy', 'pyfftw', 'bokeh', 'cython', 'scikit-learn<0.21',
-            'attrs', 'future', 'astropy', 'pyyaml', 'numba', 'fuzzywuzzy', 'hdbscan<0.8.19',
+#            'attrs', 'future', 'astropy', 'pyyaml', 'numba', 'fuzzywuzzy', 'hdbscan<0.8.19',
+            'attrs', 'future', 'astropy', 'pyyaml', 'numba', 'fuzzywuzzy', 'hdbscan',
             'matplotlib', 'kalman_detector']
             # pip install --extra-index-url https://casa-pip.nrao.edu:443/repository/pypi-group/simple casatools
             # optional 'rfgpu', 'distributed'

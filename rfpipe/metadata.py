@@ -7,8 +7,8 @@ import os.path
 import attr
 
 import numpy as np
-#import casatools as tools
-from pwkit.environments.casa.util import tools
+import casatools as tools
+#from pwkit.environments.casa.util import tools
 from astropy import time
 
 import logging

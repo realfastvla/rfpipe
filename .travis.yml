@@ -27,7 +27,7 @@ install:
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
   - conda update -q conda
-  - conda config --add channels pkgw-forge 
+#  - conda config --add channels pkgw-forge 
   - conda config --add channels conda-forge 
   - conda config --set channel_priority strict
 
@@ -37,8 +37,8 @@ install:
 #  - conda install -q python=$TRAVIS_PYTHON_VERSION numpy scipy cython bokeh matplotlib numba astropy pytest setuptools coverage pyfftw
 #  - numpy scipy jupyter bokeh cython matplotlib numba astropy pytest setuptools coverage pyfftw
   - conda install -q python=$TRAVIS_PYTHON_VERSION numpy scipy jupyter bokeh cython matplotlib numba astropy pytest setuptools coverage pyfftw
-  - conda install -q python=$TRAVIS_PYTHON_VERSION pwkit casa-tools casa-python casa-data
-#  - pip install --extra-index-url https://casa-pip.nrao.edu:443/repository/pypi-group/simple casatools
+#  - conda install -q python=$TRAVIS_PYTHON_VERSION pwkit casa-tools casa-python casa-data
+  - pip install --extra-index-url https://casa-pip.nrao.edu:443/repository/pypi-group/simple casatools
   - pip install codecov
   - python setup.py install
 

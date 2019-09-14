@@ -8,9 +8,8 @@ import math
 import random
 from numba import cuda, guvectorize
 from numba import jit, complex64, int64, float32
-#import casatools as tools
-#import casatasks
-from pwkit.environments.casa.util import tools
+#from pwkit.environments.casa.util import tools
+import casatools as tools
 import sdmpy
 from rfpipe import calibration
 from astropy import time
@@ -18,6 +17,8 @@ from astropy import time
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(20)
+
+#import casatasks
 #casatasks.casalog.filter('WARN')
 
 def getsdm(*args, **kwargs):
