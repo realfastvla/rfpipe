@@ -11,7 +11,7 @@ from math import cos, radians
 from numpy.lib.recfunctions import append_fields
 from collections import OrderedDict
 import matplotlib as mpl
-from astropy import time, coordinates
+from astropy import time, coordinates, units
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
@@ -1478,11 +1478,7 @@ def candplot(canddatalist, snrs=None, outname=''):
                 fontname='sans-serif', transform=ax.transAxes,
                 fontsize='small')
         # split the RA and Dec and display in a nice format
-        ra = src_ra.split()
-        dec = src_dec.split()
-        ax.text(left, start-2*space, 'Peak (RA, Dec): (' + ra[0] + ':' + ra[1]
-                + ':' + ra[2][0:4] + ', ' + dec[0] + ':' + dec[1] + ':'
-                + dec[2][0:4] + ')',
+        ax.text(left, start-2*space, 'Peak (RA, Dec): (' + src_ra + ', ' + src_dec + ')',
                 fontname='sans-serif', transform=ax.transAxes,
                 fontsize='small')
         ax.text(left, start-3*space, 'Source: ' + str(st.metadata.source),
@@ -1863,13 +1859,18 @@ def candplot(canddatalist, snrs=None, outname=''):
 
 def source_location(pt_ra, pt_dec, l1, m1):
     """ Takes phase center and src l,m in radians to get ra,dec of source.
-    Returns string ('hh mm ss', 'dd mm ss')
+    Returns sexagesimal string as from astropy.coordinates.
     """
 
     srcra = np.degrees(pt_ra + l1/cos(pt_dec))
     srcdec = np.degrees(pt_dec + m1)
 
-    return deg2HMS(srcra, srcdec)
+    co = coordinates.SkyCoord(srcra, srcdec, unit=(units.deg, units.deg))
+    ra = co.ra.to_string(unit=units.hour)
+    dec = co.dec.to_string(unit=units.deg)
+
+    return (ra, dec)
+#    return deg2HMS(srcra, srcdec)
 
 
 def deg2HMS(ra=None, dec=None, round=False):
