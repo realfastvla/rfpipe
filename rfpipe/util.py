@@ -290,6 +290,7 @@ def kalman_prep(data):
 
     from kalman_detector import kalman_prepare_coeffs
 
+    data = np.ma.masked_equal(data, 0j)
     if data.shape[0] > 1:
         spec_std = data.real.mean(axis=3).mean(axis=1).std(axis=0)
     else:
