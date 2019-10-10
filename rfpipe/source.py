@@ -31,11 +31,12 @@ def data_prep(st, segment, data, flagversion="latest", returnsoltime=False):
 
     # select pols
     takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
-    logger.debug('Selecting pols {0} and chans {1}'.format(st.pols, st.chans))
+    takeants = [st.metadata.antids.index(antname) for antname in st.ants]
+    logger.debug('Selecting pols {0}, chans {1}. Excluding ants {2}'.format(st.pols, st.chans, st.prefs.excludeants))
 
     # TODO: check on reusing 'data' to save memory
 #    datap = np.nan_to_num(np.require(data, requirements='W').take(takepol, axis=3).take(st.chans, axis=2))
-    datap = np.require(data, requirements='W').take(takepol, axis=3).take(st.chans, axis=2)
+    datap = np.require(data, requirements='W').take(takepol, axis=3).take(st.chans, axis=2).take(takeants, axis=1)
     datap = prep_standard(st, segment, datap)
 
     if not np.any(datap):

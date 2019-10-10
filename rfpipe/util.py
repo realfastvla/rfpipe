@@ -226,8 +226,9 @@ def get_uvw_segment(st, segment):
     if st.lock is not None:
         st.lock.acquire()
 
+    takeants = [st.metadata.antids.index(antname) for antname in st.ants]
     (ur, vr, wr) = calc_uvw(datetime=mjdstr, radec=st.metadata.radec,
-                            antpos=st.metadata.antpos,
+                            antpos=st.metadata.antpos.take(takeants),
                             telescope=st.metadata.telescope)
     if st.lock is not None:
         st.lock.release()
