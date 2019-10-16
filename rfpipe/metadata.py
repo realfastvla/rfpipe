@@ -113,6 +113,13 @@ class Metadata(object):
         return int(self.nants_orig*(self.nants_orig-1)/2)
 
     @property
+    def blarr_orig(self):
+        return np.array([[int(self.antids[i].lstrip('ea')),
+                          int(self.antids[j].lstrip('ea'))]
+                         for j in range(self.nants_orig)
+                         for i in range(0, j)])
+
+    @property
     def antpos(self):
         x = self.xyz[:, 0].tolist()
         y = self.xyz[:, 1].tolist()

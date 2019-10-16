@@ -159,7 +159,8 @@ def getonlineflags(st, segment):
     if st.metadata.datasource == 'sdm':
         sdm = util.getsdm(st.metadata.filename, bdfdir=st.metadata.bdfdir)
         scan = sdm.scan(st.metadata.scan)
-        flags = scan.flags([t0, t1]).all(axis=0)
+        takebls = [st.metadata.blarr_orig.tolist().index(list(bl)) for bl in st.blarr]
+        flags = scan.flags([t0, t1])[:, takebls].all(axis=0)
     elif st.metadata.datasource == 'vys':
         try:
             from realfast.mcaf_servers import getblflags
