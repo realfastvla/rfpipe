@@ -266,7 +266,7 @@ def read_vys_segment(st, seg, cfile=None, timeout=2, offset=4, returnsim=False):
     # TODO: vysmaw currently pulls all data, but allocates buffer based on these.
     # buffer will be too small if taking subset of all data.
     antlist = np.array([int(ant.lstrip('ea'))
-                        for ant in st.ants], dtype=np.int32)
+                        for ant in st.metadata.antids], dtype=np.int32)
     bbmap_standard = ['AC1', 'AC2', 'AC', 'BD1', 'BD2', 'BD']
     spwlist = list(zip(*st.metadata.spworder))[0]  # list of strings ["bb-spw"] in increasing freq order
     bbsplist = np.array([(int(bbmap_standard.index(spw.split('-')[0])),
