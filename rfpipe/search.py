@@ -724,7 +724,7 @@ def gpu_dmtime(ft, dm_i, dm_f, dmsteps, freqs, inttime, devicenum=0):
     for ii, dm in enumerate(dm_list):
         delays[ii,:] = util.calc_delay(freqs, freqs.max(), dm, inttime).astype('int32')
       
-    cuda.select_device(device)
+    cuda.select_device(devicenum)
     stream = cuda.stream()
 
     dm_time = np.zeros((delays.shape[0], int(ft.shape[1])), dtype=np.float32)
