@@ -233,9 +233,74 @@ def pipeline_candidate(st, candloc, canddata=None):
     return candcollection
 
 
+def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/evladata/telcal/',
+               npix_max=None, search_sigma=7, refine=True, classify=True, dm_frac=0.2, dm_steps = 100,
+               devicenum='0'):
+    """  Given candId, look for SDM in portal, then run refinement.
+    Assumes this is running on rfnode with CBE lustre.
+    """
+
+    os.environ['CUDA_VISIBLE_DEVICES'] = devicenum
+    # Searching for gainfile
+    datasetId = '{0}'.format('_'.join(sdmname.split('_')[1:-1]))
+    # set the paths to the gainfile
+    gainname = datasetId + '.GN'
+    logging.info('Searching for the gainfile {0} in {1}'.format(gainname, gainpath))
+    for path, dirs, files in os.walk(gainpath):
+        for f in filter(lambda x: gainname in x, files):
+            gainfile = os.path.join(path, gainname)
+            break
+
+    # Searching all miniSDMs
+    prefs = {'saveplots': True, 'savenoise': False, 'savesols': False, 'savecandcollection': True, 
+             'savecanddata': True, 'workdir': workdir, 'gainfile': gainfile, 'npix_max': npix_max,
+             'sigma_image1': search_sigma, 'dmarr': list(np.linspace(dm-dm_frac*dm, dm+dm_frac*dm, dm_steps))}
+
+    band = 'L'
+    st = state.State(sdmfile=sdm, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band)
+    cc = pipeline.pipeline_scan(st)
+
+    # # Classify and generate refinement plots
+    
+    # Classify the generated pickles using FETCH and generate refinement plots
+    for pkl in glob.glob(st.prefs.workdir+'/'+'cands_*'+sdmname.split('/')[0]+'*.pkl'):
+        if classify or refine:
+            logging.info('Refining and classifying pkl: {0}'.format(pkl))
+            ccs = list(candidates.iter_cands(pkl, select='candcollection'))
+            cc = ccs[maxind]
+            cds = cc.canddata
+            if cds:
+                if classify:
+                    payload = candidates.cd_to_fetch(cd, classify=True, save_png=True, show=True, mode = 'GPU',
+                                                     outdir = workdir, devicenum='0')
+                    logging.info('FETCH FRB Probability of the candidate {0} is {1}'.format(cd.candid, payload))
+                if refine:
+                    logging.info('Generating Refinement plots')
+                    reproduce.cd_refine(cd, save=True, outdir = workdir)
+            else:
+                logging.info('No candidate was found in cc: {0}'.format(cc))
+
+
 def cd_refine(cd, nsubbands = 4, save = False, devicenum='0', mode='GPU', outdir=None):
     """ Use canddata object to create refinement plot of subbanded SNR and dm-time plot.
     """
+    
+    import rfpipe.search
+    from rfpipe import util
+    from matplotlib import gridspec
+    import pylab as plt
+    import matplotlib
+
+    params = {
+        'axes.labelsize' : 14,
+        'font.size' : 9,
+        'legend.fontsize': 12,
+        'xtick.labelsize': 12,
+        'ytick.labelsize': 12,
+        'text.usetex': False,
+        'figure.figsize': [12, 10]
+    }
+    matplotlib.rcParams.update(params)
     
     segment, candint, dmind, dtind, beamnum = cd.loc
     st = cd.state
@@ -292,11 +357,11 @@ def cd_refine(cd, nsubbands = 4, save = False, devicenum='0', mode='GPU', outdir
     logger.info("Using gpu devicenum: {0}".format(devicenum))
     os.environ['CUDA_VISIBLE_DEVICES'] = devicenum
 
-    dmt = search.make_dmt(ft_dedisp, dm_start-dm, dm_end-dm, 256, chan_freqs/1000,
+    dmt = rfpipe.search.make_dmt(ft_dedisp, dm_start-dm, dm_end-dm, 256, chan_freqs/1000,
                           tsamp, mode=mode, devicenum=int(devicenum))
     
-    delay = util.calc_delay(freqs/1000, freqs.max()/1000, -1*dm, tsamp)
-    dispersed = search.dedisperse_roll(ft_dedisp, delay)
+    delay = util.calc_delay(chan_freqs/1000, chan_freqs.max()/1000, -1*dm, tsamp)
+    dispersed = rfpipe.search.dedisperse_roll(ft_dedisp, delay)
 #    dispersed = disperse(ft_dedisp, -1*dm, chan_freqs/1000, tsamp)
     
     subsnrs, subts, bands = calc_subband_info(ft_dedisp, chan_freqs, nsubbands)    
@@ -363,9 +428,9 @@ def cd_refine(cd, nsubbands = 4, save = False, devicenum='0', mode='GPU', outdir
     ax5.axis('off')
     segment, candint, dmind, dtind, beamnum = candloc
     #plt.tight_layout()
-    if save==True:
+    if save:
         if outdir:
-            plt.savefig(outdir+'{0}_refined.png'.format(cd.candid), bbox_inches='tight')
+            plt.savefig(os.path.join(outdir, '{0}_refined.png'.format(cd.candid)), bbox_inches='tight')
         else:
             plt.savefig('{0}_refined.png'.format(cd.candid), bbox_inches='tight')
 
