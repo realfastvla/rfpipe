@@ -467,6 +467,38 @@ def mock_metadata(t0, t1, nants, nspw, chans, npol, inttime_micros, scan=1,
     return meta
 
 
+def reffreq_to_band(reffreqs, edge=5e8):
+    """ Given list of reffreqs, return name of band that contains all of them.
+    edge defines frequency edge around each nominal band to include.
+    """
+
+    nspw = len(reffreqs)
+    for band, low, high in [('L', 1e9, 2e9), ('S', 2e9, 4e9),
+                            ('C', 4e9, 8e9), ('X', 8e9, 12e9),
+                            ('Ku', 12e9, 18e9), ('K', 18e9, 26.5e9),
+                            ('Ka', 26.5e9, 30e9), ('Q', 40e9, 50e9)]:
+        reffreq_inband = [reffreq for reffreq in reffreqs
+                          if ((reffreq >= low-edge) and (reffreq < high+edge))]
+        if len(reffreq_inband) == nspw:
+            return band
+
+    return None
+
+
+def sdmband(sdmfile, sdmscan, bdfdir):
+    """ Read metadata from sdm and return band as string.
+    """
+
+    try:
+        from realfast import heuristics
+    except ImportError:
+        logger.error('realfast not available')
+        return None
+
+    meta = make_metadata(sdmfile=sdmfile, sdmscan=sdmscan, bdfdir=bdfdir)
+    return heuristics.reffreq_to_band(meta.spw_reffreq)
+
+
 def oldstate_metadata(d, scan=None, bdfdir=None):
     """ Parses old state function ("d", a dictionary) into new metadata instance
     Note: d from merged candidate file will have some parameters defined by

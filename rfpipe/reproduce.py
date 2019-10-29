@@ -235,10 +235,12 @@ def pipeline_candidate(st, candloc, canddata=None):
 
 def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/evladata/telcal/',
                npix_max=None, search_sigma=7, refine=True, classify=True, dm_frac=0.2, dm_steps = 100,
-               devicenum='0'):
+               bdfdir='/lustre/evla/wcbe/data/realfast', devicenum='0'):
     """  Given candId, look for SDM in portal, then run refinement.
     Assumes this is running on rfnode with CBE lustre.
     """
+
+    from rfpipe import metadata, state, pipeline, candidates
 
     os.environ['CUDA_VISIBLE_DEVICES'] = devicenum
     # Searching for gainfile
@@ -252,33 +254,31 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
             break
 
     # Searching all miniSDMs
+#    dmarr = np.unique([0] + np.linspace(dm-dm_frac*dm, dm, dm_steps/2).tolist() + np.linspace(dm, dm+dm_frac*dm, dm_steps/2).tolist()).tolist()
+    dmarr = None
     prefs = {'saveplots': True, 'savenoise': False, 'savesols': False, 'savecandcollection': True, 
-             'savecanddata': True, 'workdir': workdir, 'gainfile': gainfile, 'npix_max': npix_max,
-             'sigma_image1': search_sigma, 'dmarr': list(np.linspace(dm-dm_frac*dm, dm+dm_frac*dm, dm_steps))}
+             'savecanddata': True, 'gainfile': gainfile, 'npix_max': npix_max,
+             'sigma_image1': search_sigma, 'dmarr': dmarr}
 
-    band = 'L'
-    st = state.State(sdmfile=sdm, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band)
-    cc = pipeline.pipeline_scan(st)
+    band = metadata.sdmband(sdmfile=sdmname, sdmscan=1, bdfdir=bdfdir)
+    st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band)
+    ccs = pipeline.pipeline_scan(st)
+    cc = sum(ccs) if len(ccs) else ccs
 
-    # # Classify and generate refinement plots
-    
     # Classify the generated pickles using FETCH and generate refinement plots
-    for pkl in glob.glob(st.prefs.workdir+'/'+'cands_*'+sdmname.split('/')[0]+'*.pkl'):
-        if classify or refine:
-            logging.info('Refining and classifying pkl: {0}'.format(pkl))
-            ccs = list(candidates.iter_cands(pkl, select='candcollection'))
-            cc = ccs[maxind]
-            cds = cc.canddata
-            if cds:
-                if classify:
-                    payload = candidates.cd_to_fetch(cd, classify=True, save_png=True, show=True, mode = 'GPU',
-                                                     outdir = workdir, devicenum='0')
-                    logging.info('FETCH FRB Probability of the candidate {0} is {1}'.format(cd.candid, payload))
-                if refine:
-                    logging.info('Generating Refinement plots')
-                    reproduce.cd_refine(cd, save=True, outdir = workdir)
-            else:
-                logging.info('No candidate was found in cc: {0}'.format(cc))
+    if len(cc):
+        maxind = np.where(cc.snrtot == cc.snrtot.max())[0]
+        assert len(maxind) == 1
+        cd = cc.canddata[maxind[0]]
+        assert isinstance(cd, candidates.CandData)
+        if classify:
+            payload = candidates.cd_to_fetch(cd, classify=True, save_png=True, mode='GPU')
+            logging.info('FETCH FRB Probability of the candidate {0} is {1}'.format(cd.candid, payload))
+        if refine:
+            logging.info('Generating Refinement plots')
+            cd_refine(cd, save=True)
+    else:
+        logging.info('No candidate was found in cc: {0}'.format(cc))
 
 
 def cd_refine(cd, nsubbands = 4, save = False, devicenum='0', mode='GPU', outdir=None):
