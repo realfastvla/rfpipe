@@ -269,7 +269,7 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
     if len(cc):
         maxind = np.where(cc.snrtot == cc.snrtot.max())[0]
         assert len(maxind) == 1
-        cd = cc[maxind[0]].canddata
+        cd = cc[maxind[0]].canddata[0]
         assert isinstance(cd, candidates.CandData)
 
         if classify:

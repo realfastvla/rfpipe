@@ -309,12 +309,12 @@ def kalman_prep(data):
         logger.warning("spectrum std all zeros. Not estimating coeffs.")
         kalman_coeffs = []
     else:
-        sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
+        sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std.filled(0))
 
     if not np.all(np.nan_to_num(sig_ts)):
         kalman_coeffs = []
 
-    return spec_std, sig_ts, kalman_coeffs
+    return spec_std.filled(0), sig_ts, kalman_coeffs
 
 
 def calc_noise(st, segment, data, chunk=500):
