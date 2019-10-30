@@ -31,11 +31,12 @@ def data_prep(st, segment, data, flagversion="latest", returnsoltime=False):
 
     # select pols
     takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
-    logger.debug('Selecting pols {0} and chans {1}'.format(st.pols, st.chans))
+    takebls = [st.metadata.blarr_orig.tolist().index(list(bl)) for bl in st.blarr]
+    logger.debug('Selecting pols {0}, chans {1}. Excluding ants {2}'.format(st.pols, st.chans, st.prefs.excludeants))
 
     # TODO: check on reusing 'data' to save memory
 #    datap = np.nan_to_num(np.require(data, requirements='W').take(takepol, axis=3).take(st.chans, axis=2))
-    datap = np.require(data, requirements='W').take(takepol, axis=3).take(st.chans, axis=2)
+    datap = np.require(data, requirements='W').take(takepol, axis=3).take(st.chans, axis=2).take(takebls, axis=1)
     datap = prep_standard(st, segment, datap)
 
     if not np.any(datap):
@@ -265,7 +266,7 @@ def read_vys_segment(st, seg, cfile=None, timeout=2, offset=4, returnsim=False):
     # TODO: vysmaw currently pulls all data, but allocates buffer based on these.
     # buffer will be too small if taking subset of all data.
     antlist = np.array([int(ant.lstrip('ea'))
-                        for ant in st.ants], dtype=np.int32)
+                        for ant in st.metadata.antids], dtype=np.int32)
     bbmap_standard = ['AC1', 'AC2', 'AC', 'BD1', 'BD2', 'BD']
     spwlist = list(zip(*st.metadata.spworder))[0]  # list of strings ["bb-spw"] in increasing freq order
     bbsplist = np.array([(int(bbmap_standard.index(spw.split('-')[0])),

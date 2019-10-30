@@ -226,9 +226,18 @@ def get_uvw_segment(st, segment):
     if st.lock is not None:
         st.lock.acquire()
 
+    if st.prefs.excludeants:
+        takeants = [st.metadata.antids.index(antname) for antname in st.ants]
+        antpos = {}
+        for k,v in st.metadata.antpos.items():
+            antpos[k] = v
+            if 'value' in v:
+                value_new = v['value'][takeants]
+                antpos[k]['value'] = value_new
+    else:
+        antpos = st.metadata.antpos
     (ur, vr, wr) = calc_uvw(datetime=mjdstr, radec=st.metadata.radec,
-                            antpos=st.metadata.antpos,
-                            telescope=st.metadata.telescope)
+                            antpos=antpos, telescope=st.metadata.telescope)
     if st.lock is not None:
         st.lock.release()
 
@@ -300,12 +309,12 @@ def kalman_prep(data):
         logger.warning("spectrum std all zeros. Not estimating coeffs.")
         kalman_coeffs = []
     else:
-        sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std)
+        sig_ts, kalman_coeffs = kalman_prepare_coeffs(spec_std.filled(0))
 
     if not np.all(np.nan_to_num(sig_ts)):
         kalman_coeffs = []
 
-    return spec_std, sig_ts, kalman_coeffs
+    return spec_std.filled(0), sig_ts, kalman_coeffs
 
 
 def calc_noise(st, segment, data, chunk=500):
