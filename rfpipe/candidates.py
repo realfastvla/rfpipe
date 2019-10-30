@@ -609,9 +609,9 @@ def cluster_candidates(cc, downsample=None, returnclusterer=False,
                                                  uvres)
 
         # stacking indices and taking at most one per bin
-        data = np.unique(np.transpose([peakx_ind//downsample,
+        data = np.transpose([peakx_ind//downsample,
                                        peaky_ind//downsample,
-                                       dmind, time_ind]), axis=0)
+                                       dmind, time_ind])
 
         logger.info("Clustering parameters set to ({0},{1}) and downsampling xy by {2}."
                     .format(min_cluster_size, min_samples, downsample))
