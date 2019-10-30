@@ -254,8 +254,7 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
             break
 
     # Searching all miniSDMs
-#    dmarr = np.unique([0] + np.linspace(dm-dm_frac*dm, dm, dm_steps/2).tolist() + np.linspace(dm, dm+dm_frac*dm, dm_steps/2).tolist()).tolist()
-    dmarr = None
+    dmarr = np.unique([0] + np.linspace(dm-dm_frac*dm, dm, dm_steps/2).tolist() + np.linspace(dm, dm+dm_frac*dm, dm_steps/2).tolist()).tolist()
     prefs = {'saveplots': True, 'savenoise': False, 'savesols': False, 'savecandcollection': True, 
              'savecanddata': True, 'gainfile': gainfile, 'npix_max': npix_max,
              'sigma_image1': search_sigma, 'dmarr': dmarr}
@@ -273,16 +272,17 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
         assert isinstance(cd, candidates.CandData)
 
         if classify:
-            payload = candidates.cd_to_fetch(cd, classify=True, save_png=True, mode='GPU')
+            payload = candidates.cd_to_fetch(cd, classify=True, mode='GPU')
             logging.info('FETCH FRB Probability of the candidate {0} is {1}'.format(cd.candid, payload))
+
         if refine:
             logging.info('Generating Refinement plots')
-            cd_refine(cd, save=True)
+            cd_refined_plot(cd)
     else:
         logging.info('No candidate was found in cc: {0}'.format(cc))
 
 
-def cd_refine(cd, nsubbands = 4, save = False, devicenum='0', mode='GPU', outdir=None):
+def cd_refined_plot(cd, nsubbands=4, devicenum='0', mode='GPU'):
     """ Use canddata object to create refinement plot of subbanded SNR and dm-time plot.
     """
     
@@ -430,12 +430,8 @@ def cd_refine(cd, nsubbands = 4, save = False, devicenum='0', mode='GPU', outdir
     segment, candint, dmind, dtind, beamnum = candloc
     #plt.tight_layout()
     if save:
-        if outdir:
-            plt.savefig(os.path.join(outdir, '{0}_refined.png'.format(cd.candid)), bbox_inches='tight')
-        else:
-            plt.savefig('{0}_refined.png'.format(cd.candid), bbox_inches='tight')
+        plt.savefig(os.path.join(outdir, 'cands_{0}_refined.png'.format(cd.state.metadata.scanId)), bbox_inches='tight')
 
-    plt.show()
 
 def calc_subband_info(ft, chan_freqs, nsubbands=4):
     """ Use freq-time array to calculate subbands and detect in each subband.
