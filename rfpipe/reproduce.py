@@ -269,8 +269,9 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
     if len(cc):
         maxind = np.where(cc.snrtot == cc.snrtot.max())[0]
         assert len(maxind) == 1
-        cd = cc.canddata[maxind[0]]
+        cd = cc[maxind[0]].canddata
         assert isinstance(cd, candidates.CandData)
+
         if classify:
             payload = candidates.cd_to_fetch(cd, classify=True, save_png=True, mode='GPU')
             logging.info('FETCH FRB Probability of the candidate {0} is {1}'.format(cd.candid, payload))

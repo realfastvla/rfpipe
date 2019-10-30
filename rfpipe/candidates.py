@@ -274,7 +274,7 @@ class CandCollection(object):
 
     def __getitem__(self, key):
         return CandCollection(array=self.array.take([key]), prefs=self.prefs,
-                              metadata=self.metadata)
+                              metadata=self.metadata, canddata=[self.canddata[key]])
 
     @property
     def scan(self):
