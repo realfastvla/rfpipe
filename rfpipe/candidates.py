@@ -886,20 +886,12 @@ def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False,
     logger.info('DMT reshaped to {0}'.format(reshaped_dmt.shape))
 
     if outdir is not None:
-        fnout = outdir+'cands_{0}_seg{1}-i{2}-dm{3}-dt{4}'.format(st.fileroot,
-                                                                  segment,
-                                                                  candint,
-                                                                  dmind,
-                                                                  dtind)
+        fnout = outdir+'{0}'.format(cd.candid)
     else:
-        fnout = 'cands_{0}_seg{1}-i{2}-dm{3}-dt{4}'.format(st.fileroot,
-                                                           segment,
-                                                           candint,
-                                                           dmind,
-                                                           dtind)
+        fnout = '{0}'.format(cd.candid),
 
     if save_h5:
-        with h5py.File(fnout+'.h5', 'w') as f:
+        with h5py.File(fnout+'_classify.h5', 'w') as f:
             freq_time_dset = f.create_dataset('data_freq_time',
                                               data=reshaped_ft)
             freq_time_dset.dims[0].label = b"time"
@@ -910,7 +902,7 @@ def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False,
             dm_time_dset.dims[0].label = b"dm"
             dm_time_dset.dims[1].label = b"time"
 
-        logger.info('Saved h5 as {0}.h5'.format(fnout))
+        logger.info('Saved h5 as {0}_classify.h5'.format(fnout))
 
     if save_png:
         if nt > t_size:
@@ -929,8 +921,8 @@ def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False,
         ax[1].title.set_text('DM-Time')
         ax[1].set_xlabel('Time (s)')
         plt.tight_layout()
-        plt.savefig(fnout+'.png')
-        logger.info('Saved png as {0}.png'.format(fnout))
+        plt.savefig(fnout+'_classify.png')
+        logger.info('Saved png as {0}_classify.png'.format(fnout))
         if show:
             plt.show()
         else:
@@ -1102,24 +1094,26 @@ def iter_noise(noisefile):
                     logger.debug('No more CandCollections.')
                     break
 
-
-### bokeh summary plot
 def visualize_clustering(cc, clusterer):
-    
+    """Generate Bokeh summary plot of all the candidates, color coded by 
+    the clusters they are assigned.
+    """
+        
     import seaborn as sns
     from bokeh.plotting import figure, output_file, show, output_notebook
     from bokeh.layouts import row,column
     from bokeh.models import HoverTool
     from bokeh.models.sources import ColumnDataSource
+    from matplotlib import colors 
     
-    color_palette = sns.color_palette('deep', np.max(cc.cluster) + 1) #get a color palette with number of colors = number of clusters
+    color_palette = sns.color_palette('deep', np.max(cc.array['cluster']) + 1) #get a color palette with number of colors = number of clusters
     cluster_colors = [color_palette[x] if x >= 0
                       else (0.5, 0.5, 0.5)
-                      for x in cc.cluster]    #assigning each cluster a color, and making a list
+                      for x in cc.array['cluster']]    #assigning each cluster a color, and making a list
 
     cluster_member_colors = [sns.desaturate(x, p) for x, p in
                              zip(cluster_colors, clusterer.probabilities_)]
-    cluster_colors = list(map(mpl.colors.rgb2hex, cluster_member_colors)) #converting sns colors to hex for bokeh
+    cluster_colors = list(map(colors.rgb2hex, cluster_member_colors)) #converting sns colors to hex for bokeh
     
     width = 450
     height = 350
@@ -1172,7 +1166,6 @@ def visualize_clustering(cc, clusterer):
     p4.circle(x='l',y='time', size='snr', line_width = 1, color = 'colors', fill_alpha=alpha, source=source) # linewidth=0,
     hover = p4.select(dict(type=HoverTool))
     hover.tooltips = [("m", "@m"), ("l", "@l"), ("time", "@time"), ("DM", "@dm"), ("SNR", "@snr")]
-
 
     # show the results
     (show(column(row(p, p2), row(p3, p4))))
