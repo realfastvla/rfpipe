@@ -800,7 +800,7 @@ def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False,
     timewindow = st.prefs.timewindow
     tsamp = st.inttime*width_m
     dm = st.dmarr[dmind]
-    ft_dedisp = np.flip(np.abs(cd.data.sum(axis=2).T), axis=0)
+    ft_dedisp = np.flip((cd.data.real.sum(axis=2).T), axis=0)
     chan_freqs = np.flip(st.freq*1000, axis=0)  # from high to low, MHz
     nf, nt = np.shape(ft_dedisp)
 
@@ -838,7 +838,7 @@ def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False,
         dm_start = 0
         dm_end = 2*dm
     else:
-        dm_start = -1
+        dm_start = -10
         dm_end = 10
 
     logger.info('Generating DM-time for candid {0} in DM range {1:.2f}--{2:.2f} pc/cm3'
