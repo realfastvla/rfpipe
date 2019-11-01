@@ -433,8 +433,7 @@ def cd_refined_plot(cd, nsubbands=4, devicenum='0', mode='GPU'):
     ax5.axis('off')
     segment, candint, dmind, dtind, beamnum = candloc
     #plt.tight_layout()
-    if save:
-        plt.savefig(os.path.join(outdir, 'cands_{0}_refined.png'.format(cd.state.metadata.scanId)), bbox_inches='tight')
+    plt.savefig('cands_{0}_refined.png'.format(cd.state.metadata.scanId), bbox_inches='tight')
 
 
 def calc_subband_info(ft, chan_freqs, nsubbands=4):
