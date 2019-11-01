@@ -485,18 +485,12 @@ def reffreq_to_band(reffreqs, edge=5e8):
     return None
 
 
-def sdmband(sdmfile, sdmscan, bdfdir):
+def sdmband(sdmfile, sdmscan, bdfdir=None):
     """ Read metadata from sdm and return band as string.
     """
 
-    try:
-        from realfast import heuristics
-    except ImportError:
-        logger.error('realfast not available')
-        return None
-
     meta = make_metadata(sdmfile=sdmfile, sdmscan=sdmscan, bdfdir=bdfdir)
-    return heuristics.reffreq_to_band(meta.spw_reffreq)
+    return reffreq_to_band(meta.spw_reffreq)
 
 
 def oldstate_metadata(d, scan=None, bdfdir=None):
