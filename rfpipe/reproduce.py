@@ -235,7 +235,7 @@ def pipeline_candidate(st, candloc, canddata=None):
 
 def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/evladata/telcal/',
                npix_max=None, search_sigma=7, ddm=100, dm_steps=100,
-               refine=True, classify=True, bdfdir='/lustre/evla/wcbe/data/realfast', devicenum='0'):
+               refine=True, classify=True, devicenum='0'):
     """  Given candId, look for SDM in portal, then run refinement.
     Assumes this is running on rfnode with CBE lustre.
     npix_max controls max image size.
@@ -263,7 +263,11 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
     if npix_max is not None:
         prefs['npix_max'] = npix_max
 
-    band = metadata.sdmband(sdmfile=sdmname, sdmscan=1, bdfdir=bdfdir)
+
+    try:
+        band = metadata.sdmband(sdmfile=sdmname, sdmscan=1)
+    except AssertionError:
+        band = metadata.sdmband(sdmfile=sdmname, sdmscan=1, bdfdir='/lustre/evla/wcbe/data/realfast')
     st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band)
     ccs = pipeline.pipeline_scan(st)
     cc = sum(ccs) if len(ccs) else ccs
