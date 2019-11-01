@@ -48,6 +48,8 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
 
     if isinstance(devicenum, int):
         devicenums = (devicenum,)
+    elif isinstance(devicenum, str):
+        devicenums = (int(devicenum),)
     elif isinstance(devicenum, tuple):
         assert isinstance(devicenum[0], int)
         devicenums = devicenum
