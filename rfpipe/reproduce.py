@@ -234,10 +234,13 @@ def pipeline_candidate(st, candloc, canddata=None):
 
 
 def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/evladata/telcal/',
-               npix_max=None, search_sigma=7, refine=True, classify=True, dm_frac=0.2, dm_steps = 100,
-               bdfdir='/lustre/evla/wcbe/data/realfast', devicenum='0'):
+               npix_max=None, search_sigma=7, ddm=100, dm_steps=100,
+               refine=True, classify=True, bdfdir='/lustre/evla/wcbe/data/realfast', devicenum='0'):
     """  Given candId, look for SDM in portal, then run refinement.
     Assumes this is running on rfnode with CBE lustre.
+    npix_max controls max image size.
+    ddm sets +- of dm grid to search
+    dm_steps sets number of dms within ddm range.
     """
 
     from rfpipe import metadata, state, pipeline, candidates
@@ -254,10 +257,11 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
             break
 
     # Searching all miniSDMs
-    dmarr = np.unique([0] + np.linspace(dm-dm_frac*dm, dm, dm_steps/2).tolist() + np.linspace(dm, dm+dm_frac*dm, dm_steps/2).tolist()).tolist()
+    dmarr = np.unique([0] + np.linspace(max(0, dm-ddm), dm, dm_steps/2).tolist() + np.linspace(dm, dm+ddm, dm_steps/2).tolist()).tolist()
     prefs = {'saveplots': True, 'savenoise': False, 'savesols': False, 'savecandcollection': True, 
-             'savecanddata': True, 'gainfile': gainfile, 'npix_max': npix_max,
-             'sigma_image1': search_sigma, 'dmarr': dmarr}
+             'savecanddata': True, 'gainfile': gainfile, 'sigma_image1': search_sigma, 'dmarr': dmarr}
+    if npix_max is not None:
+        prefs['npix_max'] = npix_max
 
     band = metadata.sdmband(sdmfile=sdmname, sdmscan=1, bdfdir=bdfdir)
     st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band)
