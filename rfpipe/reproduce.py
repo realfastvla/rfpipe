@@ -235,7 +235,7 @@ def pipeline_candidate(st, candloc, canddata=None):
 
 def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/evladata/telcal/',
                npix_max=None, search_sigma=7, ddm=100, dm_steps=100,
-               refine=True, classify=True, devicenum='0'):
+               refine=True, classify=True, devicenum='0', workdir=None):
     """  Given candId, look for SDM in portal, then run refinement.
     Assumes this is running on rfnode with CBE lustre.
     npix_max controls max image size.
@@ -258,8 +258,9 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
 
     # Searching all miniSDMs
     dmarr = np.unique([0] + np.linspace(max(0, dm-ddm), dm, dm_steps/2).tolist() + np.linspace(dm, dm+ddm, dm_steps/2).tolist()).tolist()
-    prefs = {'saveplots': True, 'savenoise': False, 'savesols': False, 'savecandcollection': True, 
-             'savecanddata': True, 'gainfile': gainfile, 'sigma_image1': search_sigma, 'dmarr': dmarr}
+    prefs = {'saveplots': False, 'savenoise': False, 'savesols': False, 'savecandcollection': False,
+             'savecanddata': True, 'gainfile': gainfile, 'sigma_image1': search_sigma, 'dmarr': dmarr,
+             'workdir': workdir}
     if npix_max is not None:
         prefs['npix_max'] = npix_max
 
@@ -437,7 +438,7 @@ def cd_refined_plot(cd, nsubbands=4, devicenum='0', mode='GPU'):
     ax5.axis('off')
     segment, candint, dmind, dtind, beamnum = candloc
     #plt.tight_layout()
-    plt.savefig('cands_{0}_refined.png'.format(cd.state.metadata.scanId), bbox_inches='tight')
+    plt.savefig(os.path.join(cd.state.prefs.workdir, 'cands_{0}_refined.png'.format(cd.state.metadata.scanId)), bbox_inches='tight')
 
 
 def calc_subband_info(ft, chan_freqs, nsubbands=4):
