@@ -235,7 +235,7 @@ def pipeline_candidate(st, candloc, canddata=None):
 
 def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/evladata/telcal/',
                npix_max=None, search_sigma=7, ddm=100, dm_steps=100,
-               refine=True, classify=True, devicenum='0', workdir=None):
+               refine=True, classify=True, devicenum=None, workdir=None):
     """  Given candId, look for SDM in portal, then run refinement.
     Assumes this is running on rfnode with CBE lustre.
     npix_max controls max image size.
@@ -245,9 +245,14 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
 
     from rfpipe import metadata, state, pipeline, candidates
 
+    if devicenum is None:
+        from distributed import get_worker
+        name = get_worker().name
+        devicenum = int(name.split('g')[1])
+
     os.environ['CUDA_VISIBLE_DEVICES'] = devicenum
     # Searching for gainfile
-    datasetId = '{0}'.format('_'.join(sdmname.split('_')[1:-1]))
+    datasetId = '{0}'.format('_'.join(os.path.basename(sdmname).split('_')[1:-1]))
     # set the paths to the gainfile
     gainname = datasetId + '.GN'
     logging.info('Searching for the gainfile {0} in {1}'.format(gainname, gainpath))
@@ -281,17 +286,19 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
         assert isinstance(cd, candidates.CandData)
 
         if classify:
-            payload = candidates.cd_to_fetch(cd, classify=True, mode='GPU')
-            logging.info('FETCH FRB Probability of the candidate {0} is {1}'.format(cd.candid, payload))
+            frbprob = candidates.cd_to_fetch(cd, classify=True, mode='GPU')
+            logging.info('FETCH FRB Probability of the candidate {0} is {1}'.format(cd.candid, frbprob))
+        else:
+            frbprbo = None
 
         if refine:
             logging.info('Generating Refinement plots')
-            cd_refined_plot(cd)
+            cd_refined_plot(cd, frbprob=frbprob)
     else:
         logging.info('No candidate was found in cc: {0}'.format(cc))
 
 
-def cd_refined_plot(cd, nsubbands=4, devicenum='0', mode='GPU'):
+def cd_refined_plot(cd, nsubbands=4, devicenum='0', mode='GPU', frbprob=None):
     """ Use canddata object to create refinement plot of subbanded SNR and dm-time plot.
     """
     
@@ -314,6 +321,7 @@ def cd_refined_plot(cd, nsubbands=4, devicenum='0', mode='GPU'):
     
     segment, candint, dmind, dtind, beamnum = cd.loc
     st = cd.state
+    scanid = cd.state.metadata.scanId
     width_m = st.dtarr[dtind]
     timewindow = st.prefs.timewindow
     tsamp = st.inttime*width_m
@@ -381,6 +389,8 @@ def cd_refined_plot(cd, nsubbands=4, devicenum='0', mode='GPU'):
     snr_full = calc_snr(ts_full)
 
     to_print = []
+    logging.info(f'{scanid}')
+    to_print.append(f'{scanid}\n')
     logging.info(f'candloc: {candloc}, dm: {dm:.2f}')
     to_print.append(f'candloc: {candloc}, dm: {dm:.2f}\n')
     logging.info(f'SNR of full band is: {snr_full:.2f}')
@@ -390,6 +400,9 @@ def cd_refined_plot(cd, nsubbands=4, devicenum='0', mode='GPU'):
     for i in range(nsubbands):
         logging.info(f'Band: {chan_freqs[bands[i][0]]:.2f}-{chan_freqs[bands[i][1]-1]:.2f}, SNR: {subsnrs[i]:.2f}')
         to_print.append(f'Band: {chan_freqs[bands[i][0]]:.2f}-{chan_freqs[bands[i][1]-1]:.2f}, SNR: {subsnrs[i]:.2f}\n')
+    if frbprob is not None:
+        logging.info(f'frbprob: {frbprob}')
+        to_print.append(f'frbprob: {frbprob}\n')
 
     str_print = ''.join(to_print)
 
