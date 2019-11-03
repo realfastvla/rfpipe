@@ -248,9 +248,8 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
     if devicenum is None:
         from distributed import get_worker
         name = get_worker().name
-        devicenum = int(name.split('g')[1])
+        devicenum = name.split('g')[1]
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = devicenum
     # Searching for gainfile
     datasetId = '{0}'.format('_'.join(os.path.basename(sdmname).split('_')[1:-1]))
     # set the paths to the gainfile
@@ -275,7 +274,7 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
         st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band)
     except AssertionError:
         st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir='/lustre/evla/wcbe/data/realfast')
-    ccs = pipeline.pipeline_scan(st, devicenum=devicenum)
+    ccs = pipeline.pipeline_scan(st)  # devicenum pairs are inferred by search module
     cc = sum(ccs) if len(ccs) else ccs
 
     # Classify the generated pickles using FETCH and generate refinement plots
@@ -286,19 +285,19 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
         assert isinstance(cd, candidates.CandData)
 
         if classify:
-            frbprob = candidates.cd_to_fetch(cd, classify=True, mode='GPU')
+            frbprob = candidates.cd_to_fetch(cd, classify=True, mode='CPU')
             logging.info('FETCH FRB Probability of the candidate {0} is {1}'.format(cd.candid, frbprob))
         else:
-            frbprbo = None
+            frbprob = None
 
         if refine:
             logging.info('Generating Refinement plots')
-            cd_refined_plot(cd, frbprob=frbprob)
+            cd_refined_plot(cd, devicenum, frbprob=frbprob)
     else:
         logging.info('No candidate was found in cc: {0}'.format(cc))
 
 
-def cd_refined_plot(cd, nsubbands=4, devicenum='0', mode='GPU', frbprob=None):
+def cd_refined_plot(cd, devicenum, nsubbands=4, mode='CPU', frbprob=None):
     """ Use canddata object to create refinement plot of subbanded SNR and dm-time plot.
     """
     
@@ -373,7 +372,7 @@ def cd_refined_plot(cd, nsubbands=4, devicenum='0', mode='GPU', frbprob=None):
                 .format(cd.candid, dm_start, dm_end))
 
     logger.info("Using gpu devicenum: {0}".format(devicenum))
-    os.environ['CUDA_VISIBLE_DEVICES'] = devicenum
+    os.environ['CUDA_VISIBLE_DEVICES'] = str(devicenum)
 
     dmt = rfpipe.search.make_dmt(ft_dedisp, dm_start-dm, dm_end-dm, 256, chan_freqs/1000,
                           tsamp, mode=mode, devicenum=int(devicenum))
