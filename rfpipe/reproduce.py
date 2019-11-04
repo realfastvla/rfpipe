@@ -248,7 +248,8 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
     if devicenum is None:
         from distributed import get_worker
         name = get_worker().name
-        devicenum = name.split('g')[1]
+        assert 'fetch' in name
+        devicenum = name.split('fetch')[1]
 
     # Searching for gainfile
     datasetId = '{0}'.format('_'.join(os.path.basename(sdmname).split('_')[1:-1]))
@@ -274,7 +275,7 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
         st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band)
     except AssertionError:
         st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir='/lustre/evla/wcbe/data/realfast')
-    ccs = pipeline.pipeline_scan(st)  # devicenum pairs are inferred by search module
+    ccs = pipeline.pipeline_scan(st, devicenum=devicenum)
     cc = sum(ccs) if len(ccs) else ccs
 
     # Classify the generated pickles using FETCH and generate refinement plots
