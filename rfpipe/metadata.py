@@ -269,8 +269,8 @@ def config_metadata(config, datasource='vys'):
 #    meta['spw_orig'] = ['{0}-{1}'.format(sb.IFid, sb.sbid) for sb in subbands]  # this is probably redundant with spworder
     meta['spw_orig'] = list(range(len(subbands)))
     meta['spw_reffreq'] = [(sb.sky_center_freq-sb.bw/subband0.spectralChannels*(sb.spectralChannels/2))*1e6 for sb in subbands]
-    meta['spworder'] = sorted([('{0}-{1}'.format(sb.IFid, sb.sbid),
-#    meta['spworder'] = sorted([('{0}-{1}'.format(sb.IFid, sb.swIndex-1),
+#    meta['spworder'] = sorted([('{0}-{1}'.format(sb.IFid, sb.sbid),
+    meta['spworder'] = sorted([('{0}-{1}'.format(sb.IFid, sb.swIndex-1),
                                 meta['spw_reffreq'][subbands.index(sb)])
                                for sb in subbands], key=lambda x: x[1])
     meta['quantization'] = ['{0}'.format(bbn.split('_')[-1])

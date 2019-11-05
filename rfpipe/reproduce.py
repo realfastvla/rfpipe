@@ -425,7 +425,7 @@ def cd_refined_plot(cd, devicenum, nsubbands=4, mode='CPU', frbprob=None):
     for i in range(nsubbands):
         ax1.plot(ts, subts[i] - subts[i].mean(), label = f'Band: {chan_freqs[bands[i][0]]:.0f}-{chan_freqs[bands[i][1]-1]:.0f}')
     ax1.plot(ts, subts.sum(0) - subts.sum(0).mean(), 'k.', label = 'Full Band')
-    ax1.legend(loc='upper center', bbox_to_anchor=(0.5, 1.25), ncol=3, fancybox=True, shadow=True)
+    ax1.legend(loc='upper center', bbox_to_anchor=(0.5, 1.45), ncol=3, fancybox=True, shadow=True)
     ax1.set_ylabel('Flux (Arb. units)')
     ax1.set_xlim(np.min(ts), np.max(ts))
     ax11.text(x_loc, y_loc, 'Time Series', fontsize=14, ha='center', va='center', wrap=True, rotation=-90)
