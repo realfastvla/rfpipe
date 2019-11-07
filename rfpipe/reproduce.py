@@ -234,11 +234,11 @@ def pipeline_candidate(st, candloc, canddata=None):
 
 
 def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/evladata/telcal/',
-               npix_max=None, search_sigma=7, ddm=100,
+               npix_max_orig=None, search_sigma=7, ddm=100,
                refine=True, classify=True, devicenum=None, workdir=None):
     """  Given candId, look for SDM in portal, then run refinement.
     Assumes this is running on rfnode with CBE lustre.
-    npix_max controls max image size.
+    npix_max_orig sets the npix_max or the original detection.
     ddm sets +- of dm grid to search
     """
 
@@ -264,15 +264,19 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
     prefs = {'saveplots': False, 'savenoise': False, 'savesols': False, 'savecandcollection': False,
              'savecanddata': True, 'gainfile': gainfile, 'sigma_image1': search_sigma, 'workdir': workdir,
              'dm_maxloss': 0.01, 'maxdm': dm+ddm}
-    if npix_max is not None:
-        prefs['npix_max'] = npix_max
 
     band = metadata.sdmband(sdmfile=sdmname, sdmscan=1)
 
     try:
         st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band)
-    except AssertionError:
-        st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir='/lustre/evla/wcbe/data/realfast')
+    except AssertionError:  # could be no bdf
+        logger.warn("Could not generate state for full image search with built-in BDFs. Trying with lustre BDFs.")
+        try:
+            st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir='/lustre/evla/wcbe/data/realfast')
+        except AssertionError:  # could be state can't be defined
+            logger.warn("Could not generate state with lustre BDFs. Trying with original image size...")
+            prefs['npix_max'] = npix_max_orig
+            st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir='/lustre/evla/wcbe/data/realfast')
 
     st.prefs.dmarr = [dm for dm in st.dmarr if (dm == 0 or dm > dm-ddm)]  # remove superfluous dms
     ccs = pipeline.pipeline_scan(st, devicenum=devicenum)
@@ -295,7 +299,12 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
             logging.info('Generating Refinement plots')
             cd_refined_plot(cd, devicenum, frbprob=frbprob)
     else:
-        logging.info('No candidate was found in cc: {0}'.format(cc))
+        if prefs['npix_max'] != npix_max_orig:
+            logging.info('No candidate was found in first search. Trying again with original image size.'.format(cc))
+            prefs['npix_max'] = npix_max_orig
+            st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir='/lustre/evla/wcbe/data/realfast')
+        else:
+            logging.info('No candidate was found in search at original image size. Giving up.')
 
 
 def cd_refined_plot(cd, devicenum, nsubbands=4, mode='CPU', frbprob=None):
