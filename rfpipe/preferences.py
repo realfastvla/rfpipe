@@ -91,6 +91,8 @@ class Preferences(object):
     npixy = attr.ib(default=0)  # set number of y pixels in image
     npix_max = attr.ib(default=0)  # set max number of pixels in image
     uvoversample = attr.ib(default=1.)  # scale factor for to overresolve grid
+    uvmin = attr.ib(default=None)  # minimum uv distance for baseline to image (ch=0)
+    
     clustercands = attr.ib(default=None)  # 2-tuple with hdbscan params (min_cluster_size, min_samples)
     cluster_downsampling = attr.ib(default=1)  # int to downsampling xy pixels to encourage clustering
     max_candfrac = attr.ib(default=0.2)  # max allowed fraction of all trials with candidates

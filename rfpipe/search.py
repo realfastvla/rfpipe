@@ -98,14 +98,21 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
     img_grids = [rfgpu.GPUArrayReal((st.npixx, st.npixy), (dn,)) for dn in devicenums]
 #    locks = [Lock() for dn in devicenums]
 
-    # move Stokes I data in (assumes dual pol data)
-    vis_raw.data[:] = np.rollaxis(data.mean(axis=3), 0, 3)
-    vis_raw.h2d()  # Send it to GPU memory of all
-
     # Convert uv from lambda to us
     u, v, w = uvw
     u_us = 1e6*u[:, 0]/(1e9*st.freq[0])
     v_us = 1e6*v[:, 0]/(1e9*st.freq[0])
+
+    # move Stokes I data in (assumes dual pol data)
+    vis_raw.data[:] = np.rollaxis(data.mean(axis=3), 0, 3)
+
+    # uv filtering
+    if st.prefs.uvmin is not None:
+        uvd = np.sqrt(u[:,0]**2 + v[:,0]**2)
+        short = uvd < st.prefs.uvmin
+        vis_raw.data[short] = 0j
+    
+    vis_raw.h2d()  # Send it to GPU memory of all
 
     for grid in grids:
         grid.set_uv(u_us, v_us)  # u, v in us

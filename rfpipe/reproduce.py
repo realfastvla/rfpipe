@@ -234,16 +234,15 @@ def pipeline_candidate(st, candloc, canddata=None):
 
 
 def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/evladata/telcal/',
-               npix_max=None, search_sigma=7, ddm=100, dm_steps=100,
+               npix_max=None, search_sigma=7, ddm=100,
                refine=True, classify=True, devicenum=None, workdir=None):
     """  Given candId, look for SDM in portal, then run refinement.
     Assumes this is running on rfnode with CBE lustre.
     npix_max controls max image size.
     ddm sets +- of dm grid to search
-    dm_steps sets number of dms within ddm range.
     """
 
-    from rfpipe import metadata, state, pipeline, candidates
+    from rfpipe import metadata, state, pipeline, candidates, util
 
     if devicenum is None:
         from distributed import get_worker
@@ -262,10 +261,9 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
             break
 
     # Searching all miniSDMs
-    dmarr = np.unique([0] + np.linspace(max(0, dm-ddm), dm, dm_steps/2).tolist() + np.linspace(dm, dm+ddm, dm_steps/2).tolist()).tolist()
     prefs = {'saveplots': False, 'savenoise': False, 'savesols': False, 'savecandcollection': False,
-             'savecanddata': True, 'gainfile': gainfile, 'sigma_image1': search_sigma, 'dmarr': dmarr,
-             'workdir': workdir}
+             'savecanddata': True, 'gainfile': gainfile, 'sigma_image1': search_sigma, 'workdir': workdir,
+             'dm_maxloss': 0.01, 'maxdm': dm+ddm}
     if npix_max is not None:
         prefs['npix_max'] = npix_max
 
@@ -275,6 +273,8 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
         st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band)
     except AssertionError:
         st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir='/lustre/evla/wcbe/data/realfast')
+
+    st.prefs.dmarr = [dm for dm in st.dmarr if (dm == 0 or dm > dm-ddm)]  # remove superfluous dms
     ccs = pipeline.pipeline_scan(st, devicenum=devicenum)
     cc = sum(ccs) if len(ccs) else ccs
 
