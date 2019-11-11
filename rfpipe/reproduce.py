@@ -263,22 +263,29 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
     # Searching all miniSDMs
     prefs = {'saveplots': False, 'savenoise': False, 'savesols': False, 'savecandcollection': False,
              'savecanddata': True, 'gainfile': gainfile, 'sigma_image1': search_sigma, 'workdir': workdir,
-             'dm_maxloss': 0.01, 'maxdm': dm+ddm}
+             'dm_maxloss': 0.01, 'maxdm': dm+ddm, 'npix_max': None}
 
     band = metadata.sdmband(sdmfile=sdmname, sdmscan=1)
 
     try:
-        st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band)
+        st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, showsummary=False)
     except AssertionError:  # could be no bdf
-        logger.warn("Could not generate state for full image search with built-in BDFs. Trying with lustre BDFs.")
         try:
-            st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir='/lustre/evla/wcbe/data/realfast')
+            logger.warn("Could not generate state for full image search with built-in BDFs. Trying with lustre BDFs.")
+            st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir='/lustre/evla/wcbe/data/realfast', showsummary=False)
         except AssertionError:  # could be state can't be defined
-            logger.warn("Could not generate state with lustre BDFs. Trying with original image size...")
-            prefs['npix_max'] = npix_max_orig
-            st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir='/lustre/evla/wcbe/data/realfast')
+            try:
+                logger.warn("Could not generate state with lustre BDFs. Trying with npix_max at 2x original image size...")
+                prefs['npix_max'] = 2*npix_max_orig
+                st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir='/lustre/evla/wcbe/data/realfast', showsummary=False)
+            except AssertionError:  # could be state can't be defined
+                logger.warn("Could not generate state with lustre BDFs. Trying with original image size...")
+                prefs['npix_max'] = npix_max_orig
+                st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir='/lustre/evla/wcbe/data/realfast', showsummary=False)
 
     st.prefs.dmarr = [dm for dm in st.dmarr if (dm == 0 or dm > dm-ddm)]  # remove superfluous dms
+    st.clearcache()
+    st.summarize()
     ccs = pipeline.pipeline_scan(st, devicenum=devicenum)
     cc = sum(ccs) if len(ccs) else ccs
 
@@ -302,9 +309,30 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
         if prefs['npix_max'] != npix_max_orig:
             logging.info('No candidate was found in first search. Trying again with original image size.'.format(cc))
             prefs['npix_max'] = npix_max_orig
-            st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir='/lustre/evla/wcbe/data/realfast')
-        else:
-            logging.info('No candidate was found in search at original image size. Giving up.')
+            st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir='/lustre/evla/wcbe/data/realfast',
+                             showsummary=False)
+            st.prefs.dmarr = [dm for dm in st.dmarr if (dm == 0 or dm > dm-ddm)]  # remove superfluous dms
+            st.clearcache()
+            st.summarize()
+            ccs = pipeline.pipeline_scan(st, devicenum=devicenum)
+            cc = sum(ccs) if len(ccs) else ccs
+            if len(cc):
+                maxind = np.where(cc.snrtot == cc.snrtot.max())[0]
+                assert len(maxind) == 1
+                cd = cc[maxind[0]].canddata[0]
+                assert isinstance(cd, candidates.CandData)
+
+                if classify:
+                    frbprob = candidates.cd_to_fetch(cd, classify=True, mode='CPU')
+                    logging.info('FETCH FRB Probability of the candidate {0} is {1}'.format(cd.candid, frbprob))
+                else:
+                    frbprob = None
+
+                if refine:
+                    logging.info('Generating Refinement plots')
+                    cd_refined_plot(cd, devicenum, frbprob=frbprob)
+            else:
+                logging.info('No candidate was found in search at original image size. Giving up.')
 
 
 def cd_refined_plot(cd, devicenum, nsubbands=4, mode='CPU', frbprob=None):
