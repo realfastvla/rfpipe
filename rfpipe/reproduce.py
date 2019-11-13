@@ -366,9 +366,9 @@ def cd_refined_plot(cd, devicenum, nsubbands=4, mode='CPU', frbprob=None):
     ft_dedisp = np.flip((cd.data.real.sum(axis=2).T), axis=0)
     chan_freqs = np.flip(st.freq*1000, axis=0)  # from high to low, MHz
     nf, nt = np.shape(ft_dedisp)
-    
+
     candloc = cd.loc
-    
+
     logger.debug('Size of the FT array is ({0}, {1})'.format(nf, nt))
 
     try:
@@ -414,11 +414,17 @@ def cd_refined_plot(cd, devicenum, nsubbands=4, mode='CPU', frbprob=None):
 
     dmt = rfpipe.search.make_dmt(ft_dedisp, dm_start-dm, dm_end-dm, 256, chan_freqs/1000,
                           tsamp, mode=mode, devicenum=int(devicenum))
-    
+
     delay = util.calc_delay(chan_freqs/1000, chan_freqs.max()/1000, -1*dm, tsamp)
     dispersed = rfpipe.search.dedisperse_roll(ft_dedisp, delay)
-#    dispersed = disperse(ft_dedisp, -1*dm, chan_freqs/1000, tsamp)
-    
+    #    dispersed = disperse(ft_dedisp, -1*dm, chan_freqs/1000, tsamp)
+
+    im = cd.image
+    imstd = im.std()  # consistent with rfgpu
+    snrim = np.round(im.max()/imstd, 2)
+    snrk = np.round(cd.snrk, 2)
+    l1, m1 = st.pixtolm(np.where(im == im.max()))
+
     subsnrs, subts, bands = calc_subband_info(ft_dedisp, chan_freqs, nsubbands)    
     logging.info(f'Generating time series of full band')
     ts_full = ft_dedisp.sum(0)
@@ -427,25 +433,35 @@ def cd_refined_plot(cd, devicenum, nsubbands=4, mode='CPU', frbprob=None):
 
     to_print = []
     logging.info(f'{scanid}')
-    to_print.append(f'{scanid}\n')
-    logging.info(f'candloc: {candloc}, dm: {dm:.2f}')
-    to_print.append(f'candloc: {candloc}, dm: {dm:.2f}\n')
-    logging.info(f'SNR of full band is: {snr_full:.2f}')
-    to_print.append(f'SNR of full band is: {snr_full:.2f}\n')
+    to_print.append(f"{'.'.join(scanid.split('.')[:3])}. \n")
+    to_print.append(f"{'.'.join(scanid.split('.')[3:])}\n")
+    logging.info(f'candloc: {candloc}, DM: {dm:.2f}')
+    to_print.append(f'candloc: {candloc}, DM: {dm:.2f}\n')
+    logging.info(f'Source: {st.metadata.source}')
+    to_print.append(f'Source: {st.metadata.source}\n')
     logging.info(f'Subbanded SNRs are:')    
     to_print.append(f'Subbanded SNRs are:\n')
     for i in range(nsubbands):
         logging.info(f'Band: {chan_freqs[bands[i][0]]:.2f}-{chan_freqs[bands[i][1]-1]:.2f}, SNR: {subsnrs[i]:.2f}')
         to_print.append(f'Band: {chan_freqs[bands[i][0]]:.2f}-{chan_freqs[bands[i][1]-1]:.2f}, SNR: {subsnrs[i]:.2f}\n')
+    logging.info(f'SNR of full band is: {snr_full:.2f}')
+    to_print.append(f'SNR of full band is: {snr_full:.2f}\n')
+    logging.info(f'SNR (im/k): {snrim}/{snrk}')
+    to_print.append(f'SNR (im/k): {snrim}/{snrk}\n')
+    logging.info(f'Clustersize: {cd.clustersize}')
+    to_print.append(f'Clustersize: {cd.clustersize}\n')
     if frbprob is not None:
         logging.info(f'frbprob: {frbprob}')
-        to_print.append(f'frbprob: {frbprob}\n')
-
+        to_print.append(f'frbprob: {np.round(frbprob, 4)}\n')
     str_print = ''.join(to_print)
 
+    fov = np.degrees(1./st.uvres)*60.
+    l1arcm = np.degrees(l1)*60
+    m1arcm = np.degrees(m1)*60
+
     ts = np.arange(timewindow)*tsamp
-        
-    gs = gridspec.GridSpec(4, 3, width_ratios=[4, 0.1, 2], height_ratios=[1, 1, 1, 1], wspace=0.02, hspace=0.15)
+
+    gs = gridspec.GridSpec(4, 3, width_ratios=[3.5, 0.1, 3], height_ratios=[1, 1, 1, 1], wspace=0.05, hspace=0.20)
     ax1 = plt.subplot(gs[0, 0])
     ax2 = plt.subplot(gs[1, 0])
     ax3 = plt.subplot(gs[2, 0])
@@ -454,7 +470,9 @@ def cd_refined_plot(cd, devicenum, nsubbands=4, mode='CPU', frbprob=None):
     ax22 = plt.subplot(gs[1, 1])
     ax33 = plt.subplot(gs[2, 1])
     ax44 = plt.subplot(gs[3, 1])
-    ax5 = plt.subplot(gs[:, 2])
+    ax5 = plt.subplot(gs[0, 2:3])
+    ax6 = plt.subplot(gs[2:4, 2])
+    ax7 = plt.subplot(gs[1, 2])
 
     x_loc = 0.1
     y_loc = 0.5
@@ -462,7 +480,7 @@ def cd_refined_plot(cd, devicenum, nsubbands=4, mode='CPU', frbprob=None):
     for i in range(nsubbands):
         ax1.plot(ts, subts[i] - subts[i].mean(), label = f'Band: {chan_freqs[bands[i][0]]:.0f}-{chan_freqs[bands[i][1]-1]:.0f}')
     ax1.plot(ts, subts.sum(0) - subts.sum(0).mean(), 'k.', label = 'Full Band')
-    ax1.legend(loc='upper center', bbox_to_anchor=(0.5, 1.45), ncol=3, fancybox=True, shadow=True)
+    ax1.legend(loc='upper center', bbox_to_anchor=(0.5, 1.45), ncol=3, fancybox=True, shadow=True, fontsize=11)
     ax1.set_ylabel('Flux (Arb. units)')
     ax1.set_xlim(np.min(ts), np.max(ts))
     ax11.text(x_loc, y_loc, 'Time Series', fontsize=14, ha='center', va='center', wrap=True, rotation=-90)
@@ -478,19 +496,76 @@ def cd_refined_plot(cd, devicenum, nsubbands=4, mode='CPU', frbprob=None):
     ax33.text(x_loc, y_loc, 'Original dispersed FT', fontsize=14, ha='center', va='center', wrap=True, rotation=-90)
     ax33.axis('off')
 
-    ax4.imshow(dmt, aspect='auto', extent=[ts[0], ts[-1], dm+1*dm, dm-dm])
+    ax4.imshow(np.flip(dmt, axis=0), aspect='auto', extent=[ts[0], ts[-1], dm_start, dm_end])
     ax4.set_xlabel('Time (s)')
     ax4.set_ylabel('DM')
     ax44.text(x_loc, y_loc, 'DM-Time', fontsize=14, ha='center', va='center', wrap=True, rotation=-90)
     ax44.axis('off')
 
-    ax5.text(0.02, 0.8, str_print, fontsize=14, ha='left', va='top', wrap=True)
+    # ax5.text(0.02, 0.8, str_print, fontsize=14, ha='left', va='top', wrap=True)
+    ax5.text(0.02, 1.4, str_print, fontsize=11.5, ha='left', va='top', wrap=True)
     ax5.axis('off')
-    segment, candint, dmind, dtind, beamnum = candloc
-    #plt.tight_layout()
-    plt.savefig(os.path.join(cd.state.prefs.workdir, 'cands_{0}_refined.png'.format(cd.state.metadata.scanId)), bbox_inches='tight')
 
+    _ = ax6.imshow(im.transpose(), aspect='equal', origin='upper',
+                  interpolation='nearest',
+                  extent=[fov/2, -fov/2, -fov/2, fov/2],
+                  cmap=plt.get_cmap('viridis'), vmin=0,
+                  vmax=0.5*im.max())
+    ax6.set_xlabel('RA Offset (arcmin)')
+    ax6.set_ylabel('Dec Offset (arcmin)', rotation=-90, labelpad=12)
+    ax6.yaxis.tick_right()
+    ax6.yaxis.set_label_position("right")
+    # to set scale when we plot the triangles that label the location
+    ax6.autoscale(False)
+    # add markers on the axes at measured position of the candidate
+    ax6.scatter(x=[l1arcm], y=[-fov/2], c='#ffff00', s=60, marker='^',
+               clip_on=False)
+    ax6.scatter(x=[fov/2], y=[m1arcm], c='#ffff00', s=60, marker='>',
+               clip_on=False)
+    # makes it so the axis does not intersect the location triangles
+    ax6.set_frame_on(False)
 
+    sbeam = np.mean(st.beamsize_deg)*60
+    # figure out the location to center the zoomed image on
+    xratio = len(im[0])/fov  # pix/arcmin
+    yratio = len(im)/fov  # pix/arcmin
+    mult = 5  # sets how many times the synthesized beam the zoomed FOV is
+    xmin = max(0, int(len(im[0])//2-(m1arcm+sbeam*mult)*xratio))
+    xmax = int(len(im[0])//2-(m1arcm-sbeam*mult)*xratio)
+    ymin = max(0, int(len(im)//2-(l1arcm+sbeam*mult)*yratio))
+    ymax = int(len(im)//2-(l1arcm-sbeam*mult)*yratio)
+    left, width = 0.231, 0.15
+    bottom, height = 0.465, 0.15
+    # rect_imcrop = [left, bottom, width, height]
+    # ax_imcrop = fig.add_axes(rect_imcrop)
+    # logger.debug('{0}'.format(im.transpose()[xmin:xmax, ymin:ymax].shape))
+    # logger.debug('{0} {1} {2} {3}'.format(xmin, xmax, ymin, ymax))
+    _ = ax7.imshow(im.transpose()[xmin:xmax,ymin:ymax], aspect=1,
+                         origin='upper', interpolation='nearest',
+                         extent=[-1, 1, -1, 1],
+                         cmap=plt.get_cmap('viridis'), vmin=0,
+                         vmax=0.5*im.max())
+    # setup the axes
+    ax7.set_ylabel('Dec (arcmin)')
+    ax7.set_xlabel('RA (arcmin)')
+    ax7.xaxis.set_label_position('top')
+    # ax7.xaxis.tick_top()
+    ax7.yaxis.tick_right()
+    # ax7.yaxis.set_label_position("right")
+    xlabels = [str(np.round(l1arcm+sbeam*mult/2, 1)), '',
+               str(np.round(l1arcm, 1)), '',
+               str(np.round(l1arcm-sbeam*mult/2, 1))]
+    ylabels = [str(np.round(m1arcm-sbeam*mult/2, 1)), '',
+               str(np.round(m1arcm, 1)), '',
+               str(np.round(m1arcm+sbeam*mult/2, 1))]
+    ax7.set_xticklabels(xlabels)
+    ax7.set_yticklabels(ylabels)
+    # change axis label loc of inset to avoid the full picture
+    ax7.get_yticklabels()[0].set_verticalalignment('bottom')
+    plt.tight_layout()
+    plt.savefig(os.path.join(cd.state.prefs.workdir, 'cands_{0}_refined.png'.format(cd.state.metadata.scanId)), bbox_inches='tight')    
+
+                    
 def calc_subband_info(ft, chan_freqs, nsubbands=4):
     """ Use freq-time array to calculate subbands and detect in each subband.
     """
