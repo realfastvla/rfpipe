@@ -248,7 +248,7 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
         from distributed import get_worker
         name = get_worker().name
         assert 'fetch' in name
-        devicenum = name.split('fetch')[1]
+        devicenum = int(name.split('g')[1])
 
     # Searching for gainfile
     datasetId = '{0}'.format('_'.join(os.path.basename(sdmname).split('_')[1:-1]))
@@ -283,7 +283,7 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
                 prefs['npix_max'] = npix_max_orig
                 st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir='/lustre/evla/wcbe/data/realfast', showsummary=False)
 
-    st.prefs.dmarr = [dm for dm in st.dmarr if (dm == 0 or dm > dm-ddm)]  # remove superfluous dms
+    st.prefs.dmarr = [dm0 for dm0 in st.dmarr if (dm0 == 0 or dm0 > dm-ddm)]  # remove superfluous dms
     st.clearcache()
     st.summarize()
     ccs = pipeline.pipeline_scan(st, devicenum=devicenum)
@@ -311,7 +311,7 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
             prefs['npix_max'] = npix_max_orig
             st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir='/lustre/evla/wcbe/data/realfast',
                              showsummary=False)
-            st.prefs.dmarr = [dm for dm in st.dmarr if (dm == 0 or dm > dm-ddm)]  # remove superfluous dms
+            st.prefs.dmarr = [dm0 for dm0 in st.dmarr if (dm0 == 0 or dm0 > dm-ddm)]  # remove superfluous dms
             st.clearcache()
             st.summarize()
             ccs = pipeline.pipeline_scan(st, devicenum=devicenum)

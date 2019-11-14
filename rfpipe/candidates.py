@@ -850,10 +850,7 @@ def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False,
         try:
             from distributed import get_worker
             name = get_worker().name
-            if 'fetch' in name:
-                devicenum = name.split('fetch')[1]
-            elif 'rf' in name:
-                devicenum = name.split('g')[1]
+            devicenum = name.split('g')[1]
         except IndexError:
             logger.warning("Could not parse worker name {0}. Using default GPU devicenum {1}"
                            .format(name, devicenum))
