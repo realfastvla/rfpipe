@@ -235,7 +235,7 @@ def pipeline_candidate(st, candloc, canddata=None):
 
 def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/evladata/telcal/',
                npix_max_orig=None, search_sigma=7, ddm=100,
-               refine=True, classify=True, devicenum=None, workdir=None):
+               refine=True, classify=True, devicenum=None, workdir=None, inprefs=None):
     """  Given candId, look for SDM in portal, then run refinement.
     Assumes this is running on rfnode with CBE lustre.
     npix_max_orig sets the npix_max or the original detection.
@@ -261,9 +261,16 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
             break
 
     # Searching all miniSDMs
-    prefs = {'saveplots': False, 'savenoise': False, 'savesols': False, 'savecandcollection': False,
-             'savecanddata': True, 'gainfile': gainfile, 'sigma_image1': search_sigma, 'workdir': workdir,
-             'dm_maxloss': 0.01, 'maxdm': dm+ddm, 'npix_max': None}
+    if inprefs:
+        prefs = inprefs
+    else:
+        prefs = {'saveplots': False, 'savenoise': False, 'savesols': False, 'savecandcollection': False,
+                 'savecanddata': True,'dm_maxloss': 0.01, 'npix_max': None}
+
+    prefs['gainfile'] = gainfile
+    prefs['workdir'] = workdir
+    prefs['sigma_image1'] = search_sigma
+    prefs['maxdm'] = dm+ddm
 
     band = metadata.sdmband(sdmfile=sdmname, sdmscan=1)
 
