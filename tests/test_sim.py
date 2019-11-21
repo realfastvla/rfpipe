@@ -10,7 +10,7 @@ from numpy import degrees, nan
 
 tparams = [(0, 0, 0, 5e-3, 0.3, 0.0001, 0.0),]
 # simulate no flag, transient/no flag, transient/flag
-inprefs = [({'flaglist': [], 'chans': list(range(32)),
+inprefs = [({'flaglist': [], 'chans': list(range(32)), 'sigma_image1': None,
              'spw': [0], 'savecandcollection': True, 'savenoise': True,
              'savecanddata': True, 'returncanddata': True, 'saveplots': True,
              'fftmode': 'fftw', 'searchtype': 'imagek'}, 1),

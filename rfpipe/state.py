@@ -77,6 +77,9 @@ class State(object):
                                                sdmscan=sdmscan, inmeta=inmeta,
                                                bdfdir=bdfdir)
 
+        if self.prefs.sigma_image1 is None and (validate or showsummary):
+            self.prefs.sigma_image1 = self.thresholdlevel(0.1)
+
         if validate:
             assert self.validate() is True
 
@@ -780,7 +783,7 @@ class State(object):
         qfrac = scipy.stats.norm.sf(sigma)
         return int(qfrac*self.ntrials)
 
-    def thresholdlevel(self, nfalse):
+    def thresholdlevel(self, nfalse=1):
         """ Sigma threshold for a given number of false positives per scan
         """
         import scipy.stats
