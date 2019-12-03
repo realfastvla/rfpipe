@@ -234,7 +234,7 @@ def pipeline_candidate(st, candloc, canddata=None):
 
 
 def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/evladata/telcal/',
-               npix_max_orig=None, search_sigma=7, ddm=100,
+               npix_max=None, npix_max_orig=None, search_sigma=7, ddm=100,
                refine=True, classify=True, devicenum=None, workdir=None, inprefs=None):
     """  Given candId, look for SDM in portal, then run refinement.
     Assumes this is running on rfnode with CBE lustre.
@@ -245,10 +245,12 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
     from rfpipe import metadata, state, pipeline, candidates, util
 
     if devicenum is None:
-        from distributed import get_worker
-        name = get_worker().name
-        assert 'fetch' in name
-        devicenum = int(name.split('g')[1])
+        try:
+            from distributed import get_worker
+            name = get_worker().name
+            devicenum = int(name.split('g')[1])
+        except ValueError:
+            devicenum = 0
 
     # Searching for gainfile
     datasetId = '{0}'.format('_'.join(os.path.basename(sdmname).split('_')[1:-1]))
@@ -265,7 +267,7 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
         prefs = inprefs
     else:
         prefs = {'saveplots': False, 'savenoise': False, 'savesols': False, 'savecandcollection': False,
-                 'savecanddata': True,'dm_maxloss': 0.01, 'npix_max': None}
+                 'savecanddata': True,'dm_maxloss': 0.01, 'npix_max': npix_max}
 
     prefs['gainfile'] = gainfile
     prefs['workdir'] = workdir
@@ -273,6 +275,7 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
     prefs['maxdm'] = dm+ddm
 
     band = metadata.sdmband(sdmfile=sdmname, sdmscan=1)
+    cc = None
 
     try:
         st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, showsummary=False)
@@ -283,11 +286,11 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
         except AssertionError:  # could be state can't be defined
             try:
                 logger.warn("Could not generate state with lustre BDFs. Trying with npix_max at 2x original image size...")
-                prefs['npix_max'] = 2*npix_max_orig
+                prefs['npix_max'] = min(npix_max, 2*npix_max_orig)
                 st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir='/lustre/evla/wcbe/data/realfast', showsummary=False)
             except AssertionError:  # could be state can't be defined
                 logger.warn("Could not generate state with lustre BDFs. Trying with original image size...")
-                prefs['npix_max'] = npix_max_orig
+                prefs['npix_max'] = min(npix_max, npix_max_orig)
                 st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir='/lustre/evla/wcbe/data/realfast', showsummary=False)
 
     st.prefs.dmarr = sorted([dm] + [dm0 for dm0 in st.dmarr if (dm0 == 0 or dm0 > dm-ddm)])  # remove superfluous dms, enforce orig dm
@@ -341,6 +344,7 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
             else:
                 logging.info('No candidate was found in search at original image size. Giving up.')
 
+    return cc
 
 def cd_refined_plot(cd, devicenum, nsubbands=4, mode='CPU', frbprob=None):
     """ Use canddata object to create refinement plot of subbanded SNR and dm-time plot.
