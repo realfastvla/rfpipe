@@ -468,6 +468,18 @@ def mock_metadata(t0, t1, nants, nspw, chans, npol, inttime_micros, scan=1,
     return meta
 
 
+def get_bdfdir(sdmfile):
+    """ Get bdfdir by parsing sdmfile for internal or lustre bdf locations
+    """
+
+    try:
+        sdm = getsdm(sdmfile)
+        return sdm.bdf.fname
+    except AssertionError:
+        sdm = getsdm(sdmfile, bdfdir='/lustre/evla/wcbe/data/realfast')
+        return sdm.bdf.fname
+        
+
 def reffreq_to_band(reffreqs, edge=5e8):
     """ Given list of reffreqs, return name of band that contains all of them.
     edge defines frequency edge around each nominal band to include.
