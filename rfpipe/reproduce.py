@@ -307,7 +307,7 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
         assert isinstance(cd, candidates.CandData)
 
         if classify:
-            frbprob = candidates.cd_to_fetch(cd, classify=True, mode='CPU')
+            frbprob = candidates.cd_to_fetch(cd, classify=True, devicenum=devicenum, mode='CPU')
             logging.info('FETCH FRB Probability of the candidate {0} is {1}'.format(cd.candid, frbprob))
         else:
             frbprob = None

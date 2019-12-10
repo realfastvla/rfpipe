@@ -939,6 +939,7 @@ def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False,
         if fetchmodel is None and tfgraph is None:
             from keras.backend.tensorflow_backend import set_session
             config = tf.ConfigProto()
+            config.gpu_options.allow_growth = True
             config.gpu_options.per_process_gpu_memory_fraction = 0.5
             sess = tf.Session(config=config)
             set_session(sess)  # set this TensorFlow session as the default session for Keras            
