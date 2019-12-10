@@ -860,9 +860,9 @@ def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False,
         except ImportError:
             logger.warning("distributed not available. Using default GPU devicenum {0}"
                            .format(devicenum))
-    assert isinstance(devicenum, str)
+
     logger.info("Using gpu devicenum: {0}".format(devicenum))
-    os.environ['CUDA_VISIBLE_DEVICES'] = devicenum
+    os.environ['CUDA_VISIBLE_DEVICES'] = str(devicenum)
 
     # note that dmt range assuming data already dispersed to dm
     dmt = make_dmt(ft_dedisp, dm_start-dm, dm_end-dm, 256, chan_freqs/1000,
