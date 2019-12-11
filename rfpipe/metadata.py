@@ -7,6 +7,7 @@ import os.path
 import attr
 
 import numpy as np
+from scipy import constants
 import casatools as tools
 #from pwkit.environments.casa.util import tools
 from astropy import time
@@ -177,8 +178,8 @@ class Metadata(object):
                                      radec=self.radec,
                                      antpos=self.antpos,
                                      telescope=self.telescope)
-        u = ur * self.freq_orig.min() * (1e9/3e8) * (-1)
-        v = vr * self.freq_orig.min() * (1e9/3e8) * (-1)
+        u = ur * self.freq_orig.min() * (1e9/constants.c) * (-1)
+        v = vr * self.freq_orig.min() * (1e9/constants.c) * (-1)
 
         return (u.max() - u.min(), v.max() - v.min())
 
