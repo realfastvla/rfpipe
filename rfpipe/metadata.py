@@ -469,16 +469,19 @@ def mock_metadata(t0, t1, nants, nspw, chans, npol, inttime_micros, scan=1,
     return meta
 
 
-def get_bdfdir(sdmfile):
-    """ Get bdfdir by parsing sdmfile for internal or lustre bdf locations
+def get_bdfdir(sdmfile, sdmscan):
+    """ Get bdfdir by parsing sdmfile for internal or lustre bdf locations.
+    Requires sdm and 
     """
 
     try:
         sdm = getsdm(sdmfile)
-        return sdm.bdf.fname
+        scan = sdm.scan(sdmscan)
+        return scanobj.bdfdir
     except AssertionError:
         sdm = getsdm(sdmfile, bdfdir='/lustre/evla/wcbe/data/realfast')
-        return sdm.bdf.fname
+        scan = sdm.scan(sdmscan)
+        return scanobj.bdfdir
         
 
 def reffreq_to_band(reffreqs, edge=5e8):

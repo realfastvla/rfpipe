@@ -274,24 +274,21 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
     prefs['sigma_image1'] = search_sigma
     prefs['maxdm'] = dm+ddm
 
-    band = metadata.sdmband(sdmfile=sdmname, sdmscan=1)
+    bdfdir = metadata.get_bdfdir(sdmfile=sdmfile, sdmscan=1)
+    band = metadata.sdmband(sdmfile=sdmname, sdmscan=1, bdfdir=bdfdir)
     cc = None
 
     try:
-        st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, showsummary=False)
-    except AssertionError:  # could be no bdf
+        st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, showsummary=False, bdfdir=bdfdir)
+    except AssertionError:
         try:
-            logger.warn("Could not generate state for full image search with built-in BDFs. Trying with lustre BDFs.")
-            st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir='/lustre/evla/wcbe/data/realfast', showsummary=False)
+            logger.warn("Could not generate state with full image. Trying with npix_max at 2x original image size...")
+            prefs['npix_max'] = min(npix_max, 2*npix_max_orig)
+            st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir=bdfdir, showsummary=False)
         except AssertionError:  # could be state can't be defined
-            try:
-                logger.warn("Could not generate state with lustre BDFs. Trying with npix_max at 2x original image size...")
-                prefs['npix_max'] = min(npix_max, 2*npix_max_orig)
-                st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir='/lustre/evla/wcbe/data/realfast', showsummary=False)
-            except AssertionError:  # could be state can't be defined
-                logger.warn("Could not generate state with lustre BDFs. Trying with original image size...")
-                prefs['npix_max'] = min(npix_max, npix_max_orig)
-                st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir='/lustre/evla/wcbe/data/realfast', showsummary=False)
+            logger.warn("Could not generate state with 2x images. Trying with original image size...")
+            prefs['npix_max'] = min(npix_max, npix_max_orig)
+            st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir=bdfdir, showsummary=False)
 
     st.prefs.dmarr = sorted([dm] + [dm0 for dm0 in st.dmarr if (dm0 == 0 or dm0 > dm-ddm)])  # remove superfluous dms, enforce orig dm
     st.clearcache()
@@ -319,7 +316,7 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
         if prefs['npix_max'] != npix_max_orig:
             logging.info('No candidate was found in first search. Trying again with original image size.'.format(cc))
             prefs['npix_max'] = npix_max_orig
-            st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir='/lustre/evla/wcbe/data/realfast',
+            st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir=bdfdir,
                              showsummary=False)
             st.prefs.dmarr = sorted([dm] + [dm0 for dm0 in st.dmarr if (dm0 == 0 or dm0 > dm-ddm)])  # remove superfluous dms, enforce orig dm
             st.clearcache()
