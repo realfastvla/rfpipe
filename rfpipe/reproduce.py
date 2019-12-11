@@ -274,7 +274,7 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
     prefs['sigma_image1'] = search_sigma
     prefs['maxdm'] = dm+ddm
 
-    bdfdir = metadata.get_bdfdir(sdmfile=sdmfile, sdmscan=1)
+    bdfdir = metadata.get_bdfdir(sdmfile=sdmname, sdmscan=1)
     band = metadata.sdmband(sdmfile=sdmname, sdmscan=1, bdfdir=bdfdir)
     cc = None
 

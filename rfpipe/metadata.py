@@ -474,14 +474,13 @@ def get_bdfdir(sdmfile, sdmscan):
     Requires sdm and 
     """
 
-    try:
-        sdm = getsdm(sdmfile)
-        scan = sdm.scan(sdmscan)
-        return scanobj.bdfdir
-    except AssertionError:
-        sdm = getsdm(sdmfile, bdfdir='/lustre/evla/wcbe/data/realfast')
-        scan = sdm.scan(sdmscan)
-        return scanobj.bdfdir
+    from rfpipe.util import getsdm
+
+    sdm = getsdm(sdmfile)
+    scan = sdm.scan(sdmscan)
+    if not os.path.exists(scan.bdfdir):
+        sdm.bdfdir='/lustre/evla/wcbe/data/realfast'
+    return scan.bdfdir
         
 
 def reffreq_to_band(reffreqs, edge=5e8):

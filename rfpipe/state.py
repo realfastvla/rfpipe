@@ -78,7 +78,7 @@ class State(object):
                                                bdfdir=bdfdir)
 
         if self.prefs.sigma_image1 is None and (validate or showsummary):
-            self.prefs.sigma_image1 = self.thresholdlevel(0.1)
+            self.prefs.sigma_image1 = self.thresholdlevel(0.5)
 
         if validate:
             assert self.validate() is True
