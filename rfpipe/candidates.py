@@ -860,6 +860,8 @@ def cd_to_fetch(cd, classify=True, devicenum=None, save_h5=False,
         except ImportError:
             logger.warning("distributed not available. Using default GPU devicenum {0}"
                            .format(devicenum))
+        else:
+            devicenum = str(devicenum)
 
     logger.info("Using gpu devicenum: {0}".format(devicenum))
     os.environ['CUDA_VISIBLE_DEVICES'] = str(devicenum)
