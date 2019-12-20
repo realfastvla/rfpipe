@@ -77,11 +77,11 @@ class State(object):
                                                sdmscan=sdmscan, inmeta=inmeta,
                                                bdfdir=bdfdir)
 
-        if self.prefs.sigma_image1 is None and (validate or showsummary):
-            self.prefs.sigma_image1 = self.thresholdlevel(0.5)
-
         if validate:
             assert self.validate() is True
+
+        if self.prefs.sigma_image1 is None and (validate or showsummary):
+            self.prefs.sigma_image1 = self.thresholdlevel(0.5)
 
         if showsummary:
             self.summarize()
@@ -95,8 +95,8 @@ class State(object):
         and module imports.
         """
 
-        if self.metadata.datasource == 'sdm':
-            assert self.metadata.bdfstr is not None, "No bdf found."            
+        if self.metadata.datasource == 'sdm' and self.metadata.bdfstr is None:
+            raise FileNotFoundError("SDM has no BDF")
 
         # limits on time boundaries/sizes
         assert self.t_overlap < self.nints*self.inttime, ('t_overlap must be'
@@ -121,10 +121,10 @@ class State(object):
                                                          .format(self.inttime,
                                                                  self.fringetime))
         # required parameters
-        if self.prefs.searchtype == 'image':
-            assert self.prefs.sigma_image1 is not None, "Must set sigma_image1"
-        elif self.prefs.searchtype == 'imagek':
-            assert self.prefs.sigma_image1 is not None, "Must set sigma_image1"
+#        if self.prefs.searchtype == 'image':
+#            assert self.prefs.sigma_image1 is not None, "Must set sigma_image1"  # set automatically
+        if self.prefs.searchtype == 'imagek':
+#            assert self.prefs.sigma_image1 is not None, "Must set sigma_image1"
             assert self.prefs.sigma_kalman is not None, "Must set sigma_kalman"
         elif self.prefs.searchtype == 'armkimage':
             assert self.prefs.sigma_arm is not None, "Must set sigma_arm"
