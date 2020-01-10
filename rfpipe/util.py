@@ -4,7 +4,6 @@ from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
 import numpy as np
-from scipy import constants
 import math
 import random
 from numba import cuda, guvectorize
@@ -242,9 +241,9 @@ def get_uvw_segment(st, segment):
     if st.lock is not None:
         st.lock.release()
 
-    u = np.outer(ur, st.freq * (1e9/constants.c) * (-1))
-    v = np.outer(vr, st.freq * (1e9/constants.c) * (-1))
-    w = np.outer(wr, st.freq * (1e9/constants.c) * (-1))
+    u = np.outer(ur, st.freq * (1e9/3e8) * (-1))
+    v = np.outer(vr, st.freq * (1e9/3e8) * (-1))
+    w = np.outer(wr, st.freq * (1e9/3e8) * (-1))
 
     return u.astype('float32'), v.astype('float32'), w.astype('float32')
 
@@ -472,10 +471,10 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
             
 
         if dtind is not None:
-            dt = st.inttime*min(st.dtarr[dtind], 2)  # dt>2 not yet supported
+            dt = st.inttime*st.dtarr[dtind]
         else:
-            #dtind = random.choice(range(len(st.dtarr)))
-            dt = st.inttime*np.random.uniform(0, 1) # s  #like an alias for "dt"
+            max_width = 0.03/st.inttime
+            dt = st.inttime*np.random.uniform(0, max_width) # s  #like an alias for "dt"
             if dt < st.inttime:
                 dtind = 0
             else:
@@ -529,8 +528,61 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
 
     return mocks
 
-
 def make_transient_data(st, amp, i0, dm, dt, ampslope=0.):
+    """ Create a dynamic spectrum for given parameters
+    amp is apparent (after time gridding) in system units (post calibration)
+    i0 is a float for integration relative to start of segment.
+    dm/dt are in units of pc/cm3 and seconds, respectively
+    ampslope adds to a linear slope up to amp+ampslope at last channel.
+    """
+
+    chans = np.arange(len(st.freq))
+    model = np.zeros((len(st.freq), st.readints), dtype='complex64')
+    ampspec = amp + ampslope*(np.linspace(0, 1, num=len(chans)))
+
+    i = i0 + calc_delay2(st.freq, st.freq.max(), dm)/st.inttime
+#     print(i)
+
+    i_f = np.floor(i).astype(int)
+    imax = np.ceil(i + dt/st.inttime).astype(int)
+    imin = i_f
+    i_r = imax - imin
+    i_r_max = i_r.max()
+
+    if np.any(i_r == 1):
+        ir1 = np.where(i_r == 1)
+#         print(ir1)
+        model[chans[ir1], i_f[ir1]] += ampspec[chans[ir1]]
+
+    if np.any(i_r == 2):
+        ir2 = np.where(i_r == 2)
+        i_c = np.ceil(i).astype(int)
+        f1 = (dt/st.inttime - (i_c - i))/(dt/st.inttime)
+        f0 = 1 - f1
+#         print(ir2)
+        model[chans[ir2], i_f[ir2]] += f0[ir2]*ampspec[chans[ir2]]
+        model[chans[ir2], i_f[ir2]+1] += f1[ir2]*ampspec[chans[ir2]]
+
+    if i_r_max > 2:
+        for x in np.linspace(3, i_r_max, i_r_max-2, dtype=int):
+            irx = np.where(i_r == x)
+            f_high = ((i + dt/st.inttime) - (imax - 1))/(dt/st.inttime)
+            f_low = ((i_f + 1) - i)/(dt/st.inttime)
+            n_bet = x - 2
+            fs = []
+            fs.append(f_low)
+            if n_bet > 0:
+                f_bet = (1 - f_high - f_low)/n_bet
+                for bet in range(n_bet):
+                    fs.append(f_bet)
+            fs.append(f_high)
+            
+            for y in range(x):
+                model[chans[irx], i_f[irx]+y] += fs[y][irx]*ampspec[chans[irx]]
+    return model
+
+
+def make_transient_data_old(st, amp, i0, dm, dt, ampslope=0.):
     """ Create a dynamic spectrum for given parameters
     amp is apparent (after time gridding) in system units (post calibration)
     i0 is a float for integration relative to start of segment.
