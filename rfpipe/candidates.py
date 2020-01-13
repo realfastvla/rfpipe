@@ -273,8 +273,12 @@ class CandCollection(object):
             return self.__add__(other)
 
     def __getitem__(self, key):
-        return CandCollection(array=self.array.take([key]), prefs=self.prefs,
-                              metadata=self.metadata, canddata=[self.canddata[key]])
+        if len(self.canddata):
+            return CandCollection(array=self.array.take([key]), prefs=self.prefs,
+                                  metadata=self.metadata, canddata=[self.canddata[key]])
+        else:
+            return CandCollection(array=self.array.take([key]), prefs=self.prefs,
+                                  metadata=self.metadata)
 
     @property
     def scan(self):
