@@ -258,18 +258,18 @@ def config_metadata(config, datasource='vys'):
     meta['radec'] = (np.radians(config.ra_deg), np.radians(config.dec_deg))
     meta['dishdiameter'] = 25.  # ?
 
-    subbands = config.get_subbands()
-    subband0 = subbands[0]  # **parsing single subband for now
-    meta['inttime'] = subband0.hw_time_res  # assumes vys stream post-hw-integ
+    mininttime = min([sb.hw_time_res for sb in config.get_subbands()])
+    subbands = [sb for sb in config.get_subbands() if sb.hw_time_res == mininttime]
+    meta['inttime'] = subbands[0].hw_time_res  # assumes vys stream post-hw-integ
     if datasource == 'vys':  # hack to make consistent with vysmaw_reader app
         meta['pols_orig'] = ['A*A', 'B*B']
     else:
-        meta['pols_orig'] = subband0.pp
+        meta['pols_orig'] = subbands[0].pp
     meta['spw_nchan'] = [sb.spectralChannels for sb in subbands]
-    meta['spw_chansize'] = [1e6*sb.bw/subband0.spectralChannels for sb in subbands]
+    meta['spw_chansize'] = [1e6*sb.bw/sb.spectralChannels for sb in subbands]
 #    meta['spw_orig'] = ['{0}-{1}'.format(sb.IFid, sb.sbid) for sb in subbands]  # this is probably redundant with spworder
     meta['spw_orig'] = list(range(len(subbands)))
-    meta['spw_reffreq'] = [(sb.sky_center_freq-sb.bw/subband0.spectralChannels*(sb.spectralChannels/2))*1e6 for sb in subbands]
+    meta['spw_reffreq'] = [(sb.sky_center_freq-sb.bw/sb.spectralChannels*(sb.spectralChannels/2))*1e6 for sb in subbands]
 #    meta['spworder'] = sorted([('{0}-{1}'.format(sb.IFid, sb.sbid),
     meta['spworder'] = sorted([('{0}-{1}'.format(sb.IFid, sb.swIndex-1),
                                 meta['spw_reffreq'][subbands.index(sb)])
