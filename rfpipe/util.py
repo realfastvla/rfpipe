@@ -10,6 +10,7 @@ from numba import cuda, guvectorize
 from numba import jit, complex64, int64, float32
 #from pwkit.environments.casa.util import tools
 import casatools as tools
+from scipy import constants
 import sdmpy
 from rfpipe import calibration
 from astropy import time
@@ -241,9 +242,9 @@ def get_uvw_segment(st, segment):
     if st.lock is not None:
         st.lock.release()
 
-    u = np.outer(ur, st.freq * (1e9/3e8) * (-1))
-    v = np.outer(vr, st.freq * (1e9/3e8) * (-1))
-    w = np.outer(wr, st.freq * (1e9/3e8) * (-1))
+    u = np.outer(ur, st.freq * (1e9/constants.c) * (-1))
+    v = np.outer(vr, st.freq * (1e9/constants.c) * (-1))
+    w = np.outer(wr, st.freq * (1e9/constants.c) * (-1))
 
     return u.astype('float32'), v.astype('float32'), w.astype('float32')
 
