@@ -34,7 +34,8 @@ def test_state():
                                          datasource='sim', antconfig='D')
     preffile = os.path.join(_install_dir, 'data/realfast.yml')
     st = rfpipe.state.State(preffile=preffile, inmeta=meta,
-                            inprefs={'chans': range(10, 20)})
+                            inprefs={'chans': range(10, 20),
+                                     'spw': [0,1,2,3,4]})  # extra spw should be ignored
     assert st.chans == range(10, 20)
     assert len(rfpipe.util.get_uvw_segment(st, 0))
 
