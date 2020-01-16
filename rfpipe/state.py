@@ -346,7 +346,7 @@ class State(object):
         """
 
         if self.prefs.spw:
-            return self.prefs.spw
+            return [spw for spw in self.prefs.spw if spw in self.metadata.spw_orig]
         else:
             return self.metadata.spw_orig
 
