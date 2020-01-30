@@ -1911,16 +1911,16 @@ def make_voevent(candcollection):
     VOEvent format based on Petroff et al. 2017 VOEvent Standard for Fast Radio Busrts
     See https://github.com/ebpetroff/FRB_VOEvent
     written by Justin D. Linford with input from Casey Law, Sarah Burke-Spolaor
-    and Kshitij Aggarwal
+    and Kshitij Aggarwal.
+    Returns name of xml file that was created.
     """
 
     #get candata separated into useful parts
     st = candcollection.state
     
     #LOOP TO STEP THROUGH ENTREES IN CANDCOLLECTION
-    
+    outnames = []
     for n1 in range(len(candcollection.locs)):
-    
         candloc = candcollection.locs[n1]
         #get some usefult info out of candidate location
         segment = candcollection.segment
@@ -2010,11 +2010,11 @@ def make_voevent(candcollection):
         
         #set filename to FRB_NAME + '_detection.xml'
         outname = os.path.join(st.prefs.workdir,FRB_NAME+'_detection.xml')
-        
+
         try:
             #write VOEvent file
             #create a text file with all the VLA fluxes to include in paper
-            VOEvent_of = open(outname,'w')
+            VOEvent_of = open(outname, 'w')
             #header
             VOEvent_of.write("<?xml version='1.0' encoding='UTF-8'?>"+'\n')
             VOEvent_of.write('<voe:VOEvent xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:voe="http://www.ivoa.net/xml/VOEvent/v2.0" xsi:schemaLocation="http://www.ivoa.net/xml/VOEvent/v2.0 http://www.ivoa.net/xml/VOEvent/VOEvent-v2.0.xsd" version="2.0" role="test" ivorn="ivo://realfast.io/realfast#'+FRB_NAME+'/'+str(FRB_obsmjd)+'">'+'\n')
@@ -2095,6 +2095,9 @@ def make_voevent(candcollection):
             #close file
             VOEvent_of.close()
             logger.info('Wrote VOEvent file to {0}'.format(outname))
+            outnames.append(outname)
             
         except ValueError:
             logger.warn('Could not write VOEvent file {0}'.format(outname))
+
+    return outnames
