@@ -1915,6 +1915,8 @@ def make_voevent(candcollection):
     Returns name of xml file that was created.
     """
 
+    logger.info('Making voevents from candcollection with {0} candidates'.format(len(candcollection)))
+
     #get candata separated into useful parts
     st = candcollection.state
     

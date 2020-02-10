@@ -181,7 +181,7 @@ class State(object):
                         .format(self.searchints, self.metadata.nints))
             if self.t_overlap > self.t_segment/2.:
                 logger.info('\t\t Highly redundant reading. Max DM sweep '
-                            '({0:.1f} s) > 1/2 segment size ({1:.1f} s)'
+                            '({0:.1f} s) > t_segment/2 ({1:.1f}/2 s)'
                             .format(self.t_overlap, self.t_segment))
 
             if (self.prefs.read_tdownsample > 1 or self.prefs.read_fdownsample > 1):
