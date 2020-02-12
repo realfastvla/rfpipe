@@ -479,7 +479,7 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
             if dt < st.inttime:
                 dtind = 0
             else:
-                dtind = int(np.log2(dt/st.inttime))
+                dtind = int(np.round(np.log2(dt/st.inttime)))
                 if dtind >= len(st.dtarr):
                     dtind = len(st.dtarr) - 1
                     logging.warning("Width of transient is greater than max dt searched.")
@@ -490,7 +490,8 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
 #        dt = random.uniform(min(st.dtarr), max(st.dtarr))
 
         if i is None:
-            i = random.choice(st.get_search_ints(segment, dmind, dtind))
+            i = np.random.randint(0,st.readints) 
+            #i = random.choice(st.get_search_ints(segment, dmind, dtind))
 
         if amp is None:
             if data is None:
@@ -504,10 +505,26 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
                     logger.info("Looks like raw data passed in. Selecting and calibrating.")
                     takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
                     data = calibration.apply_telcal(st, data.take(takepol, axis=3).take(st.chans, axis=2))
-                noise = madtostd(data[i].real)/np.sqrt(data[i].size*st.dtarr[dtind])
-                amp = snr*noise  #*(st.inttime/dt)
-                logger.info("Setting mock amp as {0}*{1}={2}".format(snr, noise, amp))
-                
+                # noise = madtostd(data[i].real)/np.sqrt(data[i].size*st.dtarr[dtind])
+                noise = madtostd(data[i].real)/np.sqrt(data[i].size) #*st.dtarr[dtind])
+                #width_factor = (dt//st.inttime)/np.sqrt(st.dtarr[dtind])
+                width_factor = (dt/st.inttime)/np.sqrt(st.dtarr[dtind])
+                amp = snr*noise*width_factor #*(st.inttime/dt)
+                logger.info("Setting mock amp as {0}*{1}*{2}={3}".format(snr, noise, width_factor, amp))
+        #else:
+        #    if data is None:
+        #        logger.info("Setting mock amp to {0}".format(amp))
+        #    else:
+        #        if data.shape != st.datashape:
+        #            logger.info("Looks like raw data passed in. Selecting and calibrating.")
+        #            takepol = [st.metadata.pols_orig.index(pol) for pol in st.pols]
+        #            data = calibration.apply_telcal(st, data.take(takepol, axis=3).take(st.chans, axis=2))
+        #        bkgrnd = np.mean(data[i].real)
+        #        amp = amp0 + bkgrnd 
+        #        logger.info("Setting mock amp to {0}+{1} = {2}".format(amp0, bkgrnd, amp))
+        #        noise = madtostd(data[i].real)/np.sqrt(data[i].size)
+        #        snr_est = amp/(noise*np.sqrt(st.dtarr[dtind]))
+        #        logger.info("Estimated SNR is {0}".format(snr_est))
 
         if lm is None:
             # flip a coin to set either l or m
@@ -520,8 +537,14 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
                 m = math.radians(random.uniform(-st.fieldsize_deg/2,
                                                 st.fieldsize_deg/2))
         else:
-            assert len(lm) == 2, "lm must be 2-tuple"
-            l, m = lm
+            if lm == -1:
+                l = math.radians(random.uniform(-st.fieldsize_deg/2,
+                                                st.fieldsize_deg/2))
+                m = math.radians(random.uniform(-st.fieldsize_deg/2,
+                                                 st.fieldsize_deg/2))
+            else:
+                assert len(lm) == 2, "lm must be 2-tuple or -1"
+                l, m = lm
 
         mocks.append((segment, i, dm, dt, amp, l, m))
         (segment, dmind, dtind, i, amp, lm, snr) = (segment0, dmind0, dtind0, i0,
