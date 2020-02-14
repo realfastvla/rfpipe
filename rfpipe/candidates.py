@@ -1915,6 +1915,9 @@ def make_voevent(candcollection):
     Returns name of xml file that was created.
     """
 
+    import random
+    import string
+
     logger.info('Making voevents from candcollection with {0} candidates'.format(len(candcollection)))
 
     #get candata separated into useful parts
@@ -2007,11 +2010,13 @@ def make_voevent(candcollection):
     
         FRB_RADEC_str = FRB_loc.to_string('hmsdms') #convert FRB coordinates to HH:MM:SS.SSSS (+/-)DD:MM:SS.SSSS
         
-        #FRB_NAME = 'FRB'+FRB_YY+FRB_MM+FRB_DD + '.J' + FRB_RAhh+FRB_RAmm+FRB_RAss + FRB_DECdd+FRB_DECmm+FRB_DECss
-        FRB_NAME = 'FRB'+FRB_YY+FRB_MM+FRB_DD + FRB_ISOT_UTHH
+        suffix = ''.join([random.choice(string.ascii_letters) for _ in range(2)])
+
+    #FRB_NAME = 'FRB'+FRB_YY+FRB_MM+FRB_DD + '.J' + FRB_RAhh+FRB_RAmm+FRB_RAss + FRB_DECdd+FRB_DECmm+FRB_DECss
+        FRB_NAME = 'rfcand'+FRB_YY+FRB_MM+FRB_DD + FRB_ISOT_UTHH + suffix
         
         #set filename to FRB_NAME + '_detection.xml'
-        outname = os.path.join(st.prefs.workdir,FRB_NAME+'_detection.xml')
+        outname = os.path.join(st.prefs.workdir, FRB_NAME+'.xml')
 
         try:
             #write VOEvent file
