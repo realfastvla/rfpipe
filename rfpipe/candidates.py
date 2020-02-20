@@ -2029,7 +2029,7 @@ def make_voevent(candcollection):
             VOEvent_of.write('\t'+'<Who>'+'\n')
             VOEvent_of.write('\t\t'+'<AuthorIVORN>ivo://realfast.io/contact</AuthorIVORN>'+'\n')
             VOEvent_of.write('\t\t'+'<Date>'+FRB_ISOT+'</Date>\n')
-            VOEvent_of.write('\t\t'+'<Author><contactEmail>claw@astro.berkeley.edu</contactEmail><contactName>Casey Law</contactName></Author>\n')
+            VOEvent_of.write('\t\t'+'<Author><contactEmail>claw@astro.caltech.edu</contactEmail><contactName>Casey Law</contactName></Author>\n')
             VOEvent_of.write('\t</Who>\n')
             #What
             VOEvent_of.write('\t<What>\n')
