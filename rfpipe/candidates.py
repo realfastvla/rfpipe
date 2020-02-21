@@ -2033,7 +2033,7 @@ def make_voevent(candcollection):
             VOEvent_of.write('\t</Who>\n')
             #What
             VOEvent_of.write('\t<What>\n')
-            VOEvent_of.write('\t\tParam name="AlertType" dataType="string" value="Preliminary">\n')
+            VOEvent_of.write('\t\t<Param name="AlertType" dataType="string" value="Preliminary">\n')
             VOEvent_of.write('\t\t</Param>\n')
             VOEvent_of.write('\t\t<Group name="observatory parameters">\n')
             VOEvent_of.write('\t\t\t<Param dataType="float" name="beam_semi-major_axis" ucd="instr.beam;pos.errorEllipse;phys.angSize.smajAxis" unit="SS" value="'+str(beam_semimaj)+'"/>\n')
