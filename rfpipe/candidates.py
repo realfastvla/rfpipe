@@ -2010,7 +2010,7 @@ def make_voevent(candcollection):
     
         FRB_RADEC_str = FRB_loc.to_string('hmsdms') #convert FRB coordinates to HH:MM:SS.SSSS (+/-)DD:MM:SS.SSSS
         
-        suffix = ''.join([random.choice(string.ascii_letters) for _ in range(2)])
+        suffix = ''.join([random.choice(string.ascii_letters) for _ in range(3)])
 
     #FRB_NAME = 'FRB'+FRB_YY+FRB_MM+FRB_DD + '.J' + FRB_RAhh+FRB_RAmm+FRB_RAss + FRB_DECdd+FRB_DECmm+FRB_DECss
         FRB_NAME = 'rfcand'+FRB_YY+FRB_MM+FRB_DD + FRB_ISOT_UTHH + suffix
