@@ -333,7 +333,7 @@ def read_bdf(st, nskip=0):
 
     logger.info('Reading %d ints starting at int %d' % (st.readints, nskip))
     sdm = util.getsdm(st.metadata.filename, bdfdir=st.metadata.bdfdir)
-    scan = sdm.scan(st.metadata.scan)
+    scan = sdm.scan(st.metadata.scan, subidx=st.metadata.subscan)
     data = np.empty((st.readints, st.metadata.nbl_orig, st.metadata.nchan_orig,
                      st.metadata.npol_orig), dtype='complex64', order='C')
 
