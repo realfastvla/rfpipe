@@ -25,8 +25,8 @@ class State(object):
     5) run search on a segment.
     """
 
-    def __init__(self, config=None, sdmfile=None, sdmscan=None, bdfdir=None,
-                 inprefs=None, inmeta=None, preffile=None, name=None,
+    def __init__(self, config=None, sdmfile=None, sdmscan=None, sdmsubscan=1,
+                 bdfdir=None, inprefs=None, inmeta=None, preffile=None, name=None,
                  showsummary=True, lock=None, validate=True):
         """ Initialize preference attributes with text file, preffile.
         name can select preference set from within yaml file.
@@ -45,6 +45,7 @@ class State(object):
 
         self.config = config
         self.sdmscan = sdmscan
+        self.sdmsubscan = sdmsubscan
         if sdmfile:
             sdmfile = sdmfile.rstrip('/')
         self.sdmfile = sdmfile
@@ -74,8 +75,8 @@ class State(object):
         logger.parent.setLevel(getattr(logging, self.prefs.loglevel))
 
         self.metadata = metadata.make_metadata(config=config, sdmfile=sdmfile,
-                                               sdmscan=sdmscan, inmeta=inmeta,
-                                               bdfdir=bdfdir)
+                                               sdmscan=sdmscan, sdmsubscan=sdmsubscan,
+                                               inmeta=inmeta, bdfdir=bdfdir)
 
         if validate:
             assert self.validate() is True
