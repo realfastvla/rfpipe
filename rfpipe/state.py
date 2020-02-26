@@ -249,12 +249,13 @@ class State(object):
     def clearcache(self):
         cached = ['_dmarr', '_dmshifts', '_npol', '_blarr',
                   '_segmenttimes', '_npixx_full', '_npixy_full',
-                  '_corrections', '_t_overlap']
+                  '_t_overlap']
         for obj in cached:
             try:
                 delattr(self, obj)
             except AttributeError:
                 pass
+        self._corrections = None
 
     def get_search_ints(self, segment, dmind, dtind):
         """ Helper function to get list of integrations
