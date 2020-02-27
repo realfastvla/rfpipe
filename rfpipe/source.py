@@ -134,8 +134,8 @@ def read_segment(st, segment, cfile=None, timeout=2):
         logger.warning("Read data has some NaNs")
     if np.any(np.isinf(data_read)):
         logger.warning("Read data has some Infs")
-    if np.any(np.abs(data_read) > 1e20):
-        logger.warning("Read data has values larger than 1e20")
+    if np.any(data_read > 1e20) or np.any(data_read < -1e20):
+        logger.warning("Read data has abs(real) values larger than 1e20")
 
     if not np.any(data_read):
         logger.info('Read data are all zeros for segment {0}.'.format(segment))
