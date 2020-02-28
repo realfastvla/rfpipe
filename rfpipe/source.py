@@ -241,7 +241,7 @@ def prep_standard(st, segment, data):
             for ints, ra_deg, dec_deg in st.otfcorrections[segment][1:]:
                 l0 = np.radians((ra_deg-ra0)*np.cos(np.radians(dec0)))
                 m0 = np.radians(dec_deg-dec0)
-                util.phase_shift(data, uvw, l0, m0, ints=ints)
+                util.phase_shift(data, uvw, -l0, -m0, ints=ints)
 
     return data
 
