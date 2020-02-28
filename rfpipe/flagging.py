@@ -108,7 +108,7 @@ def flag_badspw(data, spwchans, sigma):
     if nspw >= 4:
         # calc badspw
 #        spec = np.abs(data).mean(axis=3).mean(axis=1).mean(axis=0)  # memory intensive and slow
-        spec = np.abs(datam.mean(axis=0).mean(axis=2)).mean(axis=0)  # probably better
+        spec = np.abs(data.mean(axis=0).mean(axis=2)).mean(axis=0)  # probably better
         deviations = []
         for chans in spwchans:
             if spec[chans].count() > 3:
