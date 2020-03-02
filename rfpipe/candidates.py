@@ -1905,7 +1905,7 @@ def deg2HMS(ra=None, dec=None, round=False):
         return RA or DEC
 
 
-def make_voevent(candcollection):    
+def make_voevent(candcollection, role='test'):
     """ Script to generate a VOEvent file from the CandCollection 
     Takes Candcollection info and writes a .xml file with relevant inforation
     VOEvent format based on Petroff et al. 2017 VOEvent Standard for Fast Radio Busrts
@@ -1920,6 +1920,8 @@ def make_voevent(candcollection):
 
     logger.info('Making voevents from candcollection with {0} candidates'.format(len(candcollection)))
 
+    assert role.lower() in ["test", "observation", "utility"]
+    
     #get candata separated into useful parts
     st = candcollection.state
     
@@ -2024,7 +2026,7 @@ def make_voevent(candcollection):
             VOEvent_of = open(outname, 'w')
             #header
             VOEvent_of.write("<?xml version='1.0' encoding='UTF-8'?>"+'\n')
-            VOEvent_of.write('<voe:VOEvent xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:voe="http://www.ivoa.net/xml/VOEvent/v2.0" xsi:schemaLocation="http://www.ivoa.net/xml/VOEvent/v2.0 http://www.ivoa.net/xml/VOEvent/VOEvent-v2.0.xsd" version="2.0" role="test" ivorn="ivo://realfast.io/realfast#'+FRB_NAME+'/'+str(FRB_obsmjd)+'">'+'\n')
+            VOEvent_of.write('<voe:VOEvent xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:voe="http://www.ivoa.net/xml/VOEvent/v2.0" xsi:schemaLocation="http://www.ivoa.net/xml/VOEvent/v2.0 http://www.ivoa.net/xml/VOEvent/VOEvent-v2.0.xsd" version="2.0" role='+role.lower()+' ivorn="ivo://realfast.io/realfast#'+FRB_NAME+'/'+str(FRB_obsmjd)+'">'+'\n')
             #WHO
             VOEvent_of.write('\t'+'<Who>'+'\n')
             VOEvent_of.write('\t\t'+'<AuthorIVORN>ivo://realfast.io/contact</AuthorIVORN>'+'\n')
