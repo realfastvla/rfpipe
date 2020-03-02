@@ -350,6 +350,11 @@ class CandCollection(object):
         return self.array['m1']
 
     @property
+    def candids(self):
+        scanId = self.metadata.scanId
+        return ['{0}_seg{1}-i{2}-dm{3}-dt{4}'.format(scanId, segment, integration, dmind, dtind) for (segment, integration, dmind, dtind, beamnum) in self.locs]
+
+    @property
     def cluster(self):
         """ Return cluster label
         """
