@@ -479,10 +479,16 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
             if dt < st.inttime:
                 dtind = 0
             else:
-                dtind = int(np.round(np.log2(dt/st.inttime)))
-                if dtind >= len(st.dtarr):
-                    dtind = len(st.dtarr) - 1
+                boxcar_widths = np.array(st.dtarr)*st.inttime
+                if dt > np.max(boxcar_widths):
                     logging.warning("Width of transient is greater than max dt searched.")
+                dtind = np.argmin(np.abs(boxcar_widths - dt))
+
+#            else:
+#                dtind = int(np.round(np.log2(dt/st.inttime)))
+#                if dtind >= len(st.dtarr):
+#                    dtind = len(st.dtarr) - 1
+#                    logging.warning("Width of transient is greater than max dt searched.")
 
 
 # TODO: add support for arb dm/dt
