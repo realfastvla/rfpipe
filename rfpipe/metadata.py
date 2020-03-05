@@ -288,7 +288,7 @@ def sdm_metadata(sdmfile, scan, subscan=1, bdfdir=None):
     from rfpipe.util import getsdm
 
     sdm = getsdm(sdmfile, bdfdir=bdfdir)
-    scanobj = sdm.scan(scan)
+    scanobj = sdm.scan(scan, subidx=subscan)
 
     meta = {}
     meta['datasource'] = 'sdm'

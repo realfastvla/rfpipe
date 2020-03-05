@@ -134,8 +134,8 @@ def read_segment(st, segment, cfile=None, timeout=2):
         logger.warning("Read data has some NaNs")
     if np.any(np.isinf(data_read)):
         logger.warning("Read data has some Infs")
-    if np.any(np.abs(data_read) > 1e20):
-        logger.warning("Read data has values larger than 1e20")
+    if np.any(data_read > 1e20) or np.any(data_read < -1e20):
+        logger.warning("Read data has abs(real) values larger than 1e20")
 
     if not np.any(data_read):
         logger.info('Read data are all zeros for segment {0}.'.format(segment))
@@ -241,7 +241,7 @@ def prep_standard(st, segment, data):
             for ints, ra_deg, dec_deg in st.otfcorrections[segment][1:]:
                 l0 = np.radians((ra_deg-ra0)*np.cos(np.radians(dec0)))
                 m0 = np.radians(dec_deg-dec0)
-                util.phase_shift(data, uvw, l0, m0, ints=ints)
+                util.phase_shift(data, uvw, -l0, -m0, ints=ints)
 
     return data
 
@@ -333,7 +333,7 @@ def read_bdf(st, nskip=0):
 
     logger.info('Reading %d ints starting at int %d' % (st.readints, nskip))
     sdm = util.getsdm(st.metadata.filename, bdfdir=st.metadata.bdfdir)
-    scan = sdm.scan(st.metadata.scan)
+    scan = sdm.scan(st.metadata.scan, subidx=st.metadata.subscan)
     data = np.empty((st.readints, st.metadata.nbl_orig, st.metadata.nchan_orig,
                      st.metadata.npol_orig), dtype='complex64', order='C')
 

@@ -350,6 +350,11 @@ class CandCollection(object):
         return self.array['m1']
 
     @property
+    def candids(self):
+        scanId = self.metadata.scanId
+        return ['{0}_seg{1}-i{2}-dm{3}-dt{4}'.format(scanId, segment, integration, dmind, dtind) for (segment, integration, dmind, dtind, beamnum) in self.locs]
+
+    @property
     def cluster(self):
         """ Return cluster label
         """
@@ -1905,22 +1910,29 @@ def deg2HMS(ra=None, dec=None, round=False):
         return RA or DEC
 
 
-def make_voevent(candcollection):    
+def make_voevent(candcollection, role='test'):
     """ Script to generate a VOEvent file from the CandCollection 
     Takes Candcollection info and writes a .xml file with relevant inforation
     VOEvent format based on Petroff et al. 2017 VOEvent Standard for Fast Radio Busrts
     See https://github.com/ebpetroff/FRB_VOEvent
     written by Justin D. Linford with input from Casey Law, Sarah Burke-Spolaor
-    and Kshitij Aggarwal
+    and Kshitij Aggarwal.
+    Returns name of xml file that was created.
     """
 
+    import random
+    import string
+
+    logger.info('Making voevents from candcollection with {0} candidates'.format(len(candcollection)))
+
+    assert role.lower() in ["test", "observation", "utility"]
+    
     #get candata separated into useful parts
     st = candcollection.state
     
     #LOOP TO STEP THROUGH ENTREES IN CANDCOLLECTION
-    
+    outnames = []
     for n1 in range(len(candcollection.locs)):
-    
         candloc = candcollection.locs[n1]
         #get some usefult info out of candidate location
         segment = candcollection.segment
@@ -2005,28 +2017,30 @@ def make_voevent(candcollection):
     
         FRB_RADEC_str = FRB_loc.to_string('hmsdms') #convert FRB coordinates to HH:MM:SS.SSSS (+/-)DD:MM:SS.SSSS
         
-        #FRB_NAME = 'FRB'+FRB_YY+FRB_MM+FRB_DD + '.J' + FRB_RAhh+FRB_RAmm+FRB_RAss + FRB_DECdd+FRB_DECmm+FRB_DECss
-        FRB_NAME = 'FRB'+FRB_YY+FRB_MM+FRB_DD + FRB_ISOT_UTHH
+        suffix = ''.join([random.choice(string.ascii_letters) for _ in range(3)])
+
+    #FRB_NAME = 'FRB'+FRB_YY+FRB_MM+FRB_DD + '.J' + FRB_RAhh+FRB_RAmm+FRB_RAss + FRB_DECdd+FRB_DECmm+FRB_DECss
+        FRB_NAME = 'rfcand'+FRB_YY+FRB_MM+FRB_DD + FRB_ISOT_UTHH + suffix
         
         #set filename to FRB_NAME + '_detection.xml'
-        outname = os.path.join(st.prefs.workdir,FRB_NAME+'_detection.xml')
-        
+        outname = os.path.join(st.prefs.workdir, FRB_NAME+'.xml')
+
         try:
             #write VOEvent file
             #create a text file with all the VLA fluxes to include in paper
-            VOEvent_of = open(outname,'w')
+            VOEvent_of = open(outname, 'w')
             #header
             VOEvent_of.write("<?xml version='1.0' encoding='UTF-8'?>"+'\n')
-            VOEvent_of.write('<voe:VOEvent xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:voe="http://www.ivoa.net/xml/VOEvent/v2.0" xsi:schemaLocation="http://www.ivoa.net/xml/VOEvent/v2.0 http://www.ivoa.net/xml/VOEvent/VOEvent-v2.0.xsd" version="2.0" role="test" ivorn="ivo://realfast.io/realfast#'+FRB_NAME+'/'+str(FRB_obsmjd)+'">'+'\n')
+            VOEvent_of.write('<voe:VOEvent xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:voe="http://www.ivoa.net/xml/VOEvent/v2.0" xsi:schemaLocation="http://www.ivoa.net/xml/VOEvent/v2.0 http://www.ivoa.net/xml/VOEvent/VOEvent-v2.0.xsd" version="2.0" role='+role.lower()+' ivorn="ivo://realfast.io/realfast#'+FRB_NAME+'/'+str(FRB_obsmjd)+'">'+'\n')
             #WHO
             VOEvent_of.write('\t'+'<Who>'+'\n')
             VOEvent_of.write('\t\t'+'<AuthorIVORN>ivo://realfast.io/contact</AuthorIVORN>'+'\n')
             VOEvent_of.write('\t\t'+'<Date>'+FRB_ISOT+'</Date>\n')
-            VOEvent_of.write('\t\t'+'<Author><contactEmail>claw@astro.berkeley.edu</contactEmail><contactName>Casey Law</contactName></Author>\n')
+            VOEvent_of.write('\t\t'+'<Author><contactEmail>claw@astro.caltech.edu</contactEmail><contactName>Casey Law</contactName></Author>\n')
             VOEvent_of.write('\t</Who>\n')
             #What
             VOEvent_of.write('\t<What>\n')
-            VOEvent_of.write('\t\tParam name="AlertType" dataType="string" value="Preliminary">\n')
+            VOEvent_of.write('\t\t<Param name="AlertType" dataType="string" value="Preliminary">\n')
             VOEvent_of.write('\t\t</Param>\n')
             VOEvent_of.write('\t\t<Group name="observatory parameters">\n')
             VOEvent_of.write('\t\t\t<Param dataType="float" name="beam_semi-major_axis" ucd="instr.beam;pos.errorEllipse;phys.angSize.smajAxis" unit="SS" value="'+str(beam_semimaj)+'"/>\n')
@@ -2095,6 +2109,9 @@ def make_voevent(candcollection):
             #close file
             VOEvent_of.close()
             logger.info('Wrote VOEvent file to {0}'.format(outname))
+            outnames.append(outname)
             
         except ValueError:
             logger.warn('Could not write VOEvent file {0}'.format(outname))
+
+    return outnames

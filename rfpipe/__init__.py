@@ -8,6 +8,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 logger.setLevel(20)
 
+from lxml import etree, objectify
 import scipy.sparse
 from rfpipe import *
 from rfpipe.version import __version__

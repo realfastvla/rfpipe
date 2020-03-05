@@ -25,8 +25,8 @@ class State(object):
     5) run search on a segment.
     """
 
-    def __init__(self, config=None, sdmfile=None, sdmscan=None, bdfdir=None,
-                 inprefs=None, inmeta=None, preffile=None, name=None,
+    def __init__(self, config=None, sdmfile=None, sdmscan=None, sdmsubscan=1,
+                 bdfdir=None, inprefs=None, inmeta=None, preffile=None, name=None,
                  showsummary=True, lock=None, validate=True):
         """ Initialize preference attributes with text file, preffile.
         name can select preference set from within yaml file.
@@ -45,6 +45,7 @@ class State(object):
 
         self.config = config
         self.sdmscan = sdmscan
+        self.sdmsubscan = sdmsubscan
         if sdmfile:
             sdmfile = sdmfile.rstrip('/')
         self.sdmfile = sdmfile
@@ -74,8 +75,8 @@ class State(object):
         logger.parent.setLevel(getattr(logging, self.prefs.loglevel))
 
         self.metadata = metadata.make_metadata(config=config, sdmfile=sdmfile,
-                                               sdmscan=sdmscan, inmeta=inmeta,
-                                               bdfdir=bdfdir)
+                                               sdmscan=sdmscan, sdmsubscan=sdmsubscan,
+                                               inmeta=inmeta, bdfdir=bdfdir)
 
         if validate:
             assert self.validate() is True
@@ -181,7 +182,7 @@ class State(object):
                         .format(self.searchints, self.metadata.nints))
             if self.t_overlap > self.t_segment/2.:
                 logger.info('\t\t Highly redundant reading. Max DM sweep '
-                            '({0:.1f} s) > 1/2 segment size ({1:.1f} s)'
+                            '({0:.1f} s) > t_segment/2 ({1:.1f}/2 s)'
                             .format(self.t_overlap, self.t_segment))
 
             if (self.prefs.read_tdownsample > 1 or self.prefs.read_fdownsample > 1):
@@ -248,12 +249,13 @@ class State(object):
     def clearcache(self):
         cached = ['_dmarr', '_dmshifts', '_npol', '_blarr',
                   '_segmenttimes', '_npixx_full', '_npixy_full',
-                  '_corrections', '_t_overlap']
+                  '_t_overlap']
         for obj in cached:
             try:
                 delattr(self, obj)
             except AttributeError:
                 pass
+        self._corrections = None
 
     def get_search_ints(self, segment, dmind, dtind):
         """ Helper function to get list of integrations
