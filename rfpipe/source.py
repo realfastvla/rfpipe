@@ -232,13 +232,15 @@ def prep_standard(st, segment, data):
     if st.otfcorrections is not None:
         # shift phasecenters to first phasecenter in segment
         if len(st.otfcorrections[segment]) > 1:
-            ints, ra0, dec0 = st.otfcorrections[segment][0]  # new phase center for segment
+            ref_pc = len(st.otfcorrections[segment])//2  # get reference phase center
+            ints, ra0, dec0 = st.otfcorrections[segment][ref_pc]
             logger.info("Correcting {0} phasecenters to first at RA,Dec = {1},{2}"
                         .format(len(st.otfcorrections[segment])-1, ra0, dec0))
-            for ints, ra_deg, dec_deg in st.otfcorrections[segment][1:]:
-                l0 = np.radians((ra_deg-ra0)*np.cos(np.radians(dec0)))
-                m0 = np.radians(dec_deg-dec0)
-                util.phase_shift(data, uvw, -l0, -m0, ints=ints)
+            for ints, ra_deg, dec_deg in st.otfcorrections[segment]:
+                if (ra_deg != ra0) and (dec_deg != dec0):  # ignore ref phase center
+                    l0 = np.radians((ra_deg-ra0)*np.cos(np.radians(dec0)))
+                    m0 = np.radians(dec_deg-dec0)
+                    util.phase_shift(data, uvw, -l0, -m0, ints=ints)
 
     return data
 
