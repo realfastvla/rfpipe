@@ -69,6 +69,18 @@ def test_pipelinescan(mockcc):
     assert mockcc is not None
 
 
+def test_voevent(mockcc):
+    if mockcc.prefs.simulated_transient is not None:
+        name = rfpipe.candidates.make_voevent(mockcc)
+        
+    assert name is not None
+
+
+def test_candids(mockcc):
+    if mockcc.prefs.simulated_transient is not None:
+        assert len(mockcc.candids)
+
+
 def test_cc(mockcc):
     if mockcc.prefs.returncanddata:
         assert isinstance(mockcc.canddata, list)
