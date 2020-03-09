@@ -71,11 +71,8 @@ def data_prep(st, segment, data, flagversion="latest", returnsoltime=False):
                        .format(zerofrac*100, st.prefs.max_zerofrac*100))
         return np.array([])
 
-    if st.prefs.timesub == 'mean':
-        logger.info('Subtracting mean visibility in time.')
-        datap = util.meantsub(datap)
-    else:
-        logger.info('No visibility subtraction done.')
+    # do time subtraction
+    datap = util.meantsub(datap, mode=st.prefs.timesub)
 
     if (st.prefs.apply_chweights or st.prefs.apply_blweights) and st.readints > 3:
         if st.prefs.apply_chweights:
