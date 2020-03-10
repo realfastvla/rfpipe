@@ -69,6 +69,17 @@ def test_pipelinescan(mockcc):
     assert mockcc is not None
 
 
+def test_voevent(mockcc):
+    if mockcc.prefs.simulated_transient is not None:
+        name = rfpipe.candidates.make_voevent(mockcc)
+        assert name is not None
+
+
+def test_candids(mockcc):
+    if mockcc.prefs.simulated_transient is not None:
+        assert len(mockcc.candids)
+
+
 def test_cc(mockcc):
     if mockcc.prefs.returncanddata:
         assert isinstance(mockcc.canddata, list)
@@ -106,7 +117,7 @@ def test_phasecenter_detection():
 
     print("Try phasecenter shift at integration 10")
     meta['phasecenters'] = [(t0, t0+0.05/(24*3600), 0., 0.),
-                            (t0+0.05/(24*3600), t0+0.1/(24*3600), degrees(0.001), 0.)]
+                            (t0+0.05/(24*3600), t0+0.1/(24*3600), degrees(0.001), 0.)]  # no correction done?
     st = rfpipe.state.State(inmeta=meta, inprefs=inprefs)
     cc = rfpipe.pipeline.pipeline_scan(st)
     assert all(cc.array['l1'] == 0.)
