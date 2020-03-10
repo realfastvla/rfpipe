@@ -62,13 +62,23 @@ def _phaseshift_jit(data, u, v, w, dl, dm, ints):
                         data[i, j, k, l] = data[i, j, k, l] * frot
 
 
-def meantsub(data):
+def meantsub(data, mode='mean'):
     """ Subtract mean visibility in time.
+    mode can be set in prefs.timesub as None, 'mean', or '2pt'
     """
 
     # TODO: make outlier resistant to avoid oversubtraction
+    if mode == None:
+        logger.info('No visibility subtraction done.')
+    elif mode == 'mean':
+        logger.info('Subtracting mean visibility in time.')
+        _meantsub_jit(np.require(data, requirements='W'))
+    elif mode == '2pt':
+        logger.info('Subtracting 2pt time trend in visibility.')
+        _2ptsub_jit(np.require(data, requirements='W'))
+    else:
+        logger.warn("meantsub mode not recognized")
 
-    _meantsub_jit(np.require(data, requirements='W'))
     return data
 
 
@@ -99,6 +109,48 @@ def _meantsub_jit(data):
                     for l in range(nint):
                         if data[l, i, j, k] != 0j:
                             data[l, i, j, k] -= mean
+
+
+@jit(nogil=True, nopython=True, cache=True)
+def _2ptsub_jit(data):
+    """ Calculate 2-pt time trend and evaluate to subtract at each time.
+    """
+
+    nint, nbl, nchan, npol = data.shape
+
+    for i in range(nbl):
+        for j in range(nchan):
+            for k in range(npol):
+                # first half mean
+                ss1 = complex64(0)
+                weight1 = int64(0)
+                for l in range(0, nint//2):
+                    ss1 += data[l, i, j, k]
+                    if data[l, i, j, k] != 0j:
+                        weight1 += 1
+                if weight1 > 0:
+                    mean1 = ss1/weight1
+                else:
+                    mean1 = complex64(0)
+
+                # second half mean
+                ss2 = complex64(0)
+                weight2 = int64(0)
+                for l in range(nint//2, nint):
+                    ss2 += data[l, i, j, k]
+                    if data[l, i, j, k] != 0j:
+                        weight2 += 1
+                if weight2 > 0:
+                    mean2 = ss2/weight2
+                else:
+                    mean2 = complex64(0)
+
+                # calc mean per int
+                if mean1 and mean2:
+                    slope = (mean2-mean1)/(nint//2)
+                    for l in range(nint):
+                        if data[l, i, j, k] != 0j:
+                            data[l, i, j, k] -= slope*(l-nint//2)
 
 
 @jit(nogil=True, nopython=True, cache=True)
