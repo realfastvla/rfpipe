@@ -151,6 +151,9 @@ def _2ptsub_jit(data):
                     for l in range(nint):
                         if data[l, i, j, k] != 0j:
                             data[l, i, j, k] -= slope*(l-nint//2)
+                else:  # or just blank data
+                    for l in range(nint):
+                        data[l, i, j, k] = 0j
 
 
 @jit(nogil=True, nopython=True, cache=True)
