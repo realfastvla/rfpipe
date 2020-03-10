@@ -234,7 +234,7 @@ def prep_standard(st, segment, data):
         if len(st.otfcorrections[segment]) > 1:
             ref_pc = len(st.otfcorrections[segment])//2  # get reference phase center
             ints, ra0, dec0 = st.otfcorrections[segment][ref_pc]
-            logger.info("Correcting {0} phasecenters to first at RA,Dec = {1},{2}"
+            logger.info("Correcting {0} phasecenters to middle at RA,Dec = {1},{2}"
                         .format(len(st.otfcorrections[segment])-1, ra0, dec0))
             for ints, ra_deg, dec_deg in st.otfcorrections[segment]:
                 if (ra_deg != ra0) and (dec_deg != dec0):  # ignore ref phase center
