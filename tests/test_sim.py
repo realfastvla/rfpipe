@@ -17,7 +17,7 @@ inprefs = [({'flaglist': [], 'chans': list(range(32)), 'sigma_image1': None,
            ({'simulated_transient': tparams, 'dmarr': [0, 1, 2], 'dtarr': [1, 2],
              'savecanddata': True, 'savenoise': True, 'saveplots': True,
              'returncanddata': True, 'savecandcollection': True,
-             'timesub': None, 'fftmode': 'fftw', 'searchtype': 'imagek',
+             'timesub': 'mean', 'fftmode': 'fftw', 'searchtype': 'imagek',
              'sigma_image1': 10, 'sigma_kalman': 1,
              'clustercands': True, 'flaglist': []}, 2),]
 #           ({'simulated_transient': tparams, 'dmarr': [0], 'dtarr': [1],
@@ -96,9 +96,8 @@ def test_cc(mockcc):
 
 
 def test_phasecenter_detection():
-    inprefs = {'simulated_transient': [(0, 0, 0, 5e-3, 0.3, 0., 0.),
+    inprefs = {'simulated_transient': [(0, 1, 0, 5e-3, 0.3, -0.001, 0.),
                                        (0, 9, 0, 5e-3, 0.3, 0., 0.),
-                                       (0, 10, 0, 5e-3, 0.3, 0.001, 0.),
                                        (0, 19, 0, 5e-3, 0.3, 0.001, 0.)],
                'dmarr': [0], 'dtarr': [1], 'timesub': None, 'fftmode': 'fftw', 'searchtype': 'image',
                'sigma_image1': 10, 'flaglist': [], 'uvres': 60, 'npix_max': 128, 'max_candfrac': 0}
@@ -108,20 +107,34 @@ def test_phasecenter_detection():
                                          5e3, scan=1, datasource='sim',
                                          antconfig='D')
 
-    print("Try no phasecenter shift")
     st = rfpipe.state.State(inmeta=meta, inprefs=inprefs)
     cc = rfpipe.pipeline.pipeline_scan(st)
-    assert all(cc.array['l1'][0:2] == 0.)
-    assert not any(cc.array['l1'][2:] == 0.)
+    assert cc.array['l1'][0] <= 0.
+    assert cc.array['l1'][1] == 0.
+    assert cc.array['l1'][2] >= 0.
     assert all(cc.array['m1'] == 0.)
 
-    print("Try phasecenter shift at integration 10")
-    meta['phasecenters'] = [(t0, t0+0.05/(24*3600), 0., 0.),
-                            (t0+0.05/(24*3600), t0+0.1/(24*3600), degrees(0.001), 0.)]  # no correction done?
+
+def test_phasecenter_detection_shift():
+    inprefs = {'simulated_transient': [(0, 1, 0, 5e-3, 0.3, -0.001, 0.),
+                                       (0, 9, 0, 5e-3, 0.3, 0., 0.),
+                                       (0, 19, 0, 5e-3, 0.3, 0.001, 0.)],
+               'dmarr': [0], 'dtarr': [1], 'timesub': None, 'fftmode': 'fftw', 'searchtype': 'image',
+               'sigma_image1': 10, 'flaglist': [], 'uvres': 60, 'npix_max': 128, 'max_candfrac': 0}
+
+    t0 = time.Time.now().mjd
+    meta = rfpipe.metadata.mock_metadata(t0, t0+0.1/(24*3600), 20, 4, 32*4, 2,
+                                         5e3, scan=1, datasource='sim',
+                                         antconfig='D')
+
+    meta['phasecenters'] = [(t0, t0+0.01/(24*3600), degrees(0.001), 0.),
+                            (t0+0.01/(24*3600), t0+0.05/(24*3600), 0., 0.),
+                            (t0+0.05/(24*3600), t0+0.1/(24*3600), degrees(-0.001), 0.)]
     st = rfpipe.state.State(inmeta=meta, inprefs=inprefs)
     cc = rfpipe.pipeline.pipeline_scan(st)
     assert all(cc.array['l1'] == 0.)
     assert all(cc.array['m1'] == 0.)
+
 
 def test_wide_transient():
     print("Try injecting a transient of width 40ms at integration 8")
