@@ -6,7 +6,7 @@ from io import open
 import rfpipe, rfpipe.candidates
 import pytest
 from astropy import time
-from numpy import degrees, nan, argmax
+from numpy import degrees, nan, argmax, abs
 
 tparams = [(0, 0, 0, 5e-3, 0.3, 0.0001, 0.0),]
 # simulate no flag, transient/no flag, transient/flag
@@ -112,7 +112,7 @@ def test_phasecenter_detection():
     assert cc.array['l1'][0] <= 0.
     assert cc.array['l1'][1] == 0.
     assert cc.array['l1'][2] >= 0.
-    assert all(cc.array['m1'] == 0.)
+    assert all(abs(cc.array['m1']) <= 0.0003)
 
 
 def test_phasecenter_detection_shift():
