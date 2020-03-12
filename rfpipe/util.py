@@ -294,7 +294,7 @@ def get_uvw_segment(st, segment):
         antpos = st.metadata.antpos
 
     # use radec of best phasecenter for segment
-    if len(st.otfcorrections[segment]) > 1:
+    if st.otfcorrections is not None:
         ref_pc = len(st.otfcorrections[segment])//2  # get reference phase center
         ints, ra0, dec0 = st.otfcorrections[segment][ref_pc]
         radec = (ra0, dec0)
