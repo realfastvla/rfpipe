@@ -292,7 +292,16 @@ def get_uvw_segment(st, segment):
                 antpos[k]['value'] = value_new
     else:
         antpos = st.metadata.antpos
-    (ur, vr, wr) = calc_uvw(datetime=mjdstr, radec=st.metadata.radec,
+
+    # use radec of best phasecenter for segment
+    if len(st.otfcorrections[segment]) > 1:
+        ref_pc = len(st.otfcorrections[segment])//2  # get reference phase center
+        ints, ra0, dec0 = st.otfcorrections[segment][ref_pc]
+        radec = (ra0, dec0)
+    else:
+        radec = st.metadata.radec
+
+    (ur, vr, wr) = calc_uvw(datetime=mjdstr, radec=radec,
                             antpos=antpos, telescope=st.metadata.telescope)
     if st.lock is not None:
         st.lock.release()
