@@ -418,7 +418,8 @@ class CandCollection(object):
                 (segment, integration, dm, dt, amp, l0, m0) = mock
                 dmind0 = np.abs((np.array(self._state.dmarr)-dm)).argmin()
                 dtind0 = np.abs((np.array(self._state.dtarr)-dt)).argmin()
-                mockloc = (segment, integration, dmind0, dtind0, 0)
+                integration0 = integration//st.dtarr[dtind0]
+                mockloc = (segment, integration0, dmind0, dtind0, 0)
 
                 if mockloc in self.locs:
                     label = clusters[self.locs.index(mockloc)]
