@@ -271,7 +271,7 @@ def rfgpu_gridimage(st, segment, grid, image, vis_raw, vis_grid, img_grid,
                                                        parallel=st.prefs.nthread > 1,
                                                        resamplefirst=True)
                         spec = data_corr.take([i], axis=0)
-                        util.phase_shift(spec, uvw, l1, m1)
+                        util.phase_shift(spec, uvw=uvw, dl=l1, dm=m1)
                         spec = spec[0].real.mean(axis=2).mean(axis=0)
 
                         # TODO: this significance can be biased low if averaging in long baselines that are not phased well
@@ -383,7 +383,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
                         # if set, use sigma_kalman as second stage filter
                         if st.prefs.searchtype == 'imagek':
                             spec = data_corr.take([integrations[i]], axis=0)
-                            util.phase_shift(spec, uvw, l1, m1)
+                            util.phase_shift(spec, uvw=uvw, dl=l1, dm=m1)
                             spec = spec[0].real.mean(axis=2).mean(axis=0)
                             # TODO: this significance can be biased low if averaging in long baselines that are not phased well
                             # TODO: spec should be calculated from baselines used to measure l,m?
@@ -998,7 +998,7 @@ def search_thresh_armk(st, data, uvw, integrations=None, spec_std=None,
                 peaky = np.sort([peaky01, peaky12, peaky20])[1]
                 l, m = st.calclm(st.npixx_full, st.npixy_full, st.uvres, peakx,
                                  peaky)
-                util.phase_shift(spec, uvw, l, m)
+                util.phase_shift(spec, uvw=uvw, dl=l, dm=m)
                 spec = spec[0].real.mean(axis=2).mean(axis=0)
                 significance_kalman = -kalman_significance(spec, spec_std,
                                                            sig_ts=sig_ts,

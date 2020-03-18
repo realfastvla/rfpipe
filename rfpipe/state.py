@@ -671,7 +671,7 @@ class State(object):
             for segment in range(self.nsegment):
                 segmenttime0, segmenttime1 = self.segmenttimes[segment]
                 bintimes = segmenttime0 + self.inttime*(0.5+np.arange(self.readints))/(24*3600)
-                pcts = {i: [] for i in range(len(self.metadata.phasecenters))}
+                pcts = {j: [] for j in range(len(self.metadata.phasecenters))}
                 corrs = []
 
                 # assign integration to a window

@@ -34,21 +34,27 @@ def getsdm(*args, **kwargs):
     return sdm
 
 
-def phase_shift(data, uvw, dl, dm, ints=None):
+def phase_shift(data, uvw=None, dl=None, dm=None, dw=None, ints=None):
     """ Applies a phase shift to data for a given (dl, dm).
     """
 
-    assert data.shape[1] == uvw[0].shape[0]
-    assert data.shape[2] == uvw[0].shape[1]
     data = np.require(data, requirements='W')
     if ints is None:
         ints = list(range(len(data)))
-    u, v, w = uvw
-    _phaseshift_jit(data, u, v, w, dl, dm, ints=ints)
 
-
+    if (uvw is not None) and (dl is not None) and (dm is not None):
+        assert data.shape[1] == uvw[0].shape[0]
+        assert data.shape[2] == uvw[0].shape[1]
+        u, v, w = uvw
+        _phaseshiftlm_jit(data, u, v, w, dl, dm, ints=ints)
+    elif dw is not None:
+        assert data.shape[1] == dw.shape[0]
+        _phaseshiftdw_jit(data, dw, ints=ints)
+    else:
+        logger.warn("phase_shift requires either uvw/dl/dm or dw")
+            
 @jit(nogil=True, nopython=True, cache=True)
-def _phaseshift_jit(data, u, v, w, dl, dm, ints):
+def _phaseshiftlm_jit(data, u, v, w, dl, dm, ints):
 
     sh = data.shape
 
@@ -60,6 +66,20 @@ def _phaseshift_jit(data, u, v, w, dl, dm, ints):
                     for l in range(sh[3]):    # iterate over pols
                         # phasor unwraps phase at (dl, dm) per (bl, chan)
                         data[i, j, k, l] = data[i, j, k, l] * frot
+
+
+@jit(nogil=True, nopython=True, cache=True)
+def _phaseshiftdw_jit(data, dw, ints):
+
+    sh = data.shape
+
+    for j in range(sh[1]):
+        for k in range(sh[2]):
+            frot = np.exp(2j*np.pi*dw[j, k])
+            for i in ints:
+                for l in range(sh[3]):    # iterate over pols
+                    # phasor unwraps phase at (dl, dm) per (bl, chan)
+                    data[i, j, k, l] = data[i, j, k, l] * frot
 
 
 def meantsub(data, mode='mean'):
@@ -269,10 +289,11 @@ def dt1(dm_pulsewidth, tsamp, k, ch, freq, bw, dm, ddm):
     return np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2 + ((k*ddm*bw)/(freq**3.))**2)
 
 
-def get_uvw_segment(st, segment):
+def get_uvw_segment(st, segment, ref_pc=None):
     """ Returns uvw in units of baselines for a given segment.
     Tuple of u, v, w given with each a numpy array of (nbl, nchan) shape.
     If available, uses a lock to control multithreaded casa measures call.
+    ref_pc is the reference phase center used when segment spans multiple otf phase centers.
     """
 
     logger.debug("Getting uvw for segment {0}".format(segment))
@@ -295,7 +316,8 @@ def get_uvw_segment(st, segment):
 
     # use radec of best phasecenter for segment
     if st.otfcorrections is not None:
-        ref_pc = len(st.otfcorrections[segment])//2  # get reference phase center
+        if ref_pc is None:
+            ref_pc = len(st.otfcorrections[segment])//2  # get reference phase center
         ints, ra0, dec0 = st.otfcorrections[segment][ref_pc]
         radec = (ra0, dec0)
     else:

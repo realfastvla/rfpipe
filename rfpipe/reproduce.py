@@ -193,9 +193,9 @@ def pipeline_canddata(st, candloc, data_dmdt=None, spec_std=None, cpuonly=False,
 
     # TODO: allow dl,dm as args and reproduce detection for other SNRs
     dl, dm = st.pixtolm(np.where(image == image.max()))
-    util.phase_shift(data_dmdt, uvw, dl, dm)
+    util.phase_shift(data_dmdt, uvw=uvw, dl=dl, dm=dm)
     dataph = data_dmdt[max(0, candint-st.prefs.timewindow//2):candint+st.prefs.timewindow//2].mean(axis=1)
-    util.phase_shift(data_dmdt, uvw, -dl, -dm)
+    util.phase_shift(data_dmdt, uvw=uvw, dl=-dl, dm=-dm)
 
     # TODO: This probably needs to be masked to avoid averaging zeros in
     spec = data_dmdt.real.mean(axis=3).mean(axis=1)[candloc[1]]

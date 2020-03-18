@@ -233,13 +233,18 @@ def prep_standard(st, segment, data):
         # shift phasecenters to first phasecenter in segment
         if len(st.otfcorrections[segment]) > 1:
             ref_pc = len(st.otfcorrections[segment])//2  # get reference phase center
-            ints, ra0, dec0 = st.otfcorrections[segment][ref_pc]
-            logger.info("Correcting {0} phasecenters to middle at RA,Dec = {1},{2}"
-                        .format(len(st.otfcorrections[segment])-1, ra0, dec0))
-            for ints, ra_deg, dec_deg in st.otfcorrections[segment]:
-                l0 = np.radians((ra_deg-ra0)*np.cos(np.radians(dec0)))
-                m0 = np.radians(dec_deg-dec0)
-                util.phase_shift(data, uvw, -l0, -m0, ints=ints)
+            u0, v0, w0 = util.get_uvw_segment(st, segment, ref_pc=ref_pc)
+#            ints, ra0, dec0 = st.otfcorrections[segment][ref_pc]
+            logger.info("Correcting {0} phasecenters to middle"
+                        .format(len(st.otfcorrections[segment])-1))
+            for i, (ints, ra_deg, dec_deg) in enumerate(st.otfcorrections[segment]):
+#                l0 = np.radians((ra_deg-ra0)*np.cos(np.radians(dec0)))
+#                m0 = np.radians(dec_deg-dec0)
+#            util.phase_shift(data, uvw, -l0, -m0, ints=ints)
+                if i != ref_pc:
+                    u1, v1, w1 = util.get_uvw_segment(st, segment, ref_pc=i)
+                    dw = w1-w0
+                    util.phase_shift(data, dw=dw, ints=ints)
 
     return data
 
