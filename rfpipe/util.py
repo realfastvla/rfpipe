@@ -49,6 +49,7 @@ def phase_shift(data, uvw=None, dl=None, dm=None, dw=None, ints=None):
         _phaseshiftlm_jit(data, u, v, w, dl, dm, ints=ints)
     elif dw is not None:
         assert data.shape[1] == dw.shape[0]
+        assert data.shape[2] == dw.shape[1]
         _phaseshiftdw_jit(data, dw, ints=ints)
     else:
         logger.warn("phase_shift requires either uvw/dl/dm or dw")
@@ -319,7 +320,7 @@ def get_uvw_segment(st, segment, ref_pc=None):
         if ref_pc is None:
             ref_pc = len(st.otfcorrections[segment])//2  # get reference phase center
         ints, ra0, dec0 = st.otfcorrections[segment][ref_pc]
-        radec = (ra0, dec0)
+        radec = (np.radians(ra0), np.radians(dec0))
     else:
         radec = st.metadata.radec
 
@@ -338,20 +339,22 @@ def get_uvw_segment(st, segment, ref_pc=None):
 def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
     """ Calculates and returns uvw in meters for a given time and pointing direction.
     datetime is time (as string) to calculate uvw (format: '2014/09/03/08:33:04.20')
-    radec is (ra,dec) as tuple in units of degrees (format: (180., +45.))
-    Can optionally specify a telescope other than the JVLA
+    radec is (ra,dec) as tuple in radians.
+    Can optionally specify a telescope other than the JVLA.
     """
 
     assert '/' in datetime, 'datetime must be in yyyy/mm/dd/hh:mm:ss.sss format'
-    assert len(radec) == 2, 'radec must be (ra,dec) tuple in units of degrees'
+    assert len(radec) == 2, 'radec must be (ra,dec) tuple in units of radians'
+    ra, dec = radec
+    assert (ra < 2*np.pi) and (ra > -2*np.pi) and (dec > -np.pi) and (dec < np.pi)
 
     me = tools.measures()
 
-    direction = me.direction('J2000', str(np.degrees(radec[0]))+'deg',
-                             str(np.degrees(radec[1]))+'deg')
+    direction = me.direction('J2000', str(np.degrees(ra))+'deg',
+                             str(np.degrees(dec))+'deg')
 
-    logger.debug('Calculating uvw at {0} for (RA, Dec) = {1}'
-                 .format(datetime, radec))
+    logger.debug('Calculating uvw at {0} for (RA, Dec) = {1}, {2}'
+                 .format(datetime, ra, dec))
     me.doframe(me.observatory(telescope))
     me.doframe(me.epoch('utc', datetime))
     me.doframe(direction)

@@ -320,7 +320,7 @@ def sdm_metadata(sdmfile, scan, subscan=1, bdfdir=None):
     meta['stationids'] = [str(station) for station in scanobj.stations]
     meta['xyz'] = np.array(scanobj.positions)
 
-    meta['radec'] = scanobj.coordinates.tolist()
+    meta['radec'] = scanobj.coordinates.tolist()  # radians
     meta['dishdiameter'] = float(str(sdm['Antenna'][0].dishDiameter).strip())
     meta['spw_orig'] = list(range(len(scanobj.spws)))
     meta['spw_nchan'] = scanobj.numchans

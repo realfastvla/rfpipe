@@ -226,7 +226,7 @@ def prep_standard(st, segment, data):
 
                 if st.gainfile is not None:
                     model = calibration.apply_telcal(st, model, sign=-1)
-                util.phase_shift(model, uvw, -l, -m)
+                util.phase_shift(model, uvw=uvw, dl=-l, dm=-m)
                 data += model
 
     if st.otfcorrections is not None:
