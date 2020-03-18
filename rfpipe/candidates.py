@@ -417,8 +417,8 @@ class CandCollection(object):
             for mock in self.prefs.simulated_transient:
                 (segment, integration, dm, dt, amp, l0, m0) = mock
                 dmind0 = np.abs((np.array(self._state.dmarr)-dm)).argmin()
-                dtind0 = np.abs((np.array(self._state.dtarr)-dt)).argmin()
-                integration0 = integration//st.dtarr[dtind0]
+                dtind0 = np.abs((np.array(self._state.dtarr)*self._state.inttime-dt)).argmin()
+                integration0 = integration//self._state.dtarr[dtind0]
                 mockloc = (segment, integration0, dmind0, dtind0, 0)
 
                 if mockloc in self.locs:
@@ -428,7 +428,7 @@ class CandCollection(object):
                     map_mocks[mock] = np.array(self.locs)[clusters == label].tolist()
                     logger.info("Found mock ({0}, {1}, {2:.2f}, {3:.2f}, {4:.2f}, {5:.4f}, {6:.4f}) at loc {7} with label {8} of size {9}"\
                      .format(segment, integration, dm, dt, amp, l0,\
-                             m0 ,mockloc, label, clustersize))
+                             m0, mockloc, label, clustersize))
                 else:
                     map_mocks[mock] = []
                     mock_labels.append(-2)
