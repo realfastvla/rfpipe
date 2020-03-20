@@ -636,7 +636,6 @@ def make_transient_data(st, amp, i0, dm, dt, ampslope=0.):
 
     i = i0 + calc_delay2(st.freq, st.freq.max(), dm)/st.inttime
 #     print(i)
-
     i_f = np.floor(i).astype(int)
     imax = np.ceil(i + dt/st.inttime).astype(int)
     imin = i_f
@@ -651,7 +650,7 @@ def make_transient_data(st, amp, i0, dm, dt, ampslope=0.):
     if np.any(i_r == 2):
         ir2 = np.where(i_r == 2)
         i_c = np.ceil(i).astype(int)
-        f1 = (dt/st.inttime - (i_c - i))/(dt/st.inttime)
+        f1 = ((i + dt/st.inttime) - (imax - 1))/(dt/st.inttime)
         f0 = 1 - f1
 #         print(ir2)
         model[chans[ir2], i_f[ir2]] += f0[ir2]*ampspec[chans[ir2]]
@@ -673,53 +672,4 @@ def make_transient_data(st, amp, i0, dm, dt, ampslope=0.):
             
             for y in range(x):
                 model[chans[irx], i_f[irx]+y] += fs[y][irx]*ampspec[chans[irx]]
-    return model
-
-
-def make_transient_data_old(st, amp, i0, dm, dt, ampslope=0.):
-    """ Create a dynamic spectrum for given parameters
-    amp is apparent (after time gridding) in system units (post calibration)
-    i0 is a float for integration relative to start of segment.
-    dm/dt are in units of pc/cm3 and seconds, respectively
-    ampslope adds to a linear slope up to amp+ampslope at last channel.
-    """
-
-    chans = np.arange(len(st.freq))
-    model = np.zeros((len(st.freq), st.readints), dtype='complex64')
-    ampspec = amp + ampslope*(np.linspace(0, 1, num=len(chans)))
-
-    i = i0 + calc_delay2(st.freq, st.freq.max(), dm)/st.inttime
-#    print(i)
-    i_f = np.floor(i).astype(int)
-    imax = np.ceil(i + dt/st.inttime).astype(int)
-    imin = i_f
-    i_r = imax - imin
-#    print(i_r)
-    if np.any(i_r == 1):
-        ir1 = np.where(i_r == 1)
-#        print(ir1)
-        model[chans[ir1], i_f[ir1]] += ampspec[chans[ir1]]
-
-    if np.any(i_r == 2):
-        ir2 = np.where(i_r == 2)
-        i_c = np.ceil(i).astype(int)
-        f1 = (dt/st.inttime - (i_c - i))/(dt/st.inttime)
-        f0 = 1 - f1
-#        print(np.vstack((ir2, f0[ir2], f1[ir2])).transpose())
-        model[chans[ir2], i_f[ir2]] += f0[ir2]*ampspec[chans[ir2]]
-        model[chans[ir2], i_f[ir2]+1] += f1[ir2]*ampspec[chans[ir2]]
-
-    if np.any(i_r == 3):
-        ir3 = np.where(i_r == 3)
-        f2 = (i + dt/st.inttime - (imax - 1))/(dt/st.inttime)
-        f0 = ((i_f + 1) - i)/(dt/st.inttime)
-        f1 = 1 - f2 - f0
-#        print(np.vstack((ir3, f0[ir3], f1[ir3], f2[ir3])).transpose())
-        model[chans[ir3], i_f[ir3]] += f0[ir3]*ampspec[chans[ir3]]
-        model[chans[ir3], i_f[ir3]+1] += f1[ir3]*ampspec[chans[ir3]]
-        model[chans[ir3], i_f[ir3]+2] += f2[ir3]*ampspec[chans[ir3]]
-    if np.any(i_r >= 4):
-        logger.warning("{0} channels broadened more than 3 integrations and are not injected"
-                       .format(len(i_r)))
-
     return model
