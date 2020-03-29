@@ -169,9 +169,10 @@ def _2ptsub_jit(data):
                 # calc mean per int
                 if mean1 and mean2:
                     slope = (mean2-mean1)/(nint//2)
+                    mean0 = (mean2+mean1)/2
                     for l in range(nint):
                         if data[l, i, j, k] != 0j:
-                            data[l, i, j, k] -= slope*(l-nint//2)
+                            data[l, i, j, k] -= slope*(l-nint//2) + mean0
                 else:  # or just blank data
                     for l in range(nint):
                         data[l, i, j, k] = 0j
@@ -316,7 +317,7 @@ def get_uvw_segment(st, segment, ref_pc=None):
         antpos = st.metadata.antpos
 
     # use radec of best phasecenter for segment
-    if st.otfcorrections is not None:
+    if st.metadata.phasecenters is not None:
         if ref_pc is None:
             ref_pc = len(st.otfcorrections[segment])//2  # get reference phase center
         ints, ra0, dec0 = st.otfcorrections[segment][ref_pc]
