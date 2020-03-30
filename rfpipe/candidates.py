@@ -2104,7 +2104,7 @@ def make_voevent(candcollection, role='test'):
             VOEvent_of.write('\t\t\t<Concept></Concept><Description>Detection of a new FRB by RealFast</Description>\n')
             VOEvent_of.write('\t\t<Name>'+FRB_NAME+'</Name>\n')
             VOEvent_of.write('\t</Why>\n')
-            VOEvent_of.write('</voe:VOEvent>')
+            VOEvent_of.write('</voe:VOEvent>\n')
             
             #close file
             VOEvent_of.close()
