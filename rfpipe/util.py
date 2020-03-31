@@ -299,8 +299,6 @@ def get_uvw_segment(st, segment, ref_pc=None):
     """
 
     logger.debug("Getting uvw for segment {0}".format(segment))
-    mid_mjd = st.segmenttimes[segment].mean()
-    mjdstr = time.Time(mid_mjd, format='mjd').iso.replace('-', '/').replace(' ', '/')
 
     if st.lock is not None:
         st.lock.acquire()
@@ -322,8 +320,12 @@ def get_uvw_segment(st, segment, ref_pc=None):
             ref_pc = len(st.otfcorrections[segment])//2  # get reference phase center
         ints, ra0, dec0 = st.otfcorrections[segment][ref_pc]
         radec = (np.radians(ra0), np.radians(dec0))
+#        mjd = st.segmenttimes[segment][0] + np.mean(ints)*st.inttime/(24*3600)
+        mjd = st.segmenttimes[segment].mean()
     else:
         radec = st.metadata.radec
+        mjd = st.segmenttimes[segment].mean()
+    mjdstr = time.Time(mjd, format='mjd').iso.replace('-', '/').replace(' ', '/')
 
     (ur, vr, wr) = calc_uvw(datetime=mjdstr, radec=radec,
                             antpos=antpos, telescope=st.metadata.telescope)

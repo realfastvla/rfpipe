@@ -239,18 +239,24 @@ def apply_otfcorrections(st, segment, data):
     """ Phase shift data to single phase center
     """
 
+    from rfpipe import util
+
     # shift phasecenters to first phasecenter in segment
     if len(st.otfcorrections[segment]) > 1:
         ref_pc = len(st.otfcorrections[segment])//2  # get reference phase center
         u0, v0, w0 = util.get_uvw_segment(st, segment, ref_pc=ref_pc)
+        # using dl,dm
 #        ints, ra0, dec0 = st.otfcorrections[segment][ref_pc]
         logger.info("Correcting {0} phasecenters to middle"
                     .format(len(st.otfcorrections[segment])-1))
         for i, (ints, ra_deg, dec_deg) in enumerate(st.otfcorrections[segment]):
-#            l0 = np.radians((ra_deg-ra0)*np.cos(np.radians(dec0)))
-#            m0 = np.radians(dec_deg-dec0)
-#        util.phase_shift(data, uvw, -l0, -m0, ints=ints)
             if i != ref_pc:
+                # using dl,dm
+#                l0 = np.radians((ra_deg-ra0)*np.cos(np.radians(dec0)))
+#                m0 = np.radians(dec_deg-dec0)
+#                uvw = util.get_uvw_segment(st, segment, ref_pc=ref_pc)
+#                util.phase_shift(data, uvw=uvw, dl=-l0, dm=-m0, ints=ints)
+                # using dw
                 u1, v1, w1 = util.get_uvw_segment(st, segment, ref_pc=i)
                 dw = w1-w0
                 util.phase_shift(data, dw=dw, ints=ints)
