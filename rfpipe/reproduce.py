@@ -86,11 +86,14 @@ def reproduce_candcollection(cc, data=None, wisdom=None, spec_std=None,
                         if feature == 'snrk':
                             if 'snrk' not in cc.array.dtype.fields:
                                 spec = data_corr.real.mean(axis=3).mean(axis=1)[candloc[1]]
-                                significance_kalman = -kalman_significance(spec,
-                                                                           spec_std,
-                                                                           sig_ts=sig_ts,
-                                                                           coeffs=kalman_coeffs)
-                                snrk = (2*significance_kalman)**0.5
+                                if np.count_nonzero(spec)/len(spec) < 1-st.prefs.max_zerofrac:
+                                    significance_kalman = -kalman_significance(spec, spec_std,
+                                                                               sig_ts=sig_ts,
+                                                                               coeffs=kalman_coeffs)
+                                    snrk = (2*significance_kalman)**0.5
+                                else:
+                                    logger.warning("snrk set to 0, since {0}/{1} are zeroed".format(np.count_nonzero(spec), len(spec)))
+                                    snrk = 0.
                                 logger.info("Calculated snrk of {0} after detection. "
                                             "Adding it to CandData.".format(snrk))
                                 kwargs[feature] = snrk
@@ -201,10 +204,14 @@ def pipeline_canddata(st, candloc, data_dmdt=None, spec_std=None, cpuonly=False,
     spec = data_dmdt.real.mean(axis=3).mean(axis=1)[candloc[1]]
 
     if 'snrk' in st.features and 'snrk' not in kwargs:
-        significance_kalman = -kalman_significance(spec, spec_std,
-                                                   sig_ts=sig_ts,
-                                                   coeffs=kalman_coeffs)
-        snrk = (2*significance_kalman)**0.5
+        if np.count_nonzero(spec)/len(spec) < 1-st.prefs.max_zerofrac:
+            significance_kalman = -kalman_significance(spec, spec_std,
+                                                       sig_ts=sig_ts,
+                                                       coeffs=kalman_coeffs)
+            snrk = (2*significance_kalman)**0.5
+        else:
+            logger.warning("snrk set to 0, since {0}/{1} are zeroed".format(np.count_nonzero(spec), len(spec)))
+            snrk = 0.
         logger.info("Calculated snrk of {0} after detection. Adding it to CandData.".format(snrk))
         kwargs['snrk'] = snrk
 
@@ -282,15 +289,15 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
         st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, showsummary=False, bdfdir=bdfdir)
     except AssertionError:
         try:
-            logger.warn("Could not generate state with full image. Trying with npix_max at 2x original image size...")
+            logger.warning("Could not generate state with full image. Trying with npix_max at 2x original image size...")
             prefs['npix_max'] = min(npix_max, 2*npix_max_orig)
             st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir=bdfdir, showsummary=False)
         except AssertionError:  # could be state can't be defined
-            logger.warn("Could not generate state with 2x images. Trying with original image size...")
+            logger.warning("Could not generate state with 2x images. Trying with original image size...")
             prefs['npix_max'] = min(npix_max, npix_max_orig)
             st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir=bdfdir, showsummary=False)
     except FileNotFoundError:
-        logger.warn("No BDF found for sdmname {0}".format(sdmname))
+        logger.warning("No BDF found for sdmname {0}".format(sdmname))
         return cc
 
     st.prefs.dmarr = sorted([dm] + [dm0 for dm0 in st.dmarr if (dm0 == 0 or dm0 > dm-ddm)])  # remove superfluous dms, enforce orig dm

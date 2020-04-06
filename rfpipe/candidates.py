@@ -417,8 +417,9 @@ class CandCollection(object):
             for mock in self.prefs.simulated_transient:
                 (segment, integration, dm, dt, amp, l0, m0) = mock
                 dmind0 = np.abs((np.array(self._state.dmarr)-dm)).argmin()
-                dtind0 = np.abs((np.array(self._state.dtarr)-dt)).argmin()
-                mockloc = (segment, integration, dmind0, dtind0, 0)
+                dtind0 = np.abs((np.array(self._state.dtarr)*self._state.inttime-dt)).argmin()
+                integration0 = integration//self._state.dtarr[dtind0]
+                mockloc = (segment, integration0, dmind0, dtind0, 0)
 
                 if mockloc in self.locs:
                     label = clusters[self.locs.index(mockloc)]
@@ -427,7 +428,7 @@ class CandCollection(object):
                     map_mocks[mock] = np.array(self.locs)[clusters == label].tolist()
                     logger.info("Found mock ({0}, {1}, {2:.2f}, {3:.2f}, {4:.2f}, {5:.4f}, {6:.4f}) at loc {7} with label {8} of size {9}"\
                      .format(segment, integration, dm, dt, amp, l0,\
-                             m0 ,mockloc, label, clustersize))
+                             m0, mockloc, label, clustersize))
                 else:
                     map_mocks[mock] = []
                     mock_labels.append(-2)
@@ -2031,7 +2032,7 @@ def make_voevent(candcollection, role='test'):
             VOEvent_of = open(outname, 'w')
             #header
             VOEvent_of.write("<?xml version='1.0' encoding='UTF-8'?>"+'\n')
-            VOEvent_of.write('<voe:VOEvent xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:voe="http://www.ivoa.net/xml/VOEvent/v2.0" xsi:schemaLocation="http://www.ivoa.net/xml/VOEvent/v2.0 http://www.ivoa.net/xml/VOEvent/VOEvent-v2.0.xsd" version="2.0" role='+role.lower()+' ivorn="ivo://realfast.io/realfast#'+FRB_NAME+'/'+str(FRB_obsmjd)+'">'+'\n')
+            VOEvent_of.write('<voe:VOEvent xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:voe="http://www.ivoa.net/xml/VOEvent/v2.0" xsi:schemaLocation="http://www.ivoa.net/xml/VOEvent/v2.0 http://www.ivoa.net/xml/VOEvent/VOEvent-v2.0.xsd" version="2.0" role="'+role.lower()+'" ivorn="ivo://realfast.io/realfast#'+FRB_NAME+'/'+str(FRB_obsmjd)+'">'+'\n')
             #WHO
             VOEvent_of.write('\t'+'<Who>'+'\n')
             VOEvent_of.write('\t\t'+'<AuthorIVORN>ivo://realfast.io/contact</AuthorIVORN>'+'\n')
@@ -2104,7 +2105,7 @@ def make_voevent(candcollection, role='test'):
             VOEvent_of.write('\t\t\t<Concept></Concept><Description>Detection of a new FRB by RealFast</Description>\n')
             VOEvent_of.write('\t\t<Name>'+FRB_NAME+'</Name>\n')
             VOEvent_of.write('\t</Why>\n')
-            VOEvent_of.write('</voe:VOEvent>')
+            VOEvent_of.write('</voe:VOEvent>\n')
             
             #close file
             VOEvent_of.close()
