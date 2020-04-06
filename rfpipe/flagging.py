@@ -100,6 +100,7 @@ def flag_badchtslide(data, spwchans, sigma, win):
 
 def flag_badspw(data, spwchans, sigma):
     """ Use data median variance between spw to flag spw
+    Also flags spw with fewer than 5 channels.
     Best to use this after flagging bad channels.
     """
 
@@ -111,7 +112,7 @@ def flag_badspw(data, spwchans, sigma):
         spec = np.abs(data.mean(axis=0).mean(axis=2)).mean(axis=0)  # probably better
         deviations = []
         for chans in spwchans:
-            if spec[chans].count() > 3:
+            if spec[chans].count() >= 5:
                 deviations.append(np.ma.std(spec[chans]))
             else:
                 deviations.append(0)
