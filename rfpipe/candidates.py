@@ -2003,14 +2003,19 @@ def make_voevent(candcollection, role='test'):
         FRB_ISOT_UTHH = 'UT'+FRB_ISOT[t_pos+1:t_pos+3]
         
         #Importance parameter
-        FRB_importance = 0.8 #default to relatively high importance #TODO: look into setting this based on candidate decision trees or SNR
+        FRB_importance = 0.5 #default importance
         if candcollection.clustersize is not None:
-            if candcollection.clustersize[n1]>10. and FRB_SNR>30.: FRB_importance=1.0
-            if candcollection.clustersize[n1]>10. and FRB_SNR<30. and FRB_SNR>20.: FRB_importance=0.9
-            if candcollection.clustersize[n1]<5.0 and FRB_SNR<20.0: FRB_importance=0.5
+            if candcollection.clustersize[n1]>5. and FRB_SNR>10.:
+                FRB_importance=1.0
+            elif candcollection.clustersize[n1]>1. and FRB_SNR>10.:
+                FRB_importance=0.9
+            elif candcollection.clustersize[n1]<5.0 and FRB_SNR<10.0:
+                FRB_importance=0.6
         else:
-            if FRB_SNR>30.: FRB_importance=0.95
-            if FRB_SNR>20. and FRB_SNR<30.: FRB_importance=0.85
+            if FRB_SNR>20.:
+                FRB_importance=0.95
+            elif FRB_SNR>10.:
+                FRB_importance=0.55
         
         #build FRB name
         FRB_YY = FRB_ISOT[2:4] #last 2 digits of year
