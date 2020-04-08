@@ -1941,6 +1941,7 @@ def make_voevent(candcollection, role='test'):
         dmind = candloc[2]
         dtind = candloc[3]
         beamnum = candloc[4]
+        candid = candcollection.candids[n1]
         
         #Basic data easily accessible from CandCollection
         FRB_DM = candcollection.canddm[n1]
@@ -2097,8 +2098,8 @@ def make_voevent(candcollection, role='test'):
             VOEvent_of.write('\t</WhereWhen>\n')
             #How
             VOEvent_of.write('\t<How>\n')
-            VOEvent_of.write('\t\t<Description>Discovered by realfast</Description>')
-            VOEvent_of.write('\t\t<Reference uri="http://realfast.io"/>')
+            VOEvent_of.write('\t\t<Description>Discovered by realfast as candId {0}</Description>'.format(candid))
+f            VOEvent_of.write('\t\t<Reference uri="http://realfast.io"/>')
             VOEvent_of.write('\t\t</How>\n')
             #Why
             VOEvent_of.write('\t<Why importance="'+str(FRB_importance)+'">\n')
