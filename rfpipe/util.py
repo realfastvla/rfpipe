@@ -291,11 +291,12 @@ def dt1(dm_pulsewidth, tsamp, k, ch, freq, bw, dm, ddm):
     return np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2 + ((k*ddm*bw)/(freq**3.))**2)
 
 
-def get_uvw_segment(st, segment, ref_pc=None):
+def get_uvw_segment(st, segment, ref_pc=None, raw=False):
     """ Returns uvw in units of baselines for a given segment.
     Tuple of u, v, w given with each a numpy array of (nbl, nchan) shape.
     If available, uses a lock to control multithreaded casa measures call.
     ref_pc is the reference phase center used when segment spans multiple otf phase centers.
+    raw defines whether uvw calc for all channels (metadata.freq_orig) or selected (state.freq)
     """
 
     logger.debug("Getting uvw for segment {0}".format(segment))
@@ -316,6 +317,7 @@ def get_uvw_segment(st, segment, ref_pc=None):
 
     # use radec of best phasecenter for segment
     if st.metadata.phasecenters is not None:
+        logger.info('Inferring otf mode for uvw calculation')
         if ref_pc is None:
             ref_pc = len(st.otfcorrections[segment])//2  # get reference phase center
         ints, ra0, dec0 = st.otfcorrections[segment][ref_pc]
@@ -332,9 +334,14 @@ def get_uvw_segment(st, segment, ref_pc=None):
     if st.lock is not None:
         st.lock.release()
 
-    u = np.outer(ur, st.freq * (1e9/constants.c) * (-1))
-    v = np.outer(vr, st.freq * (1e9/constants.c) * (-1))
-    w = np.outer(wr, st.freq * (1e9/constants.c) * (-1))
+    if raw:
+        u = np.outer(ur, st.metadata.freq_orig * (1e9/constants.c) * (-1))
+        v = np.outer(vr, st.metadata.freq_orig * (1e9/constants.c) * (-1))
+        w = np.outer(wr, st.metadata.freq_orig * (1e9/constants.c) * (-1))
+    else:
+        u = np.outer(ur, st.freq * (1e9/constants.c) * (-1))
+        v = np.outer(vr, st.freq * (1e9/constants.c) * (-1))
+        w = np.outer(wr, st.freq * (1e9/constants.c) * (-1))
 
     return u.astype('float32'), v.astype('float32'), w.astype('float32')
 
@@ -349,7 +356,7 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
     assert '/' in datetime, 'datetime must be in yyyy/mm/dd/hh:mm:ss.sss format'
     assert len(radec) == 2, 'radec must be (ra,dec) tuple in units of radians'
     ra, dec = radec
-    assert (ra < 2*np.pi) and (ra > -2*np.pi) and (dec > -np.pi) and (dec < np.pi)
+    assert (ra < 2*np.pi) and (ra > -2*np.pi) and (dec > -np.pi) and (dec < np.pi), 'ra and/or dec out of range of radians'
 
     me = tools.measures()
 

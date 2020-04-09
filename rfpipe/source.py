@@ -230,13 +230,15 @@ def prep_standard(st, segment, data):
                 data += model
 
     if st.otfcorrections is not None:
-        apply_otfcorrections(st, segment, data)
+        apply_otfcorrections(st, segment, data, raw=False)
 
     return data
 
 
-def apply_otfcorrections(st, segment, data):
+def apply_otfcorrections(st, segment, data, raw=False):
     """ Phase shift data to single phase center
+    raw defines whether to correct data with all chans (metadata.freq_orig)
+    or selected set (st.freq).
     """
 
     from rfpipe import util
@@ -244,7 +246,7 @@ def apply_otfcorrections(st, segment, data):
     # shift phasecenters to first phasecenter in segment
     if len(st.otfcorrections[segment]) > 1:
         ref_pc = len(st.otfcorrections[segment])//2  # get reference phase center
-        u0, v0, w0 = util.get_uvw_segment(st, segment, ref_pc=ref_pc)
+        u0, v0, w0 = util.get_uvw_segment(st, segment, ref_pc=ref_pc, raw=raw)
         # using dl,dm
 #        ints, ra0, dec0 = st.otfcorrections[segment][ref_pc]
         logger.info("Correcting {0} phasecenters to middle"
@@ -255,9 +257,9 @@ def apply_otfcorrections(st, segment, data):
 #                l0 = np.radians((ra_deg-ra0)*np.cos(np.radians(dec0)))
 #                m0 = np.radians(dec_deg-dec0)
 #                uvw = util.get_uvw_segment(st, segment, ref_pc=ref_pc)
-#                util.phase_shift(data, uvw=uvw, dl=-l0, dm=-m0, ints=ints)
+#                util.phase_shift(data, uvw=uvw, dl=-l0, dm=-m0, ints=ints, raw=raw)
                 # using dw
-                u1, v1, w1 = util.get_uvw_segment(st, segment, ref_pc=i)
+                u1, v1, w1 = util.get_uvw_segment(st, segment, ref_pc=i, raw=raw)
                 dw = w1-w0
                 util.phase_shift(data, dw=dw, ints=ints)
 
