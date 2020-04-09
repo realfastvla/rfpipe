@@ -293,19 +293,6 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
         logger.warn("No BDF found for sdmname {0}".format(sdmname))
         return cc
 
-    maxchansize = max(st.metadata.spw_chansize)
-    mask = np.array(st.metadata.spw_chansize) == maxchansize
-    
-    if mask.sum() < len(st.metadata.spw_reffreq):
-        logging.info('Skipping high-resolution spws {0}'.format(np.array(st.metadata.spw_orig)[~mask].tolist()))
-    
-        assert mask.sum() > 0.5*len(st.metadata.spw_reffreq)
-        
-        st.metadata.spw_reffreq = np.array(st.metadata.spw_reffreq)[mask].tolist()
-        st.metadata.spw_nchan = np.array(st.metadata.spw_nchan)[mask].tolist()
-        st.metadata.spw_chansize = np.array(st.metadata.spw_chansize)[mask].tolist()
-        st.metadata.spw_orig = np.array(st.metadata.spw_orig)[mask].tolist()
-
     st.prefs.dmarr = sorted([dm] + [dm0 for dm0 in st.dmarr if (dm0 == 0 or dm0 > dm-ddm)])  # remove superfluous dms, enforce orig dm
     st.clearcache()
     st.summarize()
@@ -334,19 +321,6 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
             prefs['npix_max'] = npix_max_orig
             st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, bdfdir=bdfdir,
                              showsummary=False)
-
-            maxchansize = max(st.metadata.spw_chansize)
-            mask = np.array(st.metadata.spw_chansize) == maxchansize
-
-            if mask.sum() < len(st.metadata.spw_reffreq):
-                logging.info('Skipping high-resolution spws {0}'.format(np.array(st.metadata.spw_orig)[~mask].tolist()))
-            
-                assert mask.sum() > 0.5*len(st.metadata.spw_reffreq)
-                
-                st.metadata.spw_reffreq = np.array(st.metadata.spw_reffreq)[mask].tolist()
-                st.metadata.spw_nchan = np.array(st.metadata.spw_nchan)[mask].tolist()
-                st.metadata.spw_chansize = np.array(st.metadata.spw_chansize)[mask].tolist()
-                st.metadata.spw_orig = np.array(st.metadata.spw_orig)[mask].tolist()
 
             st.prefs.dmarr = sorted([dm] + [dm0 for dm0 in st.dmarr if (dm0 == 0 or dm0 > dm-ddm)])  # remove superfluous dms, enforce orig dm
             st.clearcache()
