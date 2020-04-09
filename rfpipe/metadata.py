@@ -326,6 +326,19 @@ def sdm_metadata(sdmfile, scan, subscan=1, bdfdir=None):
     meta['spw_nchan'] = scanobj.numchans
     meta['spw_reffreq'] = scanobj.reffreqs
     meta['spw_chansize'] = scanobj.chanwidths
+
+    maxchansize = max(meta['spw_chansize'])
+    mask = np.array(meta['spw_chansize']) == maxchansize
+    if mask.sum() < len(meta['spw_reffreq']):
+        logger.info('Skipping high-resolution spws {0}'.format(np.array(meta['spw_orig'])[~mask].tolist()))
+        
+        assert mask.sum() > 0.5*len(meta['spw_reffreq']), "more than 50% spws removed"
+
+        meta['spw_reffreq'] = np.array(meta['spw_reffreq'])[mask].tolist()
+        meta['spw_nchan'] = np.array(meta['spw_nchan'])[mask].tolist()
+        meta['spw_chansize'] = np.array(meta['spw_chansize'])[mask].tolist()
+        meta['spw_orig'] = np.array(meta['spw_orig'])[mask].tolist()
+
     try:
         meta['pols_orig'] = scanobj.bdf.spws[0].pols('cross')
     except AttributeError:

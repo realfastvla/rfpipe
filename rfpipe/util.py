@@ -573,8 +573,9 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
         if dtind is not None:
             dt = st.inttime*st.dtarr[dtind]
         else:
-            max_width = 0.03/st.inttime
-            dt = st.inttime*np.random.uniform(0, max_width) # s  #like an alias for "dt"
+            #max_width = 0.04/st.inttime
+            #dt = st.inttime*np.random.uniform(0, max_width) # s  #like an alias for "dt"
+            dt = np.random.uniform(0.001, 0.04)
             if dt < st.inttime:
                 dtind = 0
             else:
@@ -595,8 +596,11 @@ def make_transient_params(st, ntr=1, segment=None, dmind=None, dtind=None,
 #        dt = random.uniform(min(st.dtarr), max(st.dtarr))
 
         if i is None:
-            i = np.random.randint(0,st.readints) 
-            #i = random.choice(st.get_search_ints(segment, dmind, dtind))
+            ints = np.array(st.get_search_ints(segment, dmind, dtind))*st.dtarr[dtind]
+            i = np.random.randint(min(ints), max(ints))
+            
+            #i = np.random.randint(0,st.readints)
+            #i = random.choice(st.get_search_ints(segment, dmind, dtind))*st.dtarr[dtind]
 
         if amp is None:
             if data is None:
