@@ -2104,7 +2104,7 @@ def make_voevent(candcollection, role='test'):
             #How
             VOEvent_of.write('\t<How>\n')
             VOEvent_of.write('\t\t<Description>Discovered by realfast as candId {0}</Description>'.format(candid))
-f            VOEvent_of.write('\t\t<Reference uri="http://realfast.io"/>')
+            VOEvent_of.write('\t\t<Reference uri="http://realfast.io"/>')
             VOEvent_of.write('\t\t</How>\n')
             #Why
             VOEvent_of.write('\t<Why importance="'+str(FRB_importance)+'">\n')
