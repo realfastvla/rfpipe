@@ -276,13 +276,13 @@ def rfgpu_gridimage(st, segment, grid, image, vis_raw, vis_grid, img_grid,
 
                         # TODO: this significance can be biased low if averaging in long baselines that are not phased well
                         # TODO: spec should be calculated from baselines used to measure l,m?
-                        if np.count_nonzero(spec)/len(spec) < 1-st.prefs.max_zerofrac:
+                        if np.count_nonzero(spec)/len(spec) > 1-st.prefs.max_zerofrac:
                             significance_kalman = -kalman_significance(spec, spec_std,
                                                                        sig_ts=sig_ts,
                                                                        coeffs=coeffs)
                             snrk = (2*significance_kalman)**0.5
                         else:
-                            logger.warning("snrk set to 0, since {0}/{1} are zeroed".format(np.count_nonzero(spec), len(spec)))
+                            logger.warning("snrk set to 0, since {0}/{1} are zeroed".format(len(spec)-np.count_nonzero(spec), len(spec)))
                             snrk = 0.
                         snrtot = (snrk**2 + snr1**2)**0.5
                         if snrtot > (st.prefs.sigma_kalman**2 + st.prefs.sigma_image1**2)**0.5:
@@ -390,13 +390,13 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
                             spec = spec[0].real.mean(axis=2).mean(axis=0)
                             # TODO: this significance can be biased low if averaging in long baselines that are not phased well
                             # TODO: spec should be calculated from baselines used to measure l,m?
-                            if np.count_nonzero(spec)/len(spec) < 1-st.prefs.max_zerofrac:
+                            if np.count_nonzero(spec)/len(spec) > 1-st.prefs.max_zerofrac:
                                 significance_kalman = -kalman_significance(spec, spec_std,
                                                                            sig_ts=sig_ts,
                                                                            coeffs=coeffs)
                                 snrk = (2*significance_kalman)**0.5
                             else:
-                                logger.warning("snrk set to 0, since {0}/{1} are zeroed".format(np.count_nonzero(spec), len(spec)))
+                                logger.warning("snrk set to 0, since {0}/{1} are zeroed".format(len(spec)-np.count_nonzero(spec), len(spec)))
                                 snrk = 0.
                             snrtot = (snrk**2 + snr1**2)**0.5
                             if snrtot > (st.prefs.sigma_kalman**2 + st.prefs.sigma_image1**2)**0.5:
@@ -1006,13 +1006,13 @@ def search_thresh_armk(st, data, uvw, integrations=None, spec_std=None,
                                  peaky)
                 util.phase_shift(spec, uvw=uvw, dl=l, dm=m)
                 spec = spec[0].real.mean(axis=2).mean(axis=0)
-                if np.count_nonzero(spec)/len(spec) < 1-st.prefs.max_zerofrac:
+                if np.count_nonzero(spec)/len(spec) > 1-st.prefs.max_zerofrac:
                     significance_kalman = -kalman_significance(spec, spec_std,
                                                                sig_ts=sig_ts,
                                                                coeffs=coeffs)
                     snrk = (2*significance_kalman)**0.5
                 else:
-                    logger.warning("snrk set to 0, since {0}/{1} are zeroed".format(np.count_nonzero(spec), len(spec)))
+                    logger.warning("snrk set to 0, since {0}/{1} are zeroed".format(len(spec)-np.count_nonzero(spec), len(spec)))
                     snrk = 0.
                 snrtot = (snrk**2 + snrarms[i, j]**2)**0.5
                 if (snrtot > (st.prefs.sigma_kalman**2 + st.prefs.sigma_arms**2)**0.5) and (snrtot > snrlast):
