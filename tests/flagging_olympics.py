@@ -131,9 +131,10 @@ def stdata(request):
                'clustercands': True,
                'timesub': 'mean', 'gainfile': gainfile, 'sigma_image1': 7.,
                'sigma_arm': 3, 'sigma_arms': 5, 'sigma_kalman': 1,
-               'searchfeatures': ('snr1', 'l1', 'm1', 'immax1'),
+               'searchfeatures': ('snr1', 'snrk', 'l1', 'm1', 'immax1'),
                'searchtype': 'image', 'memory_limit': 64, 'saveplots': True,
-               'savecandcollection': True,
+               'savecandcollection': True, 'returncanddata': True,
+               'savecanddata': True,
                'apply_chweights': False, 'apply_blweights': False}
     return rfpipe.state.State(inmeta=inmeta, inprefs=inprefs)
 

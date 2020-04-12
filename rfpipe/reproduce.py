@@ -86,13 +86,14 @@ def reproduce_candcollection(cc, data=None, wisdom=None, spec_std=None,
                         if feature == 'snrk':
                             if 'snrk' not in cc.array.dtype.fields:
                                 spec = data_corr.real.mean(axis=3).mean(axis=1)[candloc[1]]
-                                if np.count_nonzero(spec)/len(spec) < 1-st.prefs.max_zerofrac:
+
+                                if np.count_nonzero(spec)/len(spec) > 1-st.prefs.max_zerofrac:
                                     significance_kalman = -kalman_significance(spec, spec_std,
                                                                                sig_ts=sig_ts,
                                                                                coeffs=kalman_coeffs)
                                     snrk = (2*significance_kalman)**0.5
                                 else:
-                                    logger.warning("snrk set to 0, since {0}/{1} are zeroed".format(np.count_nonzero(spec), len(spec)))
+                                    logger.warning("snrk set to 0, since {0}/{1} are zeroed".format(len(spec)-np.count_nonzero(spec), len(spec)))
                                     snrk = 0.
                                 logger.info("Calculated snrk of {0} after detection. "
                                             "Adding it to CandData.".format(snrk))
@@ -204,13 +205,13 @@ def pipeline_canddata(st, candloc, data_dmdt=None, spec_std=None, cpuonly=False,
     spec = data_dmdt.real.mean(axis=3).mean(axis=1)[candloc[1]]
 
     if 'snrk' in st.features and 'snrk' not in kwargs:
-        if np.count_nonzero(spec)/len(spec) < 1-st.prefs.max_zerofrac:
+        if np.count_nonzero(spec)/len(spec) > 1-st.prefs.max_zerofrac:
             significance_kalman = -kalman_significance(spec, spec_std,
                                                        sig_ts=sig_ts,
                                                        coeffs=kalman_coeffs)
             snrk = (2*significance_kalman)**0.5
         else:
-            logger.warning("snrk set to 0, since {0}/{1} are zeroed".format(np.count_nonzero(spec), len(spec)))
+            logger.warning("snrk set to 0, since {0}/{1} are zeroed".format(len(spec)-np.count_nonzero(spec), len(spec)))
             snrk = 0.
         logger.info("Calculated snrk of {0} after detection. Adding it to CandData.".format(snrk))
         kwargs['snrk'] = snrk
