@@ -279,7 +279,7 @@ def rfgpu_gridimage(st, segment, grid, image, vis_raw, vis_grid, img_grid,
                         if np.count_nonzero(spec)/len(spec) > 1-st.prefs.max_zerofrac:
                             significance_kalman = -kalman_significance(spec, spec_std,
                                                                        sig_ts=sig_ts,
-                                                                       coeffs=coeffs)
+                                                                       coeffs=kalman_coeffs)
                             snrk = (2*significance_kalman)**0.5
                         else:
                             logger.warning("snrk set to 0, since {0}/{1} are zeroed".format(len(spec)-np.count_nonzero(spec), len(spec)))
@@ -393,7 +393,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
                             if np.count_nonzero(spec)/len(spec) > 1-st.prefs.max_zerofrac:
                                 significance_kalman = -kalman_significance(spec, spec_std,
                                                                            sig_ts=sig_ts,
-                                                                           coeffs=coeffs)
+                                                                           coeffs=kalman_coeffs)
                                 snrk = (2*significance_kalman)**0.5
                             else:
                                 logger.warning("snrk set to 0, since {0}/{1} are zeroed".format(len(spec)-np.count_nonzero(spec), len(spec)))
@@ -1009,7 +1009,7 @@ def search_thresh_armk(st, data, uvw, integrations=None, spec_std=None,
                 if np.count_nonzero(spec)/len(spec) > 1-st.prefs.max_zerofrac:
                     significance_kalman = -kalman_significance(spec, spec_std,
                                                                sig_ts=sig_ts,
-                                                               coeffs=coeffs)
+                                                               coeffs=kalman_coeffs)
                     snrk = (2*significance_kalman)**0.5
                 else:
                     logger.warning("snrk set to 0, since {0}/{1} are zeroed".format(len(spec)-np.count_nonzero(spec), len(spec)))
