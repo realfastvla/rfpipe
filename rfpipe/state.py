@@ -700,6 +700,24 @@ class State(object):
 
         return self._corrections
 
+    def get_radec(self, segment=None, ref_pc=None):
+        """ Return radec in radians for the segment.
+        Requires segment, if in otf mode.
+        ref_pc will be guessed as middle, if not provided.
+        """
+
+        if st.metadata.phasecenters is not None:
+            assert segment is not None
+            if ref_pc is None:
+                ref_pc = len(st.otfcorrections[segment])//2  # get reference phase center
+            ints, ra0, dec0 = st.otfcorrections[segment][ref_pc]
+            radec = (np.radians(ra0), np.radians(dec0))
+        else:
+            radec = st.metadata.radec
+
+        return radec
+
+
     def pixtolm(self, pix):
         """ Helper function to calculate (l,m) coords of given pixel.
         Example: st.pixtolm(np.where(im == im.max()))

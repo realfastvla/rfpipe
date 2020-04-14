@@ -315,18 +315,8 @@ def get_uvw_segment(st, segment, ref_pc=None, raw=False):
     else:
         antpos = st.metadata.antpos
 
-    # use radec of best phasecenter for segment
-    if st.metadata.phasecenters is not None:
-        logger.info('Inferring otf mode for uvw calculation')
-        if ref_pc is None:
-            ref_pc = len(st.otfcorrections[segment])//2  # get reference phase center
-        ints, ra0, dec0 = st.otfcorrections[segment][ref_pc]
-        radec = (np.radians(ra0), np.radians(dec0))
-#        mjd = st.segmenttimes[segment][0] + np.mean(ints)*st.inttime/(24*3600)
-        mjd = st.segmenttimes[segment].mean()
-    else:
-        radec = st.metadata.radec
-        mjd = st.segmenttimes[segment].mean()
+    radec = st.get_radec(segment, ref_pc=ref_pc)
+    mjd = st.segmenttimes[segment].mean()
     mjdstr = time.Time(mjd, format='mjd').iso.replace('-', '/').replace(' ', '/')
 
     (ur, vr, wr) = calc_uvw(datetime=mjdstr, radec=radec,
