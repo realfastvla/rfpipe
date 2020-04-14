@@ -337,7 +337,7 @@ def sdm_metadata(sdmfile, scan, subscan=1, bdfdir=None):
         meta['spw_reffreq'] = np.array(meta['spw_reffreq'])[mask].tolist()
         meta['spw_nchan'] = np.array(meta['spw_nchan'])[mask].tolist()
         meta['spw_chansize'] = np.array(meta['spw_chansize'])[mask].tolist()
-        meta['spw_orig'] = np.array(meta['spw_orig'])[mask].tolist()
+        meta['spw_orig'] = list(range(mask.sum()))
 
     try:
         meta['pols_orig'] = scanobj.bdf.spws[0].pols('cross')
