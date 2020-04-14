@@ -706,14 +706,14 @@ class State(object):
         ref_pc will be guessed as middle, if not provided.
         """
 
-        if st.metadata.phasecenters is not None:
+        if self.metadata.phasecenters is not None:
             assert segment is not None
             if ref_pc is None:
-                ref_pc = len(st.otfcorrections[segment])//2  # get reference phase center
-            ints, ra0, dec0 = st.otfcorrections[segment][ref_pc]
+                ref_pc = len(self.otfcorrections[segment])//2  # get reference phase center
+            ints, ra0, dec0 = self.otfcorrections[segment][ref_pc]
             radec = (np.radians(ra0), np.radians(dec0))
         else:
-            radec = st.metadata.radec
+            radec = self.metadata.radec
 
         return radec
 
