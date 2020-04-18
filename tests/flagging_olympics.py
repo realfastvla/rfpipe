@@ -135,7 +135,12 @@ def stdata(request):
                'searchtype': 'image', 'memory_limit': 64, 'saveplots': True,
                'savecandcollection': True, 'returncanddata': True,
                'savecanddata': True,
-               'apply_chweights': False, 'apply_blweights': False}
+               'apply_chweights': False, 'apply_blweights': False,
+#               'flaglist': [('badchtslide', 4.0, 20),
+#                            ('badchtslide', 4.0, 20),
+#                            ('badspw', 3.0),
+#                            ('blstd', 2.5, 0.008)]
+               }
     return rfpipe.state.State(inmeta=inmeta, inprefs=inprefs)
 
 @needsdata

@@ -99,25 +99,27 @@ def flag_badchtslide(data, spwchans, sigma, win):
 
 
 def flag_badspw(data, spwchans, sigma):
-    """ Use data median variance between spw to flag spw
-    Also flags spw with fewer than 5 channels.
+    """ Use data median variance between spw-pols to flag outliers.
+    Also flags spw-pols with fewer than 5 channels.
     Best to use this after flagging bad channels.
     """
 
-    nspw = len(spwchans)
+    nspw = len(spwchans)*2  # 2 pols assumed
 
     if nspw >= 4:
         # calc badspw
 #        spec = np.abs(data).mean(axis=3).mean(axis=1).mean(axis=0)  # memory intensive and slow
-        spec = np.abs(data.mean(axis=0).mean(axis=2)).mean(axis=0)  # probably better
+#        spec = np.abs(data.mean(axis=0).mean(axis=2)).mean(axis=0)  # probably better
+        spec = np.abs(data.mean(axis=0)).mean(axis=0)  # keep pols separate
         deviations = []
         for chans in spwchans:
-            if spec[chans].count() >= 5:
-                deviations.append(np.ma.std(spec[chans]))
-            else:
-                deviations.append(0)
-        deviations = np.ma.masked_equal(np.nan_to_num(deviations), 0)
-        logger.info("badspw flagging finds deviations per spw: {0}"
+            for pol in [0, 1]:
+                if spec[chans, pol].count() >= 5:
+                    deviations.append(np.ma.std(spec[chans, pol]))
+                else:
+                    deviations.append(0)
+        deviations = np.ma.masked_equal(np.nan_to_num(deviations), 0).flatten()
+        logger.info("badspw flagging finds deviations per spw-pol: {0}"
                     .format(deviations))
 
         badspw = []
@@ -125,16 +127,19 @@ def flag_badspw(data, spwchans, sigma):
         badspwnew = np.where(deviations > sigma*np.ma.std(deviations) + np.ma.median(deviations))[0] 
         while len(badspwnew) > len(badspw):
             badspw = badspwnew
-            goodspw = [spw for spw in range(nspw) if spw not in badspw]
+            goodspw = [spwpol for spwpol in range(nspw) if spwpol not in badspw]
             badspwnew = np.where(deviations > sigma*np.ma.std(deviations.take(goodspw)) + np.ma.median(deviations.take(goodspw)))[0]
 
-        badspw = np.concatenate((badspw, np.where(deviations.mask)[0])).astype(int)
+#        badspw = np.concatenate((badspw, np.where(deviations.mask)[0])).astype(int)
+        deviations[badspw] = np.ma.masked
 
-        logger.info("flagged {0}/{1} spw ({2})"
-                    .format(len(badspw), nspw, badspw))
+        logger.info("flagged {0}/{1} spw-pol ({2})"
+                    .format(len(np.where(deviations.mask)[0]), nspw, np.where(deviations.mask)[0]))
 
-        for i in badspw:
-            data.mask[:, :, spwchans[i], :] = True
+        for i in range(nspw//2):
+            for j in range(2):
+                if deviations.mask.reshape(nspw//2, 2)[i, j]:
+                    data.mask[:, :, spwchans[i], j] = np.ma.masked
 
     else:
         logger.warning("Fewer than 4 spw. Not performing badspw detetion.")
