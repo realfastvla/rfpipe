@@ -34,7 +34,8 @@ inprefs = [{'dmarr': [50], 'dtarr': [1], 'npix_max': 2048,
             'sigma_arm': 3, 'sigma_arms': 5, 'sigma_kalman': 1}]
 
 # FRB 121102 data
-indata = [('16A-459_TEST_1hr.57623.72670021991.cut', 6, '16A-459_TEST_1hr.57623.72670021991.GN'),
+indata = [
+          ('16A-459_TEST_1hr.57623.72670021991.cut', 6, '16A-459_TEST_1hr.57623.72670021991.GN'),
           ('16A-459_TEST_1hr_000.57633.66130137732.scan7.cut', 7, '16A-459_TEST_1hr_000.57633.66130137732.GN'),
           ('16A-459_TEST_1hr_000.57633.66130137732.scan13.cut', 13, '16A-459_TEST_1hr_000.57633.66130137732.GN'),
           ('16A-496_sb32698778_1_02h00m.57638.42695471065.cut', 29, '16A-496_sb32698778_1_02h00m.57638.42695471065.GN'),
@@ -50,7 +51,8 @@ indata = [('16A-459_TEST_1hr.57623.72670021991.cut', 6, '16A-459_TEST_1hr.57623.
           ('realfast_TFST0001_sb35956455_1_1.20_5_002.58542.87453930556_1551388334900', 1, 'TFST0001_sb35956455_1_1.20_5_002.58542.87453930556.GN')]
 
 # ideal SNR of FRB 121102 detections at DM=560.0
-snrs = {'16A-459_TEST_1hr.57623.72670021991.cut': 37.,
+snrs = {
+        '16A-459_TEST_1hr.57623.72670021991.cut': 37.,
         '16A-459_TEST_1hr_000.57633.66130137732.scan7.cut': 174.,
         '16A-459_TEST_1hr_000.57633.66130137732.scan13.cut': 14.,
         '16A-496_sb32698778_1_02h00m.57638.42695471065.cut': 11.,
@@ -142,16 +144,19 @@ def stdata(request):
                'savecandcollection': True, 'returncanddata': True,
                'savecanddata': True,
                'apply_chweights': False, 'apply_blweights': False,
-               'flaglist': [('badchtslide', 4.0, 20),
-                            ('badchtslide', 4.0, 20),
+               'flaglist': [('badchtslide', 3.0, 20),
+                            ('badchtslide', 3.0, 20),
                             ('badspw', 3.0),
-                            ('blstd', 3.0, 0.008)]
+                            ('blstd', 2.5, 0.008)]
                }
-    st = rfpipe.state.State(inmeta=inmeta, inprefs=inprefs)
+
+    st = rfpipe.state.State(inmeta=inmeta, inprefs=inprefs, showsummary=False)
     if 'realfast_' in st.metadata.scanId:  # different for RFI tests
+        print('modifying mindm and dtarr')
         st.prefs.mindm = 0
         st.prefs.dtarr = [1,2,4,8]
-
+        st.clearcache()
+        
     return st
 
 

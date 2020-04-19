@@ -45,10 +45,10 @@ class Preferences(object):
     l0 = attr.ib(default=0.)  # in radians
     m0 = attr.ib(default=0.)  # in radians
     timesub = attr.ib(default=None)  # None, 'mean', '2pt'
-    flaglist = attr.ib(default=[('badchtslide', 4., 20),
-                                ('badchtslide', 4., 20),
+    flaglist = attr.ib(default=[('badchtslide', 3., 20),
+                                ('badchtslide', 3, 20),
                                 ('badspw', 3.),
-                                ('blstd', 3., 0.008)])
+                                ('blstd', 2.5, 0.008)])
     ignore_spwedge = attr.ib(default=0.075)  # fraction of each spw edge to ignore when selecting data
     flagantsol = attr.ib(default=True)
     badspwpol = attr.ib(default=2.)  # 0 means no flagging done
