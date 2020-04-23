@@ -1448,7 +1448,7 @@ def candplot(canddatalist, snrs=None, outname=''):
 
         # either standard radec or otf phasecenter radec
         pt_ra, pt_dec = st.get_radec(segment)
-        src_ra, src_dec = source_location(pt_ra, pt_dec, l1, m1)
+        src_ra, src_dec = source_location(pt_ra, pt_dec, l1, m1, format='hourdeg')
         logger.info('Peak (RA, Dec): ({0}, {1})'.format(src_ra, src_dec))
 
         # convert l1 and m1 from radians to arcminutes
@@ -1858,52 +1858,23 @@ def candplot(canddatalist, snrs=None, outname=''):
             logger.warning('Could not write figure to {0}'.format(outname))
 
 
-def source_location(pt_ra, pt_dec, l1, m1):
+def source_location(pt_ra, pt_dec, l1, m1, format='hourdeg'):
     """ Takes phase center and src l,m in radians to get ra,dec of source.
-    Returns sexagesimal string as from astropy.coordinates.
+    Returns sexagesimal string as from astropy.coordinates by default.
+    Option to set format='deg' for ra/dec in deg.
     """
 
     srcra = np.degrees(pt_ra + l1/cos(pt_dec))
     srcdec = np.degrees(pt_dec + m1)
 
     co = coordinates.SkyCoord(srcra, srcdec, unit=(units.deg, units.deg))
-    ra = co.ra.to_string(unit=units.hour)
-    dec = co.dec.to_string(unit=units.deg)
+    if 'hour' in format:
+        ra = co.ra.to_value(units.hourangle)
+    else:
+        ra = co.ra.to_value(units.deg)
+    dec = co.dec.to_value(units.deg)
 
     return (ra, dec)
-#    return deg2HMS(srcra, srcdec)
-
-
-def deg2HMS(ra=None, dec=None, round=False):
-    """ quick and dirty coord conversion. googled to find bdnyc.org.
-    """
-    RA, DEC, rs, ds = '', '', '', ''
-    if dec is not None:
-        if str(dec)[0] == '-':
-            ds, dec = '-', abs(dec)
-        deg = int(dec)
-        decM = abs(int((dec-deg)*60))
-        if round:
-            decS = int((abs((dec-deg)*60)-decM)*60)
-        else:
-            decS = (abs((dec-deg)*60)-decM)*60
-        DEC = '{0}{1} {2} {3}'.format(ds, deg, decM, decS)
-
-    if ra is not None:
-        if str(ra)[0] == '-':
-            rs, ra = '-', abs(ra)
-        raH = int(ra/15)
-        raM = int(((ra/15)-raH)*60)
-        if round:
-            raS = int(((((ra/15)-raH)*60)-raM)*60)
-        else:
-            raS = ((((ra/15)-raH)*60)-raM)*60
-        RA = '{0}{1} {2} {3}'.format(rs, raH, raM, raS)
-
-    if ra is not None and dec is not None:
-        return (RA, DEC)
-    else:
-        return RA or DEC
 
 
 def make_voevent(candcollection, role='test'):
@@ -1952,13 +1923,13 @@ def make_voevent(candcollection, role='test'):
         l1 = candcollection.candl[n1]
         m1 = candcollection.candm[n1]
         
-        #get FRB RA & DEC location in degrees --> NOTE: Stole this from source_location
+        #get FRB RA & DEC location in degrees
         pt_ra, pt_dec = st.get_radec(segment)
-        srcra, srcdec = source_location(pt_ra, pt_dec, l1, m1)
+        srcra, srcdec = source_location(pt_ra, pt_dec, l1, m1, format='deg')
         im_pix_scale = np.degrees((st.npixx*st.uvres)**-1.0) #degrees per pixel
         srcloc_err = im_pix_scale #set source location uncertainty to the pixel scale, for now --> assumes source only fills a single pixel
         #put location into SkyCoord
-        FRB_loc = coordinates.SkyCoord(srcra,srcdec,frame='icrs',unit='deg')
+        FRB_loc = coordinates.SkyCoord(srcra, srcdec,frame='icrs',unit='deg')
         #FRB galactic coordinates
         FRB_gl = FRB_loc.galactic.l.deg
         FRB_gb = FRB_loc.galactic.b.deg
