@@ -9,8 +9,8 @@ import random
 from numba import cuda, guvectorize
 from numba import jit, complex64, int64, float32
 #from pwkit.environments.casa.util import tools
-import casatools as tools
 from scipy import constants
+import casatools as tools
 import sdmpy
 from rfpipe import calibration
 from astropy import time

@@ -1448,7 +1448,7 @@ def candplot(canddatalist, snrs=None, outname=''):
 
         # either standard radec or otf phasecenter radec
         pt_ra, pt_dec = st.get_radec(segment)
-        src_ra, src_dec = source_location(pt_ra, pt_dec, l1, m1, format='hourdeg')
+        src_ra, src_dec = source_location(pt_ra, pt_dec, l1, m1, format='hourstr')
         logger.info('Peak (RA, Dec): ({0}, {1})'.format(src_ra, src_dec))
 
         # convert l1 and m1 from radians to arcminutes
@@ -1858,21 +1858,24 @@ def candplot(canddatalist, snrs=None, outname=''):
             logger.warning('Could not write figure to {0}'.format(outname))
 
 
-def source_location(pt_ra, pt_dec, l1, m1, format='hourdeg'):
+def source_location(pt_ra, pt_dec, l1, m1, format='hourstr'):
     """ Takes phase center and src l,m in radians to get ra,dec of source.
-    Returns sexagesimal string as from astropy.coordinates by default.
-    Option to set format='deg' for ra/dec in deg.
+    Returns sexagesimal string as from astropy.coordinates by default (format='hourstr')
+    Option to set format='degfloat' for ra/dec in deg as floats.
     """
 
     srcra = np.degrees(pt_ra + l1/cos(pt_dec))
     srcdec = np.degrees(pt_dec + m1)
 
     co = coordinates.SkyCoord(srcra, srcdec, unit=(units.deg, units.deg))
-    if 'hour' in format:
-        ra = co.ra.to_value(units.hourangle)
-    else:
+    if format == 'hourstr':
+        ra = str(co.ra.to_string(units.hourangle))
+        dec = str(co.dec.to_string(units.deg))
+    elif format == 'degfloat':
         ra = co.ra.to_value(units.deg)
-    dec = co.dec.to_value(units.deg)
+        dec = co.dec.to_value(units.deg)
+    else:
+        logger.warn("format not known")
 
     return (ra, dec)
 
@@ -1925,11 +1928,11 @@ def make_voevent(candcollection, role='test'):
         
         #get FRB RA & DEC location in degrees
         pt_ra, pt_dec = st.get_radec(segment)
-        srcra, srcdec = source_location(pt_ra, pt_dec, l1, m1, format='deg')
+        srcra, srcdec = source_location(pt_ra, pt_dec, l1, m1, format='degfloat')
         im_pix_scale = np.degrees((st.npixx*st.uvres)**-1.0) #degrees per pixel
         srcloc_err = im_pix_scale #set source location uncertainty to the pixel scale, for now --> assumes source only fills a single pixel
         #put location into SkyCoord
-        FRB_loc = coordinates.SkyCoord(srcra, srcdec,frame='icrs',unit='deg')
+        FRB_loc = coordinates.SkyCoord(srcra, srcdec, frame='icrs',unit='deg')
         #FRB galactic coordinates
         FRB_gl = FRB_loc.galactic.l.deg
         FRB_gb = FRB_loc.galactic.b.deg
