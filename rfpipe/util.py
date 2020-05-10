@@ -53,7 +53,8 @@ def phase_shift(data, uvw=None, dl=None, dm=None, dw=None, ints=None):
         _phaseshiftdw_jit(data, dw, ints=ints)
     else:
         logger.warn("phase_shift requires either uvw/dl/dm or dw")
-            
+
+
 @jit(nogil=True, nopython=True, cache=True)
 def _phaseshiftlm_jit(data, u, v, w, dl, dm, ints):
 
@@ -278,13 +279,16 @@ def calc_dmarr(state):
 
     return dmgrid_final
 
+
 @jit(nopython=True)
 def loss(dm_pulsewidth, tsamp, k, ch, freq, bw, dm, ddm):
     return 1 - np.sqrt(dt0(dm_pulsewidth, tsamp, k, ch, freq, dm)/dt1(dm_pulsewidth, tsamp, k, ch, freq, bw, dm, ddm))
 
+
 @jit(nopython=True)
 def dt0(dm_pulsewidth, tsamp, k, ch, freq, dm):
     return np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2)
+
 
 @jit(nopython=True)
 def dt1(dm_pulsewidth, tsamp, k, ch, freq, bw, dm, ddm):
@@ -316,7 +320,12 @@ def get_uvw_segment(st, segment, ref_pc=None, raw=False):
         antpos = st.metadata.antpos
 
     radec = st.get_radec(segment, ref_pc=ref_pc)
-    mjd = st.segmenttimes[segment].mean()
+    if ref_pc is not None:  # TODO: make this a method on the state as in get_radec?
+        assert st.metadata.phasecenters is not None
+        (startmjd, stopmjd, ra_deg, dec_deg) = st.metadata.phasecenters[ref_pc]
+        mjd = np.mean([startmjd, stopmjd])
+    else:
+        mjd = st.segmenttimes[segment].mean()
     mjdstr = time.Time(mjd, format='mjd').iso.replace('-', '/').replace(' ', '/')
 
     (ur, vr, wr) = calc_uvw(datetime=mjdstr, radec=radec,
