@@ -707,7 +707,7 @@ class State(object):
 
         if pc is not None:
             assert self.metadata.phasecenters is not None
-            ra0, dec0 = self.metadata.phasecenters[pc]
+            (startmjd, stopmjd, ra0, dec0) = self.metadata.phasecenters[pc]
             radec = (np.radians(ra0), np.radians(dec0))
         else:
             radec = self.metadata.radec
@@ -721,8 +721,6 @@ class State(object):
         
         if pc is None:
             assert self.metadata.phasecenters is not None
-            ipc = len(self.otfcorrections[segment])//2  # get reference phase center
-            pc, ints, ra0, dec0 = self.otfcorrections[segment][ipc]
             (startmjd, stopmjd, ra_deg, dec_deg) = self.metadata.phasecenters[pc]  ## WRONG
             mjd = np.mean([startmjd, stopmjd])
         else:
