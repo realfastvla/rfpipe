@@ -700,17 +700,14 @@ class State(object):
 
         return self._corrections
 
-    def get_radec(self, segment=None, pc=None):
+    def get_radec(self, pc=None):
         """ Return radec in radians for the segment.
-        Requires segment, if in otf mode.
         pc should be absolute phase center in scan.
         """
 
-        if self.metadata.phasecenters is not None:
-            assert segment is not None
-            if pc is None:
-                ipc = len(self.otfcorrections[segment])//2  # get reference phase center
-                pc, ints, ra0, dec0 = self.otfcorrections[segment][ipc]
+        if pc is not None:
+            assert self.metadata.phasecenters is not None
+            ra0, dec0 = self.metadata.phasecenters[pc]
             radec = (np.radians(ra0), np.radians(dec0))
         else:
             radec = self.metadata.radec
@@ -723,13 +720,13 @@ class State(object):
         """
         
         if pc is None:
-            assert st.metadata.phasecenters is not None
+            assert self.metadata.phasecenters is not None
             ipc = len(self.otfcorrections[segment])//2  # get reference phase center
             pc, ints, ra0, dec0 = self.otfcorrections[segment][ipc]
-            (startmjd, stopmjd, ra_deg, dec_deg) = st.metadata.phasecenters[pc]  ## WRONG
+            (startmjd, stopmjd, ra_deg, dec_deg) = self.metadata.phasecenters[pc]  ## WRONG
             mjd = np.mean([startmjd, stopmjd])
         else:
-            mjd = st.segmenttimes[segment].mean()
+            mjd = self.segmenttimes[segment].mean()
 
         return mjd
 

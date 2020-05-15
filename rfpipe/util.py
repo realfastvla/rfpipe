@@ -319,7 +319,7 @@ def get_uvw_segment(st, segment, pc=None, raw=False):
     else:
         antpos = st.metadata.antpos
 
-    radec = st.get_radec(segment, pc=pc)
+    radec = st.get_radec(pc=pc)
     mjd = st.get_mjd(segment, pc=pc)
     mjdstr = time.Time(mjd, format='mjd').iso.replace('-', '/').replace(' ', '/')
 
