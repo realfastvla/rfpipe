@@ -685,12 +685,12 @@ class State(object):
                     (startmjd, stopmjd, ra_deg, dec_deg) = self.metadata.phasecenters[j]
                     if len(pcts[j]):
                         ints0 = pcts[j]
-                        logger.debug("Segment {0}, ints {1} will have phase center at {2},{3}"
-                                    .format(segment, ints0, ra_deg, dec_deg))
-                        corrs.append((ints0, ra_deg, dec_deg),)
+                        logger.debug("Segment {0}, ints {1} will have phase center {2} at {3},{4}"
+                                    .format(segment, ints0, j, ra_deg, dec_deg))
+                        corrs.append((j, ints0, ra_deg, dec_deg),)
                     else:
-                        logger.debug("Phase center ({0},{1}) not in segment ({2}-{3})"
-                                     .format(ra_deg, dec_deg, segmenttime0,
+                        logger.debug("Phase center {0} (at {1},{2}) not in segment ({3}-{4})"
+                                     .format(j, ra_deg, dec_deg, segmenttime0,
                                              segmenttime1))
                 if not any(pcts.values()):
                     logger.warning("phasecenters found, but not overlapping with segment {0}"
@@ -700,23 +700,38 @@ class State(object):
 
         return self._corrections
 
-    def get_radec(self, segment=None, ref_pc=None):
+    def get_radec(self, segment=None, pc=None):
         """ Return radec in radians for the segment.
         Requires segment, if in otf mode.
-        ref_pc will be guessed as middle, if not provided.
+        pc should be absolute phase center in scan.
         """
 
         if self.metadata.phasecenters is not None:
             assert segment is not None
-            if ref_pc is None:
-                ref_pc = len(self.otfcorrections[segment])//2  # get reference phase center
-            ints, ra0, dec0 = self.otfcorrections[segment][ref_pc]
+            if pc is None:
+                ipc = len(self.otfcorrections[segment])//2  # get reference phase center
+                pc, ints, ra0, dec0 = self.otfcorrections[segment][ipc]
             radec = (np.radians(ra0), np.radians(dec0))
         else:
             radec = self.metadata.radec
 
         return radec
 
+    def get_mjd(self, segment, pc=None):
+        """ Returns mjd for a given segment (and optionally a phase center)
+        pc should be absolute phase center in scan.
+        """
+        
+        if pc is None:
+            assert st.metadata.phasecenters is not None
+            ipc = len(self.otfcorrections[segment])//2  # get reference phase center
+            pc, ints, ra0, dec0 = self.otfcorrections[segment][ipc]
+            (startmjd, stopmjd, ra_deg, dec_deg) = st.metadata.phasecenters[pc]  ## WRONG
+            mjd = np.mean([startmjd, stopmjd])
+        else:
+            mjd = st.segmenttimes[segment].mean()
+
+        return mjd
 
     def pixtolm(self, pix):
         """ Helper function to calculate (l,m) coords of given pixel.

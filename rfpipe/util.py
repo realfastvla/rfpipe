@@ -295,11 +295,11 @@ def dt1(dm_pulsewidth, tsamp, k, ch, freq, bw, dm, ddm):
     return np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2 + ((k*ddm*bw)/(freq**3.))**2)
 
 
-def get_uvw_segment(st, segment, ref_pc=None, raw=False):
+def get_uvw_segment(st, segment, pc=None, raw=False):
     """ Returns uvw in units of baselines for a given segment.
     Tuple of u, v, w given with each a numpy array of (nbl, nchan) shape.
     If available, uses a lock to control multithreaded casa measures call.
-    ref_pc is the reference phase center used when segment spans multiple otf phase centers.
+    ipc is the reference phase center used when segment spans multiple otf phase centers (absolute).
     raw defines whether uvw calc for all channels (metadata.freq_orig) or selected (state.freq)
     """
 
@@ -319,13 +319,8 @@ def get_uvw_segment(st, segment, ref_pc=None, raw=False):
     else:
         antpos = st.metadata.antpos
 
-    radec = st.get_radec(segment, ref_pc=ref_pc)
-    if ref_pc is not None:  # TODO: make this a method on the state as in get_radec?
-        assert st.metadata.phasecenters is not None
-        (startmjd, stopmjd, ra_deg, dec_deg) = st.metadata.phasecenters[ref_pc]
-        mjd = np.mean([startmjd, stopmjd])
-    else:
-        mjd = st.segmenttimes[segment].mean()
+    radec = st.get_radec(segment, pc=pc)
+    mjd = st.get_mjd(segment, pc=pc)
     mjdstr = time.Time(mjd, format='mjd').iso.replace('-', '/').replace(' ', '/')
 
     (ur, vr, wr) = calc_uvw(datetime=mjdstr, radec=radec,

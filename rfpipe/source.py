@@ -164,7 +164,7 @@ def prep_standard(st, segment, data):
     if not np.any(data):
         return data
 
-    if st.prefs.simulated_transient is not None or st.otfcorrections is not None:
+    if st.prefs.simulated_transient is not None:
         uvw = util.get_uvw_segment(st, segment)
 
     # optionally integrate (downsample)
@@ -245,21 +245,22 @@ def apply_otfcorrections(st, segment, data, raw=False):
 
     # shift phasecenters to first phasecenter in segment
     if len(st.otfcorrections[segment]) > 1:
-        ref_pc = len(st.otfcorrections[segment])//2  # get reference phase center
-        u0, v0, w0 = util.get_uvw_segment(st, segment, ref_pc=ref_pc, raw=raw)
+        ref_ipc = len(st.otfcorrections[segment])//2
+        (pc, ints, ra_deg, dec_deg) = st.otfcorrections[segment][ref_ipc]  # get reference phase center
+        u0, v0, w0 = util.get_uvw_segment(st, segment, pc=pc, raw=raw)
         # using dl,dm
 #        ints, ra0, dec0 = st.otfcorrections[segment][ref_pc]
         logger.info("Correcting {0} phasecenters to middle"
                     .format(len(st.otfcorrections[segment])-1))
-        for i, (ints, ra_deg, dec_deg) in enumerate(st.otfcorrections[segment]):
-            if i != ref_pc:
+        for i, (pc, ints, ra_deg, dec_deg) in enumerate(st.otfcorrections[segment]):
+            if i != ref_ipc:
                 # using dl,dm
 #                l0 = np.radians((ra_deg-ra0)*np.cos(np.radians(dec0)))
 #                m0 = np.radians(dec_deg-dec0)
 #                uvw = util.get_uvw_segment(st, segment, ref_pc=ref_pc)
 #                util.phase_shift(data, uvw=uvw, dl=-l0, dm=-m0, ints=ints, raw=raw)
                 # using dw
-                u1, v1, w1 = util.get_uvw_segment(st, segment, ref_pc=i, raw=raw)
+                u1, v1, w1 = util.get_uvw_segment(st, segment, pc=pc, raw=raw)
                 dw = w1-w0
                 util.phase_shift(data, dw=dw, ints=ints)
 
