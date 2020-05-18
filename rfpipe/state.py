@@ -719,7 +719,7 @@ class State(object):
         pc should be absolute phase center in scan.
         """
         
-        if pc is None:
+        if pc is not None:
             assert self.metadata.phasecenters is not None
             (startmjd, stopmjd, ra_deg, dec_deg) = self.metadata.phasecenters[pc]  ## WRONG
             mjd = np.mean([startmjd, stopmjd])
