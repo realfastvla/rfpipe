@@ -1447,7 +1447,8 @@ def candplot(canddatalist, snrs=None, outname=''):
                     .format(str(candloc), snrim, str(im.shape), str(data.shape)))
 
         # either standard radec or otf phasecenter radec
-        pt_ra, pt_dec = st.get_radec(segment)
+        pt_ra, pt_dec = st.get_radec()
+        # pt_ra, pt_dec = st.get_radec(pc=pc)  # TODO
         src_ra, src_dec = source_location(pt_ra, pt_dec, l1, m1, format='hourstr')
         logger.info('Peak (RA, Dec): ({0}, {1})'.format(src_ra, src_dec))
 
@@ -1927,7 +1928,8 @@ def make_voevent(candcollection, role='test'):
         m1 = candcollection.candm[n1]
         
         #get FRB RA & DEC location in degrees
-        pt_ra, pt_dec = st.get_radec(segment)
+        pt_ra, pt_dec = st.get_radec()
+        # radec = st.get_radec(pc=pc)  # TODO
         srcra, srcdec = source_location(pt_ra, pt_dec, l1, m1, format='degfloat')
         im_pix_scale = np.degrees((st.npixx*st.uvres)**-1.0) #degrees per pixel
         srcloc_err = im_pix_scale #set source location uncertainty to the pixel scale, for now --> assumes source only fills a single pixel
