@@ -63,6 +63,7 @@ def _phaseshiftlm_jit(data, u, v, w, dl, dm, ints):
     if (dl != 0.) or (dm != 0.):
         for j in range(sh[1]):
             for k in range(sh[2]):
+                # + np.sqrt(1-dl**2-dm**2)*w[j, k]))
                 frot = np.exp(-2j*np.pi*(dl*u[j, k] + dm*v[j, k]))
                 for i in ints:
                     for l in range(sh[3]):    # iterate over pols
@@ -77,7 +78,7 @@ def _phaseshiftdw_jit(data, dw, ints):
 
     for j in range(sh[1]):
         for k in range(sh[2]):
-            frot = np.exp(2j*np.pi*dw[j, k])
+            frot = np.exp(-2j*np.pi*dw[j, k])  # Q: which sign out front? needs 2pi?
             for i in ints:
                 for l in range(sh[3]):    # iterate over pols
                     # phasor unwraps phase at (dl, dm) per (bl, chan)

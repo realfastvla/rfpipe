@@ -721,7 +721,7 @@ class State(object):
         
         if pc is not None:
             assert self.metadata.phasecenters is not None
-            (startmjd, stopmjd, ra_deg, dec_deg) = self.metadata.phasecenters[pc]  ## WRONG
+            (startmjd, stopmjd, ra_deg, dec_deg) = self.metadata.phasecenters[pc]
             mjd = np.mean([startmjd, stopmjd])
         else:
             mjd = self.segmenttimes[segment].mean()
