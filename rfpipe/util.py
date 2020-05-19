@@ -296,11 +296,11 @@ def dt1(dm_pulsewidth, tsamp, k, ch, freq, bw, dm, ddm):
     return np.sqrt(dm_pulsewidth**2 + tsamp**2 + ((k*dm*ch)/(freq**3))**2 + ((k*ddm*bw)/(freq**3.))**2)
 
 
-def get_uvw_segment(st, segment, pc=None, raw=False):
+def get_uvw_segment(st, segment, pc_mjd=None, pc_radec=None, raw=False):
     """ Returns uvw in units of baselines for a given segment.
     Tuple of u, v, w given with each a numpy array of (nbl, nchan) shape.
     If available, uses a lock to control multithreaded casa measures call.
-    ipc is the reference phase center used when segment spans multiple otf phase centers (absolute).
+    The pc keywords are the (absolute within scan) phase center. One for radec and mjd calc.
     raw defines whether uvw calc for all channels (metadata.freq_orig) or selected (state.freq)
     """
 
@@ -320,8 +320,8 @@ def get_uvw_segment(st, segment, pc=None, raw=False):
     else:
         antpos = st.metadata.antpos
 
-    radec = st.get_radec(pc=pc)
-    mjd = st.get_mjd(segment, pc=pc)
+    radec = st.get_radec(pc=pc_radec)
+    mjd = st.get_mjd(segment, pc=pc_mjd)
     mjdstr = time.Time(mjd, format='mjd').iso.replace('-', '/').replace(' ', '/')
 
     (ur, vr, wr) = calc_uvw(datetime=mjdstr, radec=radec,

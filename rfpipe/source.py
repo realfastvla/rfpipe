@@ -246,10 +246,9 @@ def apply_otfcorrections(st, segment, data, raw=False):
     # shift phasecenters to first phasecenter in segment
     if len(st.otfcorrections[segment]) > 1:
         rel_ipc = len(st.otfcorrections[segment])//2
-        (pc, ints, ra0, dec0) = st.otfcorrections[segment][rel_ipc]  # get reference phase center
-        u0, v0, w0 = util.get_uvw_segment(st, segment, pc=pc, raw=raw)
+        (pc0, ints, ra0, dec0) = st.otfcorrections[segment][rel_ipc]  # get reference phase center
         logger.info("Correcting {0} phasecenters to pc {1}"
-                    .format(len(st.otfcorrections[segment])-1, pc))
+                    .format(len(st.otfcorrections[segment])-1, pc0))
         for i, (pc, ints, ra_deg, dec_deg) in enumerate(st.otfcorrections[segment]):
             if i != rel_ipc:
                 # using dl,dm
@@ -258,7 +257,8 @@ def apply_otfcorrections(st, segment, data, raw=False):
 #                uvw = util.get_uvw_segment(st, segment, pc=pc, raw=raw)
 #                util.phase_shift(data, uvw=uvw, dl=-l0, dm=-m0, ints=ints)
                 # using dw
-                u1, v1, w1 = util.get_uvw_segment(st, segment, pc=pc, raw=raw)
+                u0, v0, w0 = util.get_uvw_segment(st, segment, pc_radec=pc, pc_mjd=pc, raw=raw)
+                u1, v1, w1 = util.get_uvw_segment(st, segment, pc_radec=pc0, pc_mjd=pc, raw=raw)
                 dw = w1-w0
                 util.phase_shift(data, dw=dw, ints=ints)
 
