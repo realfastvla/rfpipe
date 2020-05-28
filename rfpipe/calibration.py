@@ -95,6 +95,9 @@ def getsols(st, threshold=1/10., onlycomplete=True, mode='realtime',
     reffreq, nchan, chansize = st.metadata.spw_sorted_properties
     skyfreqs = np.around([reffreq[i] + (chansize[i]*nchan[i]//2) for i in range(len(nchan))], -6)/1e6  # GN skyfreq is band center
 
+    if st.prefs.calmode == 'best' or st.prefs.calmode == 'realtime':
+        mode = st.prefs.calmode
+    
     sols = select(sols, time=st.segmenttimes.mean(), freqs=skyfreqs, mode=mode)
     if st.prefs.flagantsol:
         sols = flagants(sols, threshold=threshold,
