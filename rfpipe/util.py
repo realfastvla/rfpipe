@@ -219,6 +219,7 @@ def calc_delay(freq, freqref, dm, inttime, scale=None):
     Casts to int, so it uses a floor operation, not round.
     """
 
+    # TODO: implement shri's latest on scale a: 4.1513913646
     scale = 4.1488e-3 if not scale else scale
     delay = np.zeros(len(freq), dtype=np.int32)
 
