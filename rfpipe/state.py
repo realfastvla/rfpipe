@@ -737,7 +737,7 @@ class State(object):
 
         if self.metadata.phasecenters is not None:
             rel_ipc = len(self.otfcorrections[segment])//2
-            (pc0, ints, ra0, dec0) = st.otfcorrections[segment][rel_ipc]  # get reference phase center
+            (pc0, ints, ra0, dec0) = self.otfcorrections[segment][rel_ipc]  # get reference phase center
             return pc0
         else:
             return None
