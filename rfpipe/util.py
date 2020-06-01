@@ -306,9 +306,6 @@ def get_uvw_segment(st, segment, pc_mjd=None, pc_radec=None, raw=False):
 
     logger.debug("Getting uvw for segment {0}".format(segment))
 
-    if st.lock is not None:
-        st.lock.acquire()
-
     if st.prefs.excludeants:
         takeants = [st.metadata.antids.index(antname) for antname in st.ants]
         antpos = {}
@@ -325,9 +322,7 @@ def get_uvw_segment(st, segment, pc_mjd=None, pc_radec=None, raw=False):
     mjdstr = time.Time(mjd, format='mjd').iso.replace('-', '/').replace(' ', '/')
 
     (ur, vr, wr) = calc_uvw(datetime=mjdstr, radec=radec,
-                            antpos=antpos, telescope=st.metadata.telescope)
-    if st.lock is not None:
-        st.lock.release()
+                            antpos=antpos, telescope=st.metadata.telescope, lock=st.lock)
 
     if raw:
         u = np.outer(ur, st.metadata.freq_orig * (1e9/constants.c) * (-1))
@@ -341,10 +336,11 @@ def get_uvw_segment(st, segment, pc_mjd=None, pc_radec=None, raw=False):
     return u.astype('float32'), v.astype('float32'), w.astype('float32')
 
 
-def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
+def calc_uvw(datetime, radec, antpos, telescope='JVLA', lock=None):
     """ Calculates and returns uvw in meters for a given time and pointing direction.
     datetime is time (as string) to calculate uvw (format: '2014/09/03/08:33:04.20')
     radec is (ra,dec) as tuple in radians.
+    If available, uses a lock to control multithreaded casa measures call.
     Can optionally specify a telescope other than the JVLA.
     """
 
@@ -352,6 +348,9 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
     assert len(radec) == 2, 'radec must be (ra,dec) tuple in units of radians'
     ra, dec = radec
     assert (ra < 2*np.pi) and (ra > -2*np.pi) and (dec > -np.pi) and (dec < np.pi), 'ra and/or dec out of range of radians'
+
+    if lock is not None:
+        lock.acquire()
 
     me = tools.measures()
 
@@ -367,6 +366,9 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA'):
     # calc bl
     bls = me.asbaseline(antpos)
     uvwlist = me.expand(me.touvw(bls)[0])[1]['value']
+
+    if lock is not None:
+        lock.release()
 
     # define new bl order to match sdm binary file bl order
     u = np.empty(int(len(uvwlist)/3), dtype='float32')
