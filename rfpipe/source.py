@@ -245,12 +245,13 @@ def apply_otfcorrections(st, segment, data, raw=False):
 
     # shift phasecenters to first phasecenter in segment
     if len(st.otfcorrections[segment]) > 1:
-        rel_ipc = len(st.otfcorrections[segment])//2
-        (pc0, ints, ra0, dec0) = st.otfcorrections[segment][rel_ipc]  # get reference phase center
+        # get reference phase center
+        pc0 = st.get_pc(segment)
+        ra0, dec0 = st.get_radec(pc=pc0)
         logger.info("Correcting {0} phasecenters to pc {1}"
                     .format(len(st.otfcorrections[segment])-1, pc0))
-        for i, (pc, ints, ra_deg, dec_deg) in enumerate(st.otfcorrections[segment]):
-            if i != rel_ipc:
+        for pc, ints, ra_deg, dec_deg in st.otfcorrections[segment]:
+            if pc != pc0:
                 # using dl,dm
 #                l0 = np.radians((ra_deg-ra0)*np.cos(np.radians(dec0)))
 #                m0 = np.radians(dec_deg-dec0)

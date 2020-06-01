@@ -714,7 +714,7 @@ class State(object):
 
         return radec
 
-    def get_mjd(self, segment, pc=None):
+    def get_mjd(self, segment=None, pc=None):
         """ Returns mjd for a given segment (and optionally a phase center)
         pc should be absolute phase center in scan.
         """
@@ -723,10 +723,24 @@ class State(object):
             assert self.metadata.phasecenters is not None
             (startmjd, stopmjd, ra_deg, dec_deg) = self.metadata.phasecenters[pc]
             mjd = np.mean([startmjd, stopmjd])
-        else:
+        elif segment is not None:
             mjd = self.segmenttimes[segment].mean()
+        else:
+            logger.warn("Must set segment or pc to get mjd")
+            mjd = None
 
         return mjd
+
+    def get_pc(self, segment):
+        """ Get the absolute phasecenter at the middle of a segment
+        """
+
+        if self.metadata.phasecenters is not None:
+            rel_ipc = len(self.otfcorrections[segment])//2
+            (pc0, ints, ra0, dec0) = st.otfcorrections[segment][rel_ipc]  # get reference phase center
+            return pc0
+        else:
+            return None
 
     def pixtolm(self, pix):
         """ Helper function to calculate (l,m) coords of given pixel.

@@ -1447,8 +1447,8 @@ def candplot(canddatalist, snrs=None, outname=''):
                     .format(str(candloc), snrim, str(im.shape), str(data.shape)))
 
         # either standard radec or otf phasecenter radec
-        pt_ra, pt_dec = st.get_radec()
-        # pt_ra, pt_dec = st.get_radec(pc=pc)  # TODO
+        pc = st.get_pc(segment)
+        pt_ra, pt_dec = st.get_radec(pc=pc)
         src_ra, src_dec = source_location(pt_ra, pt_dec, l1, m1, format='hourstr')
         logger.info('Peak (RA, Dec): ({0}, {1})'.format(src_ra, src_dec))
 
@@ -1928,8 +1928,8 @@ def make_voevent(candcollection, role='test'):
         m1 = candcollection.candm[n1]
         
         #get FRB RA & DEC location in degrees
-        pt_ra, pt_dec = st.get_radec()
-        # radec = st.get_radec(pc=pc)  # TODO
+        pc = st.get_pc(segment)
+        pt_ra, pt_dec = st.get_radec(pc=pc)
         srcra, srcdec = source_location(pt_ra, pt_dec, l1, m1, format='degfloat')
         im_pix_scale = np.degrees((st.npixx*st.uvres)**-1.0) #degrees per pixel
         srcloc_err = im_pix_scale #set source location uncertainty to the pixel scale, for now --> assumes source only fills a single pixel
@@ -1964,7 +1964,7 @@ def make_voevent(candcollection, role='test'):
         #if the 1/2 beam semi-minor axis is larger than the pixel scale, set the location uncertainty to 1/2 the semi-minor axis
         if 0.5*min(beam_size)>im_pix_scale: srcloc_err = 0.5*min(beam_size)
         
-        FRB_obstime = time.Time(FRB_obsmjd,format='mjd',scale='utc')
+        FRB_obstime = time.Time(FRB_obsmjd, format='mjd',scale='utc')
         #print(FRB_obstime)
         FRB_ISOT = FRB_obstime.isot #convert time to ISOT
         #print(FRB_ISOT)
