@@ -134,9 +134,8 @@ def parseGN(telcalfile):
     if telcalfile is not None:
         with open(telcalfile, 'r') as fp:
             for line in fp:
-
                 fields = line.split()
-                if i < skip:
+                if i < skip or 'NO_ANTSOL_SOLUTIONS_FOUND' in line:
                     i += 1
                     continue
                 try:
