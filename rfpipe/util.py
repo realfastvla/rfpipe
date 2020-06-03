@@ -9,7 +9,7 @@ import random
 from numba import cuda, guvectorize
 from numba import jit, complex64, int64, float32
 #from pwkit.environments.casa.util import tools
-from scipy import constants
+from scipy import constants, interpolate
 import casatools as tools
 import sdmpy
 from rfpipe import calibration
@@ -99,6 +99,9 @@ def meantsub(data, mode='mean'):
     elif mode == '2pt':
         logger.info('Subtracting 2pt time trend in visibility.')
         _2ptsub_jit(np.require(data, requirements='W'))
+    elif mode == 'cs':
+        logger.info("Subtracting cubic spline time trend in visibility")
+        _cssub(np.require(data, requirements='W'))
     else:
         logger.warn("meantsub mode not recognized")
 
@@ -178,6 +181,66 @@ def _2ptsub_jit(data):
                 else:  # or just blank data
                     for l in range(nint):
                         data[l, i, j, k] = 0j
+
+
+@jit(nogil=True, nopython=True, cache=True)
+def _2ptinterp_jit(data):
+    """ Calculate 2-pt time trend and evaluate to subtract at each time.
+    """
+
+    nint, nbl, nchan, npol = data.shape
+
+    for i in range(nbl):
+        for j in range(nchan):
+            for k in range(npol):
+                # first half mean
+                ss1 = complex64(0)
+                weight1 = int64(0)
+                for l in range(0, nint//2):
+                    ss1 += data[l, i, j, k]
+                    if data[l, i, j, k] != 0j:
+                        weight1 += 1
+                if weight1 > 0:
+                    mean1 = ss1/weight1
+                else:
+                    mean1 = complex64(0)
+
+                # second half mean
+                ss2 = complex64(0)
+                weight2 = int64(0)
+                for l in range(nint//2, nint):
+                    ss2 += data[l, i, j, k]
+                    if data[l, i, j, k] != 0j:
+                        weight2 += 1
+                if weight2 > 0:
+                    mean2 = ss2/weight2
+                else:
+                    mean2 = complex64(0)
+
+                ff = interpolate.interp1d([nint//4, 3*nint//4], [mean1, mean2],
+                                          fill_value='extrapolate')
+                for l in range(nint):
+                    if data[l, i, j, k] != 0j:
+                        data[l, i, j, k] -= slope*(l-nint//2) + mean0
+
+
+def _cssub(data):
+    """ Use scipy interpolate to subtract cubic spline
+    TODO: use zeroed data as flag.
+    TODO: use jit?
+    """
+
+    # use 4 windows to make interp1d cubic spline function
+    nint = len(data)//4
+
+    # TODO: jit this
+    dataavg = np.concatenate([data[nint*i:nint*(i+1)].mean(axis=0)[None,:,:,:]
+                              for i in range(4)], axis=0)
+    spline = interpolate.interp1d(np.array([nint*(i+0.5) for i in range(4)]),
+                              dataavg, axis=0, fill_value='extrapolate')
+
+    # TODO: jit this
+    data -= spline(range(len(data)))
 
 
 @jit(nogil=True, nopython=True, cache=True)

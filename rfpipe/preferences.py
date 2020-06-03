@@ -44,7 +44,7 @@ class Preferences(object):
     read_fdownsample = attr.ib(default=1)
     l0 = attr.ib(default=0.)  # in radians
     m0 = attr.ib(default=0.)  # in radians
-    timesub = attr.ib(default=None)  # None, 'mean', '2pt'
+    timesub = attr.ib(default=None)  # None, 'mean', '2pt', 'cs'
     flaglist = attr.ib(default=[('badchtslide', 3., 20),
                                 ('badchtslide', 3, 20),
                                 ('badspw', 3.),
