@@ -2092,3 +2092,103 @@ def make_voevent(candcollection, role='test'):
             logger.warn('Could not write VOEvent file {0}'.format(outname))
 
     return outnames
+
+
+def atel_plot(cd, ticksize=15, labelsize=15, show=False, save=True):
+    """Generates a 3 panel plot of the candidate with time-series, 
+    spectogram and the image. Can be used for ATels. 
+    """
+    segment, candint, dmind, dtind, beamnum = cd.loc
+    st = cd.state
+    scanid = cd.state.metadata.scanId
+    timewindow = st.prefs.timewindow
+    width_m = st.dtarr[dtind]
+    tsamp = st.inttime*width_m
+    dm = st.dmarr[dmind]
+    ft_dedisp = np.flip((cd.data.real.sum(axis=2).T), axis=0)
+    nf, nt = np.shape(ft_dedisp)
+    chan_freqs = np.flip(st.freq*1000, axis=0)  # from high to low, MHz
+    
+    roll_to_center = nt//2 - cd.integration_rel
+    ft_dedisp = np.roll(ft_dedisp, shift=roll_to_center, axis=1)
+    
+    im = cd.image
+    l1, m1 = st.pixtolm(np.where(im == im.max()))
+    
+    ts = np.arange(timewindow)*tsamp
+    fov = np.degrees(1./st.uvres)*60.
+    l1arcm = np.degrees(l1)*60
+    m1arcm = np.degrees(m1)*60
+    
+    # either standard radec or otf phasecenter radec
+    if st.otfcorrections is not None:
+        ints, pt_ra_deg, pt_dec_deg = st.otfcorrections[segment][0]
+        pt_ra = np.radians(pt_ra_deg)
+        pt_dec = np.radians(pt_dec_deg)
+    else:
+        pt_ra, pt_dec = st.metadata.radec
+
+    plt.figure(figsize=(14,9))
+    gs = gridspec.GridSpec(2, 2, width_ratios=[1, 1], height_ratios=[1, 1], wspace=0.2, hspace=0.12)
+    ax1 = plt.subplot(gs[0, 0])
+    ax2 = plt.subplot(gs[1, 0])
+    ax3 = plt.subplot(gs[:, 1])
+
+    ax1.plot(ts, ft_dedisp.sum(0), c='k')
+    ax1.set_ylabel('Flux (Arb. units)', fontsize=labelsize)
+    for tick in ax1.xaxis.get_major_ticks():
+        tick.label.set_fontsize(ticksize) 
+    for tick in ax1.yaxis.get_major_ticks():
+        tick.label.set_fontsize(ticksize) 
+
+    ax2.imshow(ft_dedisp, aspect='auto', extent=[ts[0], ts[-1], np.min(chan_freqs), np.max(chan_freqs)])
+    ax2.set_ylabel('Freq (MHz)', fontsize=labelsize)
+    ax2.set_xlabel('Time (s)', fontsize=labelsize)
+    for tick in ax2.xaxis.get_major_ticks():
+        tick.label.set_fontsize(ticksize) 
+    for tick in ax2.yaxis.get_major_ticks():
+        tick.label.set_fontsize(ticksize) 
+
+    sbeam = np.mean(st.beamsize_deg)*60
+    # figure out the location to center the zoomed image on
+    xratio = len(im[0])/fov  # pix/arcmin
+    yratio = len(im)/fov  # pix/arcmin
+    mult = 40  # sets how many times the synthesized beam the zoomed FOV is
+    xmin = max(0, int(len(im[0])//2-(m1arcm+sbeam*mult)*xratio))
+    xmax = int(len(im[0])//2-(m1arcm-sbeam*mult)*xratio)
+    ymin = max(0, int(len(im)//2-(l1arcm+sbeam*mult)*yratio))
+    ymax = int(len(im)//2-(l1arcm-sbeam*mult)*yratio)
+    left, width = 0.231, 0.15
+    bottom, height = 0.465, 0.15
+    _ = ax3.imshow(im.transpose()[xmin:xmax,ymin:ymax], aspect=1,
+                         origin='upper', interpolation='nearest',
+                         extent=[-1, 1, -1, 1],
+                         cmap=plt.get_cmap('viridis'), vmin=0,
+                         vmax=0.5*im.max())
+    # setup the axes
+    ax3.set_ylabel('Dec', fontsize=labelsize)
+    ax3.set_xlabel('RA', fontsize=labelsize)
+    ax3.xaxis.set_label_position('top')
+    ax3.yaxis.set_label_position("left")
+
+    ax3.yaxis.tick_right()
+
+    src_ra, src_dec = candidates.source_location(pt_ra, pt_dec, l1, m1)
+    src_ra_high, _ = candidates.source_location(pt_ra, pt_dec, (l1arcm+sbeam*mult/2)/(57.3*60), m1)
+    src_ra_low, _ = candidates.source_location(pt_ra, pt_dec, (l1arcm-sbeam*mult/2)/(57.3*60), m1)
+    _, src_dec_high = candidates.source_location(pt_ra, pt_dec, l1, (m1arcm+sbeam*mult/2)/(57.3*60))
+    _, src_dec_low = candidates.source_location(pt_ra, pt_dec, l1,  (m1arcm-sbeam*mult/2)/(57.3*60))
+
+    xlabels = [src_ra_high, '', '', '',  src_ra, '', '', '', src_ra_low]
+    ylabels = [src_dec_low, '', '', '', src_dec, '' , '', '', src_dec_high]
+
+    ax3.set_xticklabels(xlabels, fontsize=ticksize)
+    ax3.set_yticklabels(ylabels, fontsize= ticksize)
+    ax3.get_yticklabels()[0].set_verticalalignment('bottom')
+    
+    if save:
+        plt.savefig(f'{cd.candid}_atel.pdf', bbox_inches='tight')
+        plt.savefig(f'{cd.candid}_atel.png', bbox_inches='tight')
+    
+    if show:
+        plt.show()
