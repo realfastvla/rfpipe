@@ -430,6 +430,7 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA', lock=None):
     # calc bl
     bls = me.asbaseline(antpos)
     uvwlist = me.expand(me.touvw(bls)[0])[1]['value']
+    me.done()
 
     if lock is not None:
         lock.release()
