@@ -370,6 +370,9 @@ def get_uvw_segment(st, segment, pc_mjd=None, pc_radec=None, raw=False):
 
     logger.debug("Getting uvw for segment {0}".format(segment))
 
+    if lock is not None:
+        lock.acquire()
+
     if st.prefs.excludeants:
         takeants = [st.metadata.antids.index(antname) for antname in st.ants]
         antpos = {}
@@ -380,6 +383,9 @@ def get_uvw_segment(st, segment, pc_mjd=None, pc_radec=None, raw=False):
                 antpos[k]['value'] = value_new
     else:
         antpos = st.metadata.antpos
+
+    if lock is not None:
+        lock.release()
 
     radec = st.get_radec(pc=pc_radec)
     mjd = st.get_mjd(segment=segment, pc=pc_mjd)

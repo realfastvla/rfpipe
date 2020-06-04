@@ -122,6 +122,7 @@ class Metadata(object):
 
     @property
     def antpos(self):
+        # TODO: lock this
         x = self.xyz[:, 0].tolist()
         y = self.xyz[:, 1].tolist()
         z = self.xyz[:, 2].tolist()
@@ -174,6 +175,7 @@ class Metadata(object):
     @property
     def uvrange_orig(self):
         from rfpipe.util import calc_uvw
+        # TODO: lock this
         (ur, vr, wr) = calc_uvw(datetime=self.starttime_string,
                                      radec=self.radec,
                                      antpos=self.antpos,
