@@ -121,19 +121,6 @@ class Metadata(object):
                          for i in range(0, j)])
 
     @property
-    def antpos(self):
-        # TODO: lock this
-        x = self.xyz[:, 0].tolist()
-        y = self.xyz[:, 1].tolist()
-        z = self.xyz[:, 2].tolist()
-
-        me = tools.measures()
-        qa = tools.quanta()
-
-        return me.position('itrf', qa.quantity(x, 'm'),
-                           qa.quantity(y, 'm'), qa.quantity(z, 'm'))
-
-    @property
     def starttime_string(self):
         return time.Time(self.starttime_mjd, format='mjd').iso.replace('-', '/').replace(' ', '/')
 #        return qa.time(qa.quantity(self.starttime_mjd, 'd'),
@@ -175,10 +162,9 @@ class Metadata(object):
     @property
     def uvrange_orig(self):
         from rfpipe.util import calc_uvw
-        # TODO: lock this
         (ur, vr, wr) = calc_uvw(datetime=self.starttime_string,
                                      radec=self.radec,
-                                     antpos=self.antpos,
+                                     xyz=self.xyz,
                                      telescope=self.telescope)
         u = ur * self.freq_orig.min() * (1e9/constants.c) * (-1)
         v = vr * self.freq_orig.min() * (1e9/constants.c) * (-1)

@@ -370,29 +370,18 @@ def get_uvw_segment(st, segment, pc_mjd=None, pc_radec=None, raw=False):
 
     logger.debug("Getting uvw for segment {0}".format(segment))
 
-    if lock is not None:
-        lock.acquire()
-
     if st.prefs.excludeants:
         takeants = [st.metadata.antids.index(antname) for antname in st.ants]
-        antpos = {}
-        for k,v in st.metadata.antpos.items():
-            antpos[k] = v
-            if 'value' in v:
-                value_new = v['value'][takeants]
-                antpos[k]['value'] = value_new
     else:
-        antpos = st.metadata.antpos
-
-    if lock is not None:
-        lock.release()
+        takeants = None
 
     radec = st.get_radec(pc=pc_radec)
     mjd = st.get_mjd(segment=segment, pc=pc_mjd)
     mjdstr = time.Time(mjd, format='mjd').iso.replace('-', '/').replace(' ', '/')
 
     (ur, vr, wr) = calc_uvw(datetime=mjdstr, radec=radec,
-                            antpos=antpos, telescope=st.metadata.telescope, lock=st.lock)
+                            xyz=st.metadata.xyz, telescope=st.metadata.telescope,
+                            takeants=takeants, lock=st.lock)
 
     if raw:
         u = np.outer(ur, st.metadata.freq_orig * (1e9/constants.c) * (-1))
@@ -406,11 +395,10 @@ def get_uvw_segment(st, segment, pc_mjd=None, pc_radec=None, raw=False):
     return u.astype('float32'), v.astype('float32'), w.astype('float32')
 
 
-def calc_uvw(datetime, radec, antpos, telescope='JVLA', lock=None):
+def calc_uvw(datetime, radec, xyz, telescope='JVLA', takeants=None, lock=None):
     """ Calculates and returns uvw in meters for a given time and pointing direction.
     datetime is time (as string) to calculate uvw (format: '2014/09/03/08:33:04.20')
     radec is (ra,dec) as tuple in radians.
-    If available, uses a lock to control multithreaded casa measures call.
     Can optionally specify a telescope other than the JVLA.
     """
 
@@ -421,6 +409,16 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA', lock=None):
 
     if lock is not None:
         lock.acquire()
+
+    if takeants is not None:
+        antpos = {}
+        for k,v in xyz_to_irtf(xyz).items():
+            antpos[k] = v
+            if 'value' in v:
+                value_new = v['value'][takeants]
+                antpos[k]['value'] = value_new
+    else:
+        antpos = xyz_to_irtf(xyz)
 
     me = tools.measures()
 
@@ -458,6 +456,20 @@ def calc_uvw(datetime, radec, antpos, telescope='JVLA', lock=None):
 
     return u, v, w
 
+
+def xyz_to_irtf(xyz):
+    """ Convert xyz ant coords (attached to metadata) to irtf.
+    """
+
+    x = xyz[:, 0].tolist()
+    y = xyz[:, 1].tolist()
+    z = xyz[:, 2].tolist()
+
+    me = tools.measures()
+    qa = tools.quanta()
+
+    return me.position('itrf', qa.quantity(x, 'm'),
+                       qa.quantity(y, 'm'), qa.quantity(z, 'm'))
 
 def kalman_prep(data):
     """ Use prepared data to calculate noise and kalman inputs.
