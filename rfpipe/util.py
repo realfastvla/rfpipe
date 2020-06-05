@@ -408,7 +408,10 @@ def calc_uvw(datetime, radec, xyz, telescope='JVLA', takeants=None, lock=None):
     assert (ra < 2*np.pi) and (ra > -2*np.pi) and (dec > -np.pi) and (dec < np.pi), 'ra and/or dec out of range of radians'
 
     if lock is not None:
+        logger.info("Acquiring lock")
         lock.acquire()
+    else:
+        logger.info("No lock to acquire")
 
     if takeants is not None:
         antpos = {}
@@ -437,7 +440,10 @@ def calc_uvw(datetime, radec, xyz, telescope='JVLA', takeants=None, lock=None):
     me.done()
 
     if lock is not None:
+        logger.info("Releasing lock")
         lock.release()
+    else:
+        logger.info("No lock to release")
 
     # define new bl order to match sdm binary file bl order
     u = np.empty(int(len(uvwlist)/3), dtype='float32')

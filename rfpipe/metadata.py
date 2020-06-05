@@ -8,8 +8,6 @@ import attr
 
 import numpy as np
 from scipy import constants
-import casatools as tools
-#from pwkit.environments.casa.util import tools
 from astropy import time
 
 import logging
