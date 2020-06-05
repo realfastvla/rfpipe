@@ -38,7 +38,8 @@ install:
 #  - numpy scipy jupyter bokeh cython matplotlib numba astropy pytest setuptools coverage pyfftw
   - conda install -q python=$TRAVIS_PYTHON_VERSION numpy scipy jupyter bokeh cython matplotlib numba astropy pytest setuptools coverage pyfftw
 #  - conda install -q python=$TRAVIS_PYTHON_VERSION pwkit casa-tools casa-python casa-data
-  - pip install --extra-index-url https://casa-pip.nrao.edu:443/repository/pypi-group/simple casatools
+#  - pip install --extra-index-url https://casa-pip.nrao.edu:443/repository/pypi-group/simple casatools
+  - pip install --index-url https://casa-pip.nrao.edu/repository/pypi-casa-release/simple casatools==6.0.0.27
   - pip install codecov
   - python setup.py install
 
