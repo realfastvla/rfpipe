@@ -9,7 +9,7 @@ import pyfftw
 from kalman_detector import kalman_prepare_coeffs, kalman_significance
 from concurrent import futures
 from itertools import cycle
-from threading import Lock
+#from threading import Lock
 
 import logging
 logger = logging.getLogger(__name__)

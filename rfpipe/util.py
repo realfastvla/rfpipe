@@ -6,21 +6,26 @@ from io import open
 import numpy as np
 import math
 import random
+from time import sleep
 from numba import cuda, guvectorize
 from numba import jit, complex64, int64, float32
-#from pwkit.environments.casa.util import tools
 from scipy import constants, interpolate
 import casatools as tools
 import sdmpy
 from rfpipe import calibration
 from astropy import time
-
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(20)
+# need to lock casatools uvw calc to avoid thread collision
+try:
+    from distributed import Lock, get_worker
+    worker = get_worker().name
+    lock = Lock(worker)
+except (ValueError, ImportError):
+    logger.warn("distributed worker not available. Not locking uvw calc.")
+    lock = None
 
-#import casatasks
-#casatasks.casalog.filter('WARN')
 
 def getsdm(*args, **kwargs):
     """ Wrap sdmpy.SDM to get around schema change error """
@@ -363,7 +368,6 @@ def dt1(dm_pulsewidth, tsamp, k, ch, freq, bw, dm, ddm):
 def get_uvw_segment(st, segment, pc_mjd=None, pc_radec=None, raw=False):
     """ Returns uvw in units of baselines for a given segment.
     Tuple of u, v, w given with each a numpy array of (nbl, nchan) shape.
-    If available, uses a lock to control multithreaded casa measures call.
     The pc keywords are the (absolute within scan) phase center. One for radec and mjd calc.
     raw defines whether uvw calc for all channels (metadata.freq_orig) or selected (state.freq)
     """
@@ -381,7 +385,7 @@ def get_uvw_segment(st, segment, pc_mjd=None, pc_radec=None, raw=False):
 
     (ur, vr, wr) = calc_uvw(datetime=mjdstr, radec=radec,
                             xyz=st.metadata.xyz, telescope=st.metadata.telescope,
-                            takeants=takeants, lock=st.lock)
+                            takeants=takeants)
 
     if raw:
         u = np.outer(ur, st.metadata.freq_orig * (1e9/constants.c) * (-1))
@@ -395,7 +399,7 @@ def get_uvw_segment(st, segment, pc_mjd=None, pc_radec=None, raw=False):
     return u.astype('float32'), v.astype('float32'), w.astype('float32')
 
 
-def calc_uvw(datetime, radec, xyz, telescope='JVLA', takeants=None, lock=None):
+def calc_uvw(datetime, radec, xyz, telescope='JVLA', takeants=None):
     """ Calculates and returns uvw in meters for a given time and pointing direction.
     datetime is time (as string) to calculate uvw (format: '2014/09/03/08:33:04.20')
     radec is (ra,dec) as tuple in radians.
@@ -407,11 +411,11 @@ def calc_uvw(datetime, radec, xyz, telescope='JVLA', takeants=None, lock=None):
     ra, dec = radec
     assert (ra < 2*np.pi) and (ra > -2*np.pi) and (dec > -np.pi) and (dec < np.pi), 'ra and/or dec out of range of radians'
 
+    # lock casa uvw calc to avoid threading issues
     if lock is not None:
         logger.info("Acquiring lock")
-        lock.acquire()
-    else:
-        logger.info("No lock to acquire")
+        lock.acquire(timeout=1)
+        sleep(1)
 
     if takeants is not None:
         antpos = {}
@@ -440,10 +444,9 @@ def calc_uvw(datetime, radec, xyz, telescope='JVLA', takeants=None, lock=None):
     me.done()
 
     if lock is not None:
-        logger.info("Releasing lock")
-        lock.release()
-    else:
-        logger.info("No lock to release")
+        if lock.locked():
+            logger.info("Releasing lock")
+            lock.release()
 
     # define new bl order to match sdm binary file bl order
     u = np.empty(int(len(uvwlist)/3), dtype='float32')
