@@ -13,7 +13,7 @@ from scipy import constants, interpolate
 import casatools as tools
 import sdmpy
 from rfpipe import calibration
-from astropy import time
+from astropy import time, coordinates
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(20)
@@ -26,6 +26,28 @@ except (ValueError, ImportError):
     logger.warn("distributed worker not available. Not locking uvw calc.")
     lock = None
 
+# Manage the astropy cached IERS data.  The rfnodes do not have direct
+# network access so we disable the check for out-of-date IERS files.
+# This means the data need to be downloaded and put in the right
+# spot via some machine that can get on the network.
+import astropy.utils.iers
+astropy.utils.iers.conf.auto_max_age = None
+
+def update_iers_cache():
+    """Update cached astropy IERS files.  Must be run from a system
+    with internet access."""
+
+    # Force update of IERS A file:
+    import astropy.utils.data
+    astropy.utils.data.download_file(astropy.utils.iers.IERS_A_URL, cache='update')
+
+    # Run a dummy UVW calc to make sure astropy gets all 
+    # other files it needs for this.
+    dummy_xyz = np.array([
+        [-1604008.7431 , -5042135.8194 ,  3553403.7084 ],
+        [-1601315.9011 , -5041985.30447,  3554808.3081 ]
+        ])
+    calc_uvw_astropy(time.Time.now(), (0.0,0.0), dummy_xyz) 
 
 def getsdm(*args, **kwargs):
     """ Wrap sdmpy.SDM to get around schema change error """
@@ -397,6 +419,44 @@ def get_uvw_segment(st, segment, pc_mjd=None, pc_radec=None, raw=False):
         w = np.outer(wr, st.freq * (1e9/constants.c) * (-1))
 
     return u.astype('float32'), v.astype('float32'), w.astype('float32')
+
+
+def calc_uvw_astropy(datetime, radec, xyz, telescope='VLA', takeants=None):
+    """ Calculates and returns uvw in meters for a given time and pointing direction.
+    datetime is time (astropy.time.Time) to calculate uvw.
+    radec is (ra,dec) as tuple in radians.
+    Can optionally specify a telescope other than the VLA.
+    """
+
+    phase_center = coordinates.SkyCoord(*radec, unit='rad', frame='icrs')
+
+    if takeants is not None:
+        antpos = coordinates.EarthLocation(x=xyz[takeants,0], y=xyz[takeants,1], z=xyz[takeants,2], unit='m') 
+    else:
+        antpos = coordinates.EarthLocation(x=xyz[:,0], y=xyz[:,1], z=xyz[:,2], unit='m') 
+
+    tel_p, tel_v = coordinates.EarthLocation.of_site(telescope).get_gcrs_posvel(datetime)
+    antpos_gcrs = coordinates.GCRS(antpos.get_gcrs_posvel(datetime)[0],
+            obstime = datetime,
+            obsgeoloc = tel_p,
+            obsgeovel = tel_v)
+
+    uvw_frame = phase_center.transform_to(antpos_gcrs).skyoffset_frame()
+    antpos_uvw = antpos_gcrs.transform_to(uvw_frame).cartesian
+
+    nant = len(antpos_uvw)
+    antpairs = [(i,j) for j in range(nant) for i in range(j)]
+    nbl = len(antpairs)
+    u = np.empty(nbl, dtype='float32')
+    v = np.empty(nbl, dtype='float32')
+    w = np.empty(nbl, dtype='float32')
+    for ibl, ant in enumerate(antpairs):
+        bl = antpos_uvw[ant[1]] - antpos_uvw[ant[0]]
+        u[ibl] = bl.y
+        v[ibl] = bl.z
+        w[ibl] = bl.x
+
+    return u, v, w
 
 
 def calc_uvw(datetime, radec, xyz, telescope='JVLA', takeants=None):
