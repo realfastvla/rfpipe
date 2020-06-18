@@ -10,21 +10,12 @@ from time import sleep
 from numba import cuda, guvectorize
 from numba import jit, complex64, int64, float32
 from scipy import constants, interpolate
-import casatools as tools
 import sdmpy
 from rfpipe import calibration
 from astropy import time, coordinates
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(20)
-# need to lock casatools uvw calc to avoid thread collision
-try:
-    from distributed import Lock, get_worker
-    worker = get_worker().name
-    lock = Lock(worker)
-except (ValueError, ImportError):
-    logger.warn("distributed worker not available. Not locking uvw calc.")
-    lock = None
 
 # Manage the astropy cached IERS data.  The rfnodes do not have direct
 # network access so we disable the check for out-of-date IERS files.
@@ -403,9 +394,9 @@ def get_uvw_segment(st, segment, pc_mjd=None, pc_radec=None, raw=False):
 
     radec = st.get_radec(pc=pc_radec)
     mjd = st.get_mjd(segment=segment, pc=pc_mjd)
-    mjdstr = time.Time(mjd, format='mjd').iso.replace('-', '/').replace(' ', '/')
+    mjdastropy = time.Time(mjd, format='mjd')
 
-    (ur, vr, wr) = calc_uvw_astropy(datetime=mjdstr, radec=radec,
+    (ur, vr, wr) = calc_uvw_astropy(datetime=mjdastropy, radec=radec,
                                     xyz=st.metadata.xyz, telescope=st.metadata.telescope,
                                     takeants=takeants)
 
@@ -437,11 +428,13 @@ def calc_uvw_astropy(datetime, radec, xyz, telescope='VLA', takeants=None):
     else:
         antpos = coordinates.EarthLocation(x=xyz[:,0], y=xyz[:,1], z=xyz[:,2], unit='m') 
 
+    if isinstance(datetime, str):
+        datetime = time.Time(datetime.replace('/', '-', 2).replace('/', ' '), format='iso')
+
     tel_p, tel_v = coordinates.EarthLocation.of_site(telescope).get_gcrs_posvel(datetime)
     antpos_gcrs = coordinates.GCRS(antpos.get_gcrs_posvel(datetime)[0],
-            obstime = datetime,
-            obsgeoloc = tel_p,
-            obsgeovel = tel_v)
+                                   obstime = datetime, obsgeoloc = tel_p,
+                                   obsgeovel = tel_v)
 
     uvw_frame = phase_center.transform_to(antpos_gcrs).skyoffset_frame()
     antpos_uvw = antpos_gcrs.transform_to(uvw_frame).cartesian
@@ -460,87 +453,6 @@ def calc_uvw_astropy(datetime, radec, xyz, telescope='VLA', takeants=None):
 
     return u, v, w
 
-
-def calc_uvw(datetime, radec, xyz, telescope='JVLA', takeants=None):
-    """ Calculates and returns uvw in meters for a given time and pointing direction.
-    datetime is time (as string) to calculate uvw (format: '2014/09/03/08:33:04.20')
-    radec is (ra,dec) as tuple in radians.
-    Can optionally specify a telescope other than the JVLA.
-    """
-
-    assert '/' in datetime, 'datetime must be in yyyy/mm/dd/hh:mm:ss.sss format'
-    assert len(radec) == 2, 'radec must be (ra,dec) tuple in units of radians'
-    ra, dec = radec
-    assert (ra < 2*np.pi) and (ra > -2*np.pi) and (dec > -np.pi) and (dec < np.pi), 'ra and/or dec out of range of radians'
-
-    # lock casa uvw calc to avoid threading issues
-    if lock is not None:
-        logger.info("Acquiring lock")
-        lock.acquire(timeout=1)
-        sleep(1)
-
-    if takeants is not None:
-        antpos = {}
-        for k,v in xyz_to_irtf(xyz).items():
-            antpos[k] = v
-            if 'value' in v:
-                value_new = v['value'][takeants]
-                antpos[k]['value'] = value_new
-    else:
-        antpos = xyz_to_irtf(xyz)
-
-    me = tools.measures()
-
-    direction = me.direction('J2000', str(np.degrees(ra))+'deg',
-                             str(np.degrees(dec))+'deg')
-
-    logger.debug('Calculating uvw at {0} for (RA, Dec) = {1}, {2}'
-                 .format(datetime, ra, dec))
-    me.doframe(me.observatory(telescope))
-    me.doframe(me.epoch('utc', datetime))
-    me.doframe(direction)
-
-    # calc bl
-    bls = me.asbaseline(antpos)
-    uvwlist = me.expand(me.touvw(bls)[0])[1]['value']
-    me.done()
-
-    if lock is not None:
-        if lock.locked():
-            logger.info("Releasing lock")
-            lock.release()
-
-    # define new bl order to match sdm binary file bl order
-    u = np.empty(int(len(uvwlist)/3), dtype='float32')
-    v = np.empty(int(len(uvwlist)/3), dtype='float32')
-    w = np.empty(int(len(uvwlist)/3), dtype='float32')
-    nants = len(antpos['m0']['value'])
-    ord1 = [i*nants+j for i in range(nants) for j in range(i+1, nants)]
-    ord2 = [i*nants+j for j in range(nants) for i in range(j)]
-    key = []
-    for new in ord2:
-        key.append(ord1.index(new))
-    for i in range(len(key)):
-        u[i] = uvwlist[3*key[i]]
-        v[i] = uvwlist[3*key[i]+1]
-        w[i] = uvwlist[3*key[i]+2]
-
-    return u, v, w
-
-
-def xyz_to_irtf(xyz):
-    """ Convert xyz ant coords (attached to metadata) to irtf.
-    """
-
-    x = xyz[:, 0].tolist()
-    y = xyz[:, 1].tolist()
-    z = xyz[:, 2].tolist()
-
-    me = tools.measures()
-    qa = tools.quanta()
-
-    return me.position('itrf', qa.quantity(x, 'm'),
-                       qa.quantity(y, 'm'), qa.quantity(z, 'm'))
 
 def kalman_prep(data):
     """ Use prepared data to calculate noise and kalman inputs.
