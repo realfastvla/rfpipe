@@ -405,9 +405,9 @@ def get_uvw_segment(st, segment, pc_mjd=None, pc_radec=None, raw=False):
     mjd = st.get_mjd(segment=segment, pc=pc_mjd)
     mjdstr = time.Time(mjd, format='mjd').iso.replace('-', '/').replace(' ', '/')
 
-    (ur, vr, wr) = calc_uvw(datetime=mjdstr, radec=radec,
-                            xyz=st.metadata.xyz, telescope=st.metadata.telescope,
-                            takeants=takeants)
+    (ur, vr, wr) = calc_uvw_astropy(datetime=mjdstr, radec=radec,
+                                    xyz=st.metadata.xyz, telescope=st.metadata.telescope,
+                                    takeants=takeants)
 
     if raw:
         u = np.outer(ur, st.metadata.freq_orig * (1e9/constants.c) * (-1))
@@ -427,6 +427,8 @@ def calc_uvw_astropy(datetime, radec, xyz, telescope='VLA', takeants=None):
     radec is (ra,dec) as tuple in radians.
     Can optionally specify a telescope other than the VLA.
     """
+    if telescope == 'JVLA' or 'VLA':
+        telescope = 'VLA'
 
     phase_center = coordinates.SkyCoord(*radec, unit='rad', frame='icrs')
 
@@ -452,9 +454,9 @@ def calc_uvw_astropy(datetime, radec, xyz, telescope='VLA', takeants=None):
     w = np.empty(nbl, dtype='float32')
     for ibl, ant in enumerate(antpairs):
         bl = antpos_uvw[ant[1]] - antpos_uvw[ant[0]]
-        u[ibl] = bl.y
-        v[ibl] = bl.z
-        w[ibl] = bl.x
+        u[ibl] = bl.y.value
+        v[ibl] = bl.z.value
+        w[ibl] = bl.x.value
 
     return u, v, w
 

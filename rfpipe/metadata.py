@@ -159,7 +159,7 @@ class Metadata(object):
 
     @property
     def uvrange_orig(self):
-        from rfpipe.util import calc_uvw
+        from rfpipe.util import calc_uvw_astropy as calc_uvw
         (ur, vr, wr) = calc_uvw(datetime=self.starttime_string,
                                      radec=self.radec,
                                      xyz=self.xyz,
