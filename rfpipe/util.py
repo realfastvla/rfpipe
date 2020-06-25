@@ -119,7 +119,14 @@ def meantsub(data, mode='mean'):
         _2ptsub_jit(np.require(data, requirements='W'))
     elif mode == 'cs':
         logger.info("Subtracting cubic spline time trend in visibility")
-        _cssub(np.require(data, requirements='W'))
+        assert len(data) > 4, "Too few integrations for spline sub"
+        dataavg = np.empty((4, nbl, nchan, npol), dtype=np.complex64)
+        piece = nint//4
+        _cssub0_jit(np.require(data, requirements='W'), dataavg)
+        spline = interpolate.interp1d(np.array([piece*(i+0.5) for i in range(4)]),
+                                      dataavg, axis=0, fill_value='extrapolate')
+        dataavginterp = spline(range(len(data)))
+        _cssub1_jit(data, dataavginterp)
     else:
         logger.warn("meantsub mode not recognized")
 
@@ -244,21 +251,60 @@ def _2ptinterp_jit(data):
 
 def _cssub(data):
     """ Use scipy interpolate to subtract cubic spline
-    TODO: use zeroed data as flag.
-    TODO: use jit?
+    Superseded by _cssub0_jit and _cssub1_jit with interpolation call.
     """
 
     # use 4 windows to make interp1d cubic spline function
     nint = len(data)//4
 
-    # TODO: jit this
     dataavg = np.concatenate([data[nint*i:nint*(i+1)].mean(axis=0)[None,:,:,:]
                               for i in range(4)], axis=0)
     spline = interpolate.interp1d(np.array([nint*(i+0.5) for i in range(4)]),
                               dataavg, axis=0, fill_value='extrapolate')
 
-    # TODO: jit this
     data -= spline(range(len(data)))
+
+
+@jit(nogil=True, nopython=True, cache=True)
+def _cssub0_jit(data, dataavg):
+    """ Use scipy calculate 4-pt mean as input to spline estimate.
+    zeroed data is treated as flagged
+    """
+
+    nint, nbl, nchan, npol = data.shape
+    piece = nint//4
+
+    for i in range(nbl):
+        for j in range(nchan):
+            for k in range(npol):
+                # mean in each piece
+                for pp in range(4):
+                    ss = complex64(0)
+                    weight = int64(0)
+                    for l in range(pp*piece, (pp+1)*piece):
+                        ss += data[l, i, j, k]
+                        if data[l, i, j, k] != 0j:
+                            weight += 1
+                    if weight > 0:
+                        dataavg[pp, i, j, k] = ss/weight
+                    else:
+                        dataavg[pp, i, j, k] = complex64(0)  # TODO: instead use nearest?
+
+
+@jit(nogil=True, nopython=True, cache=True)
+def _cssub1_jit(data, dataavginterp):
+    """ Use interpolated data to subtract while ignoring zeros
+    """
+
+    nint, nbl, nchan, npol = data.shape
+
+    for i in range(nbl):
+        for j in range(nchan):
+            for k in range(npol):
+                for l in range(nint):
+                    if data[l, i, j, k] == 0j:
+                        dataavginterp[l, i, j, k] = complex64(0)
+                    data[l, i, j, k] -= dataavginterp[l, i, j, k]
 
 
 @jit(nogil=True, nopython=True, cache=True)
