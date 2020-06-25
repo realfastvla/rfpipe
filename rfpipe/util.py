@@ -120,8 +120,9 @@ def meantsub(data, mode='mean'):
     elif mode == 'cs':
         logger.info("Subtracting cubic spline time trend in visibility")
         assert len(data) > 4, "Too few integrations for spline sub"
-        dataavg = np.empty((4, nbl, nchan, npol), dtype=np.complex64)
+        nint, nbl, nchan, npol = data.shape
         piece = nint//4
+        dataavg = np.empty((4, nbl, nchan, npol), dtype=np.complex64)
         _cssub0_jit(np.require(data, requirements='W'), dataavg)
         spline = interpolate.interp1d(np.array([piece*(i+0.5) for i in range(4)]),
                                       dataavg, axis=0, fill_value='extrapolate')
