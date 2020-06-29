@@ -238,11 +238,11 @@ class CandCollection(object):
 #                assert self.metadata.starttime_mjd == cc.metadata.starttime_mjd, "OTF segments should have same start time"
 #                assert (self.state.segmenttimes[:cc.state.nsegment, 0] == cc.state.segmenttimes[:,0]).all(),  "OTF segments should have shared segmenttimes"
 
-#            elif self.state.nsegment < cc.state.nsegment:
-#                assert self.metadata.starttime_mjd == cc.metadata.starttime_mjd, "OTF segments should have same start time"
-#                assert (self.state.segmenttimes[:,0] == cc.state.segmenttimes[:self.state.nsegment,0]).all(),  "OTF segments should have shared segmenttimes"
-#                later = CandCollection(prefs=cc.prefs, metadata=cc.metadata,
-#                                       array=cc.array.copy())
+        if self.state.nsegment < cc.state.nsegment:
+            assert self.metadata.starttime_mjd == cc.metadata.starttime_mjd, "OTF segments should have same start time"
+#            assert (self.state.segmenttimes[:,0] == cc.state.segmenttimes[:self.state.nsegment,0]).all(),  "OTF segments should have shared segmenttimes"
+            later = CandCollection(prefs=cc.prefs, metadata=cc.metadata,
+                                   array=cc.array.copy())
 
         # combine candidate arrays
         if len(self) and len(cc):
