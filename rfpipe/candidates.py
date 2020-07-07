@@ -1865,10 +1865,15 @@ def source_location(pt_ra, pt_dec, l1, m1, format='hourstr'):
     Option to set format='degfloat' for ra/dec in deg as floats.
     """
 
-    srcra = np.degrees(pt_ra + l1/cos(pt_dec))
-    srcdec = np.degrees(pt_dec + m1)
+    co0 = astropy.coordinates.SkyCoord(pt_ra, pt_dec, unit=units.rad)
+    co = astropy.coordinates.SkyCoord(l1, m1, unit=units.rad,
+                                      frame=co0.skyoffset_frame()).transform_to(astropy.coordinates.ICRS)
+    srcra = co.ra.value
+    srcdec = co.dec.value
 
-    co = coordinates.SkyCoord(srcra, srcdec, unit=(units.deg, units.deg))
+#    srcra = np.degrees(pt_ra + l1/cos(pt_dec))
+#    srcdec = np.degrees(pt_dec + m1)
+#    co = coordinates.SkyCoord(srcra, srcdec, unit=(units.deg, units.deg))
     if format == 'hourstr':
         ra = str(co.ra.to_string(units.hourangle))
         dec = str(co.dec.to_string(units.deg))
