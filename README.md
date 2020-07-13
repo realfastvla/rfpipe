@@ -9,8 +9,8 @@ Planned future development include:
 - Supporting other interferometers by adding data and metadata reading functions.
 
 [![Docs](https://img.shields.io/badge/Made%20with-Sphinx-1f425f.svg)](https://realfastvla.github.io/rfpipe)
-[![Build Status](https://travis-ci.org/realfastvla/rfpipe.svg?branch=master)](https://travis-ci.org/realfastvla/rfpipe)
-[![codecov](https://codecov.io/gh/realfastvla/rfpipe/branch/master/graph/badge.svg)](https://codecov.io/gh/realfastvla/rfpipe)
+[![Build Status](https://travis-ci.org/realfastvla/rfpipe.svg?branch=main)](https://travis-ci.org/realfastvla/rfpipe)
+[![codecov](https://codecov.io/gh/realfastvla/rfpipe/branch/main/graph/badge.svg)](https://codecov.io/gh/realfastvla/rfpipe)
 [![PyPI pyversions](https://img.shields.io/pypi/pyversions/ansicolortags.svg)](https://pypi.python.org/pypi/rfpipe/)
 [![ASCL](https://img.shields.io/badge/ascl-1710.002-blue.svg?colorB=262255)](https://ascl.net/1710.002)
 
