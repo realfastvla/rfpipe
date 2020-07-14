@@ -12,7 +12,7 @@ branches:
 
 branches:
   only:
-  - master
+  - main
   - development
 
 install:
