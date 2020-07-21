@@ -2127,7 +2127,8 @@ def atel_plot(cd, ticksize=15, labelsize=15, show=False, save=True):
     
     # either standard radec or otf phasecenter radec
     if st.otfcorrections is not None:
-        ints, pt_ra_deg, pt_dec_deg = st.otfcorrections[segment][0]
+        pc = st.get_pc(segment)
+        pt_ra_deg, pt_dec_deg = st.get_radec(pc=pc)
         pt_ra = np.radians(pt_ra_deg)
         pt_dec = np.radians(pt_dec_deg)
     else:

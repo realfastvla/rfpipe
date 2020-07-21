@@ -179,7 +179,8 @@ def pipeline_canddata(st, candloc, data_dmdt=None, spec_std=None, cpuonly=False,
     dt = st.dtarr[dtind]
     dm = st.dmarr[dmind]
 
-    uvw = util.get_uvw_segment(st, segment)
+    pc = st.get_pc(segment)
+    uvw = util.get_uvw_segment(st, segment, pc_mjd=pc, pc_radec=pc)
     wisdom = rfpipe.search.set_wisdom(st.npixx, st.npixy)
 
     if data_dmdt is None:
