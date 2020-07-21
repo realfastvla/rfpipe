@@ -165,7 +165,8 @@ def prep_standard(st, segment, data):
         return data
 
     if st.prefs.simulated_transient is not None:
-        uvw = util.get_uvw_segment(st, segment)
+        pc = st.get_pc(segment)
+        uvw = util.get_uvw_segment(st, segment, pc_mjd=pc, pc_radec=pc, raw=False)
 
     # optionally integrate (downsample)
     if ((st.prefs.read_tdownsample > 1) or (st.prefs.read_fdownsample > 1)):
@@ -378,7 +379,8 @@ def calc_gridfrac(st, segment):
         logger.warn("Cannot import rfgpu, so cannot calculate gridfrac")
         return 1
 
-    uvw = util.get_uvw_segment(st, segment)
+    pc = st.get_pc(segment)
+    uvw = util.get_uvw_segment(st, segment, pc_mjd=pc, pc_radec=pc)
     u, v, w = uvw
     u_us = 1e6*u[:, 0]/(1e9*st.freq[0])
     v_us = 1e6*v[:, 0]/(1e9*st.freq[0])
