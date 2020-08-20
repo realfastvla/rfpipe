@@ -118,11 +118,11 @@ def meantsub(data, mode='mean'):
         logger.info('Subtracting 2pt time trend in visibility.')
         _2ptsub_jit(np.require(data, requirements='W'))
     elif mode == 'cs':
-        logger.info("Subtracting cubic spline time trend in visibility")
-        assert len(data) > 4, "Too few integrations for spline sub"
+        logger.info("Subtracting quartic spline time trend in visibility")
+        assert len(data) > 5, "Too few integrations for spline sub"
         nint, nbl, nchan, npol = data.shape
-        piece = nint//4
-        dataavg = np.empty((4, nbl, nchan, npol), dtype=np.complex64)
+        piece = nint//5
+        dataavg = np.empty((5, nbl, nchan, npol), dtype=np.complex64)
         _cssub0_jit(np.require(data, requirements='W'), dataavg)
         spline = interpolate.interp1d(np.array([piece*(i+0.5) for i in range(4)]),
                                       dataavg, axis=0, fill_value='extrapolate',
@@ -252,16 +252,16 @@ def _2ptinterp_jit(data):
 
 
 def _cssub(data):
-    """ Use scipy interpolate to subtract cubic spline
+    """ Use scipy interpolate to subtract quartic spline
     Superseded by _cssub0_jit and _cssub1_jit with interpolation call.
     """
 
     # use 4 windows to make interp1d cubic spline function
-    nint = len(data)//4
+    nint = len(data)//5
 
     dataavg = np.concatenate([data[nint*i:nint*(i+1)].mean(axis=0)[None,:,:,:]
-                              for i in range(4)], axis=0)
-    spline = interpolate.interp1d(np.array([nint*(i+0.5) for i in range(4)]),
+                              for i in range(5)], axis=0)
+    spline = interpolate.interp1d(np.array([nint*(i+0.5) for i in range(5)]),
                               dataavg, axis=0, fill_value='extrapolate')
 
     data -= spline(range(len(data)))
@@ -274,7 +274,7 @@ def _cssub0_jit(data, dataavg):
     """
 
     nint, nbl, nchan, npol = data.shape
-    piece = nint//4
+    piece = nint//5
 
     for i in range(nbl):
         for j in range(nchan):
