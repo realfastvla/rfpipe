@@ -124,7 +124,7 @@ def meantsub(data, mode='mean'):
         piece = nint//5
         dataavg = np.empty((5, nbl, nchan, npol), dtype=np.complex64)
         _cssub0_jit(np.require(data, requirements='W'), dataavg)
-        spline = interpolate.interp1d(np.array([piece*(i+0.5) for i in range(4)]),
+        spline = interpolate.interp1d(np.array([piece*(i+0.5) for i in range(5)]),
                                       dataavg, axis=0, fill_value='extrapolate',
                                       kind='cubic')
         dataavginterp = spline(range(len(data)))
