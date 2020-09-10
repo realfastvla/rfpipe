@@ -125,7 +125,8 @@ def meantsub(data, mode='mean'):
         dataavg = np.empty((4, nbl, nchan, npol), dtype=np.complex64)
         _cssub0_jit(np.require(data, requirements='W'), dataavg)
         spline = interpolate.interp1d(np.array([piece*(i+0.5) for i in range(4)]),
-                                      dataavg, axis=0, fill_value='extrapolate')
+                                      dataavg, axis=0, fill_value='extrapolate',
+                                      kind='cubic')
         dataavginterp = spline(range(len(data)))
         _cssub1_jit(data, dataavginterp)
     else:
