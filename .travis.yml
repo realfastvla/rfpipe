@@ -7,12 +7,12 @@ dist: bionic
 
 branches:
   only:
-    - master
+    - main
     - development
 
 branches:
   only:
-  - master
+  - main
   - development
 
 install:
