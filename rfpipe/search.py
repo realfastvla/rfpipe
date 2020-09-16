@@ -79,7 +79,8 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
     assert isinstance(devicenums, tuple)
     logger.info("Using gpu devicenum(s): {0}".format(devicenums))
 
-    uvw = util.get_uvw_segment(st, segment)
+    pc = st.get_pc(segment)
+    uvw = util.get_uvw_segment(st, segment, pc_mjd=pc, pc_radec=pc)
 
     upix = st.npixx
     vpix = st.npixy//2 + 1
@@ -339,7 +340,8 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
         spec_std, sig_ts, kalman_coeffs = None, [], []
 
     beamnum = 0
-    uvw = util.get_uvw_segment(st, segment)
+    pc = st.get_pc(segment)
+    uvw = util.get_uvw_segment(st, segment, pc_mjd=pc, pc_radec=pc)
 
     # place to hold intermediate result lists
     canddict = {}
