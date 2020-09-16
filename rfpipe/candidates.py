@@ -2103,10 +2103,11 @@ def atel_plot(cd, ticksize=15, labelsize=15, show=False, save=True):
     """Generates a 3 panel plot of the candidate with time-series, 
     spectogram and the image. Can be used for ATels. 
     """
+    from matplotlib import gridspec
     segment, candint, dmind, dtind, beamnum = cd.loc
     st = cd.state
     scanid = cd.state.metadata.scanId
-    timewindow = st.prefs.timewindow
+    timewindow = cd.data.shape[0] #st.prefs.timewindow
     width_m = st.dtarr[dtind]
     tsamp = st.inttime*width_m
     dm = st.dmarr[dmind]
@@ -2178,11 +2179,11 @@ def atel_plot(cd, ticksize=15, labelsize=15, show=False, save=True):
 
     ax3.yaxis.tick_right()
 
-    src_ra, src_dec = candidates.source_location(pt_ra, pt_dec, l1, m1)
-    src_ra_high, _ = candidates.source_location(pt_ra, pt_dec, (l1arcm+sbeam*mult/2)/(57.3*60), m1)
-    src_ra_low, _ = candidates.source_location(pt_ra, pt_dec, (l1arcm-sbeam*mult/2)/(57.3*60), m1)
-    _, src_dec_high = candidates.source_location(pt_ra, pt_dec, l1, (m1arcm+sbeam*mult/2)/(57.3*60))
-    _, src_dec_low = candidates.source_location(pt_ra, pt_dec, l1,  (m1arcm-sbeam*mult/2)/(57.3*60))
+    src_ra, src_dec = source_location(pt_ra, pt_dec, l1, m1)
+    src_ra_high, _ = source_location(pt_ra, pt_dec, (l1arcm+sbeam*mult/2)/(57.3*60), m1)
+    src_ra_low, _ = source_location(pt_ra, pt_dec, (l1arcm-sbeam*mult/2)/(57.3*60), m1)
+    _, src_dec_high = source_location(pt_ra, pt_dec, l1, (m1arcm+sbeam*mult/2)/(57.3*60))
+    _, src_dec_low = source_location(pt_ra, pt_dec, l1,  (m1arcm-sbeam*mult/2)/(57.3*60))
 
     xlabels = [src_ra_high, '', '', '',  src_ra, '', '', '', src_ra_low]
     ylabels = [src_dec_low, '', '', '', src_dec, '' , '', '', src_dec_high]
