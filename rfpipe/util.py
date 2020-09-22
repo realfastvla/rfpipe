@@ -117,18 +117,66 @@ def meantsub(data, mode='mean'):
     elif mode == '2pt':
         logger.info('Subtracting 2pt time trend in visibility.')
         _2ptsub_jit(np.require(data, requirements='W'))
-    elif mode == 'cs':
-        npiece = 5
-        logger.info("Subtracting {0}-order spline time trend in visibility".format(npiece-1))
-        assert len(data) > npiece, "Too few integrations for {0}-order spline sub".format(npiece-1)
+    elif mode.startswith('cs') or mode.startswith('ls'):
+        # Accept for example 'cs5' to specify 5-piece processing
+        try:
+            npiece = int(mode[2:])
+        except ValueError:
+            npiece = 4
+        if mode[:2] == 'cs': 
+            kind = 'cubic'
+        elif mode[:2] == 'ls':
+            kind = 'linear'
+        logger.info("Subtracting {0}-piece {1} spline time trend in visibility".format(npiece,kind))
+        assert len(data) > npiece, "Too few integrations for {0}-piece spline sub".format(npiece)
         nint, nbl, nchan, npol = data.shape
         dataavg = np.empty((npiece, nbl, nchan, npol), dtype=np.complex64)
         _cssub0_jit(np.require(data, requirements='W'), dataavg, npiece)
         spline = interpolate.interp1d(np.array([(nint//npiece)*(i+0.5) for i in range(npiece)]),
                                       dataavg, axis=0, fill_value='extrapolate',
-                                      kind='cubic')
+                                      kind=kind)
         dataavginterp = spline(range(len(data)))
         _cssub1_jit(data, dataavginterp)
+    elif mode == 'linfit':
+        logger.info("Subtracting linear fit to visibility vs time")
+        nint, nbl, nchan, npol = data.shape
+        basis = np.empty((nint,2),dtype=np.float32)
+        basis[:,0] = 1.0
+        basis[:,1] = np.arange(nint)/float(nint)
+        _lssub_jit(data,basis)
+    elif mode == 'cubfit':
+        logger.info("Subtracting cubic fit to visibility vs time")
+        nint, nbl, nchan, npol = data.shape
+        basis = np.empty((nint,4),dtype=np.float32)
+        t = 2.0*np.arange(nint)/float(nint) - 1.0
+        basis[:,0] = 1.0
+        basis[:,1] = t
+        basis[:,2] = 0.5*(3.0*(t**2) - 1.0)
+        basis[:,3] = 0.5*(5.0*(t**3) - 3.0*t)
+        _lssub_jit(data,basis)
+    elif mode.startswith('splfit'):
+        try:
+            npiece = int(mode[6:])
+        except ValueError:
+            npiece = 2
+        logger.info("Subtracting {0}-piece cubic spline fit to visibility vs time".format(npiece))
+        nint, nbl, nchan, npol = data.shape
+        nb = npiece - 1
+        basis = np.empty((nint,nb+4),dtype=np.float32)
+        cfunc = np.empty((nint,nb),dtype=np.float32)
+        t = np.arange(nint) / float(nint)
+        for i in range(nb):
+            t0 = (i+1.0) / (nb+1.0)
+            ctmp = (t - t0)**3
+            ctmp[np.where(t<t0)] = 0.0
+            cfunc[:,i] = ctmp
+        basis[:,0] = 1.0
+        basis[:,1] = t
+        basis[:,2] = t**2
+        basis[:,3] = t**3
+        for i in range(nb):
+            basis[:,i+4] = cfunc[:,i]
+        _lssub_jit(data,basis)
     else:
         logger.warn("meantsub mode not recognized")
 
@@ -304,6 +352,36 @@ def _cssub1_jit(data, dataavginterp):
                         dataavginterp[l, i, j, k] = complex64(0)
                     data[l, i, j, k] -= dataavginterp[l, i, j, k]
 
+@jit(nogil=True, nopython=True, cache=True)
+def _lssub_jit(data, basis):
+    """Use least squares fit to subtract trend from data, ignoring zeros.
+    """
+
+    nt, nbl, nchan, npol = data.shape
+
+    nt0, nf = basis.shape
+    # Check that nt0==nt ... OK in these funcs?
+    assert nt0==nt
+
+    y = np.zeros(nt,dtype=np.complex64)
+    X = np.zeros((nt,nf),dtype=np.complex64)
+
+    # Loop over all non-time dimension
+    for ibl in range(nbl):
+        for ichan in range(nchan):
+            for ipol in range(npol):
+
+                # Fill in zeros in appropriate places
+                for i in range(nt):
+                    y[i] = data[i,ibl,ichan,ipol]
+                    if y[i]==0.0j:
+                        X[i,:] = 0.0
+                    else:
+                        X[i,:] = basis[i,:]
+
+                # numba claims to support this..
+                b, res, rank, s = np.linalg.lstsq(X, y)
+                data[:,ibl,ichan,ipol] -= np.dot(X,b)
 
 def _cssub(data, npiece):
     """ Use scipy interpolate to subtract quartic spline
