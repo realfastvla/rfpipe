@@ -117,17 +117,66 @@ def meantsub(data, mode='mean'):
     elif mode == '2pt':
         logger.info('Subtracting 2pt time trend in visibility.')
         _2ptsub_jit(np.require(data, requirements='W'))
-    elif mode == 'cs':
-        logger.info("Subtracting cubic spline time trend in visibility")
-        assert len(data) > 4, "Too few integrations for spline sub"
+    elif mode.startswith('cs') or mode.startswith('ls'):
+        # Accept for example 'cs5' to specify 5-piece processing
+        try:
+            npiece = int(mode[2:])
+        except ValueError:
+            npiece = 4
+        if mode[:2] == 'cs': 
+            kind = 'cubic'
+        elif mode[:2] == 'ls':
+            kind = 'linear'
+        logger.info("Subtracting {0}-piece {1} spline time trend in visibility".format(npiece,kind))
+        assert len(data) > npiece, "Too few integrations for {0}-piece spline sub".format(npiece)
         nint, nbl, nchan, npol = data.shape
-        piece = nint//4
-        dataavg = np.empty((4, nbl, nchan, npol), dtype=np.complex64)
-        _cssub0_jit(np.require(data, requirements='W'), dataavg)
-        spline = interpolate.interp1d(np.array([piece*(i+0.5) for i in range(4)]),
-                                      dataavg, axis=0, fill_value='extrapolate')
+        dataavg = np.empty((npiece, nbl, nchan, npol), dtype=np.complex64)
+        _cssub0_jit(np.require(data, requirements='W'), dataavg, npiece)
+        spline = interpolate.interp1d(np.array([(nint//npiece)*(i+0.5) for i in range(npiece)]),
+                                      dataavg, axis=0, fill_value='extrapolate',
+                                      kind=kind)
         dataavginterp = spline(range(len(data)))
         _cssub1_jit(data, dataavginterp)
+    elif mode == 'linfit':
+        logger.info("Subtracting linear fit to visibility vs time")
+        nint, nbl, nchan, npol = data.shape
+        basis = np.empty((nint,2),dtype=np.float32)
+        basis[:,0] = 1.0
+        basis[:,1] = np.arange(nint)/float(nint)
+        _lssub_jit(data,basis)
+    elif mode == 'cubfit':
+        logger.info("Subtracting cubic fit to visibility vs time")
+        nint, nbl, nchan, npol = data.shape
+        basis = np.empty((nint,4),dtype=np.float32)
+        t = 2.0*np.arange(nint)/float(nint) - 1.0
+        basis[:,0] = 1.0
+        basis[:,1] = t
+        basis[:,2] = 0.5*(3.0*(t**2) - 1.0)
+        basis[:,3] = 0.5*(5.0*(t**3) - 3.0*t)
+        _lssub_jit(data,basis)
+    elif mode.startswith('splfit'):
+        try:
+            npiece = int(mode[6:])
+        except ValueError:
+            npiece = 2
+        logger.info("Subtracting {0}-piece cubic spline fit to visibility vs time".format(npiece))
+        nint, nbl, nchan, npol = data.shape
+        nb = npiece - 1
+        basis = np.empty((nint,nb+4),dtype=np.float32)
+        cfunc = np.empty((nint,nb),dtype=np.float32)
+        t = np.arange(nint) / float(nint)
+        for i in range(nb):
+            t0 = (i+1.0) / (nb+1.0)
+            ctmp = (t - t0)**3
+            ctmp[np.where(t<t0)] = 0.0
+            cfunc[:,i] = ctmp
+        basis[:,0] = 1.0
+        basis[:,1] = t
+        basis[:,2] = t**2
+        basis[:,3] = t**3
+        for i in range(nb):
+            basis[:,i+4] = cfunc[:,i]
+        _lssub_jit(data,basis)
     else:
         logger.warn("meantsub mode not recognized")
 
@@ -250,46 +299,42 @@ def _2ptinterp_jit(data):
                         data[l, i, j, k] -= slope*(l-nint//2) + mean0
 
 
-def _cssub(data):
-    """ Use scipy interpolate to subtract cubic spline
-    Superseded by _cssub0_jit and _cssub1_jit with interpolation call.
-    """
-
-    # use 4 windows to make interp1d cubic spline function
-    nint = len(data)//4
-
-    dataavg = np.concatenate([data[nint*i:nint*(i+1)].mean(axis=0)[None,:,:,:]
-                              for i in range(4)], axis=0)
-    spline = interpolate.interp1d(np.array([nint*(i+0.5) for i in range(4)]),
-                              dataavg, axis=0, fill_value='extrapolate')
-
-    data -= spline(range(len(data)))
-
-
 @jit(nogil=True, nopython=True, cache=True)
-def _cssub0_jit(data, dataavg):
-    """ Use scipy calculate 4-pt mean as input to spline estimate.
+def _cssub0_jit(data, dataavg, npiece):
+    """ Use scipy calculate n-point mean as input to spline estimate.
     zeroed data is treated as flagged
     """
 
     nint, nbl, nchan, npol = data.shape
-    piece = nint//4
+    piece = nint//npiece
 
     for i in range(nbl):
         for j in range(nchan):
             for k in range(npol):
                 # mean in each piece
-                for pp in range(4):
+                for pp in range(npiece):
                     ss = complex64(0)
                     weight = int64(0)
                     for l in range(pp*piece, (pp+1)*piece):
                         ss += data[l, i, j, k]
                         if data[l, i, j, k] != 0j:
                             weight += 1
+
                     if weight > 0:
                         dataavg[pp, i, j, k] = ss/weight
                     else:
-                        dataavg[pp, i, j, k] = complex64(0)  # TODO: instead use nearest?
+                        # option 1: replace with nearest, if possible
+                        if j > 0:  # nearest channel
+                            dataavg[pp, i, j, k] = dataavg[pp, i, j-1, k]
+                        elif pp > 0:  # nearest time piece
+                            dataavg[pp, i, j, k] = dataavg[pp-1, i, j, k]
+                        elif i > 0:  # nearest time piece
+                            dataavg[pp, i, j, k] = dataavg[pp, i-1, j, k]
+                        else:
+                            dataavg[pp, i, j, k] = complex64(0)
+
+                        # option 2: set to zero
+#                        dataavg[pp, i, j, k] = complex64(0)
 
 
 @jit(nogil=True, nopython=True, cache=True)
@@ -306,6 +351,52 @@ def _cssub1_jit(data, dataavginterp):
                     if data[l, i, j, k] == 0j:
                         dataavginterp[l, i, j, k] = complex64(0)
                     data[l, i, j, k] -= dataavginterp[l, i, j, k]
+
+@jit(nogil=True, nopython=True, cache=True)
+def _lssub_jit(data, basis):
+    """Use least squares fit to subtract trend from data, ignoring zeros.
+    """
+
+    nt, nbl, nchan, npol = data.shape
+
+    nt0, nf = basis.shape
+    # Check that nt0==nt ... OK in these funcs?
+    assert nt0==nt
+
+    y = np.zeros(nt,dtype=np.complex64)
+    X = np.zeros((nt,nf),dtype=np.complex64)
+
+    # Loop over all non-time dimension
+    for ibl in range(nbl):
+        for ichan in range(nchan):
+            for ipol in range(npol):
+
+                # Fill in zeros in appropriate places
+                for i in range(nt):
+                    y[i] = data[i,ibl,ichan,ipol]
+                    if y[i]==0.0j:
+                        X[i,:] = 0.0
+                    else:
+                        X[i,:] = basis[i,:]
+
+                # numba claims to support this..
+                b, res, rank, s = np.linalg.lstsq(X, y)
+                data[:,ibl,ichan,ipol] -= np.dot(X,b)
+
+def _cssub(data, npiece):
+    """ Use scipy interpolate to subtract quartic spline
+    Superseded by _cssub0_jit and _cssub1_jit with interpolation call.
+    npiece is the number of points to use for spline.
+    """
+
+    # use windows to make interp1d cubic spline function
+    nint = len(data)//npiece
+    dataavg = np.concatenate([data[nint*i:nint*(i+1)].mean(axis=0)[None,:,:,:]
+                              for i in range(npiece)], axis=0)
+    spline = interpolate.interp1d(np.array([nint*(i+0.5) for i in range(npiece)]),
+                              dataavg, axis=0, fill_value='extrapolate')
+
+    data -= spline(range(len(data)))
 
 
 @jit(nogil=True, nopython=True, cache=True)
