@@ -640,7 +640,7 @@ def cluster_candidates(cc, downsample=None, returnclusterer=False,
                         .format(len(data)))
             min_cluster_size = len(data)
 
-        clusterer = hdbscan.HDBSCAN(metric='hamming',
+        clusterer = hdbscan.HDBSCAN(metric='euclidean',
                                     min_cluster_size=min_cluster_size,
                                     min_samples=min_samples,
                                     cluster_selection_method='eom',
