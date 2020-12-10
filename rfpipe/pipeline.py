@@ -84,14 +84,14 @@ def prep_and_search(st, segment, data, devicenum=None, returnsoltime=False):
     return candcollection
 
 
-def pipeline_sdm(sdm, inprefs=None, intent='TARGET', preffile=None):
+def pipeline_sdm(sdm, inprefs=None, intent='TARGET', preffile=None, devicenum=None):
     """ Get scans from SDM and run search.
     intent can be partial match to any of scan intents.
     """
 
-    from rfpipe import state, metadata
+    from rfpipe import state, util, metadata
 
-    scans = list(metadata.getsdm(sdm).scans())
+    scans = list(util.getsdm(sdm).scans())
     intents = [scan.intents for scan in scans]
     logger.info("Found {0} scans of intents {1} in {2}"
                 .format(len(scans), intents, sdm))
@@ -102,6 +102,8 @@ def pipeline_sdm(sdm, inprefs=None, intent='TARGET', preffile=None):
 
     ccs = []
     for scannum in scannums:
+        band = metadata.sdmband(sdmfile=sdm, sdmscan=scannum)
         st = state.State(sdmfile=sdm, sdmscan=scannum, inprefs=inprefs,
-                         preffile=preffile)
-        ccs.append(pipeline_scan(st))
+                         preffile=preffile, name='NRAOdefault'+band)
+        ccs.append(pipeline_scan(st, devicenum=devicenum))
+    return ccs
