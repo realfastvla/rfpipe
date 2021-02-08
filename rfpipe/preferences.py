@@ -96,7 +96,8 @@ class Preferences(object):
     
     clustercands = attr.ib(default=None)  # 2-tuple with hdbscan params (min_cluster_size, min_samples)
     cluster_downsampling = attr.ib(default=1)  # int to downsampling xy pixels to encourage clustering
-    max_candfrac = attr.ib(default=0.2)  # max allowed fraction of all trials with candidates
+    max_candfrac = attr.ib(default=0.1)  # max allowed fraction of all trials with candidates
+    max_clustercount = attr.ib(default=100)  # maximum number of clusters returned from search/clustering step
 
     savenoise = attr.ib(default=False)
     savecandcollection = attr.ib(default=False)

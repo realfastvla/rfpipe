@@ -206,6 +206,14 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
     if st.prefs.clustercands:
         cc = candidates.cluster_candidates(cc)
 
+        # check for too many clusters
+        ncl = np.unique(cc.cluster)
+        if st.prefs.max_clustercount is not None:
+            if ncl > max_clustercount:
+                cc = candidates.make_candcollection(st,
+                                                    candloc=[(0, -1, 0, 0, 0)],
+                                                    ncands=[len(cc)])
+
     return cc
 
 
@@ -489,6 +497,14 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
     # add cluster labels to candidates
     if st.prefs.clustercands:
         cc = candidates.cluster_candidates(cc)
+
+        # check for too many clusters
+        ncl = np.unique(cc.cluster)
+        if st.prefs.max_clustercount is not None:
+            if ncl > max_clustercount:
+                cc = candidates.make_candcollection(st,
+                                                    candloc=[(0, -1, 0, 0, 0)],
+                                                    ncands=[len(cc)])
 
         # TODO: find a way to return values as systematic data quality test
 

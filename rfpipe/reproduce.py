@@ -27,6 +27,8 @@ def reproduce_candcollection(cc, data=None, wisdom=None, spec_std=None,
     st = cc.state
     cc1 = candidates.CandCollection(prefs=st.prefs, metadata=st.metadata)
 
+    # TODO: check that cc locs with integration=-1 are skipped
+
     if len(cc):
         if 'cluster' in cc.array.dtype.fields:
             clusters = cc.array['cluster'].astype(int)
