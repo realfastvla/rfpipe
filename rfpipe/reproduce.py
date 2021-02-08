@@ -27,8 +27,6 @@ def reproduce_candcollection(cc, data=None, wisdom=None, spec_std=None,
     st = cc.state
     cc1 = candidates.CandCollection(prefs=st.prefs, metadata=st.metadata)
 
-    # TODO: check that cc locs with integration=-1 are skipped
-
     if len(cc):
         if 'cluster' in cc.array.dtype.fields:
             clusters = cc.array['cluster'].astype(int)
@@ -138,7 +136,7 @@ def pipeline_dataprep(st, candloc):
     return data_prep
 
 
-def pipeline_datacorrect(st, candloc, data_prep=None):
+def pipeline_datacorrect(st, candloc, data_prep=np.array([])):
     """ Prepare and correct for dm and dt sampling of a given candloc
     Can optionally pass in prepared (flagged, calibrated) data, if available.
     """
@@ -146,7 +144,7 @@ def pipeline_datacorrect(st, candloc, data_prep=None):
     from rfpipe import util
     import rfpipe.search
 
-    if data_prep is None:
+    if not len(data_prep):
         data_prep = pipeline_dataprep(st, candloc)
 
     segment, candint, dmind, dtind, beamnum = candloc
@@ -166,7 +164,7 @@ def pipeline_datacorrect(st, candloc, data_prep=None):
     return data_dmdt
 
 
-def pipeline_canddata(st, candloc, data_dmdt=None, spec_std=None, cpuonly=False,
+def pipeline_canddata(st, candloc, data_dmdt=np.array([]), spec_std=None, cpuonly=False,
                       sig_ts=[], kalman_coeffs=[], **kwargs):
     """ Generate image and phased visibility data for candloc.
     Phases to peak pixel in image of candidate.
@@ -185,7 +183,7 @@ def pipeline_canddata(st, candloc, data_dmdt=None, spec_std=None, cpuonly=False,
     uvw = util.get_uvw_segment(st, segment, pc_mjd=pc, pc_radec=pc)
     wisdom = rfpipe.search.set_wisdom(st.npixx, st.npixy)
 
-    if data_dmdt is None:
+    if not len(data_dmdt):
         data_dmdt = pipeline_datacorrect(st, candloc)
 
     if ('snrk' in st.features and
@@ -226,7 +224,7 @@ def pipeline_canddata(st, candloc, data_dmdt=None, spec_std=None, cpuonly=False,
     return canddata
 
 
-def pipeline_candidate(st, candloc, canddata=None):
+def pipeline_candidate(st, candloc, canddata=np.array([])):
     """ End-to-end pipeline to reproduce candidate plot and calculate features.
     Can optionally pass in canddata, if available.
     *TODO: confirm that cc returned by this has clustering and other enhanced features*
@@ -236,7 +234,7 @@ def pipeline_candidate(st, candloc, canddata=None):
 
     segment, candint, dmind, dtind, beamnum = candloc
 
-    if canddata is None:
+    if not len(canddata):
         canddata = pipeline_canddata(st, candloc)
 
     candcollection = candidates.cd_to_cc(canddata)

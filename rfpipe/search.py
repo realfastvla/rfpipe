@@ -203,7 +203,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                                                 ncands=[len(cc)])
 
     # add cluster labels to candidates
-    if st.prefs.clustercands:
+    if st.prefs.clustercands and len(cc):
         cc = candidates.cluster_candidates(cc)
 
         # check for too many clusters
@@ -490,14 +490,14 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
                 total_integrations += len(st.get_search_ints(segment, dmind,
                                                              dtind))
         if len(cc)/total_integrations > st.prefs.max_candfrac:
-            logger.warning("Too many candidates ({0} in {1} images). Flagging."
+            logger.warning("Too many candidates ({0} in {1} images). Returning null candidate."
                            .format(len(cc), total_integrations))
             cc = candidates.make_candcollection(st,
                                                 candloc=[(0, -1, 0, 0, 0)],
                                                 ncands=[len(cc)])
 
     # add cluster labels to candidates
-    if st.prefs.clustercands:
+    if st.prefs.clustercands and len(cc):
         cc = candidates.cluster_candidates(cc)
 
         # check for too many clusters
