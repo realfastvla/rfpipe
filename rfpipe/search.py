@@ -196,7 +196,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
                 total_integrations += len(st.get_search_ints(segment, dmind,
                                                              dtind))
         if len(cc)/total_integrations > st.prefs.max_candfrac:
-            logger.warning("Too many candidates ({0} in {1} images). Flagging."
+            logger.warning("Too many candidates ({0} in {1} images). Returning null candidate."
                            .format(len(cc), total_integrations))
             cc = candidates.make_candcollection(st,
                                                 candloc=[(0, -1, 0, 0, 0)],
@@ -209,7 +209,9 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
         # check for too many clusters
         ncl = np.unique(cc.cluster)
         if st.prefs.max_clustercount is not None:
-            if ncl > max_clustercount:
+            if ncl > st.prefs.max_clustercount:
+                logger.warning("Too many clusters ({0} > {1}). Returning null candidate."
+                               .format(ncl, st.prefs.max_clustercount))
                 cc = candidates.make_candcollection(st,
                                                     candloc=[(0, -1, 0, 0, 0)],
                                                     ncands=[len(cc)])
@@ -501,7 +503,9 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
         # check for too many clusters
         ncl = np.unique(cc.cluster)
         if st.prefs.max_clustercount is not None:
-            if ncl > max_clustercount:
+            if ncl > st.prefs.max_clustercount:
+                logger.warning("Too many clusters ({0} > {1}). Returning null candidate."
+                               .format(ncl, st.prefs.max_clustercount))
                 cc = candidates.make_candcollection(st,
                                                     candloc=[(0, -1, 0, 0, 0)],
                                                     ncands=[len(cc)])
