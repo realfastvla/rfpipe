@@ -207,7 +207,7 @@ def dedisperse_search_cuda(st, segment, data, devicenum=None):
         cc = candidates.cluster_candidates(cc)
 
         # check for too many clusters
-        ncl = np.unique(cc.cluster)
+        ncl = len(np.unique(cc.cluster))
         if st.prefs.max_clustercount is not None:
             if ncl > st.prefs.max_clustercount:
                 logger.warning("Too many clusters ({0} > {1}). Returning null candidate."
@@ -501,7 +501,7 @@ def dedisperse_search_fftw(st, segment, data, wisdom=None):
         cc = candidates.cluster_candidates(cc)
 
         # check for too many clusters
-        ncl = np.unique(cc.cluster)
+        ncl = len(np.unique(cc.cluster))
         if st.prefs.max_clustercount is not None:
             if ncl > st.prefs.max_clustercount:
                 logger.warning("Too many clusters ({0} > {1}). Returning null candidate."
