@@ -18,8 +18,8 @@ EMAIL = 'claw@astro.berkeley.edu'
 AUTHOR = 'Casey Law'
 
 # What packages are required for this module to be executed?
-REQUIRED = ['numpy', 'scipy', 'sdmpy', 'pyfftw', 'bokeh', 'cython', 'scikit-learn<0.21',
-            'attrs', 'future', 'astropy', 'pyyaml', 'numba', 'fuzzywuzzy', 'hdbscan',  # hdbscan<0.8.19?
+REQUIRED = ['numpy', 'scipy', 'sdmpy', 'pyfftw', 'bokeh', 'cython', 'scikit-learn',
+            'attrs', 'future', 'astropy', 'pyyaml', 'numba', 'fuzzywuzzy',
             'matplotlib', 'kalman_detector', 'seaborn', 'h5py']
             # pip install --extra-index-url https://casa-pip.nrao.edu:443/repository/pypi-group/simple casatools
             # optional 'rfgpu', 'distributed'
