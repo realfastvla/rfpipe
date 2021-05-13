@@ -13,6 +13,7 @@ from scipy import constants, interpolate
 import sdmpy
 from rfpipe import calibration
 from astropy import time, coordinates
+from astropy.utils.data import import_download_cache
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(20)

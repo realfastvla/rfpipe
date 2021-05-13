@@ -3,7 +3,7 @@ from builtins import bytes, dict, object, range, map, input, str
 from future.utils import itervalues, viewitems, iteritems, listvalues, listitems
 from io import open
 
-import rfpipe
+import rfpipe, rfpipe.search
 import pytest
 from astropy import time
 import numpy as np

@@ -1,5 +1,5 @@
 import pytest
-import rfpipe
+import rfpipe, rfpipe.search
 from astropy import time
 import numpy as np
 import os.path
