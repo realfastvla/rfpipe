@@ -23,7 +23,7 @@ from scipy.special import erfinv
 from bokeh.models import HoverTool
 from bokeh.models import Row
 from collections import OrderedDict
-import hdbscan
+from sklearn import cluster
 
 import logging
 logger = logging.getLogger(__name__)
@@ -592,7 +592,7 @@ def make_candcollection(st, **kwargs):
 
 def cluster_candidates(cc, downsample=None, returnclusterer=False,
                        label_unclustered=True):
-    """ Perform density based clustering on candidates using HDBSCAN
+    """ Perform density based clustering on candidates using dbscan
     parameters used for clustering: dm, time, l,m.
     downsample will group spatial axes prior to running clustering.
     Taken from cc.prefs.cluster_downsampling by default.
@@ -640,11 +640,14 @@ def cluster_candidates(cc, downsample=None, returnclusterer=False,
                         .format(len(data)))
             min_cluster_size = len(data)
 
-        clusterer = hdbscan.HDBSCAN(metric='euclidean',
-                                    min_cluster_size=min_cluster_size,
-                                    min_samples=min_samples,
-                                    cluster_selection_method='eom',
-                                    allow_single_cluster=True).fit(data)
+#        clusterer = hdbscan.HDBSCAN(metric='euclidean',
+#                                    min_cluster_size=min_cluster_size,
+#                                    min_samples=min_samples,
+#                                    cluster_selection_method='eom',
+#                                    allow_single_cluster=True).fit(data)
+
+        clusterer = cluster.DBSCAN(metric='chebyshev', min_samples=min_samples,
+                                   eps=14, algorithm='auto', leaf_size=23).fit(data)
         nclustered = np.max(clusterer.labels_ + 1)
         nunclustered = len(np.where(clusterer.labels_ == -1)[0])
 
