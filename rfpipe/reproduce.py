@@ -316,8 +316,12 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
         assert isinstance(cd, candidates.CandData)
 
         if classify:
-            frbprob = candidates.cd_to_fetch(cd, classify=True, devicenum=devicenum, mode='CPU')
-            logging.info('FETCH FRB Probability of the candidate {0} is {1}'.format(cd.candid, frbprob))
+            try:
+                frbprob = candidates.cd_to_fetch(cd, classify=True, devicenum=devicenum, mode='CPU')
+                logging.info('FETCH FRB Probability of the candidate {0} is {1}'.format(cd.candid, frbprob))
+            except AttributeError:
+                logging.info('FETCH classification failed.')
+                frbprob = None
         else:
             frbprob = None
 
