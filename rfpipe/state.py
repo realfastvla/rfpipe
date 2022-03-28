@@ -82,7 +82,7 @@ class State(object):
             assert self.validate() is True
 
         if self.prefs.sigma_image1 is None and (validate or showsummary):
-            self.prefs.sigma_image1 = self.thresholdlevel(0.5)
+            self.prefs.sigma_image1 = self.thresholdlevel(0.1)  # sigma set for given nfalse/scan
 
         if showsummary:
             self.summarize()
