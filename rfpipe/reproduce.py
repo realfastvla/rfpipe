@@ -287,8 +287,15 @@ def refine_sdm(sdmname, dm, preffile='realfast.yml', gainpath='/home/mchammer/ev
     band = metadata.sdmband(sdmfile=sdmname, sdmscan=1, bdfdir=bdfdir)
     cc = None
 
+    if 'VLASS' in sdmname:
+        prefname = 'VLASS'
+    elif '20A-346' in sdmname:
+        prefname = '20A-346'
+    else:
+        prefname = 'NRAOdefault'+band
+
     try:
-        st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name='NRAOdefault'+band, showsummary=False, bdfdir=bdfdir)
+        st = state.State(sdmfile=sdmname, sdmscan=1, inprefs=prefs, preffile=preffile, name=prefname, showsummary=False, bdfdir=bdfdir)
     except AssertionError:
         try:
             logger.warning("Could not generate state with full image. Trying with npix_max at 2x original image size...")
